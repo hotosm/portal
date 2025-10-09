@@ -11,7 +11,7 @@ install: ## Install all dependencies
 	@echo "Installing frontend dependencies..."
 	cd frontend && pnpm install
 	@echo "Installing backend dependencies..."
-	cd backend && uv sync
+	cd backend && uv sync --all-extras
 	@echo "✓ Dependencies installed"
 
 # Development (Local)
