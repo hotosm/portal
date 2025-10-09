@@ -117,8 +117,6 @@ jobs:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USER: ${{ secrets.EC2_USER }}
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           # Setup SSH
           mkdir -p ~/.ssh
@@ -142,15 +140,7 @@ jobs:
             # Pull latest images
             docker-compose pull
 
-            # Update environment variables
-            cat > .env << EOV
-          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-          DATABASE_URL=${{ secrets.DATABASE_URL }}
-          BACKEND_TARGET=production
-          FRONTEND_TARGET=production
-          EOV
-
-            # Restart services
+            # Restart services (uses .env.example values)
             docker-compose --profile prod up -d
 
             # Clean up old images
