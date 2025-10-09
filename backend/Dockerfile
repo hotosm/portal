@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 # Copy dependency files
-COPY pyproject.toml .python-version ./
+COPY pyproject.toml ./
 
 # Install dependencies with uv (including dev dependencies)
 RUN uv sync
@@ -42,7 +42,7 @@ RUN apt-get update && apt-get install -y \
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 # Copy dependency files
-COPY pyproject.toml .python-version ./
+COPY pyproject.toml ./
 
 # Install only production dependencies
 RUN uv sync --no-dev
