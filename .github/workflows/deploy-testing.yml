@@ -43,7 +43,7 @@ jobs:
 
       - name: Install backend dependencies
         working-directory: ./backend
-        run: uv sync
+        run: uv sync --all-extras
 
       - name: Run backend tests
         working-directory: ./backend
