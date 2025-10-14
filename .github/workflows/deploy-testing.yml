@@ -159,8 +159,8 @@ jobs:
           EC2_HOST: ${{ secrets.EC2_HOST }}
         run: |
           sleep 30
-          curl -f http://$EC2_HOST/health || exit 1
-          echo "✓ Service health check passed"
+          curl -f http://$EC2_HOST:8000/health || exit 1
+          echo "✓ Backend health check passed"
 
       - name: Notify deployment status
         if: always()
