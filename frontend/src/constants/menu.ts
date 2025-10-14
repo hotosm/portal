@@ -30,7 +30,7 @@ export const MAIN_MENU_ITEMS: MenuItem[] = [
   {
     id: "data",
     label: "Data",
-    href: "/date",
+    href: "/data",
     requiresAuth: false,
   },
 ];
