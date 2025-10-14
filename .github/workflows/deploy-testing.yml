@@ -77,8 +77,8 @@ jobs:
     name: Deploy to EC2
     runs-on: ubuntu-latest
     needs: test
-    # Only deploy if secrets are configured (EC2 server is ready)
-    if: github.ref == 'refs/heads/develop' && secrets.EC2_HOST != ''
+    environment: Development
+    if: github.ref == 'refs/heads/develop'
 
     steps:
       - name: Checkout code
