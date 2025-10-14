@@ -24,14 +24,14 @@ function Navigation() {
 
   return (
     <div>
-      <wa-drawer label="Drawer" without-header class="drawer-without-header">
+      <wa-drawer label="Drawer" without-header className="drawer-without-header">
         Lorem ipsum dolor sit amet, consectetur adipiscing elit.
         <wa-button slot="footer" variant="brand" data-drawer="close">
           Close
         </wa-button>
       </wa-drawer>
 
-      <wa-button class="open-drawer-btn">Open </wa-button>
+      <wa-button className="open-drawer-btn">Open </wa-button>
     </div>
   );
 }
