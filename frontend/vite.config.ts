@@ -14,6 +14,9 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    target: 'esnext', // Support top-level await
+  },
   test: {
     globals: true,
     environment: 'jsdom',
