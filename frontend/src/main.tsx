@@ -5,6 +5,7 @@ import App from "./App";
 import "./styles/index.css";
 
 // Ensure all WebAwesome components are loaded before rendering
+// TODO check
 await allDefined();
 
 // add providers here
