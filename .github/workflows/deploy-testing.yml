@@ -143,10 +143,10 @@ jobs:
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
             # Pull latest images
-            docker-compose pull
+            docker compose pull
 
             # Restart services (uses .env.example values)
-            docker-compose --profile prod up -d
+            docker compose --profile prod up -d
 
             # Clean up old images
             docker image prune -af
