@@ -6,7 +6,7 @@ import App from "./App";
 import "./styles/index.css";
 
 // Import Hanko auth web component
-import "../../packages/web-component/dist/hanko-auth.esm.js";
+import "../../auth-libs/web-component/dist/hanko-auth.esm.js";
 
 // Set Hanko URL for authentication
 window.HANKO_URL = import.meta.env.VITE_HANKO_URL || "https://login.hotosm.org";
