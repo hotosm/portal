@@ -1,0 +1,34 @@
+{
+  "name": "@hotosm/hanko-auth",
+  "version": "0.1.0",
+  "description": "Web component for HOTOSM SSO authentication with Hanko and OSM integration",
+  "main": "dist/hanko-auth.js",
+  "module": "dist/hanko-auth.esm.js",
+  "types": "dist/hanko-auth.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "hanko",
+    "auth",
+    "sso",
+    "openstreetmap",
+    "osm",
+    "hotosm",
+    "web-component"
+  ],
+  "author": "HOTOSM",
+  "license": "AGPL-3.0",
+  "dependencies": {
+    "@teamhanko/hanko-elements": "^1.0.0"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}
