@@ -1,38 +1,53 @@
-import { useEffect } from "react";
-// TODO check how to avoid this
-import "@awesome.me/webawesome/dist/components/drawer/drawer.js";
-import "@awesome.me/webawesome/dist/components/button/button.js";
+import WaDrawer from "@awesome.me/webawesome/dist/react/drawer/index.js";
+import { MAIN_MENU_ITEMS } from "../constants/menu";
+import Button from "./shared/Button";
+import Icon from "./shared/Icon";
+
+function MainMenuContent() {
+  return (
+    <>
+      <div className="flex flex-col sm:flex-row gap-md">
+        {MAIN_MENU_ITEMS.map((item) => (
+          <a
+            key={item.id}
+            className="text-lg font-barlow text-hot-primary"
+            href={item.href}
+          >
+            {item.label}
+          </a>
+        ))}
+      </div>
+    </>
+  );
+}
 
 function Navigation() {
-  useEffect(() => {
-    // Give components time to initialize
-    const timer = setTimeout(() => {
-      const drawer = document.querySelector(".drawer-without-header");
-      const openButton = document.querySelector(".open-drawer-btn");
-
-      if (drawer && openButton) {
-        // Ensure drawer starts closed
-        drawer.open = false;
-
-        const handleClick = () => (drawer.open = true);
-        openButton.addEventListener("click", handleClick);
-      }
-    }, 100);
-
-    return () => clearTimeout(timer);
-  }, []);
-
   return (
-    <div>
-      <wa-drawer label="Drawer" without-header className="drawer-without-header">
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-        <wa-button slot="footer" variant="brand" data-drawer="close">
-          Close
-        </wa-button>
-      </wa-drawer>
+    <>
+      {/* mobile menu */}
+      <div className="block sm:hidden">
+        <WaDrawer label="Menu" id="mobile-drawer">
+          <MainMenuContent />
+        </WaDrawer>
 
-      <wa-button className="open-drawer-btn">Open </wa-button>
-    </div>
+        <Button
+          onClick={() => {
+            const drawer = document.getElementById("mobile-drawer") as any;
+            if (drawer) drawer.open = true;
+          }}
+          variant="neutral"
+          appearance="plain"
+          aria-label="Open menu"
+        >
+          <Icon name="bars" label="Menu"></Icon>
+        </Button>
+      </div>
+
+      {/* desktop menu */}
+      <div className="hidden sm:block">
+        <MainMenuContent />
+      </div>
+    </>
   );
 }
 
