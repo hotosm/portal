@@ -18,8 +18,6 @@ interface ImportMeta {
 }
 
 // Global window extensions
-declare global {
-  interface Window {
-    HANKO_URL?: string;
-  }
+interface Window {
+  HANKO_URL?: string;
 }
