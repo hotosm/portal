@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import hotLogo from "../assets/images/hot-logo.svg";
 import Navigation from "./Navigation";
 import Dialog from "./shared/Dialog";
@@ -8,7 +9,7 @@ function Header() {
     <>
       <div className="flex gap-xl py-md justify-between items-center">
         <div className="flex gap-xl">
-          <a href="/">
+          <Link to="/">
             <img
               src={hotLogo}
               alt="HOT Logo"
@@ -17,18 +18,18 @@ function Header() {
                 width: "158px",
               }}
             />
-          </a>
+          </Link>
 
           <Navigation />
         </div>
         <div className="flex gap-md items-center">
-          <a
-            href="/"
-            className="text-lg font-barlow text-hot-primary"
+          <Link
+            to="/login"
+            className="text-sm sm:text-lg font-barlow text-hot-primary"
             aria-label="Log in to your account"
           >
             Log in
-          </a>
+          </Link>
           <Icon
             name="grip"
             onClick={() => {
