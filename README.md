@@ -123,7 +123,7 @@ OSM_CLIENT_SECRET=your-osm-client-secret
 
 **For development**, the default Hanko URL (`https://login.hotosm.org`) is already configured in `.env.example`. Copy it to `.env` and update `COOKIE_SECRET` for production deployments.
 
-See [`packages/README.md`](packages/README.md) for detailed authentication documentation.
+See [`auth-libs/README.md`](auth-libs/README.md) for detailed authentication documentation.
 
 ## Development
 
