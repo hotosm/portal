@@ -105,6 +105,26 @@ make migrate
 
 **Note**: For local development without Docker, see the [Development](#development) section below.
 
+### Authentication Setup (Optional)
+
+Portal uses [Hanko](https://hanko.io/) for SSO authentication with optional OpenStreetMap OAuth integration.
+
+**Configuration:**
+```bash
+# In .env file
+VITE_HANKO_URL=https://login.hotosm.org       # Frontend
+HANKO_API_URL=https://login.hotosm.org        # Backend
+COOKIE_SECRET=your-secret-key-min-32-bytes    # Backend (change in production!)
+
+# Optional: OpenStreetMap OAuth
+OSM_CLIENT_ID=your-osm-client-id
+OSM_CLIENT_SECRET=your-osm-client-secret
+```
+
+**For development**, the default Hanko URL (`https://login.hotosm.org`) is already configured in `.env.example`. Copy it to `.env` and update `COOKIE_SECRET` for production deployments.
+
+See [`packages/README.md`](packages/README.md) for detailed authentication documentation.
+
 ## Development
 
 ### Option 1: Docker (Recommended)

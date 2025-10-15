@@ -23,13 +23,9 @@ function Header() {
           <Navigation />
         </div>
         <div className="flex gap-md items-center">
-          <Link
-            to="/login"
-            className="text-sm sm:text-lg font-barlow text-hot-primary"
-            aria-label="Log in to your account"
-          >
-            Log in
-          </Link>
+          {/* Hanko Auth Component */}
+          <hotosm-auth show-profile={false} />
+
           <Icon
             name="grip"
             onClick={() => {
