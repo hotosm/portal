@@ -145,8 +145,8 @@ jobs:
             # Pull latest images
             docker compose pull
 
-            # Restart services (uses .env.example values)
-            docker compose --profile prod up -d
+            # Restart services with force recreate (uses .env.example values)
+            docker compose --profile prod up -d --force-recreate
 
             # Clean up old images
             docker image prune -af
