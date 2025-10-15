@@ -1,5 +1,5 @@
-import { HealthCheck } from "./components/HealthCheck";
 import Header from "./components/Header";
+import { AppRoutes } from "./routes";
 import "./styles/index.css";
 
 function App() {
@@ -8,7 +8,7 @@ function App() {
       <Header />
 
       <main>
-        <HealthCheck />
+        <AppRoutes />
       </main>
     </div>
   );

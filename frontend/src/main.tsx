@@ -1,6 +1,7 @@
 import { allDefined } from "@awesome.me/webawesome/dist/webawesome.js";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./styles/index.css";
 
@@ -12,7 +13,9 @@ await allDefined();
 function Root() {
   return (
     <StrictMode>
-      <AppContent />
+      <BrowserRouter>
+        <AppContent />
+      </BrowserRouter>
     </StrictMode>
   );
 }

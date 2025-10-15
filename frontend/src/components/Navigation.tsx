@@ -1,20 +1,20 @@
 import WaDrawer from "@awesome.me/webawesome/dist/react/drawer/index.js";
-import { MAIN_MENU_ITEMS } from "../constants/menu";
+import { Link } from "react-router-dom";
 import Button from "./shared/Button";
 import Icon from "./shared/Icon";
-
+import { MAIN_MENU_ITEMS } from "../constants/menu";
 function MainMenuContent() {
   return (
     <>
       <div className="flex flex-col sm:flex-row gap-md">
         {MAIN_MENU_ITEMS.map((item) => (
-          <a
+          <Link
             key={item.id}
             className="text-lg font-barlow text-hot-primary"
-            href={item.href}
+            to={item.href}
           >
             {item.label}
-          </a>
+          </Link>
         ))}
       </div>
     </>
