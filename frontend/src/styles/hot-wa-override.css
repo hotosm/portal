@@ -630,3 +630,19 @@ button:disabled {
   transform: none;
   box-shadow: none;
 }
+
+/* ADDED FOR PORTAL */
+/* Remove shadows from plain buttons */
+wa-button[appearance="plain"]::part(base) {
+  box-shadow: none;
+}
+
+wa-button[appearance="plain"]::part(base):hover {
+  box-shadow: none;
+  transform: none;
+}
+
+wa-button[appearance="plain"]::part(base):active {
+  box-shadow: none;
+  transform: none;
+}
