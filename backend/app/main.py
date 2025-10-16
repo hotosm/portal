@@ -4,6 +4,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from hotosm_auth import AuthConfig
+from hotosm_auth.integrations.fastapi import init_auth
 
 from app.api.routes import example
 from app.core.config import settings
@@ -19,6 +21,18 @@ async def lifespan(app: FastAPI):
     """
     # Startup
     print("Starting up...")
+
+    # Initialize authentication
+    auth_config = AuthConfig(
+        hanko_api_url=settings.hanko_api_url,
+        cookie_secret=settings.cookie_secret,
+        cookie_domain=settings.cookie_domain,
+        osm_client_id=settings.osm_client_id,
+        osm_client_secret=settings.osm_client_secret,
+    )
+    init_auth(auth_config)
+    print("Authentication initialized")
+
     yield
     # Shutdown
     print("Shutting down...")
@@ -84,6 +98,12 @@ app.include_router(
     prefix=settings.api_v1_prefix,
     tags=["example"],
 )
+
+# Include authentication routers (OSM OAuth)
+# Import here to avoid circular dependencies
+from hotosm_auth.integrations.fastapi_osm_routes import router as osm_router
+
+app.include_router(osm_router)
 
 
 # Root endpoint

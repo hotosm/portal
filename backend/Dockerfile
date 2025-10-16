@@ -13,14 +13,17 @@ RUN apt-get update && apt-get install -y \
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Copy dependency files
-COPY pyproject.toml ./
+# Copy hotosm-auth library from monorepo (needed as local dependency)
+COPY frontend/auth-libs/python /hotosm-auth
+
+# Copy backend dependency files
+COPY backend/pyproject.toml ./
 
 # Install dependencies with uv (including dev dependencies)
 RUN uv sync
 
-# Copy application code
-COPY . .
+# Copy backend application code
+COPY backend/ .
 
 # Expose port
 EXPOSE 8000
@@ -41,14 +44,17 @@ RUN apt-get update && apt-get install -y \
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Copy dependency files
-COPY pyproject.toml ./
+# Copy hotosm-auth library from monorepo (needed as local dependency)
+COPY frontend/auth-libs/python /hotosm-auth
+
+# Copy backend dependency files
+COPY backend/pyproject.toml ./
 
 # Install only production dependencies
 RUN uv sync --no-dev
 
-# Copy application code
-COPY app ./app
+# Copy backend application code
+COPY backend/app ./app
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
