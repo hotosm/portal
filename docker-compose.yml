@@ -70,7 +70,6 @@ services:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:
       - ./backend:/app
-      - ./frontend/auth-libs/python:../frontend/auth-libs/python:ro  # Mount for hot-reload
     depends_on:
       db:
         condition: service_healthy
