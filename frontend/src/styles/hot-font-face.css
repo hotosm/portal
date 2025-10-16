@@ -12,6 +12,15 @@
   src: url("/fonts/Archivo-Bold.ttf");
   font-display: swap;
   font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Archivo";
+  src: url("/fonts/Archivo-ExtraLightItalic.ttf");
+  font-display: swap;
+  font-weight: 100;
+  font-style: italic;
 }
 
 /* variant */
@@ -21,6 +30,13 @@
   src: url("/fonts/Barlow-Bold.ttf");
   font-display: swap;
   font-weight: 700;
+}
+
+@font-face {
+  font-family: "Barlow Light";
+  src: url("/fonts/Barlow-Light.ttf");
+  font-display: swap;
+  font-weight: 400;
 }
 
 @font-face {
