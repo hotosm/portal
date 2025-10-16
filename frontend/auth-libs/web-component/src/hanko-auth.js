@@ -142,10 +142,10 @@ class HankoAuth extends HTMLElement {
 
   // Helper to get base path from attribute or document.baseURI (respects <base> tag)
   getBasePath() {
-    // Priority 1: Use explicit base-path attribute if provided
-    if (this.basePath) {
+    // Priority 1: Use explicit base-path attribute if provided (even if empty string)
+    if (this.hasAttribute('base-path')) {
       this.log('🔍 getBasePath() using attribute:', this.basePath);
-      return this.basePath;
+      return this.basePath || '';
     }
 
     // Priority 2: Extract from document.baseURI (respects <base> tag)

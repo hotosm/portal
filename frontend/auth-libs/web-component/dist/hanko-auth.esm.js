@@ -3390,8 +3390,8 @@ class Ia extends HTMLElement {
   }
   // Helper to get base path from attribute or document.baseURI (respects <base> tag)
   getBasePath() {
-    if (this.basePath)
-      return this.log("🔍 getBasePath() using attribute:", this.basePath), this.basePath;
+    if (this.hasAttribute("base-path"))
+      return this.log("🔍 getBasePath() using attribute:", this.basePath), this.basePath || "";
     try {
       const t = new URL(document.baseURI || window.location.href), e = t.pathname.replace(/\/$/, "");
       return this.log("🔍 getBasePath() called:"), this.log("  document.baseURI:", document.baseURI), this.log("  window.location.href:", window.location.href), this.log("  baseUri.pathname:", t.pathname), this.log("  result:", e), e;
