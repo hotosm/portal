@@ -13,11 +13,11 @@ RUN apt-get update && apt-get install -y \
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Copy hotosm-auth library from monorepo (needed as local dependency)
-COPY frontend/auth-libs/python /hotosm-auth
-
 # Copy backend dependency files
 COPY backend/pyproject.toml ./
+
+# Copy hotosm-auth library to relative path (pyproject.toml uses {root:uri}/../frontend/auth-libs/python)
+COPY frontend/auth-libs/python ../frontend/auth-libs/python
 
 # Install dependencies with uv (including dev dependencies)
 RUN uv sync
@@ -44,11 +44,11 @@ RUN apt-get update && apt-get install -y \
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Copy hotosm-auth library from monorepo (needed as local dependency)
-COPY frontend/auth-libs/python /hotosm-auth
-
 # Copy backend dependency files
 COPY backend/pyproject.toml ./
+
+# Copy hotosm-auth library to relative path (pyproject.toml uses {root:uri}/../frontend/auth-libs/python)
+COPY frontend/auth-libs/python ../frontend/auth-libs/python
 
 # Install only production dependencies
 RUN uv sync --no-dev
