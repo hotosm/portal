@@ -121,6 +121,7 @@ jobs:
             -t ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-frontend:${{ github.sha }} \
             --target production \
             --build-arg VITE_HANKO_URL=https://dev.login.hotosm.org \
+            --no-cache \
             ./frontend
           docker push ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-frontend:latest
           docker push ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-frontend:${{ github.sha }}
