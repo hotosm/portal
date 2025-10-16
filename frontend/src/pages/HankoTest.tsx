@@ -130,6 +130,7 @@ function HankoTest() {
 
           <div className="p-lg bg-white rounded border border-red-500">
             <hotosm-auth
+              base-path=""
               osm-enabled={osmEnabled}
               osm-required={osmRequired}
               show-profile={showProfile}
