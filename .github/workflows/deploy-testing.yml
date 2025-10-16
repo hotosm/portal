@@ -41,9 +41,11 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v4
 
-      - name: Install backend dependencies
+      - name: Install backend dependencies (with hotosm-auth from monorepo)
         working-directory: ./backend
-        run: uv sync --all-extras
+        run: |
+          # Install dependencies (hotosm-auth will be resolved from ../frontend/auth-libs/python)
+          uv sync --all-extras
 
       - name: Run backend tests
         working-directory: ./backend
@@ -108,11 +110,12 @@ jobs:
 
       - name: Build and push Docker images
         run: |
-          # Build and push backend image
+          # Build and push backend image (use root context for monorepo access)
           docker build -t ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-backend:latest \
             -t ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-backend:${{ github.sha }} \
             --target production \
-            ./backend
+            -f backend/Dockerfile \
+            .
           docker push ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-backend:latest
           docker push ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-backend:${{ github.sha }}
 
@@ -130,6 +133,9 @@ jobs:
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USER: ${{ secrets.EC2_USER }}
+          COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
+          OSM_CLIENT_ID: ${{ secrets.OSM_CLIENT_ID }}
+          OSM_CLIENT_SECRET: ${{ secrets.OSM_CLIENT_SECRET }}
         run: |
           # Deploy via SSH (using ssh-agent from webfactory/ssh-agent action)
           ssh $EC2_USER@$EC2_HOST << 'EOF'
@@ -140,6 +146,18 @@ jobs:
 
             # Pull latest changes
             git pull origin develop
+
+            # Create/update .env file with secrets (if not exists)
+            if [ ! -f .env ]; then
+              cp .env.example .env
+              echo "✓ Created .env from .env.example"
+            fi
+
+            # Update authentication secrets in .env
+            sed -i 's|^COOKIE_SECRET=.*|COOKIE_SECRET=${{ secrets.COOKIE_SECRET }}|' .env
+            sed -i 's|^OSM_CLIENT_ID=.*|OSM_CLIENT_ID=${{ secrets.OSM_CLIENT_ID }}|' .env
+            sed -i 's|^OSM_CLIENT_SECRET=.*|OSM_CLIENT_SECRET=${{ secrets.OSM_CLIENT_SECRET }}|' .env
+            echo "✓ Updated authentication secrets in .env"
 
             # Login to GitHub Container Registry
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin

@@ -22,13 +22,19 @@ services:
   backend:
     image: ghcr.io/hotosm/portal-backend:latest
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
       target: ${BACKEND_TARGET:-production}
     container_name: portal-backend
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-portal}:${POSTGRES_PASSWORD:-portal}@db:5432/${POSTGRES_DB:-portal}
       DEBUG: ${DEBUG:-false}
+      # Authentication settings
+      HANKO_API_URL: ${HANKO_API_URL:-https://dev.login.hotosm.org}
+      COOKIE_SECRET: ${COOKIE_SECRET}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
+      OSM_CLIENT_ID: ${OSM_CLIENT_ID:-}
+      OSM_CLIENT_SECRET: ${OSM_CLIENT_SECRET:-}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:
@@ -47,17 +53,24 @@ services:
   # FastAPI backend (development with hot-reload)
   backend-dev:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
       target: development
     container_name: portal-backend-dev
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-portal}:${POSTGRES_PASSWORD:-portal}@db:5432/${POSTGRES_DB:-portal}
       DEBUG: "true"
+      # Authentication settings
+      HANKO_API_URL: ${HANKO_API_URL:-https://dev.login.hotosm.org}
+      COOKIE_SECRET: ${COOKIE_SECRET}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
+      OSM_CLIENT_ID: ${OSM_CLIENT_ID:-}
+      OSM_CLIENT_SECRET: ${OSM_CLIENT_SECRET:-}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:
       - ./backend:/app
+      - ./frontend/auth-libs/python:/hotosm-auth:ro  # Mount for hot-reload
     depends_on:
       db:
         condition: service_healthy

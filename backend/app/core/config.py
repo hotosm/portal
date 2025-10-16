@@ -44,5 +44,14 @@ class Settings(BaseSettings):
         list[str], BeforeValidator(parse_cors_origins)
     ] = ["http://localhost:5173"]
 
+    # Authentication Settings (Hanko SSO + OSM OAuth)
+    hanko_api_url: str = "https://dev.login.hotosm.org"
+    cookie_secret: str
+    cookie_domain: str | None = None  # Auto-detected from hanko_api_url if not set
+
+    # OSM OAuth (optional)
+    osm_client_id: str | None = None
+    osm_client_secret: str | None = None
+
 
 settings = Settings()
