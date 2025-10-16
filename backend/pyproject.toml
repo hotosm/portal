@@ -13,6 +13,7 @@ dependencies = [
     "pydantic-settings>=2.7.0",
     "geoalchemy2>=0.16.0",
     "python-dotenv>=1.0.1",
+    "hotosm-auth @ file:///hotosm-auth",
 ]
 
 [project.optional-dependencies]
@@ -31,6 +32,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.ruff]
 line-length = 100
