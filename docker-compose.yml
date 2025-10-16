@@ -76,7 +76,15 @@ services:
     environment:
       - VITE_BACKEND_URL=http://backend:8000
     ports:
-      - "${FRONTEND_PORT:-80}:80"
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Mount SSL certificates from host
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      # Mount certbot webroot for ACME challenge
+      - /var/www/certbot:/var/www/certbot:ro
+      # Use SSL-enabled nginx config
+      - ./frontend/nginx-ssl.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - backend
     restart: unless-stopped
