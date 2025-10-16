@@ -1,8 +1,7 @@
 import WaDrawer from "@awesome.me/webawesome/dist/react/drawer/index.js";
 import { Link } from "react-router-dom";
-import Button from "./shared/Button";
-import Icon from "./shared/Icon";
 import { MAIN_MENU_ITEMS } from "../constants/menu";
+import Icon from "./shared/Icon";
 function MainMenuContent() {
   return (
     <>
@@ -30,17 +29,14 @@ function Navigation() {
           <MainMenuContent />
         </WaDrawer>
 
-        <Button
+        <Icon
+          name="bars"
+          label="Menu"
           onClick={() => {
             const drawer = document.getElementById("mobile-drawer") as any;
             if (drawer) drawer.open = true;
           }}
-          variant="neutral"
-          appearance="plain"
-          aria-label="Open menu"
-        >
-          <Icon name="bars" label="Menu"></Icon>
-        </Button>
+        ></Icon>
       </div>
 
       {/* desktop menu */}

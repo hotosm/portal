@@ -1,15 +1,21 @@
+import Footer from "./components/Footer";
 import Header from "./components/Header";
 import { AppRoutes } from "./routes";
-import "./styles/index.css";
 
 function App() {
   return (
-    <div className="container">
-      <Header />
+    <div className="flex flex-col min-h-screen">
+      <div className="container">
+        <Header />
+      </div>
 
-      <main>
+      <main className="flex-1 container flex flex-col justify-center">
+        <div className="h-2xl"></div>
         <AppRoutes />
+        <div className="h-2xl"></div>
       </main>
+
+      <Footer />
     </div>
   );
 }
