@@ -58,16 +58,25 @@ function HankoTest() {
             </div>
 
             {/* OSM Required */}
-            <div
-              className="flex items-center gap-sm"
-              style={{ opacity: osmEnabled ? 1 : 0.5 }}
-            >
+            <div className="flex items-center gap-sm">
               <WaSwitch
                 checked={osmRequired}
-                onWaChange={(e: any) => setOsmRequired(e.target.checked)}
+                onWaChange={(e: any) => {
+                  if (osmEnabled) {
+                    setOsmRequired(e.target.checked);
+                  }
+                }}
                 disabled={!osmEnabled}
               />
-              <div className={osmEnabled ? "cursor-pointer" : "cursor-not-allowed"} onClick={() => osmEnabled && setOsmRequired(!osmRequired)}>
+              <div
+                className={osmEnabled ? "cursor-pointer" : "cursor-not-allowed"}
+                onClick={() => {
+                  if (osmEnabled) {
+                    setOsmRequired(!osmRequired);
+                  }
+                }}
+                style={{ opacity: osmEnabled ? 1 : 0.5 }}
+              >
                 <div className="font-semibold">OSM Required</div>
                 <div className="text-sm text-muted">
                   Force OSM authentication (requires OSM Enabled)
