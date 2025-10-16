@@ -21,12 +21,55 @@ body {
   margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: neutralscale;
-  overflow: hidden;
   color: var(--hot-color-neutral-950);
-  width: 100vw;
-  height: 100vh;
 }
 
 a {
   color: var(--hot-color-blue-500);
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--hot-font-sans-variant); /* Barlow */
+  font-weight: var(--wa-font-weight-heading); /* Bold */
+  line-height: var(--wa-line-height-condensed);
+  color: var(--hot-color-neutral-950);
+  margin: 0; /* Reset default margins */
+}
+
+h1 {
+  font-size: var(--hot-font-size-4x-large); /* 72px */
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  font-size: var(--hot-font-size-3x-large); /* 48px */
+  letter-spacing: -0.015em;
+}
+
+h3 {
+  font-size: var(--hot-font-size-2x-large); /* 36px */
+  letter-spacing: -0.01em;
+}
+
+h4 {
+  font-size: var(--hot-font-size-x-large); /* 24px */
+  letter-spacing: -0.005em;
+}
+
+h5 {
+  font-size: var(--hot-font-size-large); /* 20px */
+}
+
+h6 {
+  font-size: var(--hot-font-size-medium); /* 16px */
+  font-weight: var(--wa-font-weight-semibold);
 }
