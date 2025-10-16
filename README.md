@@ -112,16 +112,16 @@ Portal uses [Hanko](https://hanko.io/) for SSO authentication with optional Open
 **Configuration:**
 ```bash
 # In .env file
-VITE_HANKO_URL=https://login.hotosm.org       # Frontend
-HANKO_API_URL=https://login.hotosm.org        # Backend
-COOKIE_SECRET=your-secret-key-min-32-bytes    # Backend (change in production!)
+VITE_HANKO_URL=https://dev.login.hotosm.org       # Frontend
+HANKO_API_URL=https://dev.login.hotosm.org        # Backend
+COOKIE_SECRET=your-secret-key-min-32-bytes        # Backend (change in production!)
 
 # Optional: OpenStreetMap OAuth
 OSM_CLIENT_ID=your-osm-client-id
 OSM_CLIENT_SECRET=your-osm-client-secret
 ```
 
-**For development**, the default Hanko URL (`https://login.hotosm.org`) is already configured in `.env.example`. Copy it to `.env` and update `COOKIE_SECRET` for production deployments.
+**For development**, the default Hanko URL (`https://dev.login.hotosm.org`) is already configured in `.env.example`. Copy it to `.env` and update `COOKIE_SECRET` for production deployments.
 
 See [`auth-libs/README.md`](auth-libs/README.md) for detailed authentication documentation.
 

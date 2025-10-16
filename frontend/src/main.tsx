@@ -9,7 +9,7 @@ import "./styles/index.css";
 import "../auth-libs/web-component/dist/hanko-auth.esm.js";
 
 // Set Hanko URL for authentication
-window.HANKO_URL = import.meta.env.VITE_HANKO_URL || "https://login.hotosm.org";
+window.HANKO_URL = import.meta.env.VITE_HANKO_URL || "https://dev.login.hotosm.org";
 
 // Ensure all WebAwesome components are loaded before rendering
 // TODO check
