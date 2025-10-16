@@ -44,12 +44,16 @@ function HankoTest() {
 
           <div className="flex flex-col gap-md">
             {/* OSM Enabled */}
-            <div className="flex items-center gap-sm">
-              <WaSwitch
-                checked={osmEnabled}
-                onWaChange={(e: any) => setOsmEnabled(e.target.checked)}
-              />
-              <div className="cursor-pointer" onClick={() => setOsmEnabled(!osmEnabled)}>
+            <div className="flex items-center gap-sm cursor-pointer" onClick={() => {
+              const newValue = !osmEnabled;
+              setOsmEnabled(newValue);
+              // If disabling OSM, also disable OSM Required
+              if (!newValue) {
+                setOsmRequired(false);
+              }
+            }}>
+              <WaSwitch checked={osmEnabled} style={{ pointerEvents: "none" }} />
+              <div>
                 <div className="font-semibold">OSM Enabled</div>
                 <div className="text-sm text-muted">
                   Show OpenStreetMap login option
@@ -58,25 +62,17 @@ function HankoTest() {
             </div>
 
             {/* OSM Required */}
-            <div className="flex items-center gap-sm">
-              <WaSwitch
-                checked={osmRequired}
-                onWaChange={(e: any) => {
-                  if (osmEnabled) {
-                    setOsmRequired(e.target.checked);
-                  }
-                }}
-                disabled={!osmEnabled}
-              />
-              <div
-                className={osmEnabled ? "cursor-pointer" : "cursor-not-allowed"}
-                onClick={() => {
-                  if (osmEnabled) {
-                    setOsmRequired(!osmRequired);
-                  }
-                }}
-                style={{ opacity: osmEnabled ? 1 : 0.5 }}
-              >
+            <div
+              className={`flex items-center gap-sm ${osmEnabled ? "cursor-pointer" : "cursor-not-allowed"}`}
+              style={{ opacity: osmEnabled ? 1 : 0.5 }}
+              onClick={() => {
+                if (osmEnabled) {
+                  setOsmRequired(!osmRequired);
+                }
+              }}
+            >
+              <WaSwitch checked={osmRequired} style={{ pointerEvents: "none" }} />
+              <div>
                 <div className="font-semibold">OSM Required</div>
                 <div className="text-sm text-muted">
                   Force OSM authentication (requires OSM Enabled)
@@ -85,12 +81,9 @@ function HankoTest() {
             </div>
 
             {/* Show Profile */}
-            <div className="flex items-center gap-sm">
-              <WaSwitch
-                checked={showProfile}
-                onWaChange={(e: any) => setShowProfile(e.target.checked)}
-              />
-              <div className="cursor-pointer" onClick={() => setShowProfile(!showProfile)}>
+            <div className="flex items-center gap-sm cursor-pointer" onClick={() => setShowProfile(!showProfile)}>
+              <WaSwitch checked={showProfile} style={{ pointerEvents: "none" }} />
+              <div>
                 <div className="font-semibold">Show Profile</div>
                 <div className="text-sm text-muted">
                   Display user profile when logged in
@@ -99,12 +92,9 @@ function HankoTest() {
             </div>
 
             {/* Debug Mode */}
-            <div className="flex items-center gap-sm">
-              <WaSwitch
-                checked={debug}
-                onWaChange={(e: any) => setDebug(e.target.checked)}
-              />
-              <div className="cursor-pointer" onClick={() => setDebug(!debug)}>
+            <div className="flex items-center gap-sm cursor-pointer" onClick={() => setDebug(!debug)}>
+              <WaSwitch checked={debug} style={{ pointerEvents: "none" }} />
+              <div>
                 <div className="font-semibold">Debug Mode</div>
                 <div className="text-sm text-muted">
                   Show debug information in console
