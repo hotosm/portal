@@ -9,6 +9,7 @@ declare global {
         React.HTMLAttributes<HTMLElement> & {
           "hanko-url"?: string;
           "base-path"?: string;
+          "auth-path"?: string;
           "osm-enabled"?: boolean;
           "osm-required"?: boolean;
           "osm-scopes"?: string;

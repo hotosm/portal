@@ -41,6 +41,7 @@ class HankoAuth extends HTMLElement {
     return [
       'hanko-url',
       'base-path',
+      'auth-path',
       'osm-enabled',
       'osm-required',
       'osm-scopes',
@@ -81,6 +82,10 @@ class HankoAuth extends HTMLElement {
 
   get basePath() {
     return this.getAttribute('base-path');
+  }
+
+  get authPath() {
+    return this.getAttribute('auth-path') || '/api/auth/osm';
   }
 
   get osmEnabled() {
@@ -333,13 +338,14 @@ class HankoAuth extends HTMLElement {
   async checkOSMConnection() {
     try {
       const basePath = this.getBasePath();
+      const authPath = this.authPath;
 
       // Auto-detect trailing slash preference for this basePath
-      await this.detectTrailingSlash(basePath, '/auth/osm/status');
+      await this.detectTrailingSlash(basePath, `${authPath}/status`);
 
       // Construct absolute URL to avoid <base> tag interference
       const origin = window.location.origin;
-      let statusPath = `${basePath}/auth/osm/status`;
+      let statusPath = `${basePath}${authPath}/status`;
 
       // Add trailing slash if detected for this basePath
       statusPath = this.addTrailingSlash(statusPath, basePath);
@@ -486,13 +492,14 @@ class HankoAuth extends HTMLElement {
     // Respect document.baseURI (from <base> tag) to work with sub-paths
     const scopes = this.osmScopes.split(' ').join('+');
     const basePath = this.getBasePath();
+    const authPath = this.authPath;
 
     // Auto-detect trailing slash preference for this basePath
-    await this.detectTrailingSlash(basePath, '/auth/osm/login');
+    await this.detectTrailingSlash(basePath, `${authPath}/login`);
 
     // Construct absolute URL to avoid <base> tag interference
     const origin = window.location.origin;
-    let loginPath = `${basePath}/auth/osm/login`;
+    let loginPath = `${basePath}${authPath}/login`;
 
     // Add trailing slash if detected for this basePath
     loginPath = this.addTrailingSlash(loginPath, basePath);
@@ -502,6 +509,7 @@ class HankoAuth extends HTMLElement {
     this.log('🔗 OSM Connect clicked!');
     this.log('  window.location.origin:', origin);
     this.log('  basePath:', basePath);
+    this.log('  authPath:', authPath);
     this.log('  loginPath:', loginPath);
     this.log('  Full URL to redirect to:', fullUrl);
     this.log('  About to set window.location.href...');
@@ -524,9 +532,10 @@ class HankoAuth extends HTMLElement {
     if (this.osmEnabled) {
       try {
         const basePath = this.getBasePath();
+        const authPath = this.authPath;
         // Construct absolute URL to avoid <base> tag interference
         const origin = window.location.origin;
-        const disconnectPath = this.addTrailingSlash(`${basePath}/auth/osm/disconnect`, basePath);
+        const disconnectPath = this.addTrailingSlash(`${basePath}${authPath}/disconnect`, basePath);
         const disconnectUrl = `${origin}${disconnectPath}`;
         this.log('🔌 Calling OSM disconnect:', disconnectUrl);
 
