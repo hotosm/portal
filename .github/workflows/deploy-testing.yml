@@ -13,6 +13,7 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
+    environment: Development
 
     services:
       postgres:
@@ -51,6 +52,7 @@ jobs:
         working-directory: ./backend
         env:
           DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/test
+          COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
         run: uv run pytest
 
       - name: Setup Node.js
