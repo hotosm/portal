@@ -24,7 +24,7 @@ function Header() {
         </div>
         <div className="flex gap-md items-center">
           {/* Hanko Auth Component */}
-          <hotosm-auth show-profile={false} />
+          {/*  <hotosm-auth show-profile={false} /> */}
 
           <Icon
             name="grip"
