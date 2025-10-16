@@ -40,6 +40,10 @@ RUN pnpm install --frozen-lockfile
 # Copy application code
 COPY . .
 
+# Build arguments for Vite environment variables
+ARG VITE_HANKO_URL=https://dev.login.hotosm.org
+ENV VITE_HANKO_URL=$VITE_HANKO_URL
+
 # Build application
 RUN pnpm build
 
