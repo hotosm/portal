@@ -13,7 +13,7 @@ dependencies = [
     "pydantic-settings>=2.7.0",
     "geoalchemy2>=0.16.0",
     "python-dotenv>=1.0.1",
-    "hotosm-auth @ file:///hotosm-auth",
+    "hotosm-auth @ {root:uri}/../frontend/auth-libs/python",
 ]
 
 [project.optional-dependencies]
