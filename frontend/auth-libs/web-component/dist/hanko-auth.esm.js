@@ -3462,7 +3462,10 @@ class Ia extends HTMLElement {
       const t = `hanko_${this.hankoUrl}_session`, e = localStorage.getItem(t);
       if (e) {
         const n = JSON.parse(e), a = n.jwt || n.auth_token || n.token;
-        a && (document.cookie = `hanko=${a}; path=/; domain=localhost; max-age=86400; SameSite=Lax`, this.log("🔐 JWT synced to cookie for SSO (domain=localhost)"));
+        if (a) {
+          const r = window.location.hostname, c = r === "localhost" || r === "127.0.0.1", l = c ? "; domain=localhost" : "";
+          document.cookie = `hanko=${a}; path=/${l}; max-age=86400; SameSite=Lax`, this.log(`🔐 JWT synced to cookie for SSO${c ? " (domain=localhost)" : ""}`);
+        }
       }
     } catch (t) {
       console.error("Failed to sync JWT to cookie:", t);

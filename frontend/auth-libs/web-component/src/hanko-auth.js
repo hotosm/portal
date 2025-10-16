@@ -324,10 +324,16 @@ class HankoAuth extends HTMLElement {
         const jwt = session.jwt || session.auth_token || session.token;
 
         if (jwt) {
-          // Set cookie with domain=localhost so it's shared across all localhost ports
-          // In production this would be domain=.hotosm.org
-          document.cookie = `hanko=${jwt}; path=/; domain=localhost; max-age=86400; SameSite=Lax`;
-          this.log('🔐 JWT synced to cookie for SSO (domain=localhost)');
+          // Auto-detect domain for cookie
+          const hostname = window.location.hostname;
+          const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+
+          // For localhost: use explicit domain=localhost to share across ports
+          // For production: don't set domain (defaults to current domain)
+          const domainPart = isLocalhost ? '; domain=localhost' : '';
+
+          document.cookie = `hanko=${jwt}; path=/${domainPart}; max-age=86400; SameSite=Lax`;
+          this.log(`🔐 JWT synced to cookie for SSO${isLocalhost ? ' (domain=localhost)' : ''}`);
         }
       }
     } catch (error) {
