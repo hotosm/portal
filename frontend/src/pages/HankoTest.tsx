@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Card from "../components/shared/Card";
+import WaSwitch from "@awesome.me/webawesome/dist/react/switch/index.js";
 
 declare global {
   namespace JSX {
@@ -43,72 +44,64 @@ function HankoTest() {
 
           <div className="flex flex-col gap-md">
             {/* OSM Enabled */}
-            <label className="flex items-center gap-sm cursor-pointer">
-              <input
-                type="checkbox"
+            <div className="flex items-center gap-sm">
+              <WaSwitch
                 checked={osmEnabled}
-                onChange={(e) => setOsmEnabled(e.target.checked)}
-                className="cursor-pointer"
+                onWaChange={(e: any) => setOsmEnabled(e.target.checked)}
               />
-              <div>
+              <div className="cursor-pointer" onClick={() => setOsmEnabled(!osmEnabled)}>
                 <div className="font-semibold">OSM Enabled</div>
                 <div className="text-sm text-muted">
                   Show OpenStreetMap login option
                 </div>
               </div>
-            </label>
+            </div>
 
             {/* OSM Required */}
-            <label
-              className="flex items-center gap-sm cursor-pointer"
+            <div
+              className="flex items-center gap-sm"
               style={{ opacity: osmEnabled ? 1 : 0.5 }}
             >
-              <input
-                type="checkbox"
+              <WaSwitch
                 checked={osmRequired}
-                onChange={(e) => setOsmRequired(e.target.checked)}
+                onWaChange={(e: any) => setOsmRequired(e.target.checked)}
                 disabled={!osmEnabled}
-                className={osmEnabled ? "cursor-pointer" : "cursor-not-allowed"}
               />
-              <div>
+              <div className={osmEnabled ? "cursor-pointer" : "cursor-not-allowed"} onClick={() => osmEnabled && setOsmRequired(!osmRequired)}>
                 <div className="font-semibold">OSM Required</div>
                 <div className="text-sm text-muted">
                   Force OSM authentication (requires OSM Enabled)
                 </div>
               </div>
-            </label>
+            </div>
 
             {/* Show Profile */}
-            <label className="flex items-center gap-sm cursor-pointer">
-              <input
-                type="checkbox"
+            <div className="flex items-center gap-sm">
+              <WaSwitch
                 checked={showProfile}
-                onChange={(e) => setShowProfile(e.target.checked)}
-                className="cursor-pointer"
+                onWaChange={(e: any) => setShowProfile(e.target.checked)}
               />
-              <div>
+              <div className="cursor-pointer" onClick={() => setShowProfile(!showProfile)}>
                 <div className="font-semibold">Show Profile</div>
                 <div className="text-sm text-muted">
                   Display user profile when logged in
                 </div>
               </div>
-            </label>
+            </div>
 
             {/* Debug Mode */}
-            <label className="flex items-center gap-sm cursor-pointer">
-              <input
-                type="checkbox"
+            <div className="flex items-center gap-sm">
+              <WaSwitch
                 checked={debug}
-                onChange={(e) => setDebug(e.target.checked)}
-                className="cursor-pointer"
+                onWaChange={(e: any) => setDebug(e.target.checked)}
               />
-              <div>
+              <div className="cursor-pointer" onClick={() => setDebug(!debug)}>
                 <div className="font-semibold">Debug Mode</div>
                 <div className="text-sm text-muted">
                   Show debug information in console
                 </div>
               </div>
-            </label>
+            </div>
           </div>
 
           {/* Current Config Display */}
