@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import { HealthCheck } from "../components/HealthCheck";
+import HomePage from "./HomePage";
 
 // Placeholder components for now
 function MappingPage() {
@@ -19,7 +20,11 @@ function DataPage() {
 }
 
 function LoginPage() {
-  return <div>Login page coming soon</div>;
+  return (
+    <div>
+      <HealthCheck />
+    </div>
+  );
 }
 
 function NotFoundPage() {
@@ -29,7 +34,7 @@ function NotFoundPage() {
 export function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<HealthCheck />} />
+      <Route path="/" element={<HomePage />} />
       <Route path="/mapping" element={<MappingPage />} />
       <Route path="/imagery" element={<ImageryPage />} />
       <Route path="/field" element={<FieldPage />} />
