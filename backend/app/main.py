@@ -103,7 +103,7 @@ app.include_router(
 # Import here to avoid circular dependencies
 from hotosm_auth.integrations.fastapi_osm_routes import router as osm_router
 
-app.include_router(osm_router)
+app.include_router(osm_router, prefix=settings.api_v1_prefix)
 
 
 # Root endpoint
