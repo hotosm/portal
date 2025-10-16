@@ -1,6 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import { HealthCheck } from "../components/HealthCheck";
 import HomePage from "./HomePage";
+import HankoTest from "../pages/HankoTest";
 
 // Placeholder components for now
 function MappingPage() {
@@ -40,6 +41,7 @@ export function AppRoutes() {
       <Route path="/field" element={<FieldPage />} />
       <Route path="/data" element={<DataPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/hanko-test" element={<HankoTest />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
