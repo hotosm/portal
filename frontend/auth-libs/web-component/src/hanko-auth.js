@@ -315,26 +315,27 @@ class HankoAuth extends HTMLElement {
 
   async syncJWTToCookie() {
     try {
-      // Get JWT from localStorage (where Hanko Elements stores it)
-      const sessionKey = `hanko_${this.hankoUrl}_session`;
-      const sessionData = localStorage.getItem(sessionKey);
+      // Get JWT from Hanko SDK (works with both localStorage and IndexedDB)
+      const { Hanko } = await import('@teamhanko/hanko-elements');
+      const hanko = new Hanko(this.hankoUrl);
 
-      if (sessionData) {
-        const session = JSON.parse(sessionData);
-        const jwt = session.jwt || session.auth_token || session.token;
+      // Get session token from Hanko SDK
+      const session = await hanko.session.get();
+      const jwt = session?.jwt;
 
-        if (jwt) {
-          // Auto-detect domain for cookie
-          const hostname = window.location.hostname;
-          const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+      if (jwt) {
+        // Auto-detect domain for cookie
+        const hostname = window.location.hostname;
+        const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
 
-          // For localhost: use explicit domain=localhost to share across ports
-          // For production: don't set domain (defaults to current domain)
-          const domainPart = isLocalhost ? '; domain=localhost' : '';
+        // For localhost: use explicit domain=localhost to share across ports
+        // For production: don't set domain (defaults to current domain)
+        const domainPart = isLocalhost ? '; domain=localhost' : '';
 
-          document.cookie = `hanko=${jwt}; path=/${domainPart}; max-age=86400; SameSite=Lax`;
-          this.log(`🔐 JWT synced to cookie for SSO${isLocalhost ? ' (domain=localhost)' : ''}`);
-        }
+        document.cookie = `hanko=${jwt}; path=/${domainPart}; max-age=86400; SameSite=Lax`;
+        this.log(`🔐 JWT synced to cookie for SSO${isLocalhost ? ' (domain=localhost)' : ''}`);
+      } else {
+        this.log('⚠️ No JWT found in Hanko session');
       }
     } catch (error) {
       console.error('Failed to sync JWT to cookie:', error);
