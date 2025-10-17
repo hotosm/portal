@@ -308,18 +308,22 @@ async def get_osm_connection(
     """
     encrypted = request.cookies.get("osm_connection")
 
-    logger.debug(f"Looking for OSM connection cookie: found={encrypted is not None}")
-    logger.debug(f"All cookies present: {list(request.cookies.keys())}")
+    print(f"🔍 Looking for OSM connection cookie: found={encrypted is not None}")
+    print(f"🔍 All cookies present: {list(request.cookies.keys())}")
+    if encrypted:
+        print(f"🔍 Cookie value (first 50 chars): {encrypted[:50]}...")
 
     if not encrypted:
+        print("❌ No OSM cookie found, returning None")
         return None
 
     try:
+        print("🔓 Attempting to decrypt OSM cookie...")
         osm = crypto.decrypt_osm_connection(encrypted)
-        logger.debug(f"OSM connection decrypted successfully: {osm.osm_username}")
+        print(f"✅ OSM connection decrypted successfully: {osm.osm_username}")
         return osm
     except CookieDecryptionError as e:
-        logger.warning(f"OSM cookie decryption failed: {e}")
+        print(f"❌ OSM cookie decryption failed: {e}")
         return None
 
 
