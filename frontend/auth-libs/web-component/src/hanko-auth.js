@@ -315,19 +315,12 @@ class HankoAuth extends HTMLElement {
 
   async syncJWTToCookie() {
     try {
-      // Get JWT from Hanko SDK
+      // Get JWT from Hanko SDK using the correct API
       const { Hanko } = await import('@teamhanko/hanko-elements');
       const hanko = new Hanko(this.hankoUrl);
 
-      // Try to get JWT token - Hanko SDK provides this method
-      let jwt;
-      try {
-        jwt = await hanko.session.getToken();
-      } catch (e) {
-        // If getToken() doesn't exist, session is not valid
-        this.log('⚠️ No valid Hanko session for JWT sync');
-        return;
-      }
+      // Use getSessionToken() method (not session.getToken())
+      const jwt = hanko.getSessionToken();
 
       if (jwt) {
         // Auto-detect domain for cookie
