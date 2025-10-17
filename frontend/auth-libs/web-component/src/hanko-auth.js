@@ -260,10 +260,9 @@ class HankoAuth extends HTMLElement {
       // Check current session
       await this.checkSession();
 
-      // If OSM is enabled, check OSM connection status
-      if (this.osmEnabled) {
-        await this.checkOSMConnection();
-      }
+      // Always check OSM connection on init to detect if user just returned from OAuth
+      // This will dispatch 'osm-connected' event if connected
+      await this.checkOSMConnection();
 
       this.state.loading = false;
       this.render();
@@ -345,6 +344,12 @@ class HankoAuth extends HTMLElement {
   }
 
   async checkOSMConnection() {
+    // If already connected, no need to check again
+    if (this.state.osmConnected) {
+      this.log('⏭️ Already connected to OSM, skipping check');
+      return;
+    }
+
     // Set loading state and render
     this.state.osmLoading = true;
     this.render();
@@ -383,6 +388,13 @@ class HankoAuth extends HTMLElement {
           this.log('✅ OSM is connected:', data.osm_username);
           this.state.osmConnected = true;
           this.state.osmData = data;
+
+          // Dispatch event to notify that OSM is connected (for auto-enabling switch)
+          this.dispatchEvent(new CustomEvent('osm-connected', {
+            detail: { osmData: data },
+            bubbles: true,
+            composed: true
+          }));
         } else {
           this.log('❌ OSM is NOT connected');
           this.state.osmConnected = false;
