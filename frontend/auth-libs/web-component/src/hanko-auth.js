@@ -315,12 +315,8 @@ class HankoAuth extends HTMLElement {
 
   async syncJWTToCookie() {
     try {
-      // Get JWT from Hanko SDK using the correct API
-      const { Hanko } = await import('@teamhanko/hanko-elements');
-      const hanko = new Hanko(this.hankoUrl);
-
-      // Use getSessionToken() method (not session.getToken())
-      const jwt = hanko.getSessionToken();
+      // Use JWT from session event if available
+      const jwt = this._sessionJWT;
 
       if (jwt) {
         // Auto-detect domain for cookie
@@ -334,7 +330,7 @@ class HankoAuth extends HTMLElement {
         document.cookie = `hanko=${jwt}; path=/${domainPart}; max-age=86400; SameSite=Lax`;
         this.log(`🔐 JWT synced to cookie for SSO${isLocalhost ? ' (domain=localhost)' : ''}`);
       } else {
-        this.log('⚠️ No JWT found in Hanko session');
+        this.log('⚠️ No JWT found in session event');
       }
     } catch (error) {
       console.error('Failed to sync JWT to cookie:', error);
@@ -437,9 +433,12 @@ class HankoAuth extends HTMLElement {
   async handleHankoSuccess(event) {
     this.log('Hanko auth success:', event.detail);
 
-    // Extract user ID from claims (Hanko v2 format)
+    // Extract user ID and JWT from event (Hanko v2 format)
     const claims = event.detail?.claims || {};
     const userId = claims.subject || claims.sub;
+
+    // Store JWT from event for cookie sync
+    this._sessionJWT = event.detail?.jwt || null;
 
     if (!userId) {
       console.error('No user ID found in claims');
