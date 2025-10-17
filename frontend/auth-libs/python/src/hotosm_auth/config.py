@@ -111,7 +111,13 @@ class AuthConfig(BaseModel):
         # Default JWT issuer to Hanko API URL if set to "auto"
         # Use object.__setattr__ because model is frozen
         if self.jwt_issuer == "auto":
-            object.__setattr__(self, 'jwt_issuer', str(self.hanko_api_url))
+            issuer_url = str(self.hanko_api_url)
+            object.__setattr__(self, 'jwt_issuer', issuer_url)
+            logger.info(f"JWT issuer set to: {issuer_url} (from hanko_api_url)")
+        elif self.jwt_issuer:
+            logger.info(f"JWT issuer explicitly set to: {self.jwt_issuer}")
+        else:
+            logger.warning("JWT issuer validation is DISABLED (jwt_issuer=None)")
         # If None, issuer validation is skipped
 
     @classmethod
@@ -214,13 +220,15 @@ class AuthConfig(BaseModel):
 
         # JWT configuration
         jwt_audience = os.getenv("JWT_AUDIENCE") or None
-        # If JWT_ISSUER is not set or empty, default to None (skip validation)
-        # Use "auto" only if explicitly set
+        # If JWT_ISSUER is not set or empty, default to "auto"
+        # This ensures issuer validation is enabled by default
         jwt_issuer_env = os.getenv("JWT_ISSUER")
         if jwt_issuer_env and jwt_issuer_env.strip():
             jwt_issuer = jwt_issuer_env
+            logger.info(f"JWT_ISSUER from env: {jwt_issuer}")
         else:
-            jwt_issuer = None
+            jwt_issuer = "auto"  # Default to auto instead of None
+            logger.info("JWT_ISSUER not set, defaulting to 'auto'")
 
         # OSM configuration
         osm_client_id = os.getenv("OSM_CLIENT_ID")
