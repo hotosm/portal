@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Card from "../components/shared/Card";
 import WaSwitch from "@awesome.me/webawesome/dist/react/switch/index.js";
 
@@ -16,6 +16,7 @@ declare global {
           "show-profile"?: boolean;
           "redirect-after-login"?: string;
           debug?: boolean;
+          ref?: React.RefObject<HTMLElement>;
         },
         HTMLElement
       >;
@@ -28,6 +29,26 @@ function HankoTest() {
   const [osmRequired, setOsmRequired] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [debug, setDebug] = useState(false);
+  const authComponentRef = useRef<HTMLElement>(null);
+
+  // Listen for OSM connection event from web component
+  useEffect(() => {
+    const handleOsmConnected = (event: Event) => {
+      console.log('🎯 OSM connected event received, enabling switch');
+      setOsmEnabled(true);
+    };
+
+    const element = authComponentRef.current;
+    if (element) {
+      element.addEventListener('osm-connected', handleOsmConnected);
+    }
+
+    return () => {
+      if (element) {
+        element.removeEventListener('osm-connected', handleOsmConnected);
+      }
+    };
+  }, []);
 
   return (
     <div className="container-xl py-lg">
@@ -130,6 +151,7 @@ function HankoTest() {
 
           <div className="p-lg bg-white rounded border border-red-500">
             <hotosm-auth
+              ref={authComponentRef}
               base-path=""
               osm-enabled={osmEnabled}
               osm-required={osmRequired}
