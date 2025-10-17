@@ -24,7 +24,7 @@ declare global {
 }
 
 function HankoTest() {
-  const [osmEnabled, setOsmEnabled] = useState(false);
+  const [osmEnabled, setOsmEnabled] = useState(true);
   const [osmRequired, setOsmRequired] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [debug, setDebug] = useState(false);
