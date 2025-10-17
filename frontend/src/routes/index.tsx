@@ -1,7 +1,8 @@
-import { Routes, Route } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import { HealthCheck } from "../components/HealthCheck";
-import HomePage from "./HomePage";
+import ProfilePage from "../pages/ProfilePage";
 import HankoTest from "../pages/HankoTest";
+import HomePage from "../pages/HomePage";
 
 // Placeholder components for now
 function MappingPage() {
@@ -28,6 +29,23 @@ function LoginPage() {
   );
 }
 
+function StartMappingPage() {
+  return <div>Start Mapping page coming soon</div>;
+}
+
+function ProjectsPage() {
+  return <div>My Projects page coming soon</div>;
+}
+
+function LogoutPage() {
+  return (
+    <div>
+      <h1>Logging out...</h1>
+      <p>You have been successfully logged out.</p>
+    </div>
+  );
+}
+
 function NotFoundPage() {
   return <div>Page not found</div>;
 }
@@ -41,6 +59,10 @@ export function AppRoutes() {
       <Route path="/field" element={<FieldPage />} />
       <Route path="/data" element={<DataPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/profile" element={<ProfilePage />} />
+      <Route path="/start" element={<StartMappingPage />} />
+      <Route path="/projects" element={<ProjectsPage />} />
+      <Route path="/logout" element={<LogoutPage />} />
       <Route path="/hanko-test" element={<HankoTest />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
