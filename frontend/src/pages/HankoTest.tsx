@@ -27,7 +27,7 @@ function HankoTest() {
   // Load initial state from localStorage or use defaults
   const [osmEnabled, setOsmEnabled] = useState(() => {
     const saved = localStorage.getItem("hankoTest.osmEnabled");
-    return saved !== null ? saved === "true" : true;
+    return saved !== null ? saved === "true" : false;
   });
   const [osmRequired, setOsmRequired] = useState(() => {
     const saved = localStorage.getItem("hankoTest.osmRequired");
