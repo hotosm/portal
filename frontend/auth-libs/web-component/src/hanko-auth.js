@@ -20,6 +20,7 @@ class HankoAuth extends HTMLElement {
       user: null,
       osmConnected: false,
       osmData: null,
+      osmLoading: false,
       loading: true,
       error: null
     };
@@ -344,6 +345,10 @@ class HankoAuth extends HTMLElement {
   }
 
   async checkOSMConnection() {
+    // Set loading state and render
+    this.state.osmLoading = true;
+    this.render();
+
     try {
       const basePath = this.getBasePath();
       const authPath = this.authPath;
@@ -378,13 +383,18 @@ class HankoAuth extends HTMLElement {
           this.log('✅ OSM is connected:', data.osm_username);
           this.state.osmConnected = true;
           this.state.osmData = data;
-          this.render(); // Re-render to show OSM connected state
         } else {
           this.log('❌ OSM is NOT connected');
+          this.state.osmConnected = false;
+          this.state.osmData = null;
         }
       }
     } catch (error) {
       console.error('OSM connection check failed:', error);
+    } finally {
+      // Clear loading state and render final result
+      this.state.osmLoading = false;
+      this.render();
     }
   }
 
@@ -793,7 +803,7 @@ class HankoAuth extends HTMLElement {
       `;
     } else if (this.state.user) {
       // User is logged in
-      const needsOSM = this.osmEnabled && !this.state.osmConnected;
+      const needsOSM = this.osmEnabled && !this.state.osmConnected && !this.state.osmLoading;
       const displayName = this.state.user.username || this.state.user.email || this.state.user.id;
       const initial = displayName ? displayName[0].toUpperCase() : 'U';
 
@@ -809,7 +819,11 @@ class HankoAuth extends HTMLElement {
                 </div>
               </div>
 
-              ${this.osmEnabled && this.state.osmConnected ? `
+              ${this.osmEnabled && this.state.osmLoading ? `
+                <div class="osm-section">
+                  <div class="loading">Checking OSM connection...</div>
+                </div>
+              ` : this.osmEnabled && this.state.osmConnected ? `
                 <div class="osm-section">
                   <div class="osm-connected">
                     <div class="osm-badge">
