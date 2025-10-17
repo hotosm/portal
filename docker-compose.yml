@@ -36,6 +36,7 @@ services:
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
       OSM_CLIENT_ID: ${OSM_CLIENT_ID:-}
       OSM_CLIENT_SECRET: ${OSM_CLIENT_SECRET:-}
+      OSM_REDIRECT_URI: ${OSM_REDIRECT_URI:-}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:
@@ -68,6 +69,7 @@ services:
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
       OSM_CLIENT_ID: ${OSM_CLIENT_ID:-}
       OSM_CLIENT_SECRET: ${OSM_CLIENT_SECRET:-}
+      OSM_REDIRECT_URI: ${OSM_REDIRECT_URI:-}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:
