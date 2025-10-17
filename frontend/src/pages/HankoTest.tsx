@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Card from "../components/shared/Card";
 import WaSwitch from "@awesome.me/webawesome/dist/react/switch/index.js";
 
@@ -24,10 +24,40 @@ declare global {
 }
 
 function HankoTest() {
-  const [osmEnabled, setOsmEnabled] = useState(true);
-  const [osmRequired, setOsmRequired] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
-  const [debug, setDebug] = useState(false);
+  // Load initial state from localStorage or use defaults
+  const [osmEnabled, setOsmEnabled] = useState(() => {
+    const saved = localStorage.getItem("hankoTest.osmEnabled");
+    return saved !== null ? saved === "true" : true;
+  });
+  const [osmRequired, setOsmRequired] = useState(() => {
+    const saved = localStorage.getItem("hankoTest.osmRequired");
+    return saved !== null ? saved === "true" : false;
+  });
+  const [showProfile, setShowProfile] = useState(() => {
+    const saved = localStorage.getItem("hankoTest.showProfile");
+    return saved !== null ? saved === "true" : false;
+  });
+  const [debug, setDebug] = useState(() => {
+    const saved = localStorage.getItem("hankoTest.debug");
+    return saved !== null ? saved === "true" : false;
+  });
+
+  // Save to localStorage whenever state changes
+  useEffect(() => {
+    localStorage.setItem("hankoTest.osmEnabled", String(osmEnabled));
+  }, [osmEnabled]);
+
+  useEffect(() => {
+    localStorage.setItem("hankoTest.osmRequired", String(osmRequired));
+  }, [osmRequired]);
+
+  useEffect(() => {
+    localStorage.setItem("hankoTest.showProfile", String(showProfile));
+  }, [showProfile]);
+
+  useEffect(() => {
+    localStorage.setItem("hankoTest.debug", String(debug));
+  }, [debug]);
 
   return (
     <div className="container-xl py-lg">
