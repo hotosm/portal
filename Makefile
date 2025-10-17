@@ -25,6 +25,8 @@ dev-frontend: ## Run frontend locally (without Docker)
 
 # Development (Docker)
 dev: ## Run all services with Docker (development profile)
+	@echo "Building web component..."
+	cd frontend/auth-libs/web-component && pnpm install && pnpm build
 	@echo "Starting development environment..."
 	@echo ""
 	docker compose --profile dev up --build
