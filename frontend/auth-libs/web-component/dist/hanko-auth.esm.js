@@ -3459,14 +3459,7 @@ class Ia extends HTMLElement {
   }
   async syncJWTToCookie() {
     try {
-      const { Hanko: t } = await Promise.resolve().then(() => Nt), e = new t(this.hankoUrl);
-      let n;
-      try {
-        n = await e.session.getToken();
-      } catch {
-        this.log("⚠️ No valid Hanko session for JWT sync");
-        return;
-      }
+      const { Hanko: t } = await Promise.resolve().then(() => Nt), n = new t(this.hankoUrl).getSessionToken();
       if (n) {
         const a = window.location.hostname, r = a === "localhost" || a === "127.0.0.1", c = r ? "; domain=localhost" : "";
         document.cookie = `hanko=${n}; path=/${c}; max-age=86400; SameSite=Lax`, this.log(`🔐 JWT synced to cookie for SSO${r ? " (domain=localhost)" : ""}`);
