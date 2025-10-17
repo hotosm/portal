@@ -241,6 +241,12 @@ class HankoAuth extends HTMLElement {
 
   attributeChangedCallback(name, oldValue, newValue) {
     if (oldValue !== newValue) {
+      // If osm-enabled changed to true and user is logged in, check OSM connection
+      if (name === 'osm-enabled' && this.osmEnabled && this.state.user) {
+        this.log('🔄 osm-enabled changed to true, checking OSM connection...');
+        this.checkOSMConnection();
+      }
+
       this.render();
     }
   }

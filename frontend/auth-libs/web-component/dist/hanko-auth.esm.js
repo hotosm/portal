@@ -3426,7 +3426,7 @@ class Ia extends HTMLElement {
     this.log("🔌 hanko-auth connectedCallback called"), this.log("  hankoUrl:", this.hankoUrl), this.log('  getAttribute("hanko-url"):', this.getAttribute("hanko-url")), this.log("  all attributes:", Array.from(this.attributes).map((t) => `${t.name}="${t.value}"`)), this.render(), this.log("✅ Starting init with hankoUrl:", this.hankoUrl), this.init();
   }
   attributeChangedCallback(t, e, n) {
-    e !== n && this.render();
+    e !== n && (t === "osm-enabled" && this.osmEnabled && this.state.user && (this.log("🔄 osm-enabled changed to true, checking OSM connection..."), this.checkOSMConnection()), this.render());
   }
   async init() {
     try {
