@@ -113,11 +113,11 @@ class AuthConfig(BaseModel):
         if self.jwt_issuer == "auto":
             issuer_url = str(self.hanko_api_url)
             object.__setattr__(self, 'jwt_issuer', issuer_url)
-            logger.info(f"JWT issuer set to: {issuer_url} (from hanko_api_url)")
+            print(f"✓ JWT issuer set to: {issuer_url} (from hanko_api_url)")
         elif self.jwt_issuer:
-            logger.info(f"JWT issuer explicitly set to: {self.jwt_issuer}")
+            print(f"✓ JWT issuer explicitly set to: {self.jwt_issuer}")
         else:
-            logger.warning("JWT issuer validation is DISABLED (jwt_issuer=None)")
+            print("⚠️  JWT issuer validation is DISABLED (jwt_issuer=None)")
         # If None, issuer validation is skipped
 
     @classmethod
