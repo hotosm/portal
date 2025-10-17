@@ -111,7 +111,8 @@ class AuthConfig(BaseModel):
         # Default JWT issuer to Hanko API URL if set to "auto"
         # Use object.__setattr__ because model is frozen
         if self.jwt_issuer == "auto":
-            issuer_url = str(self.hanko_api_url)
+            # Strip trailing slash from HttpUrl (Pydantic adds it automatically)
+            issuer_url = str(self.hanko_api_url).rstrip('/')
             object.__setattr__(self, 'jwt_issuer', issuer_url)
             print(f"✓ JWT issuer set to: {issuer_url} (from hanko_api_url)")
         elif self.jwt_issuer:
