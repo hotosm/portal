@@ -33,7 +33,7 @@ function HankoTest() {
 
   // Listen for OSM connection event from web component
   useEffect(() => {
-    const handleOsmConnected = (event: Event) => {
+    const handleOsmConnected = () => {
       console.log('🎯 OSM connected event received, enabling switch');
       setOsmEnabled(true);
     };
