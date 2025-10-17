@@ -22,14 +22,9 @@ async def lifespan(app: FastAPI):
     # Startup
     print("Starting up...")
 
-    # Initialize authentication
-    auth_config = AuthConfig(
-        hanko_api_url=settings.hanko_api_url,
-        cookie_secret=settings.cookie_secret,
-        cookie_domain=settings.cookie_domain,
-        osm_client_id=settings.osm_client_id,
-        osm_client_secret=settings.osm_client_secret,
-    )
+    # Initialize authentication from environment variables
+    # This automatically configures JWT issuer validation
+    auth_config = AuthConfig.from_env()
     init_auth(auth_config)
     print("Authentication initialized")
 
