@@ -378,6 +378,7 @@ class HankoAuth extends HTMLElement {
           this.log('✅ OSM is connected:', data.osm_username);
           this.state.osmConnected = true;
           this.state.osmData = data;
+          this.render(); // Re-render to show OSM connected state
         } else {
           this.log('❌ OSM is NOT connected');
         }
