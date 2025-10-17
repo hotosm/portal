@@ -541,30 +541,29 @@ class HankoAuth extends HTMLElement {
     this.log('🍪 Cookies before logout:', document.cookie);
 
     // Clear OSM connection first (before clearing JWT cookie)
-    if (this.osmEnabled) {
-      try {
-        const basePath = this.getBasePath();
-        const authPath = this.authPath;
-        // Construct absolute URL to avoid <base> tag interference
-        const origin = window.location.origin;
-        const disconnectPath = this.addTrailingSlash(`${basePath}${authPath}/disconnect`, basePath);
-        const disconnectUrl = `${origin}${disconnectPath}`;
-        this.log('🔌 Calling OSM disconnect:', disconnectUrl);
+    // Always try to disconnect OSM, regardless of osmEnabled switch state
+    try {
+      const basePath = this.getBasePath();
+      const authPath = this.authPath;
+      // Construct absolute URL to avoid <base> tag interference
+      const origin = window.location.origin;
+      const disconnectPath = this.addTrailingSlash(`${basePath}${authPath}/disconnect`, basePath);
+      const disconnectUrl = `${origin}${disconnectPath}`;
+      this.log('🔌 Calling OSM disconnect:', disconnectUrl);
 
-        const response = await fetch(disconnectUrl, {
-          method: 'POST',
-          credentials: 'include'
-        });
+      const response = await fetch(disconnectUrl, {
+        method: 'POST',
+        credentials: 'include'
+      });
 
-        this.log('📡 Disconnect response status:', response.status);
-        this.log('📡 Disconnect response headers:', [...response.headers.entries()]);
+      this.log('📡 Disconnect response status:', response.status);
+      this.log('📡 Disconnect response headers:', [...response.headers.entries()]);
 
-        const data = await response.json();
-        this.log('📡 Disconnect response data:', data);
-        this.log('✅ OSM disconnected');
-      } catch (error) {
-        console.error('❌ OSM disconnect failed:', error);
-      }
+      const data = await response.json();
+      this.log('📡 Disconnect response data:', data);
+      this.log('✅ OSM disconnected');
+    } catch (error) {
+      console.error('❌ OSM disconnect failed:', error);
     }
 
     // Use Hanko SDK to properly logout
