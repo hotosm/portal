@@ -31,6 +31,7 @@ services:
       DEBUG: ${DEBUG:-false}
       # Authentication settings
       HANKO_API_URL: ${HANKO_API_URL:-https://dev.login.hotosm.org}
+      JWT_ISSUER: ${JWT_ISSUER:-auto}
       COOKIE_SECRET: ${COOKIE_SECRET}
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
       OSM_CLIENT_ID: ${OSM_CLIENT_ID:-}
@@ -62,6 +63,7 @@ services:
       DEBUG: "true"
       # Authentication settings
       HANKO_API_URL: ${HANKO_API_URL:-https://dev.login.hotosm.org}
+      JWT_ISSUER: ${JWT_ISSUER:-auto}
       COOKIE_SECRET: ${COOKIE_SECRET}
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
       OSM_CLIENT_ID: ${OSM_CLIENT_ID:-}
