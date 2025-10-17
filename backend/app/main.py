@@ -24,7 +24,9 @@ async def lifespan(app: FastAPI):
 
     # Initialize authentication from environment variables
     # This automatically configures JWT issuer validation
+    print("🔧 Loading AuthConfig from environment...")
     auth_config = AuthConfig.from_env()
+    print(f"🔧 AuthConfig loaded: hanko_api_url={auth_config.hanko_api_url}, jwt_issuer={auth_config.jwt_issuer}")
     init_auth(auth_config)
     print("Authentication initialized")
 
