@@ -1,16 +1,16 @@
+import React from "react";
 import { Route, Routes } from "react-router-dom";
 import { HealthCheck } from "../components/HealthCheck";
-import ProfilePage from "../pages/ProfilePage";
+import { useAuth } from "../contexts/AuthContext";
 import HankoTest from "../pages/HankoTest";
 import HomePage from "../pages/HomePage";
+import ImageryPage from "../pages/ImageryPage";
+import LandingPage from "../pages/LandingPage";
+import ProfilePage from "../pages/ProfilePage";
 
 // Placeholder components for now
 function MappingPage() {
   return <div>Mapping page coming soon</div>;
-}
-
-function ImageryPage() {
-  return <div>Imagery page coming soon</div>;
 }
 
 function FieldPage() {
@@ -29,14 +29,6 @@ function LoginPage() {
   );
 }
 
-function StartMappingPage() {
-  return <div>Start Mapping page coming soon</div>;
-}
-
-function ProjectsPage() {
-  return <div>My Projects page coming soon</div>;
-}
-
 function LogoutPage() {
   return (
     <div>
@@ -50,20 +42,105 @@ function NotFoundPage() {
   return <div>Page not found</div>;
 }
 
+// Component to handle protected routes
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isLogin } = useAuth();
+  
+  // Debug logging - remove in production
+  console.log('ProtectedRoute - isLogin:', isLogin);
+
+  if (!isLogin) {
+    return (
+      <div className="text-center py-16">
+        <h1 className="text-3xl font-bold mb-4 text-red-600">Access Denied</h1>
+        <p className="text-gray-600 mb-8">
+          You must be logged in to access this page.
+        </p>
+        <p className="text-sm text-gray-500">
+          Please log in using the toggle in the header for demo purposes.
+        </p>
+        <p className="text-xs text-gray-400 mt-4">
+          Debug: Auth state is {isLogin ? 'logged in' : 'logged out'}
+        </p>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
+
+// Component to handle main navigation routes with different CTAs
+function MainNavRoute({
+  children,
+  menuItemId,
+}: {
+  children: React.ReactNode;
+  menuItemId: string;
+}) {
+  const { isLogin } = useAuth();
+  
+  // Debug logging - remove in production
+  console.log(`MainNavRoute (${menuItemId}) - isLogin:`, isLogin);
+  
+  return isLogin ? <>{children}</> : <LandingPage menuItemId={menuItemId} />;
+}
+
 export function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
-      <Route path="/mapping" element={<MappingPage />} />
-      <Route path="/imagery" element={<ImageryPage />} />
-      <Route path="/field" element={<FieldPage />} />
-      <Route path="/data" element={<DataPage />} />
+      {/* Main navigation routes - show different CTAs when not logged in */}
+      <Route
+        path="/mapping"
+        element={
+          <MainNavRoute menuItemId="mapping">
+            <MappingPage />
+          </MainNavRoute>
+        }
+      />
+      <Route
+        path="/imagery"
+        element={
+          <MainNavRoute menuItemId="imagery">
+            <ImageryPage />
+          </MainNavRoute>
+        }
+      />
+      <Route
+        path="/field"
+        element={
+          <MainNavRoute menuItemId="field">
+            <FieldPage />
+          </MainNavRoute>
+        }
+      />
+      <Route
+        path="/data"
+        element={
+          <MainNavRoute menuItemId="data">
+            <DataPage />
+          </MainNavRoute>
+        }
+      />
+
+      {/* Authentication routes */}
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/profile" element={<ProfilePage />} />
-      <Route path="/start" element={<StartMappingPage />} />
-      <Route path="/projects" element={<ProjectsPage />} />
       <Route path="/logout" element={<LogoutPage />} />
+
+      {/* Protected user routes */}
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Testing routes */}
       <Route path="/hanko-test" element={<HankoTest />} />
+
+      {/* Fallback */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
