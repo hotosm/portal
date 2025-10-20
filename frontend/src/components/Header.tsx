@@ -9,15 +9,11 @@ import { useAuth } from "../contexts/AuthContext";
 import Button from "./shared/Button";
 
 function Header() {
-  const { isLogin, logout, toggleAuth } = useAuth();
+  const { isLogin, toggleAuth } = useAuth();
 
   const handleLogin = () => {
     const dialog = document.getElementById("dialog-login") as any;
     if (dialog) dialog.open = true;
-  };
-
-  const handleLogout = () => {
-    logout();
   };
 
   return (
