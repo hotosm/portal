@@ -24,7 +24,7 @@ function UserMenuContent() {
     <Dropdown onSelect={handleMenuSelect}>
       <Button slot="trigger" appearance="outlined" size="small">
         <Icon slot="start" name="user"></Icon>
-        Justina
+        UserName
       </Button>
 
       {USER_MENU_ITEMS.map((item) => {
