@@ -43,24 +43,6 @@ export const USER_MENU_ITEMS: MenuItem[] = [
     requiresAuth: true,
   },
   {
-    id: "start",
-    label: "Start Mapping",
-    href: "/start",
-    requiresAuth: true,
-  },
-  {
-    id: "projects",
-    label: "My Projects",
-    href: "/projects",
-    requiresAuth: true,
-  },
-  {
-    id: "imagery",
-    label: "My Imagery",
-    href: "/imagery",
-    requiresAuth: true,
-  },
-  {
     id: "logout",
     label: "Sign Out",
     href: "/logout",
