@@ -4,7 +4,7 @@ import Card from "../components/shared/Card";
 
 function ProfilePage() {
   const [emails, setEmails] = useState([
-    { email: "justina@animus.coop", isPrimary: true },
+    { email: "userName@hotosm.org", isPrimary: true },
   ]);
   const [newEmail, setNewEmail] = useState("");
   const [showAddEmail, setShowAddEmail] = useState(false);

@@ -3,6 +3,7 @@ export interface SecondaryCallToActionData {
   description: string;
   image: string;
   link: string;
+  buttonText: string;
 }
 
 export interface PrimaryCallToActionData {

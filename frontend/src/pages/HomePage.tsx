@@ -27,16 +27,17 @@ const secondaryCallToActionData: SecondaryCallToActionData = {
   title: "Drone Tasking Manager",
   description: "Capture and use your own aerial imagery",
   image: "https://cdn.hotosm.org/website/Map+Makoko+1.jpeg",
+  buttonText: "Read more",
   link: "https://example.com/drone-tasking-manager",
 };
 
 function HomePage() {
   return (
-    <div className="flex flex-col sm:flex-row gap-lg items-center">
-      <div className="w-full sm:w-2/3 h-full">
+    <div className="flex flex-col sm:flex-row gap-lg items-stretch">
+      <div className="w-full sm:w-2/3 flex">
         <PrimaryCallToAction data={primaryCallToActionData} />
       </div>
-      <div className="w-full sm:w-1/3 h-full">
+      <div className="w-full sm:w-1/3 flex">
         <SecondaryCallToAction data={secondaryCallToActionData} />
       </div>
     </div>
