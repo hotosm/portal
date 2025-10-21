@@ -36,21 +36,8 @@ function UserMenuContent() {
         document.cookie = 'osm_connection=; path=/; max-age=0';
         document.cookie = 'osm_connection=; path=/; domain=localhost; max-age=0';
 
-        // Try to call Hanko SDK logout if available
-        (async () => {
-          try {
-            const { Hanko } = await import('@teamhanko/hanko-elements');
-            const hankoUrl = import.meta.env.VITE_HANKO_URL || 'http://127.0.0.1:5173';
-            const hanko = new Hanko(hankoUrl);
-            await hanko.user.logout();
-            console.log("Hanko SDK logout successful");
-          } catch (error) {
-            console.error("Hanko SDK logout failed:", error);
-          }
-
-          // Reload page to clear all state
-          window.location.href = '/';
-        })();
+        // Reload page to clear all state
+        window.location.href = '/';
       } else {
         window.location.href = selectedItem.href;
       }
