@@ -12,6 +12,13 @@
     <meta name="theme-color" content="#ffffff" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <!-- Hanko Authentication Configuration -->
+    <script type="module">
+      // Set Hanko URL from environment variable
+      window.HANKO_URL = import.meta.env.VITE_HANKO_URL || 'http://127.0.0.1:5173';
+      console.log('🔧 Hanko URL configured:', window.HANKO_URL);
+    </script>
+
     <title>HOT Portal</title>
     <meta
       name="description"

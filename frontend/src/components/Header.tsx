@@ -1,20 +1,12 @@
 import { Link } from "react-router-dom";
 import hotLogo from "../assets/images/hot-logo.svg";
 import NavigationMain from "./NavigationMain";
-import NavigationUser from "./NavigationUser";
 import Dialog from "./shared/Dialog";
 import Icon from "./shared/Icon";
 import DrawerMenu from "./DrawerMenu";
-import { useAuth } from "../contexts/AuthContext";
-import Button from "./shared/Button";
 
 function Header() {
-  const { isLogin, toggleAuth } = useAuth();
-
-  const handleLogin = () => {
-    const dialog = document.getElementById("dialog-login") as any;
-    if (dialog) dialog.open = true;
-  };
+  const hankoUrl = import.meta.env.VITE_HANKO_URL || 'http://127.0.0.1:5173';
 
   return (
     <>
@@ -42,30 +34,8 @@ function Header() {
         </div>
 
         <div className="flex gap-md items-center">
-          {!isLogin ? (
-            <Link
-              to="#"
-              onClick={handleLogin}
-              className="text-primary hover:underline"
-            >
-              Log In
-            </Link>
-          ) : (
-            <div className="hidden sm:block">
-              <NavigationUser />
-            </div>
-          )}
-          {/* Auth Toggle Switch for Testing */}
-          <div className="min-w-[120px]">
-            <Button
-              appearance="plain"
-              onClick={toggleAuth}
-              className={`rounded text-xs font-medium transition-colors ${
-                isLogin ? "bg-green-100" : "bg-red-100"
-              }`}
-            >
-              {isLogin ? "Logged In" : "Logged Out"}
-            </Button>
+          <div className="hidden sm:block">
+            <hotosm-auth hanko-url={hankoUrl} osm-required />
           </div>
 
           <Icon
@@ -82,10 +52,6 @@ function Header() {
 
       <Dialog label="Coming Soon" id="dialog-overview">
         Shared menu will be a web component.
-      </Dialog>
-
-      <Dialog label="Log In" id="dialog-login">
-        <hotosm-auth show-profile={false} />
       </Dialog>
     </>
   );
