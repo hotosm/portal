@@ -11,26 +11,25 @@ export interface CTAData {
 export const LANDING_CTA_DATA: Record<string, CTAData> = {
   mapping: {
     primary: {
-      title: "Tasking Manager",
-      description: "Join thousands of volunteers creating maps that matter.",
-      descriptionHightlight: "Start mapping today!",
+      title: "Mapping Portal",
+      description: "Open Mapping Suite",
+      descriptionHightlight: "For Social Good",
       link1: {
-        text: "Sign Up to Map",
-        url: "#login",
+        text: "Start now",
+        url: "https://dronetm.org/",
       },
       link2: {
-        text: "Learn More",
-        url: "https://tasks.hotosm.org/learn",
+        text: "Take the course",
+        url: "https://dronetm.org/tutorials",
       },
-      footer: "Make a real-world impact through collaborative mapping.",
+      footer: "AN OPEN SOURCE, COMMUNITY-LED MAPPING PLATFORM",
     },
     secondary: {
-      title: "OpenStreetMap",
-      description:
-        "The free, collaborative map of the world that anyone can edit.",
+      title: "Drone Tasking Manager",
+      description: "Capture and use your own aerial imagery",
       image: "https://cdn.hotosm.org/website/Map+Makoko+1.jpeg",
-      link: "https://www.openstreetmap.org/",
-      buttonText: "Explore OSM",
+      buttonText: "Read more",
+      link: "https://example.com/drone-tasking-manager",
     },
   },
   imagery: {
