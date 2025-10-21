@@ -138,6 +138,7 @@ jobs:
           COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
           OSM_CLIENT_ID: ${{ secrets.OSM_CLIENT_ID }}
           OSM_CLIENT_SECRET: ${{ secrets.OSM_CLIENT_SECRET }}
+          OSM_REDIRECT_URI: ${{ secrets.OSM_REDIRECT_URI }}
         run: |
           # Deploy via SSH (using ssh-agent from webfactory/ssh-agent action)
           ssh $EC2_USER@$EC2_HOST << 'EOF'
@@ -159,6 +160,7 @@ jobs:
             sed -i 's|^COOKIE_SECRET=.*|COOKIE_SECRET=${{ secrets.COOKIE_SECRET }}|' .env
             sed -i 's|^OSM_CLIENT_ID=.*|OSM_CLIENT_ID=${{ secrets.OSM_CLIENT_ID }}|' .env
             sed -i 's|^OSM_CLIENT_SECRET=.*|OSM_CLIENT_SECRET=${{ secrets.OSM_CLIENT_SECRET }}|' .env
+            sed -i 's|^OSM_REDIRECT_URI=.*|OSM_REDIRECT_URI=${{ secrets.OSM_REDIRECT_URI }}|' .env
             echo "✓ Updated authentication secrets in .env"
 
             # Login to GitHub Container Registry

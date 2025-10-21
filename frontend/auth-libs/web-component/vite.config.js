@@ -4,7 +4,7 @@ import { resolve } from 'path';
 export default defineConfig({
   build: {
     lib: {
-      entry: resolve(__dirname, 'src/hanko-auth.js'),
+      entry: resolve(__dirname, 'src/hanko-auth.ts'),
       name: 'HankoAuth',
       formats: ['es', 'umd', 'iife'],
       fileName: (format) => `hanko-auth.${format === 'es' ? 'esm' : format}.js`

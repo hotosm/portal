@@ -1,11 +1,11 @@
 import React from "react";
 import { Route, Routes } from "react-router-dom";
-import { HealthCheck } from "../components/HealthCheck";
 import { useAuth } from "../contexts/AuthContext";
 import HankoTest from "../pages/HankoTest";
 import HomePage from "../pages/HomePage";
 import ImageryPage from "../pages/ImageryPage";
 import LandingPage from "../pages/LandingPage";
+import LoginPage from "../pages/LoginPage";
 import ProfilePage from "../pages/ProfilePage";
 
 // Placeholder components for now
@@ -19,14 +19,6 @@ function FieldPage() {
 
 function DataPage() {
   return <div>Data page coming soon</div>;
-}
-
-function LoginPage() {
-  return (
-    <div>
-      <HealthCheck />
-    </div>
-  );
 }
 
 function LogoutPage() {
