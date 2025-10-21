@@ -99,11 +99,11 @@ make migrate
 ```
 
 **Access the application:**
-- Frontend: http://localhost:5173
+- Frontend: http://127.0.0.1:5173 (use 127.0.0.1, not localhost, for proper cookie handling)
 - Backend API: http://localhost:8000
 - API Docs: http://localhost:8000/api/docs
 
-**Note**: For local development without Docker, see the [Development](#development) section below.
+**Note**: For OSM OAuth to work in development, you need to configure your OSM OAuth application with the redirect URI `http://127.0.0.1:5173/api/auth/osm/callback`. See [Authentication Setup](#authentication-setup-optional) below.
 
 ### Authentication Setup (Optional)
 
@@ -121,7 +121,14 @@ OSM_CLIENT_ID=your-osm-client-id
 OSM_CLIENT_SECRET=your-osm-client-secret
 ```
 
-**For development**, the default Hanko URL (`https://dev.login.hotosm.org`) is already configured in `.env.example`. Copy it to `.env` and update `COOKIE_SECRET` for production deployments.
+**For local development**, Portal includes a local Hanko SSO server that runs in Docker (dev profile only):
+- Automatically starts with `make dev`
+- Runs on port 8002 (proxied through Vite on port 5173)
+- Uses local PostgreSQL database (port 5436)
+- Configuration in `hanko-config.yaml`
+- **Important**: Access the app at `http://127.0.0.1:5173` (NOT `localhost`) for proper cookie handling
+
+**For production**, Portal uses the hosted Hanko instance at `https://dev.login.hotosm.org`.
 
 See [`auth-libs/README.md`](auth-libs/README.md) for detailed authentication documentation.
 
@@ -357,6 +364,106 @@ make db-reset                    # Reset (⚠️ deletes data)
 make clean             # Clean build artifacts and caches
 make health            # Check service health
 make help              # Show all available commands
+```
+
+## Deployment
+
+Portal uses GitHub Actions for automated deployment to EC2. On every push to `develop`, the workflow:
+1. Runs tests
+2. Builds and pushes Docker images to GitHub Container Registry
+3. Deploys to EC2 testing environment
+
+### GitHub Secrets Configuration
+
+Add these secrets in **GitHub repository → Settings → Secrets and variables → Actions**:
+
+#### SSH Access
+- `EC2_HOST`: Server hostname (e.g., `portal.hotosm.org`)
+- `EC2_USER`: SSH user (e.g., `admin`)
+- `EC2_SSH_KEY`: Private SSH key for server access
+
+#### Authentication
+- `COOKIE_SECRET`: Minimum 32 characters for cookie encryption
+  ```bash
+  # Generate with:
+  python -c "import secrets; print(secrets.token_urlsafe(32))"
+  ```
+
+#### OpenStreetMap OAuth
+- `OSM_CLIENT_ID`: From https://www.openstreetmap.org/oauth2/applications
+- `OSM_CLIENT_SECRET`: From your OSM OAuth application
+- `OSM_REDIRECT_URI`: Production callback URL (e.g., `https://portal.hotosm.org/api/auth/osm/callback`)
+
+### OSM OAuth Application Setup
+
+1. Register at: https://www.openstreetmap.org/oauth2/applications/new
+2. Configure your application:
+   - **Name**: Portal (Production) or Portal (Development)
+   - **Redirect URIs**: Add both:
+     - Production: `https://portal.hotosm.org/api/auth/osm/callback`
+     - Development: `http://127.0.0.1:5173/api/auth/osm/callback` (use `127.0.0.1`, NOT `localhost`)
+   - **Scopes**: `read_prefs`
+3. Save your Client ID and Client Secret
+4. Add them to GitHub Secrets (see above)
+
+**Note**: For local development, access the app at `http://127.0.0.1:5173` (not `localhost`) to ensure cookies work correctly with OSM OAuth.
+
+### Environment Variables
+
+The deployment workflow automatically updates `.env` on the server with values from GitHub Secrets. For manual deployments or local testing, ensure your `.env` has:
+
+```bash
+# Production
+VITE_HANKO_URL=https://dev.login.hotosm.org
+HANKO_API_URL=https://dev.login.hotosm.org
+JWT_ISSUER=auto
+COOKIE_SECRET=<your-secret-from-github-secrets>
+OSM_CLIENT_ID=<your-osm-client-id>
+OSM_CLIENT_SECRET=<your-osm-client-secret>
+OSM_REDIRECT_URI=https://portal.hotosm.org/api/auth/osm/callback
+
+# Development (local with Hanko SSO)
+VITE_HANKO_URL=http://127.0.0.1:5173
+JWT_ISSUER=http://127.0.0.1:5173
+OSM_REDIRECT_URI=http://127.0.0.1:5173/api/auth/osm/callback
+```
+
+### Deployment Workflow
+
+The GitHub Actions workflow (`.github/workflows/deploy-testing.yml`) handles:
+
+1. **Testing**: Runs backend and frontend tests
+2. **Building**: Builds production Docker images
+3. **Pushing**: Pushes images to GitHub Container Registry
+4. **Deploying**: SSH to EC2, pulls images, and restarts services
+
+**Trigger deployment:**
+```bash
+git push origin develop
+```
+
+**Monitor deployment:**
+- Check GitHub Actions tab in your repository
+- View logs: `ssh admin@portal.hotosm.org "cd /opt/portal && docker compose logs"`
+
+### Manual Deployment
+
+If you need to deploy manually:
+
+```bash
+# SSH to server
+ssh admin@portal.hotosm.org
+
+# Navigate to application directory
+cd /opt/portal
+
+# Pull latest code
+git pull origin develop
+
+# Update .env with secrets (if needed)
+# Then pull and restart services
+docker compose pull
+docker compose --profile prod up -d --force-recreate
 ```
 
 ## Project Structure
