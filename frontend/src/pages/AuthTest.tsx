@@ -195,7 +195,7 @@ function AuthTest() {
 
             <div className="mt-sm">
               <div className="mb-md p-sm bg-blue-50 rounded" style={{ color: "#1f2937" }}>
-                <div className="text-xs font-semibold mb-xs">Implementation:</div>
+                <div className="text-xs font-semibold mb-xs">FastAPI Implementation:</div>
                 <pre className="text-xs m-0 overflow-auto" style={{
                   backgroundColor: "#1e293b",
                   color: "#e2e8f0",
@@ -279,7 +279,7 @@ function AuthTest() {
 
             <div className="mt-sm">
               <div className="mb-md p-sm bg-blue-50 rounded" style={{ color: "#1f2937" }}>
-                <div className="text-xs font-semibold mb-xs">Implementation:</div>
+                <div className="text-xs font-semibold mb-xs">FastAPI Implementation:</div>
                 <pre className="text-xs m-0 overflow-auto" style={{
                   backgroundColor: "#1e293b",
                   color: "#e2e8f0",
