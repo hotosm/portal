@@ -164,7 +164,7 @@ function AuthTest() {
           </Button>
 
           {testResults.me && (
-            <div className="p-md bg-neutral-50 rounded">
+            <div className="p-md bg-neutral-50 rounded mb-md">
               <div className="flex items-center gap-sm mb-xs">
                 <Icon
                   name={testResults.me.success ? "check-circle" : "circle-xmark"}
@@ -187,6 +187,43 @@ function AuthTest() {
               </pre>
             </div>
           )}
+
+          <details className="mt-md">
+            <summary className="cursor-pointer text-sm font-semibold mb-sm" style={{ color: "#1f2937" }}>
+              📚 Technical Documentation
+            </summary>
+
+            <div className="mt-sm">
+              <div className="mb-md p-sm bg-blue-50 rounded" style={{ color: "#1f2937" }}>
+                <div className="text-xs font-semibold mb-xs">Implementation:</div>
+                <pre className="text-xs m-0 overflow-auto" style={{
+                  backgroundColor: "#1e293b",
+                  color: "#e2e8f0",
+                  padding: "0.75rem",
+                  borderRadius: "0.375rem"
+                }}>
+<span style={{ color: "#a78bfa" }}>from</span> hotosm_auth.integrations.fastapi <span style={{ color: "#a78bfa" }}>import</span> CurrentUser{'\n'}
+{'\n'}
+<span style={{ color: "#a78bfa" }}>@router</span>.<span style={{ color: "#fbbf24" }}>get</span>(<span style={{ color: "#34d399" }}>"/endpoint"</span>){'\n'}
+<span style={{ color: "#a78bfa" }}>async def</span> <span style={{ color: "#60a5fa" }}>my_endpoint</span>({'\n'}
+{'    '}<span style={{ color: "#e2e8f0" }}>user</span>: <span style={{ color: "#f472b6" }}>CurrentUser</span>{'\n'}
+):{'\n'}
+{'    '}<span style={{ color: "#a78bfa" }}>return</span> {`{`}<span style={{ color: "#34d399" }}>"user_id"</span>: user.id{`}`}
+                </pre>
+              </div>
+
+              <div className="p-sm bg-gray-50 rounded" style={{ color: "#1f2937" }}>
+                <div className="text-xs font-semibold mb-xs">How it works:</div>
+                <ul className="text-xs mb-0 pl-md" style={{ color: "#4b5563" }}>
+                  <li>Extracts JWT from <code>hanko</code> cookie or Authorization header</li>
+                  <li>Validates JWT signature using Hanko's public key (JWKS)</li>
+                  <li>Verifies token expiration and issuer</li>
+                  <li>Returns <code>HankoUser</code> object with user data</li>
+                  <li>Raises 401 if token is missing, expired, or invalid</li>
+                </ul>
+              </div>
+            </div>
+          </details>
         </Card>
 
         {/* Endpoint 2: /api/test/osm */}
@@ -211,7 +248,7 @@ function AuthTest() {
           </Button>
 
           {testResults.osm && (
-            <div className="p-md bg-neutral-50 rounded">
+            <div className="p-md bg-neutral-50 rounded mb-md">
               <div className="flex items-center gap-sm mb-xs">
                 <Icon
                   name={testResults.osm.success ? "check-circle" : "circle-xmark"}
@@ -234,6 +271,50 @@ function AuthTest() {
               </pre>
             </div>
           )}
+
+          <details className="mt-md">
+            <summary className="cursor-pointer text-sm font-semibold mb-sm" style={{ color: "#1f2937" }}>
+              📚 Technical Documentation
+            </summary>
+
+            <div className="mt-sm">
+              <div className="mb-md p-sm bg-blue-50 rounded" style={{ color: "#1f2937" }}>
+                <div className="text-xs font-semibold mb-xs">Implementation:</div>
+                <pre className="text-xs m-0 overflow-auto" style={{
+                  backgroundColor: "#1e293b",
+                  color: "#e2e8f0",
+                  padding: "0.75rem",
+                  borderRadius: "0.375rem"
+                }}>
+<span style={{ color: "#a78bfa" }}>from</span> hotosm_auth.integrations.fastapi <span style={{ color: "#a78bfa" }}>import</span> ({'\n'}
+{'    '}CurrentUser,{'\n'}
+{'    '}OSMConnectionRequired,{'\n'}
+){'\n'}
+{'\n'}
+<span style={{ color: "#a78bfa" }}>@router</span>.<span style={{ color: "#fbbf24" }}>get</span>(<span style={{ color: "#34d399" }}>"/endpoint"</span>){'\n'}
+<span style={{ color: "#a78bfa" }}>async def</span> <span style={{ color: "#60a5fa" }}>my_endpoint</span>({'\n'}
+{'    '}<span style={{ color: "#e2e8f0" }}>user</span>: <span style={{ color: "#f472b6" }}>CurrentUser</span>,{'\n'}
+{'    '}<span style={{ color: "#e2e8f0" }}>osm</span>: <span style={{ color: "#f472b6" }}>OSMConnectionRequired</span>{'\n'}
+):{'\n'}
+{'    '}<span style={{ color: "#a78bfa" }}>return</span> {`{`}{'\n'}
+{'        '}<span style={{ color: "#34d399" }}>"osm_username"</span>: osm.osm_username{'\n'}
+{'    '}{`}`}
+                </pre>
+              </div>
+
+              <div className="p-sm bg-gray-50 rounded" style={{ color: "#1f2937" }}>
+                <div className="text-xs font-semibold mb-xs">How it works:</div>
+                <ul className="text-xs mb-0 pl-md" style={{ color: "#4b5563" }}>
+                  <li><strong>Hanko validation:</strong> Same JWT validation as above</li>
+                  <li><strong>OSM validation:</strong> Extracts encrypted data from <code>osm_connection</code> cookie</li>
+                  <li>Decrypts cookie using Fernet (symmetric encryption with COOKIE_SECRET)</li>
+                  <li>Verifies OAuth token hasn't expired</li>
+                  <li>Returns <code>OSMConnection</code> object with OSM user data</li>
+                  <li>Raises 401 if not authenticated, 403 if OSM not connected</li>
+                </ul>
+              </div>
+            </div>
+          </details>
         </Card>
       </div>
     </div>
