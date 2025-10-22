@@ -58,47 +58,6 @@ function AuthTest() {
     }
   };
 
-  const getExpectedResult = (endpoint: string) => {
-    if (endpoint === "me") {
-      if (!user) {
-        return {
-          status: 401,
-          message: "Should return 401 - Not authenticated",
-          color: "red",
-        };
-      }
-      return {
-        status: 200,
-        message: "Should return 200 - User info",
-        color: "green",
-      };
-    }
-
-    if (endpoint === "osm") {
-      if (!user) {
-        return {
-          status: 401,
-          message: "Should return 401 - Not authenticated",
-          color: "red",
-        };
-      }
-      if (!osmConnection) {
-        return {
-          status: 403,
-          message: "Should return 403 - OSM connection required",
-          color: "orange",
-        };
-      }
-      return {
-        status: 200,
-        message: "Should return 200 - OSM info",
-        color: "green",
-      };
-    }
-
-    return { status: 0, message: "", color: "gray" };
-  };
-
   return (
     <div className="container-xl py-lg">
       <div className="mb-lg">
