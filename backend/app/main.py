@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from hotosm_auth import AuthConfig
 from hotosm_auth.integrations.fastapi import init_auth
 
-from app.api.routes import example
+from app.api.routes import example, test
 from app.core.config import settings
 from app.core.database import check_db_connection
 
@@ -94,6 +94,12 @@ app.include_router(
     example.router,
     prefix=settings.api_v1_prefix,
     tags=["example"],
+)
+
+app.include_router(
+    test.router,
+    prefix=f"{settings.api_v1_prefix}/test",
+    tags=["test"],
 )
 
 # Include authentication routers (OSM OAuth)
