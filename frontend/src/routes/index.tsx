@@ -1,7 +1,7 @@
 import React from "react";
 import { Route, Routes } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import HankoTest from "../pages/HankoTest";
+import AuthTest from "../pages/AuthTest";
 import HomePage from "../pages/HomePage";
 import ImageryPage from "../pages/ImageryPage";
 import LandingPage from "../pages/LandingPage";
@@ -130,7 +130,7 @@ export function AppRoutes() {
       />
 
       {/* Testing routes */}
-      <Route path="/hanko-test" element={<HankoTest />} />
+      <Route path="/auth-test" element={<AuthTest />} />
 
       {/* Fallback */}
       <Route path="*" element={<NotFoundPage />} />
