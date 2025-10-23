@@ -35,6 +35,7 @@ export class HankoAuth extends LitElement {
   @property({ type: String, attribute: 'osm-scopes' }) osmScopes = 'read_prefs';
   @property({ type: Boolean, attribute: 'show-profile' }) showProfile = false;
   @property({ type: String, attribute: 'redirect-after-login' }) redirectAfterLogin = '';
+  @property({ type: Boolean, attribute: 'auto-connect' }) autoConnect = false;
 
   // Internal state
   @state() private user: UserState | null = null;
@@ -66,6 +67,34 @@ export class HankoAuth extends LitElement {
       text-align: center;
       padding: 40px;
       color: #666;
+    }
+
+    .osm-connecting {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 20px;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #d73f3f;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .connecting-text {
+      font-size: 14px;
+      color: #666;
+      font-weight: 500;
     }
 
     .error {
@@ -654,6 +683,13 @@ export class HankoAuth extends LitElement {
     // Check OSM connection before deciding redirect
     await this.checkOSMConnection();
 
+    // Auto-connect to OSM if required and auto-connect is enabled
+    if (this.osmRequired && this.autoConnect && !this.osmConnected) {
+      console.log('🔄 Auto-connecting to OSM...');
+      this.handleOSMConnect();
+      return; // Exit early - redirect will happen after OSM OAuth callback
+    }
+
     // Only redirect if OSM is not required OR if OSM is connected
     const canRedirect = !this.osmRequired || this.osmConnected;
 
@@ -865,13 +901,20 @@ export class HankoAuth extends LitElement {
 
               ${needsOSM ? html`
                 <div class="osm-section">
-                  <div class="osm-prompt-title">🌍 OSM Required</div>
-                  <div class="osm-prompt-text">
-                    This endpoint requires OSM connection.
-                  </div>
-                  <button @click=${this.handleOSMConnect} class="btn-primary">
-                    Connect OSM Account
-                  </button>
+                  ${this.autoConnect ? html`
+                    <div class="osm-connecting">
+                      <div class="spinner"></div>
+                      <div class="connecting-text">🗺️ Connecting to OpenStreetMap...</div>
+                    </div>
+                  ` : html`
+                    <div class="osm-prompt-title">🌍 OSM Required</div>
+                    <div class="osm-prompt-text">
+                      This endpoint requires OSM connection.
+                    </div>
+                    <button @click=${this.handleOSMConnect} class="btn-primary">
+                      Connect OSM Account
+                    </button>
+                  `}
                 </div>
               ` : ''}
 
@@ -901,7 +944,7 @@ export class HankoAuth extends LitElement {
             ${this.osmConnected ? html`
               <wa-dropdown-item value="osm-connected" disabled>
                 <wa-icon slot="icon" name="check"></wa-icon>
-                ✓ Connected to OSM (@${this.osmData?.osm_username})
+                Connected to OSM (@${this.osmData?.osm_username})
               </wa-dropdown-item>
             ` : html`
               <wa-dropdown-item value="connect-osm">
@@ -928,7 +971,9 @@ export class HankoAuth extends LitElement {
       } else {
         // In header - show login link
         const currentUrl = window.location.href;
-        const loginUrl = `/login?return_to=${encodeURIComponent(currentUrl)}${this.osmRequired ? '&osm_required=true' : ''}`;
+        const urlParams = new URLSearchParams(window.location.search);
+        const autoConnectParam = urlParams.get('auto_connect') === 'true' ? '&auto_connect=true' : '';
+        const loginUrl = `/login?return_to=${encodeURIComponent(currentUrl)}${this.osmRequired ? '&osm_required=true' : ''}${autoConnectParam}`;
 
         return html`
           <div class="container">
