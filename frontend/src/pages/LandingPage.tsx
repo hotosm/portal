@@ -3,6 +3,7 @@ import PrimaryCallToAction from "../components/shared/PrimaryCallToAction";
 import SecondaryCallToAction from "../components/shared/SecondaryCallToAction";
 import { getCTAData } from "../constants/ctaData";
 import { MAIN_MENU_ITEMS } from "../constants/menu";
+import { useLanguage } from "../contexts/LanguageContext";
 
 interface LandingPageProps {
   menuItemId?: string;
@@ -10,6 +11,7 @@ interface LandingPageProps {
 
 function LandingPage({ menuItemId }: LandingPageProps) {
   const location = useLocation();
+  const { currentLanguage: _currentLanguage } = useLanguage(); // Force re-render on language change
 
   // Determine section
   const currentMenuItemId =
