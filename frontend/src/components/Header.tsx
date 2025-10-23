@@ -4,9 +4,10 @@ import NavigationMain from "./NavigationMain";
 import Dialog from "./shared/Dialog";
 import Icon from "./shared/Icon";
 import DrawerMenu from "./DrawerMenu";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 function Header() {
-  const hankoUrl = import.meta.env.VITE_HANKO_URL || 'http://127.0.0.1:5173';
+  const hankoUrl = import.meta.env.VITE_HANKO_URL || "http://127.0.0.1:5173";
 
   return (
     <>
@@ -34,6 +35,7 @@ function Header() {
         </div>
 
         <div className="flex gap-md items-center">
+          <LanguageSwitcher />
           <div className="hidden sm:block">
             <hotosm-auth hanko-url={hankoUrl} osm-required />
           </div>
