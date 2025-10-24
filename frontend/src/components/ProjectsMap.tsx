@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import MapboxLanguage from "@mapbox/mapbox-gl-language";
+// import MapboxLanguage from "@mapbox/mapbox-gl-language";
 import mapMarkerSvg from "../assets/images/map-marker.svg";
 import markerTasking from "../assets/images/marker-tasking-manager.svg";
 import markerDroneTasking from "../assets/images/marker-drone-tasking-manager.svg";
@@ -183,19 +183,23 @@ const addMapLayers = (
       layers: ["projectsClusters"],
     });
 
-    if (features.length > 0) {
+    if (features.length > 0 && features[0]) {
       const clusterId = features[0].properties?.cluster_id;
       const source = map.getSource("projects") as maplibregl.GeoJSONSource;
 
-      source.getClusterExpansionZoom(clusterId, (err, zoom) => {
-        if (err) return;
-
-        const coordinates = (features[0].geometry as any).coordinates;
-        map.easeTo({
-          center: coordinates,
-          zoom: zoom,
+      if (clusterId !== undefined) {
+        source.getClusterExpansionZoom(clusterId).then((zoom) => {
+          if (features[0]?.geometry) {
+            const coordinates = (features[0].geometry as any).coordinates;
+            map.easeTo({
+              center: coordinates,
+              zoom: zoom,
+            });
+          }
+        }).catch((err) => {
+          console.error("Error getting cluster expansion zoom:", err);
         });
-      });
+      }
     }
   });
 
@@ -204,6 +208,8 @@ const addMapLayers = (
     if (!e.features || e.features.length === 0) return;
 
     const feature = e.features[0];
+    if (!feature) return;
+    
     const projectId = feature.properties?.projectId;
     const projectName = feature.properties?.name || `Project #${projectId}`;
     const status = feature.properties?.status || "PUBLISHED";
@@ -246,14 +252,14 @@ export function ProjectsMap({ mapResults, onProjectClick }: ProjectsMapProps) {
       new maplibregl.AttributionControl({ compact: false })
     );
 
-    map.current.addControl(new maplibregl.NavigationControl(), "bottom-right");
+    map.current.addControl(new maplibregl.NavigationControl(), "top-right");
 
-    // Add language control
-    try {
-      map.current.addControl(new MapboxLanguage({ defaultLanguage: "en" }));
-    } catch (e) {
-      console.warn("MapboxLanguage control not compatible with MapLibre", e);
-    }
+    // TODO: Add language control compatible with MapLibre
+    // try {
+    //   map.current.addControl(new MapboxLanguage({ defaultLanguage: "en" }));
+    // } catch (e) {
+    //   console.warn("MapboxLanguage control not compatible with MapLibre", e);
+    // }
 
     map.current.on("load", async () => {
       if (!map.current) return;
