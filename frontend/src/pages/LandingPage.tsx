@@ -28,7 +28,7 @@ function LandingPage({ menuItemId }: LandingPageProps) {
 
   return (
     <>
-      <div className="flex flex-col sm:flex-row gap-lg items-stretch">
+      <div className="container flex flex-col sm:flex-row gap-lg items-stretch">
         <div className="w-full sm:w-2/3 flex">
           <PrimaryCallToAction data={ctaData.primary} />
         </div>
