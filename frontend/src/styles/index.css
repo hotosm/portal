@@ -73,3 +73,6 @@ h6 {
   font-size: var(--hot-font-size-medium); /* 16px */
   font-weight: var(--wa-font-weight-semibold);
 }
+p {
+  margin-bottom: 1rem;
+}
