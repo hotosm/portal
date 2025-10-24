@@ -1,9 +1,16 @@
-import { defineConfig } from 'vite'
+import { paraglideVitePlugin } from '@inlang/paraglide-js'
 import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    paraglideVitePlugin({
+      project: './project.inlang',
+      outdir: './src/paraglide',
+    }),
+  ],
   server: {
     host: '0.0.0.0', // Listen on all interfaces
     port: 5173,
@@ -39,7 +46,7 @@ export default defineConfig({
         bypass: (req) => {
           // Only proxy POST/PUT/DELETE (API calls), let GET through to React Router
           if (req.method === 'GET') {
-            return req.url;
+            return req.url
           }
         },
       },
