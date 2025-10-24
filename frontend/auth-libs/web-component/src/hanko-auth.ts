@@ -50,6 +50,7 @@ export class HankoAuth extends LitElement {
   private _debugMode = false;
   private _sessionJWT: string | null = null;
   private _lastSessionId: string | null = null;
+  private _hanko: any = null;
 
   static styles = css`
     :host {
@@ -464,6 +465,22 @@ export class HankoAuth extends LitElement {
   private async init() {
     try {
       await register(this.hankoUrl);
+
+      // Create persistent Hanko instance and set up session event listeners
+      const { Hanko } = await import('@teamhanko/hanko-elements');
+      this._hanko = new Hanko(this.hankoUrl);
+
+      // Set up session lifecycle event listeners (these persist across the component lifecycle)
+      this._hanko.onSessionExpired(() => {
+        this.log('🕒 Hanko session expired event received');
+        this.handleSessionExpired();
+      });
+
+      this._hanko.onUserLoggedOut(() => {
+        this.log('🚪 Hanko user logged out event received');
+        this.handleUserLoggedOut();
+      });
+
       await this.checkSession();
       await this.checkOSMConnection();
       this.loading = false;
@@ -477,14 +494,17 @@ export class HankoAuth extends LitElement {
 
   private async checkSession() {
     this.log('🔍 Checking for existing Hanko session...');
-    try {
-      const { Hanko } = await import('@teamhanko/hanko-elements');
-      const hanko = new Hanko(this.hankoUrl);
 
-      this.log('📡 Hanko client created, checking session validity...');
+    if (!this._hanko) {
+      this.log('⚠️ Hanko instance not initialized yet');
+      return;
+    }
+
+    try {
+      this.log('📡 Checking session validity...');
 
       try {
-        const user = await hanko.user.getCurrent();
+        const user = await this._hanko.user.getCurrent();
         this.log('✅ Valid Hanko session found');
         this.log('👤 Existing user session:', user);
 
@@ -507,6 +527,13 @@ export class HankoAuth extends LitElement {
         }));
 
         await this.syncJWTToCookie();
+
+        // Also check if we need to auto-connect to OSM
+        await this.checkOSMConnection();
+        if (this.osmRequired && this.autoConnect && !this.osmConnected) {
+          console.log('🔄 Auto-connecting to OSM (from existing session)...');
+          this.handleOSMConnect();
+        }
       } catch (userError) {
         this.log('ℹ️ No valid Hanko session found - user needs to login');
       }
@@ -647,11 +674,13 @@ export class HankoAuth extends LitElement {
       return;
     }
 
-    try {
-      const { Hanko } = await import('@teamhanko/hanko-elements');
-      const hanko = new Hanko(this.hankoUrl);
+    if (!this._hanko) {
+      console.error('Hanko instance not initialized');
+      return;
+    }
 
-      const user = await hanko.user.getCurrent();
+    try {
+      const user = await this._hanko.user.getCurrent();
       this.log('👤 User data from Hanko:', user);
 
       this.user = {
@@ -790,13 +819,13 @@ export class HankoAuth extends LitElement {
       console.error('❌ OSM disconnect failed:', error);
     }
 
-    try {
-      const { Hanko } = await import('@teamhanko/hanko-elements');
-      const hanko = new Hanko(this.hankoUrl);
-      await hanko.user.logout();
-      this.log('✅ Hanko logout successful');
-    } catch (error) {
-      console.error('Hanko logout failed:', error);
+    if (this._hanko) {
+      try {
+        await this._hanko.user.logout();
+        this.log('✅ Hanko logout successful');
+      } catch (error) {
+        console.error('Hanko logout failed:', error);
+      }
     }
 
     document.cookie = 'hanko=; path=/; domain=localhost; max-age=0';
@@ -817,6 +846,42 @@ export class HankoAuth extends LitElement {
 
     this.log('🔄 Reloading page to clear all session data...');
     window.location.reload();
+  }
+
+  private handleSessionExpired() {
+    this.log('🕒 Session expired - cleaning up state');
+    this.log('📊 State before cleanup:', {
+      user: this.user,
+      osmConnected: this.osmConnected
+    });
+
+    // Clear user state
+    this.user = null;
+    this.osmConnected = false;
+    this.osmData = null;
+
+    // Clear cookies
+    document.cookie = 'hanko=; path=/; domain=localhost; max-age=0';
+    document.cookie = 'hanko=; path=/; max-age=0';
+    document.cookie = 'osm_connection=; path=/; domain=localhost; max-age=0';
+    document.cookie = 'osm_connection=; path=/; max-age=0';
+
+    this.log('🍪 Cookies cleared after session expiration');
+
+    // Dispatch logout event
+    this.dispatchEvent(new CustomEvent('logout', {
+      bubbles: true,
+      composed: true
+    }));
+
+    // Component will re-render and show login button
+    this.log('✅ Session cleanup complete - component will show login');
+  }
+
+  private handleUserLoggedOut() {
+    this.log('🚪 User logged out in another window/tab');
+    // Same cleanup as session expired
+    this.handleSessionExpired();
   }
 
   private handleDropdownSelect(event: CustomEvent) {
