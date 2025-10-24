@@ -3,14 +3,29 @@
 
 export type ProductType = "tasking-manager" | "drone-tasking-manager" | "fair" | "field" | "imagery";
 
-export const sampleProjectsData = {
-  type: "FeatureCollection" as const,
+export const sampleProjectsData: {
+  type: "FeatureCollection";
+  features: {
+    type: "Feature";
+    geometry: {
+      type: "Point";
+      coordinates: [number, number];
+    };
+    properties: {
+      projectId: number;
+      name: string;
+      status: string;
+      product: ProductType;
+    };
+  }[];
+} = {
+  type: "FeatureCollection",
   features: [
     {
-      type: "Feature" as const,
+      type: "Feature",
       geometry: {
-        type: "Point" as const,
-        coordinates: [-0.1276, 51.5074], // London
+        type: "Point",
+        coordinates: [-0.1276, 51.5074] as [number, number], // London
       },
       properties: {
         projectId: 1,
