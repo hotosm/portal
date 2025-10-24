@@ -23,7 +23,7 @@ export function ProjectsMapSearchBox({
           const request = `https://nominatim.openstreetmap.org/search?q=${config.query}&format=geojson&limit=5&addressdetails=1`;
           const response = await fetch(request);
           const geojson = await response.json();
-
+          
           for (const feature of geojson.features) {
             const center = [
               feature.bbox[0] + (feature.bbox[2] - feature.bbox[0]) / 2,
@@ -46,8 +46,8 @@ export function ProjectsMapSearchBox({
         } catch (e) {
           console.error("Error fetching geocoding results:", e);
         }
-
-        return { features };
+        
+        return { type: "FeatureCollection" as const, features };
       },
     };
 
