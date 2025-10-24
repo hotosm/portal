@@ -188,17 +188,20 @@ const addMapLayers = (
       const source = map.getSource("projects") as maplibregl.GeoJSONSource;
 
       if (clusterId !== undefined) {
-        source.getClusterExpansionZoom(clusterId).then((zoom) => {
-          if (features[0]?.geometry) {
-            const coordinates = (features[0].geometry as any).coordinates;
-            map.easeTo({
-              center: coordinates,
-              zoom: zoom,
-            });
-          }
-        }).catch((err) => {
-          console.error("Error getting cluster expansion zoom:", err);
-        });
+        source
+          .getClusterExpansionZoom(clusterId)
+          .then((zoom) => {
+            if (features[0]?.geometry) {
+              const coordinates = (features[0].geometry as any).coordinates;
+              map.easeTo({
+                center: coordinates,
+                zoom: zoom,
+              });
+            }
+          })
+          .catch((err) => {
+            console.error("Error getting cluster expansion zoom:", err);
+          });
       }
     }
   });
@@ -209,7 +212,7 @@ const addMapLayers = (
 
     const feature = e.features[0];
     if (!feature) return;
-    
+
     const projectId = feature.properties?.projectId;
     const projectName = feature.properties?.name || `Project #${projectId}`;
     const status = feature.properties?.status || "PUBLISHED";
@@ -252,7 +255,7 @@ export function ProjectsMap({ mapResults, onProjectClick }: ProjectsMapProps) {
       new maplibregl.AttributionControl({ compact: false })
     );
 
-    map.current.addControl(new maplibregl.NavigationControl(), "top-right");
+    map.current.addControl(new maplibregl.NavigationControl(), "bottom-right");
 
     // TODO: Add language control compatible with MapLibre
     // try {
@@ -322,14 +325,14 @@ export function ProjectsMap({ mapResults, onProjectClick }: ProjectsMapProps) {
   }, [mapResults, mapLoaded, onProjectClick]);
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full container">
       <ProjectsMapSearchBox map={map.current} position="top-right" />
       <div
         ref={mapContainer}
-        className="w-full h-full rounded-lg overflow-hidden"
+        className="w-full h-full rounded-xl overflow-hidden"
       />
       {selectedProject && (
-        <div className="absolute top-4 right-4 z-10 animate-in slide-in-from-right duration-300">
+        <div className="absolute top-20 right-16 z-10 animate-in slide-in-from-right duration-300">
           <ProjectsMapCallout
             projectId={selectedProject.projectId}
             projectName={selectedProject.projectName}
