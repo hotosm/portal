@@ -9,8 +9,7 @@ function App() {
         <Header />
       </div>
 
-      <main className="flex-1 container flex flex-col justify-center">
-        <div className="h-2xl"></div>
+      <main className="flex-1 flex flex-col justify-center">
         <AppRoutes />
         <div className="h-2xl"></div>
       </main>
