@@ -23,16 +23,16 @@ export function ProjectsMapSearchBox({
           const request = `https://nominatim.openstreetmap.org/search?q=${config.query}&format=geojson&limit=5&addressdetails=1`;
           const response = await fetch(request);
           const geojson = await response.json();
-          
+
           for (const feature of geojson.features) {
             const center = [
               feature.bbox[0] + (feature.bbox[2] - feature.bbox[0]) / 2,
               feature.bbox[1] + (feature.bbox[3] - feature.bbox[1]) / 2,
             ];
             const point = {
-              type: "Feature",
+              type: "Feature" as const,
               geometry: {
-                type: "Point",
+                type: "Point" as const,
                 coordinates: center,
               },
               place_name: feature.properties.display_name,
@@ -46,11 +46,11 @@ export function ProjectsMapSearchBox({
         } catch (e) {
           console.error("Error fetching geocoding results:", e);
         }
-        
+
         return { type: "FeatureCollection" as const, features };
       },
     };
-
+    // @ts-expect-error type
     const geocoder = new MaplibreGeocoder(geocoderApi, {
       maplibregl: maplibregl,
       // TODO add translations
