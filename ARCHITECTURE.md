@@ -103,6 +103,9 @@ portal/
   - `/health` - Liveness probe
   - `/ready` - Readiness probe (includes DB check)
   - `/api/health-check` - Detailed diagnostics
+  - `/api/tasking-manager-projects` - Return all project of Tasking Manager
+  - `/api/tasking-manager-countries` - Return all countries of Tasking Manager
+  - `/api/tasking-manager-projectid` - ProjectID data of Tasking Manager
 
 ### Frontend Architecture
 - **Component composition**: Small, reusable components
