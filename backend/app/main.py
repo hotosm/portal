@@ -8,6 +8,7 @@ from hotosm_auth import AuthConfig
 from hotosm_auth.integrations.fastapi import init_auth
 
 from app.api.routes import example, test
+from app.api.routes.map import resources
 from app.core.config import settings
 from app.core.database import check_db_connection
 
@@ -100,6 +101,12 @@ app.include_router(
     test.router,
     prefix=f"{settings.api_v1_prefix}/test",
     tags=["test"],
+)
+
+app.include_router(
+    resources.router,
+    prefix=settings.api_v1_prefix,
+    tags=["resources"],
 )
 
 # Include authentication routers (OSM OAuth)
