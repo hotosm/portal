@@ -520,6 +520,9 @@ The API is self-documented using FastAPI's built-in OpenAPI support:
 - `GET /health` - Basic health check
 - `GET /ready` - Readiness check with database status
 - `GET /api/health-check` - Detailed health with response times
+- `/api/tasking-manager-projects` - Return all project of Tasking Manager
+- `/api/tasking-manager-countries` - Return all countries of Tasking Manager
+- `/api/tasking-manager-projectid` - ProjectID data of Tasking Manager
 
 ## Contributing
 
