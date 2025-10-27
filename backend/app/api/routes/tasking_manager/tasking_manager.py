@@ -3,12 +3,12 @@
 import httpx
 from fastapi import APIRouter, HTTPException, Path
 
-router = APIRouter()
+router = APIRouter(prefix="/tasking-manager")
 
 # HOT OSM Tasking Manager API base URL
 HOTOSM_API_BASE_URL = "https://tasking-manager-production-api.hotosm.org/api/v2"
 
-@router.get("/tasking-manager-projects")
+@router.get("/projects")
 async def get_tasking_manager_projects() -> dict:
     """
     Gets all projects from the HOT OSM Tasking Manager.
@@ -58,7 +58,7 @@ async def get_tasking_manager_projects() -> dict:
             status_code=500, detail=f"Error inesperado: {str(e)}"
         )
 
-@router.get("/tasking-manager-countries")
+@router.get("/countries")
 async def get_hotosm_countries() -> dict:
     """
     Fetch all countries from HOT OSM Tasking Manager.
@@ -109,41 +109,13 @@ async def get_hotosm_countries() -> dict:
             status_code=500, detail=f"Unexpected error: {str(e)}"
         )
     
-@router.get("/tasking-manager-projectid/{project_id}")
+@router.get("/projectid/{project_id}")
 async def get_tasking_manager_project_by_id(
     project_id: int = Path(..., description="The project ID to retrieve", gt=0)
 ) -> dict:
     """
-    Fetch a specific project by ID from HOT OSM Tasking Manager.
-
-    This endpoint retrieves detailed information about a single project
-    using its unique identifier.
-
-    Args:
-        project_id: The unique identifier of the project (must be positive)
-
-    Returns:
-        dict: JSON with detailed project information
-
-    Raises:
-        HTTPException: If there's an error querying the external API or project not found
-
-    Example:
-        ```bash
-                curl http://localhost:8000/api/tasking-manager-projectid/33006
-        ```
-
-    Response:
-        ```json
-                {
-                  "projectId": 33006,
-                  "status": "PUBLISHED",
-                  "projectPriority": "URGENT",
-                  "areaOfInterest": {...},
-                  "projectInfo": {...},
-                  "tasks": {...}
-                }
-        ```
+    Fetch and filter a specific project by ID from HOT OSM Tasking Manager.
+    Only returns selected fields.
     """
     url = f"{HOTOSM_API_BASE_URL}/projects/{project_id}/"
 
@@ -151,7 +123,22 @@ async def get_tasking_manager_project_by_id(
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(url)
             response.raise_for_status()
-            return response.json()
+            data = response.json()
+
+            # 🔹 Extraer solo las claves que te interesan
+            filtered_data = {
+                "organisationName": data.get("organisationName"),
+                "organisationSlug": data.get("organisationSlug"),
+                "projectInfo": data.get("projectInfo"),
+                "projectInfoLocales": data.get("projectInfoLocales"),
+                "created": data.get("created"),
+                "percentMapped": data.get("percentMapped"),
+                "percentValidated": data.get("percentValidated"),
+                "percentBadImagery": data.get("percentBadImagery"),
+            }
+
+            return filtered_data
+
     except httpx.HTTPStatusError as e:
         if e.response.status_code == 404:
             raise HTTPException(
@@ -169,5 +156,6 @@ async def get_tasking_manager_project_by_id(
         )
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Unexpected error: {str(e)}"
+            status_code=500,
+            detail=f"Unexpected error: {str(e)}",
         )
