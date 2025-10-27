@@ -23,6 +23,11 @@ export default defineConfig({
         target: process.env.VITE_BACKEND_URL || 'http://backend-dev:8000',
         changeOrigin: true,
       },
+      '/tasking-manager-api': {
+        target: 'https://tasking-manager-production-api.hotosm.org',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/tasking-manager-api/, ''),
+      },
       // Proxy Hanko API endpoints only (not React Router routes)
       '/.well-known': {
         target: 'http://hanko:8000',
