@@ -3,16 +3,17 @@ import ProductCard from "../components/shared/ProductCard";
 import { getProductsData } from "../constants/productsData";
 import { useLanguage } from "../contexts/LanguageContext";
 import { ProjectsMap } from "../components/ProjectsMap";
-import { sampleProjectsData } from "../constants/sampleProjectsData";
 import Divider from "../components/shared/Divider";
 import PrimaryCallToAction from "../components/shared/PrimaryCallToAction";
 import SecondaryCallToAction from "../components/shared/SecondaryCallToAction";
 import { getCTAData } from "../constants/ctaData";
+import { useProjects } from "../hooks/useProjects";
 
 function HomePage() {
   const { currentLanguage: _currentLanguage } = useLanguage(); // suscribe to force re-render on language change
   const productsData = getProductsData();
   const ctaData = getCTAData("mapping");
+  const { data: projectsData, isLoading, error } = useProjects();
 
   const handleProjectClick = (projectId: number) => {
     console.log("Project clicked:", projectId);
@@ -46,10 +47,20 @@ function HomePage() {
     <div className="space-y-11">
       {/* Map Section */}
       <div className="h-[83vh]">
-        <ProjectsMap
-          mapResults={sampleProjectsData}
-          onProjectClick={handleProjectClick}
-        />
+        {isLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <p>Loading projects...</p>
+          </div>
+        ) : error ? (
+          <div className="flex items-center justify-center h-full">
+            <p>Error loading projects. Please try again later.</p>
+          </div>
+        ) : projectsData ? (
+          <ProjectsMap
+            mapResults={projectsData}
+            onProjectClick={handleProjectClick}
+          />
+        ) : null}
       </div>
 
       {/* Products Grid */}
@@ -77,7 +88,7 @@ function HomePage() {
       </div>
 
       {/*   example purpose */}
-      <div className="container flex gap-xl">
+      <div className="container flex flex-col md:flex-row gap-xl">
         {ctaData && (
           <>
             <div className="w-full sm:w-2/3 flex">
