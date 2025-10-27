@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "pnpm build:component && tsc && vite build",
+    "paraglide": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide",
+    "build": "pnpm build:component && pnpm paraglide && tsc && vite build",
     "build:component": "cd auth-libs/web-component && pnpm install && pnpm build",
     "preview": "vite preview",
     "lint": "biome check .",
