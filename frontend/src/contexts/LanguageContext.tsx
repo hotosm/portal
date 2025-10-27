@@ -27,7 +27,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
   const [currentLanguage, setCurrentLanguage] = useState<Locale>(getLocale());
 
   const setLanguage = (lang: Locale) => {
-    setLocale(lang, { reload: false });
+    setLocale(lang);
     setCurrentLanguage(lang);
     localStorage.setItem("preferredLanguage", lang);
   };
@@ -38,13 +38,13 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
       "preferredLanguage"
     ) as Locale | null;
     if (storedLanguage && locales.includes(storedLanguage)) {
-      setLocale(storedLanguage, { reload: false });
+      setLocale(storedLanguage);
       setCurrentLanguage(storedLanguage);
     } else {
       // Detect browser language
       const browserLang = navigator.language.split("-")[0] as Locale;
       if (locales.includes(browserLang)) {
-        setLocale(browserLang, { reload: false });
+        setLocale(browserLang);
         setCurrentLanguage(browserLang);
       }
     }
