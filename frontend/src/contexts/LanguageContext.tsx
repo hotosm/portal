@@ -3,8 +3,9 @@ import {
   createContext,
   useContext,
   useEffect,
-  useState,
+  useMemo,
 } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { setLocale, getLocale, locales } from "../paraglide/runtime";
 
 type Locale = (typeof locales)[number];
@@ -24,31 +25,32 @@ interface LanguageProviderProps {
 }
 
 export function LanguageProvider({ children }: LanguageProviderProps) {
-  const [currentLanguage, setCurrentLanguage] = useState<Locale>(getLocale());
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Extract locale from pathname (e.g., /fr/field -> fr)
+  const urlLocale = (location.pathname.match(/^\/([a-z]{2})(\/|$)/)?.[1]) as Locale | undefined;
+  
+  // Set locale from URL
+  const currentLanguage = useMemo(() => {
+    const locale = urlLocale && locales.includes(urlLocale) ? urlLocale : getLocale();
+    setLocale(locale);
+    return locale;
+  }, [urlLocale]);
 
   const setLanguage = (lang: Locale) => {
-    setLocale(lang);
-    setCurrentLanguage(lang);
-    localStorage.setItem("preferredLanguage", lang);
+    const pathWithoutLocale = location.pathname.replace(/^\/[a-z]{2}(\/|$)/, '/');
+    navigate(`/${lang}${pathWithoutLocale}`);
   };
 
-  // Initialize language from localStorage on mount
+  // Redirect to default locale if no locale in URL
   useEffect(() => {
-    const storedLanguage = localStorage.getItem(
-      "preferredLanguage"
-    ) as Locale | null;
-    if (storedLanguage && locales.includes(storedLanguage)) {
-      setLocale(storedLanguage);
-      setCurrentLanguage(storedLanguage);
-    } else {
-      // Detect browser language
-      const browserLang = navigator.language.split("-")[0] as Locale;
-      if (locales.includes(browserLang)) {
-        setLocale(browserLang);
-        setCurrentLanguage(browserLang);
-      }
+    if (!urlLocale && !location.pathname.match(/^\/[a-z]{2}(\/|$)/)) {
+      const defaultLocale = getLocale();
+      const targetPath = location.pathname === '/' ? `/${defaultLocale}/` : `/${defaultLocale}${location.pathname}`;
+      navigate(targetPath, { replace: true });
     }
-  }, []);
+  }, [urlLocale, navigate, location.pathname]);
 
   return (
     <LanguageContext.Provider
