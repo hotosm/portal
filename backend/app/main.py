@@ -8,6 +8,7 @@ from hotosm_auth import AuthConfig
 from hotosm_auth.integrations.fastapi import init_auth
 
 from app.api.routes import example, test
+from app.api.routes.tasking_manager import tasking_manager
 from app.core.config import settings
 from app.core.database import check_db_connection
 
@@ -100,6 +101,12 @@ app.include_router(
     test.router,
     prefix=f"{settings.api_v1_prefix}/test",
     tags=["test"],
+)
+
+app.include_router(
+    tasking_manager.router,
+    prefix=settings.api_v1_prefix,
+    tags=["tasking manager"],
 )
 
 # Include authentication routers (OSM OAuth)
