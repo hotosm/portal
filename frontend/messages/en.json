@@ -51,5 +51,6 @@
   "cta_data_primary_footer": "Access OpenStreetMap data in various formats for analysis.",
   "cta_data_secondary_title": "HOT Data",
   "cta_data_secondary_description": "Explore datasets from humanitarian mapping initiatives.",
-  "cta_data_secondary_button": "Browse Data"
+  "cta_data_secondary_button": "Browse Data",
+  "view_project_detail": "View project details"
 }
