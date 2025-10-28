@@ -2,6 +2,10 @@ import Button from "./shared/Button";
 import Divider from "./shared/Divider";
 import Icon from "./shared/Icon";
 import { useProjectDetails } from "../hooks/useProjectDetails";
+import { m } from "../paraglide/messages";
+import { ReactNode } from "react";
+import { shortenText } from "../utils/utils";
+import ReactMarkdown from "react-markdown";
 
 interface ProjectsMapCalloutProps {
   projectId: number;
@@ -11,17 +15,13 @@ interface ProjectsMapCalloutProps {
 
 export function ProjectsMapCallout({
   projectId,
-  onViewDetails,
   onClose,
 }: ProjectsMapCalloutProps) {
   const { data: projectDetails, isLoading } = useProjectDetails(projectId);
 
   if (isLoading) {
     return (
-      <div
-        className="bg-white p-lg w-[300px]
-      min-h-[500px] rounded-lg border border-hot-gray-300"
-      >
+      <>
         <div className="flex justify-between items-start">
           <h3>Loading...</h3>
           <Icon name="close" onClick={onClose}></Icon>
@@ -30,7 +30,7 @@ export function ProjectsMapCallout({
         <div className="flex items-center justify-center h-[400px]">
           <p className="text-hot-gray-600">Loading project details...</p>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -40,10 +40,7 @@ export function ProjectsMapCallout({
   const projectName = projectInfo?.name || `Project #${projectId}`;
   const description = projectInfo?.description;
   return (
-    <div
-      className="bg-white p-lg w-[300px]
-    min-h-[500px] rounded-lg border border-hot-gray-300"
-    >
+    <>
       <div className="flex justify-between items-start">
         <h3>{projectName}</h3>
         <Icon name="close" onClick={onClose}></Icon>
@@ -59,7 +56,7 @@ export function ProjectsMapCallout({
       )}
       {description && (
         <div className="text-sm text-hot-gray-600 mb-3">
-          <p>{description}</p>
+          <ReactMarkdown>{shortenText(description)}</ReactMarkdown>
         </div>
       )}
       {(percentMapped !== undefined || percentValidated !== undefined) && (
@@ -76,7 +73,12 @@ export function ProjectsMapCallout({
           )}
         </div>
       )}
-      <Button onClick={onViewDetails}>View Project Details</Button>
-    </div>
+      <Button
+        href={`https://tasks.hotosm.org/projects/${projectId}`}
+        target="_blank"
+      >
+        {m.view_project_detail}
+      </Button>
+    </>
   );
 }
