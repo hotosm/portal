@@ -51,5 +51,6 @@
   "cta_data_primary_footer": "Accédez aux données OpenStreetMap dans différents formats pour l’analyse.",
   "cta_data_secondary_title": "Données HOT",
   "cta_data_secondary_description": "Explorez les ensembles de données des initiatives de cartographie humanitaire.",
-  "cta_data_secondary_button": "Parcourir les données"
+  "cta_data_secondary_button": "Parcourir les données",
+  "view_project_detail": "Voir les détails du projet"
 }

@@ -13,8 +13,11 @@ function HomePage() {
   const { currentLanguage: _currentLanguage } = useLanguage(); // suscribe to force re-render on language change
   const productsData = getProductsData();
   const ctaData = getCTAData("mapping");
+  // TODO relocate when adding other APIs
   const { data: projectsData, isLoading, error } = useProjects();
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(
+    null
+  );
 
   const handleProjectClick = (projectId: number) => {
     console.log("Project clicked:", projectId);
@@ -46,8 +49,8 @@ function HomePage() {
 
   return (
     <div className="space-y-11">
-      {/* Map Section */}
-      <div className="h-[83vh]">
+      {/* Map Section - TODO check fallback, should be header height + bottom padding */}
+      <div className="h-[calc(100vh-var(--header-height,143px))]">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <p>Loading projects...</p>
@@ -86,7 +89,7 @@ function HomePage() {
                 href={product.href}
               />
             ))}
-          </div>{" "}
+          </div>
         </div>
       </div>
 

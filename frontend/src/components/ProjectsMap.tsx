@@ -10,10 +10,8 @@ import markerField from "../assets/images/marker-field.svg";
 import markerImagery from "../assets/images/marker-imagery.svg";
 import { ProjectsMapSearchBox } from "./ProjectsMapSearchBox";
 import { ProjectsMapCallout } from "./ProjectsMapCallout";
+import { ProjectsMapResults } from "../types/projectsMap/taskingManager";
 
-import type { ProjectsMapResults } from "../types/projectsMap/taskingManager";
-
-// TODO update when adding endpoints
 interface ProjectsMapProps {
   mapResults?: ProjectsMapResults;
   onProjectClick?: (projectId: number) => void;
@@ -302,7 +300,7 @@ export function ProjectsMap({
         className="w-full h-full rounded-xl overflow-hidden"
       />
       {selectedProjectId && (
-        <div className="absolute top-20 right-16 z-10 animate-in slide-in-from-right duration-300">
+        <div className="absolute top-16 right-14 bg-white p-lg rounded-lg border border-hot-gray-300 max-h-[450px] sm:max-h-[550px] sm:h-full z-10 animate-in w-[250px] sm:w-[320px] slide-in-from-right duration-300 overflow-y-auto">
           <ProjectsMapCallout
             projectId={selectedProjectId}
             onViewDetails={() => {
