@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import ProductCard from "../components/shared/ProductCard";
 import { getProductsData } from "../constants/productsData";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -14,10 +14,11 @@ function HomePage() {
   const productsData = getProductsData();
   const ctaData = getCTAData("mapping");
   const { data: projectsData, isLoading, error } = useProjects();
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
 
   const handleProjectClick = (projectId: number) => {
     console.log("Project clicked:", projectId);
-    // TODO: Navigate to project details or show modal
+    setSelectedProjectId(projectId);
   };
 
   // Listen for popup button clicks
@@ -59,6 +60,8 @@ function HomePage() {
           <ProjectsMap
             mapResults={projectsData}
             onProjectClick={handleProjectClick}
+            selectedProjectId={selectedProjectId}
+            onCloseDetails={() => setSelectedProjectId(null)}
           />
         ) : null}
       </div>
