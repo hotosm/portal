@@ -10,35 +10,13 @@ import markerField from "../assets/images/marker-field.svg";
 import markerImagery from "../assets/images/marker-imagery.svg";
 import { ProjectsMapSearchBox } from "./ProjectsMapSearchBox";
 import { ProjectsMapCallout } from "./ProjectsMapCallout";
-
-// TODO types will be defined when API is ready
-type ProductType =
-  | "tasking-manager"
-  | "drone-tasking-manager"
-  | "fair"
-  | "field"
-  | "imagery";
-
-interface ProjectMapFeature {
-  type: "Feature";
-  geometry: {
-    type: "Point";
-    coordinates: [number, number];
-  };
-  properties: {
-    projectId: number;
-    name: string;
-    product?: ProductType;
-    [key: string]: any;
-  };
-}
+import { ProjectsMapResults } from "../types/projectsMap/taskingManager";
 
 interface ProjectsMapProps {
-  mapResults?: {
-    type: "FeatureCollection";
-    features: ProjectMapFeature[];
-  };
+  mapResults?: ProjectsMapResults;
   onProjectClick?: (projectId: number) => void;
+  selectedProjectId?: number | null;
+  onCloseDetails?: () => void;
   className?: string;
 }
 
@@ -81,10 +59,7 @@ const loadImage = async (
 const addMapLayers = (
   map: maplibregl.Map,
   mapResults: ProjectsMapProps["mapResults"],
-  onProjectClick?: (projectId: number) => void,
-  setSelectedProject?: (
-    project: { projectId: number; projectName: string; status: string } | null
-  ) => void
+  onProjectClick?: (projectId: number) => void
 ) => {
   // Add GeoJSON source with clustering
   map.addSource("projects", {
@@ -206,7 +181,7 @@ const addMapLayers = (
     }
   });
 
-  // Handle marker clicks - show callout
+  // Handle marker clicks - trigger callback to fetch details
   map.on("click", "projects-unclustered-points", (e) => {
     if (!e.features || e.features.length === 0) return;
 
@@ -214,30 +189,23 @@ const addMapLayers = (
     if (!feature) return;
 
     const projectId = feature.properties?.projectId;
-    const projectName = feature.properties?.name || `Project #${projectId}`;
-    const status = feature.properties?.status || "PUBLISHED";
 
-    // Update selected project state
-    if (setSelectedProject) {
-      setSelectedProject({ projectId, projectName, status });
-    }
-
-    // Trigger callback
+    // Trigger callback to fetch project details
     if (projectId && onProjectClick) {
       onProjectClick(projectId);
     }
   });
 };
 
-export function ProjectsMap({ mapResults, onProjectClick }: ProjectsMapProps) {
+export function ProjectsMap({
+  mapResults,
+  onProjectClick,
+  selectedProjectId,
+  onCloseDetails,
+}: ProjectsMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<{
-    projectId: number;
-    projectName: string;
-    status: string;
-  } | null>(null);
 
   // Initialize map
   useEffect(() => {
@@ -320,7 +288,7 @@ export function ProjectsMap({ mapResults, onProjectClick }: ProjectsMapProps) {
       source.setData(mapResults || { type: "FeatureCollection", features: [] });
     } else {
       // Add layers for the first time
-      addMapLayers(map.current, mapResults, onProjectClick, setSelectedProject);
+      addMapLayers(map.current, mapResults, onProjectClick);
     }
   }, [mapResults, mapLoaded, onProjectClick]);
 
@@ -331,20 +299,18 @@ export function ProjectsMap({ mapResults, onProjectClick }: ProjectsMapProps) {
         ref={mapContainer}
         className="w-full h-full rounded-xl overflow-hidden"
       />
-      {selectedProject && (
-        <div className="absolute top-20 right-16 z-10 animate-in slide-in-from-right duration-300">
+      {selectedProjectId && (
+        <div className="absolute top-16 right-14 bg-white p-lg rounded-lg border border-hot-gray-300 max-h-[450px] sm:max-h-[550px] sm:h-full z-10 animate-in w-[250px] sm:w-[320px] slide-in-from-right duration-300 overflow-y-auto">
           <ProjectsMapCallout
-            projectId={selectedProject.projectId}
-            projectName={selectedProject.projectName}
-            status={selectedProject.status}
+            projectId={selectedProjectId}
             onViewDetails={() => {
               window.dispatchEvent(
                 new CustomEvent("viewProject", {
-                  detail: { projectId: selectedProject.projectId },
+                  detail: { projectId: selectedProjectId },
                 })
               );
             }}
-            onClose={() => setSelectedProject(null)}
+            onClose={onCloseDetails || (() => {})}
           />
         </div>
       )}
