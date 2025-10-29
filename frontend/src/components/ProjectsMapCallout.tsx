@@ -77,7 +77,7 @@ export function ProjectsMapCallout({
         href={`https://tasks.hotosm.org/projects/${projectId}`}
         target="_blank"
       >
-        {m.view_project_detail}
+        {m.view_project_detail()}
       </Button>
     </>
   );
