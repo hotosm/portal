@@ -1,11 +1,10 @@
+import ReactMarkdown from "react-markdown";
+import { useProjectDetails } from "../hooks/useProjectDetails";
+import { m } from "../paraglide/messages";
+import { shortenText } from "../utils/utils";
 import Button from "./shared/Button";
 import Divider from "./shared/Divider";
 import Icon from "./shared/Icon";
-import { useProjectDetails } from "../hooks/useProjectDetails";
-import { m } from "../paraglide/messages";
-import { ReactNode } from "react";
-import { shortenText } from "../utils/utils";
-import ReactMarkdown from "react-markdown";
 
 interface ProjectsMapCalloutProps {
   projectId: number;
