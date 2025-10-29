@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import ProductCard from "../components/shared/ProductCard";
 import { getProductsData } from "../constants/productsData";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -14,11 +14,15 @@ function HomePage() {
   const { currentLanguage: _currentLanguage } = useLanguage(); // suscribe to force re-render on language change
   const productsData = getProductsData();
   const ctaData = getCTAData("mapping");
+  // TODO relocate when adding other APIs
   const { data: projectsData, isLoading, error } = useProjects();
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(
+    null
+  );
 
   const handleProjectClick = (projectId: number) => {
     console.log("Project clicked:", projectId);
-    // TODO: Navigate to project details or show modal
+    setSelectedProjectId(projectId);
   };
 
   // Listen for popup button clicks
@@ -80,7 +84,7 @@ function HomePage() {
                 href={product.href}
               />
             ))}
-          </div>{" "}
+          </div>
         </div>
       </div>
 
