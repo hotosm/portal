@@ -1,8 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import type {
-  ProductType,
-  ProjectsMapResults,
-} from "../types/projectsMap/taskingManager";
+import type { ProjectsMapResults } from "../types/projectsMap/taskingManager";
+import { ProductType } from "../constants/sampleProjectsData";
 
 async function fetchProjects(): Promise<ProjectsMapResults> {
   const response = await fetch("/api/tasking-manager/projects");
