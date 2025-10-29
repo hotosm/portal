@@ -51,5 +51,7 @@
   "cta_data_primary_footer": "Access OpenStreetMap data in various formats for analysis.",
   "cta_data_secondary_title": "HOT Data",
   "cta_data_secondary_description": "Explore datasets from humanitarian mapping initiatives.",
-  "cta_data_secondary_button": "Browse Data"
+  "cta_data_secondary_button": "Browse Data",
+  "product_grid_title": "Explore our Tech Suite",
+  "product_grid_description": "Our platform fosters open collaboration with intuitive products that integrate seamlessly, enabling you to manage complete mapping projects in one place."
 }
