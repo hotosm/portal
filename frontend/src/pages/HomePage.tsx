@@ -54,13 +54,16 @@ function HomePage() {
       <div className="h-[83vh] relative">
         <ProjectsMap
           mapResults={projectsData || []}
+          selectedProjectId={selectedProjectId}
           onProjectClick={handleProjectClick}
+          onCloseDetails={() => setSelectedProjectId(null)}
         />
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/10 backdrop-blur-sm">
             <p>Loading projects...</p>
           </div>
         )}
+        {/* TODO customize error message */}
         {error && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/80">
             <p>Error loading projects. Please try again later.</p>
