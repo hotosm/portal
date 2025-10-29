@@ -53,7 +53,7 @@ function HomePage() {
       {/* Map Section */}
       <div className="h-[83vh] relative">
         <ProjectsMap
-          mapResults={projectsData || []}
+          mapResults={projectsData}
           selectedProjectId={selectedProjectId}
           onProjectClick={handleProjectClick}
           onCloseDetails={() => setSelectedProjectId(null)}
