@@ -8,6 +8,7 @@ import PrimaryCallToAction from "../components/shared/PrimaryCallToAction";
 import SecondaryCallToAction from "../components/shared/SecondaryCallToAction";
 import { getCTAData } from "../constants/ctaData";
 import { useProjects } from "../hooks/useProjects";
+import { m } from "../paraglide/messages";
 
 function HomePage() {
   const { currentLanguage: _currentLanguage } = useLanguage(); // suscribe to force re-render on language change
@@ -46,32 +47,28 @@ function HomePage() {
   return (
     <div className="space-y-11">
       {/* Map Section */}
-      <div className="h-[83vh]">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-full">
+      <div className="h-[83vh] relative">
+        <ProjectsMap
+          mapResults={projectsData || []}
+          onProjectClick={handleProjectClick}
+        />
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/10 backdrop-blur-sm">
             <p>Loading projects...</p>
           </div>
-        ) : error ? (
-          <div className="flex items-center justify-center h-full">
+        )}
+        {error && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/80">
             <p>Error loading projects. Please try again later.</p>
           </div>
-        ) : projectsData ? (
-          <ProjectsMap
-            mapResults={projectsData}
-            onProjectClick={handleProjectClick}
-          />
-        ) : null}
+        )}
       </div>
 
       {/* Products Grid */}
       <div className="py-3xl bg-hot-gray-50">
         <div className="gap-xl container">
-          <h2>Explore our Tech Suite</h2>
-          <h3>
-            Our platform fosters open collaboration with intuitive products that
-            integrate seamlessly, enabling you to manage complete mapping
-            projects in one place.
-          </h3>
+          <h2>{m.product_grid_title()}</h2>
+          <h3>{m.product_grid_description()}</h3>
           <Divider className="h-lg"></Divider>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-xl">
             {productsData.map((product) => (
