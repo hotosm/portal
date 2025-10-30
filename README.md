@@ -523,6 +523,8 @@ The API is self-documented using FastAPI's built-in OpenAPI support:
 - `/api/tasking-manager/projects` - Return all project of Tasking Manager
 - `/api/tasking-manager/countries` - Return all countries of Tasking Manager
 - `/api/tasking-manager/projectid` - ProjectID data of Tasking Manager
+- `/api/drone-tm/projects` - Return all project of Drone TM (Drone Tasking Manager)
+- `/api/drone-tm/projects/projectid` - ProjectID data of Drone TM (Drone Tasking Manager)
 
 ## Contributing
 
