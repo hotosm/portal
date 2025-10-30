@@ -2,6 +2,7 @@ import { allDefined } from '@awesome.me/webawesome/dist/webawesome.js'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App'
 import { AuthProvider } from './contexts/AuthContext'
 import { LanguageProvider } from './contexts/LanguageContext'
@@ -22,16 +23,28 @@ window.HANKO_URL = import.meta.env.VITE_HANKO_URL || 'https://dev.login.hotosm.o
 // Ensure all WebAwesome components are loaded before rendering
 await allDefined()
 
+// Create QueryClient instance
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      gcTime: 1000 * 60 * 30, // 30 minutes
+    },
+  },
+})
+
 // add providers here
 function Root() {
   return (
     <StrictMode>
       <BrowserRouter>
-        <LanguageProvider>
-          <AuthProvider>
-            <AppContent />
-          </AuthProvider>
-        </LanguageProvider>
+        <QueryClientProvider client={queryClient}>
+          <LanguageProvider>
+            <AuthProvider>
+              <AppContent />
+            </AuthProvider>
+          </LanguageProvider>
+        </QueryClientProvider>
       </BrowserRouter>
     </StrictMode>
   )

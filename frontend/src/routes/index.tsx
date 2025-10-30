@@ -80,59 +80,70 @@ function MainNavRoute({
 export function AppRoutes() {
   return (
     <Routes>
+      {/* Redirect root to default locale */}
       <Route path="/" element={<HomePage />} />
-      {/* Main navigation routes - show different CTAs when not logged in */}
-      <Route
-        path="/mapping"
-        element={
-          <MainNavRoute menuItemId="mapping">
-            <MappingPage />
-          </MainNavRoute>
-        }
-      />
-      <Route
-        path="/imagery"
-        element={
-          <MainNavRoute menuItemId="imagery">
-            <ImageryPage />
-          </MainNavRoute>
-        }
-      />
-      <Route
-        path="/field"
-        element={
-          <MainNavRoute menuItemId="field">
-            <FieldPage />
-          </MainNavRoute>
-        }
-      />
-      <Route
-        path="/data"
-        element={
-          <MainNavRoute menuItemId="data">
-            <DataPage />
-          </MainNavRoute>
-        }
-      />
+      
+      {/* All routes with locale prefix */}
+      <Route path="/:locale/*" element={
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          {/* Main navigation routes - show different CTAs when not logged in */}
+          <Route
+            path="/mapping"
+            element={
+              <MainNavRoute menuItemId="mapping">
+                <MappingPage />
+              </MainNavRoute>
+            }
+          />
+          <Route
+            path="/imagery"
+            element={
+              <MainNavRoute menuItemId="imagery">
+                <ImageryPage />
+              </MainNavRoute>
+            }
+          />
+          <Route
+            path="/field"
+            element={
+              <MainNavRoute menuItemId="field">
+                <FieldPage />
+              </MainNavRoute>
+            }
+          />
+          <Route
+            path="/data"
+            element={
+              <MainNavRoute menuItemId="data">
+                <DataPage />
+              </MainNavRoute>
+            }
+          />
 
-      {/* Authentication routes */}
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/logout" element={<LogoutPage />} />
+          {/* Authentication routes */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/logout" element={<LogoutPage />} />
 
-      {/* Protected user routes */}
-      <Route
-        path="/profile"
-        element={
-          <ProtectedRoute>
-            <ProfilePage />
-          </ProtectedRoute>
-        }
-      />
+          {/* Protected user routes */}
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
 
-      {/* Testing routes */}
-      <Route path="/auth-test" element={<AuthTest />} />
+          {/* Testing routes */}
+          <Route path="/auth-test" element={<AuthTest />} />
 
-      {/* Fallback */}
+          {/* Fallback */}
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      } />
+      
+      {/* Fallback for invalid routes */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
