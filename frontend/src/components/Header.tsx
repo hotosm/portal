@@ -5,10 +5,14 @@ import Dialog from "./shared/Dialog";
 import Icon from "./shared/Icon";
 import DrawerMenu from "./DrawerMenu";
 import LanguageSwitcher from "./LanguageSwitcher";
+import { useAuth } from "../contexts/AuthContext";
+import { useLanguage } from "../contexts/LanguageContext";
+import { m } from "../paraglide/messages";
 
 function Header() {
   const hankoUrl = import.meta.env.VITE_HANKO_URL || "http://127.0.0.1:5173";
-
+  const { isLogin } = useAuth();
+  const { currentLanguage: _currentLanguage } = useLanguage(); // Subscribe to re-render
   return (
     <>
       <div className="flex gap-xl py-md justify-between items-center">
@@ -30,7 +34,13 @@ function Header() {
 
           {/* desktop navigation */}
           <div className="hidden sm:block">
-            <NavigationMain />
+            {isLogin ? (
+              <NavigationMain />
+            ) : (
+              <span className="font-barlow-condensed text-xl uppercase">
+                {m.header_tagline()}
+              </span>
+            )}
           </div>
         </div>
 
