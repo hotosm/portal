@@ -9,6 +9,7 @@ import SecondaryCallToAction from "../components/shared/SecondaryCallToAction";
 import { getCTAData } from "../constants/ctaData";
 import { useProjects } from "../hooks/useProjects";
 import { m } from "../paraglide/messages";
+import TechSuiteContainer from "../components/techSuite/TechSuiteContainer";
 
 function HomePage() {
   const { currentLanguage: _currentLanguage } = useLanguage(); // suscribe to force re-render on language change
@@ -71,25 +72,8 @@ function HomePage() {
         )}
       </div>
 
-      {/* Products Grid */}
-      <div className="py-3xl bg-hot-gray-50">
-        <div className="gap-xl container">
-          <h2>{m.product_grid_title()}</h2>
-          <h3>{m.product_grid_description()}</h3>
-          <Divider className="h-lg"></Divider>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-xl">
-            {productsData.map((product) => (
-              <ProductCard
-                key={product.id}
-                title={product.title}
-                subtitle={product.subtitle}
-                iconName={product.iconName}
-                href={product.href}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
+      {/* Tech Suite */}
+      <TechSuiteContainer />
 
       {/*   example purpose */}
       <div className="container flex flex-col md:flex-row gap-xl">
