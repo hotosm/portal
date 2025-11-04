@@ -1,20 +1,12 @@
 import { useEffect, useState } from "react";
-import ProductCard from "../components/shared/ProductCard";
-import { getProductsData } from "../constants/productsData";
-import { useLanguage } from "../contexts/LanguageContext";
 import { ProjectsMap } from "../components/ProjectsMap";
 import Divider from "../components/shared/Divider";
-import PrimaryCallToAction from "../components/shared/PrimaryCallToAction";
-import SecondaryCallToAction from "../components/shared/SecondaryCallToAction";
-import { getCTAData } from "../constants/ctaData";
-import { useProjects } from "../hooks/useProjects";
-import { m } from "../paraglide/messages";
 import TechSuiteContainer from "../components/techSuite/TechSuiteContainer";
+import { useLanguage } from "../contexts/LanguageContext";
+import { useProjects } from "../hooks/useProjects";
 
 function HomePage() {
   const { currentLanguage: _currentLanguage } = useLanguage(); // suscribe to force re-render on language change
-  const productsData = getProductsData();
-  const ctaData = getCTAData("mapping");
   // TODO relocate when adding other APIs
   const { data: projectsData, isLoading, error } = useProjects();
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(
@@ -72,10 +64,11 @@ function HomePage() {
         )}
       </div>
 
+      <Divider orientation="vertical" />
       {/* Tech Suite */}
       <TechSuiteContainer />
 
-      {/*   example purpose */}
+      {/* 
       <div className="container flex flex-col md:flex-row gap-xl">
         {ctaData && (
           <>
@@ -87,7 +80,8 @@ function HomePage() {
             </div>
           </>
         )}
-      </div>
+      </div> */}
+      <Divider orientation="vertical" />
     </div>
   );
 }
