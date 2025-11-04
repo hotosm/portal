@@ -1,14 +1,16 @@
-import { ReactNode, useEffect, useRef, useState } from "react";
-import { motion, useScroll, useTransform } from "motion/react";
+import { ReactNode, useRef } from "react";
+import { motion, useScroll, useTransform, useInView } from "motion/react";
 import { getProductsData } from "../../constants/productsData";
 import TechSuiteItem from "./TechSuiteItem";
 
 function SectionBackgroundText({
   text,
   align = "right",
+  color = "light",
 }: {
   text: string;
   align?: "right" | "left";
+  color?: "dark" | "light";
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
@@ -16,15 +18,15 @@ function SectionBackgroundText({
     offset: ["start end", "end start"],
   });
 
-  const y = useTransform(scrollYProgress, [0, 1], [0, -200]);
+  const y = useTransform(scrollYProgress, [0, 1], [0, -250]);
 
   return (
     <motion.p
       ref={ref}
       style={{ y }}
-      className={`absolute top-20 z-0 text-hot-red-50 font-barlow text-[6rem] sm:text-[12rem] leading-[3rem] sm:leading-[7.2rem] ${
-        align === "right" ? "right-0" : "left-0"
-      }`}
+      className={`absolute top-36 lg:top-20 z-0 font-barlow text-[6rem] sm:text-[12rem] leading-[3rem] sm:leading-[7.2rem] ${
+        color === "light" ? "text-hot-red-50" : "text-hot-red-100"
+      } ${align === "right" ? "right-0" : "left-0"}`}
     >
       {text}
     </motion.p>
@@ -39,9 +41,9 @@ function SectionDescription({
   children: ReactNode;
 }) {
   return (
-    <div className="relative z-10 py-3xl ">
+    <div className="relative z-10">
       <h2 className="font-barlow-condensed">{title}</h2>
-      <div className="max-w-md">{children}</div>
+      <div className="max-w-xl">{children}</div>
     </div>
   );
 }
@@ -52,71 +54,26 @@ function TechSuiteContainer() {
   const mapping = products.filter((p) => p.section === "mapping").slice(0, 2);
   const mapUse = products.filter((p) => p.section === "mapUse").slice(0, 3);
 
-  const [imageryVisible, setImageryVisible] = useState(false);
-  const [mappingVisible, setMappingVisible] = useState(false);
-  const [mapUseVisible, setMapUseVisible] = useState(false);
-
   const imageryRef = useRef<HTMLDivElement>(null);
   const mappingRef = useRef<HTMLDivElement>(null);
   const mapUseRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const observerOptions = {
-      threshold: 0.2,
-      rootMargin: "0px",
-    };
-
-    const imageryObserver = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          setImageryVisible(true);
-          imageryObserver.unobserve(entry.target);
-        }
-      });
-    }, observerOptions);
-
-    const mappingObserver = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting && imageryVisible) {
-          // Wait for imagery animation to complete (3 items * 200ms + 600ms animation)
-          setTimeout(() => setMappingVisible(true), 1200);
-          mappingObserver.unobserve(entry.target);
-        }
-      });
-    }, observerOptions);
-
-    const mapUseObserver = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting && mappingVisible) {
-          // Wait for mapping animation to complete (2 items * 200ms + 600ms animation)
-          setTimeout(() => setMapUseVisible(true), 1000);
-          mapUseObserver.unobserve(entry.target);
-        }
-      });
-    }, observerOptions);
-
-    if (imageryRef.current) imageryObserver.observe(imageryRef.current);
-    if (mappingRef.current) mappingObserver.observe(mappingRef.current);
-    if (mapUseRef.current) mapUseObserver.observe(mapUseRef.current);
-
-    return () => {
-      imageryObserver.disconnect();
-      mappingObserver.disconnect();
-      mapUseObserver.disconnect();
-    };
-  }, [imageryVisible, mappingVisible]);
+  const imageryVisible = useInView(imageryRef, { once: true, amount: 0.4 });
+  const mappingVisible = useInView(mappingRef, { once: true, amount: 1 });
+  const mapUseVisible = useInView(mapUseRef, { once: true, amount: 0.4 });
 
   const renderImageryProducts = (items: typeof products, visible: boolean) => (
-    <div className="flex-1 mt-0 md:mt-4xl mr-3xl">
-      <div className="flex flex-col sm:flex-row justify-between items-start">
+    <div ref={imageryRef} className="mt-0 lg:mt-4xl mr-0 md:mr-4xl">
+      <div className="flex flex-col md:flex-row gap-0 md:gap-4xl items-center md:items-start">
         {items.map((product, idx) => (
           <div
             key={product.id}
-            className={`flex text-center transition-all duration-800 ${
+            className={`flex text-center transition-all duration-800 mt-0 md:mt-[var(--stair-step)] ${
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"
             }`}
             style={{
-              marginTop: `${idx * 40}px`,
+              // @ts-ignore Tailwind can't process dynamic classes
+              "--stair-step": `${idx * 32}px`,
               transitionDelay: visible ? `${idx * 800}ms` : "0ms",
             }}
           >
@@ -131,24 +88,19 @@ function TechSuiteContainer() {
   );
 
   const renderMappingProducts = (items: typeof products, visible: boolean) => (
-    <div ref={mappingRef} className="relative z-10 container">
+    <div ref={mappingRef} className="relative z-10 w-full">
       {/* Vertical layout: aligned to the right */}
       <div className="flex flex-col items-end gap-8 py-8 ml-auto max-w-md">
-        {items.map((product, idx) => (
+        {items.map((product) => (
           <div
             key={product.id}
             className={`text-center transition-all duration-600 ${
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"
             }`}
-            style={{
-              marginRight: idx === 0 ? "0px" : "40px",
-              transitionDelay: visible ? `${idx * 200}ms` : "0ms",
-            }}
           >
             <TechSuiteItem
               title={product.title}
               description={product.description}
-              alignment="horizontal"
             />
           </div>
         ))}
@@ -157,18 +109,18 @@ function TechSuiteContainer() {
   );
 
   const renderMapUseProducts = (items: typeof products, visible: boolean) => (
-    <div ref={mapUseRef} className="relative z-10 container">
-      {/* Horizontal layout: right to left with stair-step going down */}
-      <div className="flex justify-between items-start py-8 flex-row-reverse">
+    <div ref={mapUseRef} className="mt-0 lg:mt-4xl mr-0 md:mr-4xl">
+      <div className="flex flex-col-reverse md:flex-row-reverse gap-0 md:gap-4xl items-center md:items-start">
         {items.map((product, idx) => (
           <div
             key={product.id}
-            className={`flex-1 text-center transition-all duration-600 ${
+            className={`flex-1 text-center transition-all duration-800 mt-0 lg:mt-[var(--stair-step)] ${
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"
             }`}
             style={{
-              marginTop: `${idx * 40}px`,
-              transitionDelay: visible ? `${idx * 200}ms` : "0ms",
+              // @ts-ignore
+              "--stair-step": `${idx * 30}px`,
+              transitionDelay: visible ? `${idx * 800}ms` : "0ms",
             }}
           >
             <TechSuiteItem
@@ -184,10 +136,10 @@ function TechSuiteContainer() {
   return (
     <div>
       {/* IMAGERY */}
-      <div className="bg-hot-red-100 min-h-80 relative overflow-hidden">
+      <div className="relative overflow-hidden py-3xl lg:py-4xl">
         <SectionBackgroundText text="IMAGERY" align="right" />
 
-        <div className="flex flex-col lg:flex-row container">
+        <div className="flex flex-col lg:flex-row gap-0 lg:gap-4xl container">
           <SectionDescription title="1. Aerial Imagery">
             <p>
               Drone and satellite imagery show features on the ground
@@ -199,16 +151,14 @@ function TechSuiteContainer() {
               openly available options have lower resolutions or are outdated.
             </p>
           </SectionDescription>
-          <div ref={imageryRef} className="relative z-10 container">
-            {renderImageryProducts(imagery, imageryVisible)}
-          </div>
+          {renderImageryProducts(imagery, imageryVisible)}
         </div>
       </div>
 
       {/* MAPPING */}
-      <div className=" relative overflow-hidden">
-        <SectionBackgroundText text="MAPPING" align="left" />
-        <div className="flex flex-col lg:flex-row container">
+      <div className="bg-hot-red-50 relative overflow-hidden py-3xl">
+        <SectionBackgroundText text="MAPPING" align="left" color="dark" />
+        <div className="flex flex-col lg:flex-row gap-0 lg:gap-4xl container">
           <SectionDescription title="2. Geospatial (or map) data">
             <p>
               With eyes on the ground, we now can start tracing the shapes on
@@ -226,9 +176,9 @@ function TechSuiteContainer() {
       </div>
 
       {/* MAP USE */}
-      <div className="bg-hot-red-100 relative overflow-hidden">
+      <div className="relative overflow-hidden py-3xl">
         <SectionBackgroundText text="MAP USE" align="right" />
-        <div className="flex flex-col lg:flex-row container">
+        <div className="flex flex-col lg:flex-row gap-0 lg:gap-4xl container">
           <SectionDescription title="3. Actionable Insights">
             <p>
               The information collected in the previous steps is now used by
