@@ -3,28 +3,18 @@ import vector from "../../assets/images/vector.png";
 interface ITechSuiteItemProps {
   title: string;
   description: string;
-  alignment?: "vertical" | "horizontal";
+  className?: string;
 }
 
-function TechSuiteItem({
-  title,
-  description,
-  alignment = "vertical",
-}: ITechSuiteItemProps) {
+function TechSuiteItem({ title, description, className }: ITechSuiteItemProps) {
   return (
-    <div
-      className={`flex ${
-        alignment === "vertical"
-          ? "flex-col justify-center align-middle max-w-[250px] "
-          : "flex-row-reverse justify-end align-bottom max-w-[450px] "
-      }`}
-    >
+    <div className={`max-w-[400px] ${className}`}>
       <img
         src={vector}
         alt="Product vector icon"
         style={{
-          height: "140px",
-          width: "140px",
+          height: "100px",
+          width: "100px",
           margin: "0 auto",
         }}
       />
