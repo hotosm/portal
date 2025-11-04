@@ -2,6 +2,7 @@ import { ReactNode, useRef } from "react";
 import { motion, useScroll, useTransform, useInView } from "motion/react";
 import { getProductsData } from "../../constants/productsData";
 import TechSuiteItem from "./TechSuiteItem";
+import { m } from "../../paraglide/messages";
 
 function SectionBackgroundText({
   text,
@@ -140,16 +141,9 @@ function TechSuiteContainer() {
         <SectionBackgroundText text="IMAGERY" align="right" />
 
         <div className="flex flex-col lg:flex-row gap-0 lg:gap-4xl container">
-          <SectionDescription title="1. Aerial Imagery">
-            <p>
-              Drone and satellite imagery show features on the ground
-              (buildings, roads, and more) that can be tied to a specific
-              location.
-            </p>
-            <p>
-              High-resolution, up-to-date imagery is usually costly, while
-              openly available options have lower resolutions or are outdated.
-            </p>
+          <SectionDescription title={`1. ${m.imagery_title()}`}>
+            <p>{m.imagery_p1()}</p>
+            <p>{m.imagery_p2()}</p>
           </SectionDescription>
           {renderImageryProducts(imagery, imageryVisible)}
         </div>
@@ -159,17 +153,9 @@ function TechSuiteContainer() {
       <div className="bg-hot-red-50 relative overflow-hidden py-3xl">
         <SectionBackgroundText text="MAPPING" align="left" color="dark" />
         <div className="flex flex-col lg:flex-row gap-0 lg:gap-4xl container">
-          <SectionDescription title="2. Geospatial (or map) data">
-            <p>
-              With eyes on the ground, we now can start tracing the shapes on
-              the imagery and add them to databases, such as OpenStreetMap. The
-              tracing is done remotely, either manually or with Artificial
-              Intelligence (AI).
-            </p>
-            <p>
-              Field mapping complements these databases by adding more context
-              about the features (e.g., “this is a hospital”).
-            </p>
+          <SectionDescription title={`2. ${m.mapping_title()}`}>
+            <p>{m.mapping_p1()}</p>
+            <p>{m.mapping_p2()}</p>
           </SectionDescription>
           {renderMappingProducts(mapping, mappingVisible)}
         </div>
@@ -179,17 +165,9 @@ function TechSuiteContainer() {
       <div className="relative overflow-hidden py-3xl">
         <SectionBackgroundText text="MAP USE" align="right" />
         <div className="flex flex-col lg:flex-row gap-0 lg:gap-4xl container">
-          <SectionDescription title="3. Actionable Insights">
-            <p>
-              The information collected in the previous steps is now used by
-              different stakeholders and communities themselves for data-driven
-              action.
-            </p>
-            <p>
-              While most databases and analysis tools are too restrictive due to
-              privacy, costs, or technical knowledge, we’ve lowered the barrier
-              to entry so more people can use them.
-            </p>
+          <SectionDescription title={`3. ${m.mapUse_title()}`}>
+            <p>{m.mapUse_p1()}</p>
+            <p>{m.mapUse_p2()}</p>
           </SectionDescription>
           {renderMapUseProducts(mapUse, mapUseVisible)}
         </div>
