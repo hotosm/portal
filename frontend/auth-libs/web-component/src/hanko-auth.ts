@@ -550,10 +550,10 @@ export class HankoAuth extends LitElement {
       if (jwt) {
         const hostname = window.location.hostname;
         const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-        const domainPart = isLocalhost ? '; domain=localhost' : '';
+        const domainPart = isLocalhost ? `; domain=${hostname}` : '';
 
         document.cookie = `hanko=${jwt}; path=/${domainPart}; max-age=86400; SameSite=Lax`;
-        this.log(`🔐 JWT synced to cookie for SSO${isLocalhost ? ' (domain=localhost)' : ''}`);
+        this.log(`🔐 JWT synced to cookie for SSO${isLocalhost ? ` (domain=${hostname})` : ''}`);
       } else {
         this.log('⚠️ No JWT found in session event');
       }
@@ -828,9 +828,10 @@ export class HankoAuth extends LitElement {
       }
     }
 
-    document.cookie = 'hanko=; path=/; domain=localhost; max-age=0';
+    const hostname = window.location.hostname;
+    document.cookie = `hanko=; path=/; domain=${hostname}; max-age=0`;
     document.cookie = 'hanko=; path=/; max-age=0';
-    document.cookie = 'osm_connection=; path=/; domain=localhost; max-age=0';
+    document.cookie = `osm_connection=; path=/; domain=${hostname}; max-age=0`;
     document.cookie = 'osm_connection=; path=/; max-age=0';
 
     this.log('🍪 Cookies cleared');
@@ -861,9 +862,10 @@ export class HankoAuth extends LitElement {
     this.osmData = null;
 
     // Clear cookies
-    document.cookie = 'hanko=; path=/; domain=localhost; max-age=0';
+    const hostname = window.location.hostname;
+    document.cookie = `hanko=; path=/; domain=${hostname}; max-age=0`;
     document.cookie = 'hanko=; path=/; max-age=0';
-    document.cookie = 'osm_connection=; path=/; domain=localhost; max-age=0';
+    document.cookie = `osm_connection=; path=/; domain=${hostname}; max-age=0`;
     document.cookie = 'osm_connection=; path=/; max-age=0';
 
     this.log('🍪 Cookies cleared after session expiration');

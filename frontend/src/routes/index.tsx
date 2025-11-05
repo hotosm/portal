@@ -5,8 +5,9 @@ import AuthTest from "../pages/AuthTest";
 import HomePage from "../pages/HomePage";
 import ImageryPage from "../pages/ImageryPage";
 import LandingPage from "../pages/LandingPage";
-import LoginPage from "../pages/LoginPage";
+// LoginPage import removed - login is now handled by separate login-frontend service at /login
 import ProfilePage from "../pages/ProfilePage";
+import DroneTMProjectsPage from "../pages/DroneTMProjectsPage";
 
 // Placeholder components for now
 function MappingPage() {
@@ -121,19 +122,28 @@ export function AppRoutes() {
             }
           />
 
-          {/* Authentication routes */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/logout" element={<LogoutPage />} />
 
-          {/* Protected user routes */}
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <ProfilePage />
-              </ProtectedRoute>
-            }
-          />
+      {/* Authentication routes */}
+      {/* /login route removed - now handled by separate login-frontend service */}
+      <Route path="/logout" element={<LogoutPage />} />
+
+      {/* Protected user routes */}
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/drone-tm-projects"
+        element={
+          <ProtectedRoute>
+            <DroneTMProjectsPage />
+          </ProtectedRoute>
+        }
+      />
 
           {/* Testing routes */}
           <Route path="/auth-test" element={<AuthTest />} />
