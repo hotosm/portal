@@ -1,0 +1,72 @@
+server:
+  public:
+    address: ":8000"
+    cors:
+      allow_origins:
+        - "https://portal.hotosm.test"
+        - "https://login.hotosm.test"
+        - "https://dronetm.hotosm.test"
+      allow_credentials: true
+      unsafe_wildcard_origin_allowed: true
+
+database:
+  database: hanko
+  user: hanko
+  password: hanko
+  host: hanko-db
+  port: 5432
+
+secrets:
+  keys:
+    - "abcdefghijklmnopqrstuvwxyz123456"  # Change this for production
+
+service:
+  name: "HOTOSM Portal (Dev)"
+
+webauthn:
+  relying_party:
+    id: "hotosm.test"
+    display_name: "HOTOSM Portal"
+    origins:
+      - "https://portal.hotosm.test"
+      - "https://login.hotosm.test"
+      - "https://dronetm.hotosm.test"
+
+email:
+  require_verification: false
+
+passcode:
+  enabled: false  # Disabled for development (no SMTP server)
+
+session:
+  lifespan: 1h
+  issuer: "https://login.hotosm.test"
+  audience:
+    - "https://portal.hotosm.test"
+    - "https://login.hotosm.test"
+    - "https://dronetm.hotosm.test"
+  cookie:
+    name: "hanko"
+    domain: ".hotosm.test"  # .hotosm.test with dot enables cookie sharing across all *.hotosm.test subdomains
+    http_only: true
+    same_site: lax
+    secure: true
+
+third_party:
+  redirect_url: "https://login.hotosm.test/thirdparty/callback"
+  error_redirect_url: "https://login.hotosm.test/error"
+  allowed_redirect_urls:
+    - "https://portal.hotosm.test/**"
+    - "https://login.hotosm.test/**"
+    - "https://dronetm.hotosm.test/**"
+  cookie:
+    domain: ".hotosm.test"  # .hotosm.test with dot enables cookie sharing across all *.hotosm.test subdomains
+    http_only: true
+    same_site: lax
+    secure: true
+  providers:
+    google:
+      enabled: true
+      client_id: "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+      secret: "YOUR_GOOGLE_CLIENT_SECRET"
+      allow_linking: true
