@@ -5,9 +5,11 @@ FROM python:3.12-slim AS development
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies including git and ssh
 RUN apt-get update && apt-get install -y \
     curl \
+    git \
+    openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv
@@ -16,11 +18,9 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 # Copy backend dependency files
 COPY backend/pyproject.toml ./
 
-# Copy hotosm-auth library to relative path (pyproject.toml uses {root:uri}/../frontend/auth-libs/python)
-COPY frontend/auth-libs/python ../frontend/auth-libs/python
-
 # Install dependencies with uv (including dev dependencies)
-RUN uv sync
+# Mount SSH keys for private git repos
+RUN --mount=type=ssh uv sync
 
 # Copy backend application code
 COPY backend/ .
@@ -36,9 +36,11 @@ FROM python:3.12-slim AS production
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies including git and ssh
 RUN apt-get update && apt-get install -y \
     curl \
+    git \
+    openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv
@@ -47,11 +49,9 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 # Copy backend dependency files
 COPY backend/pyproject.toml ./
 
-# Copy hotosm-auth library to relative path (pyproject.toml uses {root:uri}/../frontend/auth-libs/python)
-COPY frontend/auth-libs/python ../frontend/auth-libs/python
-
 # Install only production dependencies
-RUN uv sync --no-dev
+# Mount SSH keys for private git repos
+RUN --mount=type=ssh uv sync --no-dev
 
 # Copy backend application code
 COPY backend/app ./app
