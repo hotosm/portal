@@ -10,9 +10,11 @@ import { useLanguage } from "../contexts/LanguageContext";
 import { m } from "../paraglide/messages";
 
 function Header() {
-  const hankoUrl = import.meta.env.VITE_HANKO_URL || "http://127.0.0.1:5173";
+
+  const hankoUrl = import.meta.env.VITE_HANKO_URL || "https://login.hotosm.test";
   const { isLogin } = useAuth();
-  const { currentLanguage: _currentLanguage } = useLanguage(); // Subscribe to re-render
+  const { currentLanguage: _currentLanguage } = useLanguage(); 
+  
   return (
     <>
       <div className="flex gap-xl py-md justify-between items-center">
@@ -47,7 +49,10 @@ function Header() {
         <div className="flex gap-md items-center">
           <LanguageSwitcher />
           <div className="hidden sm:block">
-            <hotosm-auth hanko-url={hankoUrl} osm-required />
+            <hotosm-auth
+              hanko-url={hankoUrl}
+              osm-required
+            />
           </div>
 
           <Icon
