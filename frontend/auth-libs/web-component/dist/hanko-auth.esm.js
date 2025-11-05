@@ -4308,8 +4308,8 @@ let Ne = class extends Nt {
     if (this.log("🎯 Dropdown item selected:", e), e === "profile")
       window.location.href = "/profile";
     else if (e === "connect-osm") {
-      const t = window.location.href;
-      window.location.href = `${this.hankoUrl}/login?return_to=${encodeURIComponent(t)}&osm_required=true`;
+      const i = window.location.pathname.includes("/login") ? window.location.origin : window.location.href;
+      window.location.href = `${this.hankoUrl}/login?return_to=${encodeURIComponent(i)}&osm_required=true`;
     } else e === "logout" && this.handleLogout();
   }
   handleSkipOSM() {
@@ -4426,10 +4426,10 @@ let Ne = class extends Nt {
           </div>
         `;
       {
-        const o = window.location.href, r = new URLSearchParams(window.location.search).get("auto_connect") === "true" ? "&auto_connect=true" : "", a = `${this.hankoUrl}/login?return_to=${encodeURIComponent(o)}${this.osmRequired ? "&osm_required=true" : ""}${r}`;
+        const r = window.location.pathname.includes("/login") ? window.location.origin : window.location.href, c = new URLSearchParams(window.location.search).get("auto_connect") === "true" ? "&auto_connect=true" : "", d = `${this.hankoUrl}/login?return_to=${encodeURIComponent(r)}${this.osmRequired ? "&osm_required=true" : ""}${c}`;
         return Ue`
           <div class="container">
-            <a href="${a}" class="btn-login">Log In</a>
+            <a href="${d}" class="btn-login">Log In</a>
           </div>
         `;
       }
