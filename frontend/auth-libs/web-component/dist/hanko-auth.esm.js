@@ -4105,24 +4105,47 @@ let Ne = class extends Nt {
       return;
     }
     try {
-      this.log("📡 Checking session validity...");
+      this.log("📡 Checking session validity via cookie...");
       try {
-        const n = await this._hanko.user.getCurrent();
-        this.log("✅ Valid Hanko session found"), this.log("👤 Existing user session:", n), this.user = {
-          id: n.id,
-          email: n.email,
-          username: n.username,
-          emailVerified: n.email_verified || !1
-        }, this.dispatchEvent(new CustomEvent("hanko-login", {
-          detail: { user: this.user },
-          bubbles: !0,
-          composed: !0
-        })), this.dispatchEvent(new CustomEvent("auth-complete", {
-          bubbles: !0,
-          composed: !0
-        })), await this.syncJWTToCookie(), await this.checkOSMConnection(), this.osmRequired && this.autoConnect && !this.osmConnected && (console.log("🔄 Auto-connecting to OSM (from existing session)..."), this.handleOSMConnect());
-      } catch {
-        this.log("ℹ️ No valid Hanko session found - user needs to login");
+        const n = await fetch(`${this.hankoUrl}/sessions/validate`, {
+          method: "GET",
+          credentials: "include",
+          // Include httpOnly cookies
+          headers: {
+            "Content-Type": "application/json"
+          }
+        });
+        if (n.ok) {
+          const e = await n.json();
+          this.log("✅ Valid Hanko session found via cookie"), this.log("📋 Session data:", e);
+          try {
+            const t = await this._hanko.user.getCurrent();
+            this.log("👤 User data retrieved:", t), this.user = {
+              id: t.id,
+              email: t.email,
+              username: t.username,
+              emailVerified: t.email_verified || !1
+            };
+          } catch (t) {
+            this.log("⚠️ SDK failed, using session data directly:", t), e.user_id && (this.user = {
+              id: e.user_id,
+              email: e.email || null,
+              username: null,
+              emailVerified: !1
+            });
+          }
+          this.user && (this.dispatchEvent(new CustomEvent("hanko-login", {
+            detail: { user: this.user },
+            bubbles: !0,
+            composed: !0
+          })), this.dispatchEvent(new CustomEvent("auth-complete", {
+            bubbles: !0,
+            composed: !0
+          })), await this.syncJWTToCookie(), await this.checkOSMConnection(), this.osmRequired && this.autoConnect && !this.osmConnected && (console.log("🔄 Auto-connecting to OSM (from existing session)..."), this.handleOSMConnect()));
+        } else
+          this.log("ℹ️ No valid session cookie found - user needs to login");
+      } catch (n) {
+        this.log("⚠️ Session validation failed:", n), this.log("ℹ️ No valid session - user needs to login");
       }
     } catch (n) {
       this.log("⚠️ Session check error:", n), this.log("ℹ️ No existing session - user needs to login");
