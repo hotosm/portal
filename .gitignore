@@ -53,6 +53,8 @@ pnpm-debug.log*
 lerna-debug.log*
 .pnpm-store/
 dist/
+!frontend/auth-libs/**/dist/
+!backend/auth-libs/**/dist/
 dist-ssr/
 *.local
 
