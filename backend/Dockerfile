@@ -15,6 +15,10 @@ RUN apt-get update && apt-get install -y \
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
+# Add GitHub to known_hosts
+RUN mkdir -p /root/.ssh && \
+    ssh-keyscan github.com >> /root/.ssh/known_hosts
+
 # Copy backend dependency files
 COPY backend/pyproject.toml ./
 
@@ -45,6 +49,10 @@ RUN apt-get update && apt-get install -y \
 
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Add GitHub to known_hosts
+RUN mkdir -p /root/.ssh && \
+    ssh-keyscan github.com >> /root/.ssh/known_hosts
 
 # Copy backend dependency files
 COPY backend/pyproject.toml ./
