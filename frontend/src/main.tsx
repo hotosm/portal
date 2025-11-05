@@ -18,7 +18,7 @@ import '@awesome.me/webawesome/dist/components/icon/icon.js'
 import '../auth-libs/web-component/dist/hanko-auth.esm.js'
 
 // Set Hanko URL for authentication
-window.HANKO_URL = import.meta.env.VITE_HANKO_URL || 'https://dev.login.hotosm.org'
+window.HANKO_URL = import.meta.env.VITE_HANKO_URL || 'https://login.hotosm.test'
 
 // Ensure all WebAwesome components are loaded before rendering
 await allDefined()

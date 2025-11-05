@@ -2,87 +2,57 @@ import { paraglideVitePlugin } from "@inlang/paraglide-js";
 import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv } from "vite";
 
-// https://vite.dev/config/
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), "");
-  console.log("VITE_API_URL:", env.VITE_API_URL);
+// Drone-TM frontend URL for CORS configuration (integration testing)
+const DRONE_TM_FRONTEND_URL = process.env.VITE_DRONE_TM_FRONTEND_URL || 'http://127.0.0.1:3040'
 
-  return {
-    plugins: [
-      react(),
-      paraglideVitePlugin({
-        project: "./project.inlang",
-        outdir: "./src/paraglide",
-      }),
-    ],
-    server: {
-      host: "0.0.0.0", // Listen on all interfaces
-      port: 5173,
-      cors: {
-        origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
-        credentials: true,
-      },
-      proxy: {
-        "/api": {
-          target: env.VITE_API_URL || "http://localhost:8000",
-          changeOrigin: true,
-        },
-        // Proxy Hanko API endpoints only (not React Router routes)
-        "/.well-known": {
-          target: "http://hanko:8000",
-          changeOrigin: true,
-        },
-        "/passcode": {
-          target: "http://hanko:8000",
-          changeOrigin: true,
-        },
-        "/webauthn": {
-          target: "http://hanko:8000",
-          changeOrigin: true,
-        },
-        "/token": {
-          target: "http://hanko:8000",
-          changeOrigin: true,
-        },
-        "/login": {
-          target: "http://hanko:8000",
-          changeOrigin: true,
-          bypass: (req) => {
-            // Only proxy POST/PUT/DELETE (API calls), let GET through to React Router
-            if (req.method === "GET") {
-              return req.url;
-            }
-          },
-        },
-        "/logout": {
-          target: "http://hanko:8000",
-          changeOrigin: true,
-        },
-        "/registration": {
-          target: "http://hanko:8000",
-          changeOrigin: true,
-        },
-        "/me": {
-          target: "http://hanko:8000",
-          changeOrigin: true,
-        },
-        "/users": {
-          target: "http://hanko:8000",
-          changeOrigin: true,
-        },
-        "/sessions": {
-          target: "http://hanko:8000",
-          changeOrigin: true,
-        },
-      },
+// Extract host/port for CORS configuration
+const droneTmFrontendHost = DRONE_TM_FRONTEND_URL.replace(/^https?:\/\//, '')
+const droneTmLocalhostVariant = droneTmFrontendHost.includes('127.0.0.1')
+  ? `http://localhost:${droneTmFrontendHost.split(':')[1] || '3040'}`
+  : `http://127.0.0.1:${droneTmFrontendHost.split(':')[1] || '3040'}`
+
+// https://vite.dev/config/
+
+export default defineConfig({
+  plugins: [
+    react(),
+    paraglideVitePlugin({
+      project: './project.inlang',
+      outdir: './src/paraglide',
+    }),
+  ],
+  server: {
+    host: '0.0.0.0',
+    port: 5173,
+    strictPort: true,
+    origin: 'https://portal.hotosm.test',
+    allowedHosts: ['portal.hotosm.test', 'localhost', '127.0.0.1'],
+    hmr: {
+      clientPort: 443,
+      host: 'portal.hotosm.test',
+      protocol: 'wss',
     },
-    build: {
-      target: "esnext", // Support top-level await
+    cors: {
+      origin: [
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        DRONE_TM_FRONTEND_URL,  // Drone-TM frontend (from env)
+        droneTmLocalhostVariant,  // Drone-TM frontend (alternate)
+      ],
+      credentials: true,
     },
-    test: {
-      globals: true,
-      environment: "jsdom",
-      passWithNoTests: true,
-    },
-  };
+    // NOTE: All API routing is handled by Traefik reverse proxy, not Vite
+    // - /api → portal-backend (via Traefik)
+    // - /api/drone-tm → dronetm-backend (via Traefik with stripprefix middleware)
+    // - Hanko endpoints at login.hotosm.test → hanko service (via Traefik)
+    // This configuration keeps development closer to production architecture
+  },
+  build: {
+    target: 'esnext', // Support top-level await
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    passWithNoTests: true,
+  },
 });
