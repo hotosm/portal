@@ -48,6 +48,7 @@ function Header() {
 
         <div className="flex gap-md items-center">
           <LanguageSwitcher />
+          AAAAA
           <div className="hidden sm:block">
             <hotosm-auth
               hanko-url={hankoUrl}

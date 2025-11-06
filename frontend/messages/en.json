@@ -2,7 +2,7 @@
   "$schema": "https://inlang.com/schema/inlang-message-format",
   "header_alt_hotLogo": "HOT Logo",
   "header_tagline": "Open Source Community-led Mapping Platform",
-  "header_dialog_comingSoon": "Coming Soon",
+  "header_dialog_comingSoon": "Coming Soon!",
   "header_dialog_sharedMenu": "Shared menu will be a web component.",
   "header_aria_openMenu": "Open shared menu",
   "products_drone_title": "Drone",
