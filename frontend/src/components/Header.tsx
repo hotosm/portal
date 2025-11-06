@@ -12,7 +12,9 @@ import { m } from "../paraglide/messages";
 
 function Header() {
   const authRef = useRef<any>(null);
-  const hankoUrl = import.meta.env.VITE_HANKO_URL || "https://login.hotosm.test";
+  // Use window.HANKO_URL as single source of truth (set in index.html by Vite)
+  // Fallback to production URL if not set
+  const hankoUrl = (window as any).HANKO_URL || "https://login.hotosm.org";
   const { isLogin } = useAuth();
   const { currentLanguage: _currentLanguage } = useLanguage();
 
