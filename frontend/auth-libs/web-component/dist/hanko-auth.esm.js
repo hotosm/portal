@@ -4350,7 +4350,7 @@ let Ne = class extends Nt {
     if (this.log("🎯 Dropdown item selected:", e), e === "profile")
       window.location.href = "/profile";
     else if (e === "connect-osm") {
-      const i = window.location.pathname.includes("/login") ? window.location.origin : window.location.href, r = this.hankoUrl || window.HANKO_URL || window.location.origin;
+      const i = window.location.pathname.includes("/login") ? window.location.origin : window.location.href, r = this.hankoUrlAttr || window.HANKO_URL || window.location.origin;
       window.location.href = `${r}/login?return_to=${encodeURIComponent(i)}&osm_required=true`;
     } else e === "logout" && this.handleLogout();
   }
@@ -4468,7 +4468,7 @@ let Ne = class extends Nt {
           </div>
         `;
       {
-        const r = window.location.pathname.includes("/login") ? window.location.origin : window.location.href, c = new URLSearchParams(window.location.search).get("auto_connect") === "true" ? "&auto_connect=true" : "", l = `${this.hankoUrl || window.HANKO_URL || window.location.origin}/login?return_to=${encodeURIComponent(r)}${this.osmRequired ? "&osm_required=true" : ""}${c}`;
+        const r = window.location.pathname.includes("/login") ? window.location.origin : window.location.href, c = new URLSearchParams(window.location.search).get("auto_connect") === "true" ? "&auto_connect=true" : "", l = `${this.hankoUrlAttr || window.HANKO_URL || window.location.origin}/login?return_to=${encodeURIComponent(r)}${this.osmRequired ? "&osm_required=true" : ""}${c}`;
         return Ue`
           <div class="container">
             <a href="${l}" class="btn-login">Log In</a>
