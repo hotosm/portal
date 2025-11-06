@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useEffect, useRef } from "react";
 import hotLogo from "../assets/images/hot-logo.svg";
 import NavigationMain from "./NavigationMain";
 import Dialog from "./shared/Dialog";
@@ -10,10 +11,19 @@ import { useLanguage } from "../contexts/LanguageContext";
 import { m } from "../paraglide/messages";
 
 function Header() {
-
+  const authRef = useRef<any>(null);
   const hankoUrl = import.meta.env.VITE_HANKO_URL || "https://login.hotosm.test";
   const { isLogin } = useAuth();
-  const { currentLanguage: _currentLanguage } = useLanguage(); 
+  const { currentLanguage: _currentLanguage } = useLanguage();
+
+  // Set hankoUrlAttr property directly on the web component
+  // React doesn't properly pass kebab-case attributes to custom elements
+  useEffect(() => {
+    if (authRef.current) {
+      authRef.current.hankoUrlAttr = hankoUrl;
+      console.log('✅ Set hankoUrlAttr on web component:', hankoUrl);
+    }
+  }, [hankoUrl]); 
   
   return (
     <>
@@ -48,10 +58,9 @@ function Header() {
 
         <div className="flex gap-md items-center">
           <LanguageSwitcher />
-          AAAAA
           <div className="hidden sm:block">
             <hotosm-auth
-              hanko-url={hankoUrl}
+              ref={authRef}
               osm-required
             />
           </div>
