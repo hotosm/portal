@@ -44,6 +44,10 @@ COPY . .
 ARG VITE_HANKO_URL=https://dev.login.hotosm.org
 ENV VITE_HANKO_URL=$VITE_HANKO_URL
 
+# Build timestamp to bust cache
+ARG BUILD_DATE
+RUN echo "Build date: $BUILD_DATE"
+
 # Build application
 RUN pnpm build
 
