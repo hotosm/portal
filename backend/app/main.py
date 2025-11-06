@@ -10,6 +10,8 @@ from hotosm_auth.integrations.fastapi import init_auth
 from app.api.routes import example, test
 from app.api.routes.tasking_manager import tasking_manager
 from app.api.routes.drone_tm import drone_tm
+from app.api.routes.open_aerial_map import open_aerial_map
+from app.api.routes.fair import fair
 from app.core.config import settings
 from app.core.database import check_db_connection
 
@@ -114,6 +116,18 @@ app.include_router(
     drone_tm.router,
     prefix=settings.api_v1_prefix,
     tags=["drone tasking manager"],
+)
+
+app.include_router(
+    open_aerial_map.router,
+    prefix=settings.api_v1_prefix,
+    tags=["open aerial map"],
+)
+
+app.include_router(
+    fair.router,
+    prefix=settings.api_v1_prefix,
+    tags=["fair"],
 )
 
 # Include authentication routers (OSM OAuth)
