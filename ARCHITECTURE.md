@@ -108,6 +108,7 @@ portal/
   - `/api/tasking-manager/projectid` - ProjectID data of Tasking Manager
   - `/api/drone-tm/projects` - Return all project of Drone TM (Drone Tasking Manager)
   - `/api/drone-tm/projects/projectid` - ProjectID data of Drone TM (Drone Tasking Manager)
+  - `/api/opean-aerial-map/projects` - Return all project of Open Aerial Map
 
 ### Frontend Architecture
 - **Component composition**: Small, reusable components
