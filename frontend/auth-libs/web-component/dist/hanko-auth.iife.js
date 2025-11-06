@@ -128,7 +128,7 @@ var HankoAuth=function(Ae){"use strict";/**
           <div class="container">
             <hanko-auth></hanko-auth>
           </div>
-        `;{const a=window.location.pathname.includes("/login")?window.location.origin:window.location.href,d=new URLSearchParams(window.location.search).get("auto_connect")==="true"?"&auto_connect=true":"",u=`${this.hankoUrlAttr||window.HANKO_URL||window.location.origin}/login?return_to=${encodeURIComponent(a)}${this.osmRequired?"&osm_required=true":""}${d}`;return Ue`
+        `;{const a=window.location.pathname.includes("/login")?window.location.origin:window.location.href,d=new URLSearchParams(window.location.search).get("auto_connect")==="true"?"&auto_connect=true":"",l=this.hankoUrlAttr||window.HANKO_URL||window.location.origin;console.log("🔗 Login URL base:",l);const u=`${l}/login?return_to=${encodeURIComponent(a)}${this.osmRequired?"&osm_required=true":""}${d}`;return Ue`
           <div class="container">
             <a href="${u}" class="btn-login">Log In</a>
           </div>
