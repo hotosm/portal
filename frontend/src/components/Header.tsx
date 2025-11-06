@@ -12,6 +12,8 @@ import { m } from "../paraglide/messages";
 function Header() {
 
   const hankoUrl = import.meta.env.VITE_HANKO_URL || "https://login.hotosm.test";
+  console.log('🔍 Header: hankoUrl =', hankoUrl);
+  console.log('🔍 Header: VITE_HANKO_URL =', import.meta.env.VITE_HANKO_URL);
   const { isLogin } = useAuth();
   const { currentLanguage: _currentLanguage } = useLanguage(); 
   
@@ -48,7 +50,6 @@ function Header() {
 
         <div className="flex gap-md items-center">
           <LanguageSwitcher />
-          AAAAA
           <div className="hidden sm:block">
             <hotosm-auth
               hanko-url={hankoUrl}
