@@ -106,6 +106,8 @@ portal/
   - `/api/tasking-manager/projects` - Return all project of Tasking Manager
   - `/api/tasking-manager/countries` - Return all countries of Tasking Manager
   - `/api/tasking-manager/projectid` - ProjectID data of Tasking Manager
+  - `/api/drone-tm/projects` - Return all project of Drone TM (Drone Tasking Manager)
+  - `/api/drone-tm/projects/projectid` - ProjectID data of Drone TM (Drone Tasking Manager)
 
 ### Frontend Architecture
 - **Component composition**: Small, reusable components
