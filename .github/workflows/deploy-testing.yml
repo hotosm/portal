@@ -149,8 +149,9 @@ jobs:
             # Navigate to application directory
             cd /opt/portal || exit 1
 
-            # Pull latest changes
-            git pull origin develop
+            # Pull latest changes (reset to avoid divergent branches)
+            git fetch origin develop
+            git reset --hard origin/develop
 
             # Create/update .env file with secrets (if not exists)
             if [ ! -f .env ]; then
