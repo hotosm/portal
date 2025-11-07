@@ -60,7 +60,7 @@ export function getLandingCTAData(): Record<string, CTAData> {
         descriptionHightlight: m.cta_field_primary_descriptionHighlight(),
         link1: {
           text: m.cta_field_primary_link1(),
-          url: '#login',
+          url: 'https://login.hotosm.test',
         },
         link2: {
           text: m.cta_field_primary_link2(),
@@ -87,7 +87,7 @@ export function getLandingCTAData(): Record<string, CTAData> {
         },
         link2: {
           text: m.cta_data_primary_link2(),
-          url: '#login',
+          url: 'https://login.hotosm.test',
         },
         footer: m.cta_data_primary_footer(),
       },

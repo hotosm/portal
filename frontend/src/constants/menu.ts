@@ -33,6 +33,13 @@ export const MAIN_MENU_ITEMS: MenuItem[] = [
     href: '/data',
     requiresAuth: false,
   },
+  {
+    id: 'drone-tm',
+    label: 'Drone-TM',
+    href: '/drone-tm-projects',
+    requiresAuth: true,
+    description: 'My drone mapping projects',
+  },
 ]
 
 export const USER_MENU_ITEMS: MenuItem[] = [
