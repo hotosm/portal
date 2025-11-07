@@ -901,16 +901,40 @@ export class HankoAuth extends LitElement {
       composed: true
     }));
 
-    this.log('🔄 Reloading page to clear all session data...');
-    window.location.reload();
+    this.log('✅ Logout complete - component will re-render with updated state');
+    // Don't reload - let Lit's reactivity handle the re-render
+    // This allows the browser to process Set-Cookie headers from the disconnect response
   }
 
-  private handleSessionExpired() {
-    this.log('🕒 Session expired - cleaning up state');
-    this.log('📊 State before cleanup:', {
+  private async handleSessionExpired() {
+    console.log('🆕🆕🆕 NEW CODE RUNNING - handleSessionExpired v3.0 🆕🆕🆕');
+    console.log('🕒 Session expired - cleaning up state');
+    console.log('📊 State before cleanup:', {
       user: this.user,
       osmConnected: this.osmConnected
     });
+
+    // Call OSM disconnect endpoint to clear httpOnly cookie
+    try {
+      const basePath = this.getBasePath();
+      const authPath = this.authPath;
+      const origin = window.location.origin;
+      const disconnectPath = this.addTrailingSlash(`${basePath}${authPath}/disconnect`, basePath);
+      const disconnectUrl = `${origin}${disconnectPath}`;
+      console.log('🔌 Calling OSM disconnect (session expired):', disconnectUrl);
+
+      const response = await fetch(disconnectUrl, {
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      console.log('📡 Disconnect response status:', response.status);
+      const data = await response.json();
+      console.log('📡 Disconnect response data:', data);
+      console.log('✅ OSM disconnected');
+    } catch (error) {
+      console.error('❌ OSM disconnect failed:', error);
+    }
 
     // Clear user state
     this.user = null;
@@ -924,7 +948,7 @@ export class HankoAuth extends LitElement {
     document.cookie = `osm_connection=; path=/; domain=${hostname}; max-age=0`;
     document.cookie = 'osm_connection=; path=/; max-age=0';
 
-    this.log('🍪 Cookies cleared after session expiration');
+    console.log('🍪 Cookies cleared after session expiration');
 
     // Dispatch logout event
     this.dispatchEvent(new CustomEvent('logout', {
@@ -933,7 +957,7 @@ export class HankoAuth extends LitElement {
     }));
 
     // Component will re-render and show login button
-    this.log('✅ Session cleanup complete - component will show login');
+    console.log('✅ Session cleanup complete - component will show login');
   }
 
   private handleUserLoggedOut() {
