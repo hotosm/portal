@@ -4,9 +4,6 @@ from typing import Optional
 
 FAIR_API_BASE_URL = "https://api-prod.fair.hotosm.org/api/v1"
 
-# API Key for fAIr API authentication
-FAIR_API_KEY = "ZXlKcFpDSTZNak0wTnpBME5EVXNJblZ6WlhKdVlXMWxJam9pUVc1a2NtVmhJRU5vYVhKcGJHeGhibThpTENKcGJXZGZkWEpzSWpwdWRXeHNmUS51RElkM3JFVlpuR05hYXB2eEhwQ3pBT1FDLWc="
-
 router = APIRouter(prefix="/fair")
 
 @router.get("/projects")
@@ -42,7 +39,6 @@ async def get_fair_projects(
     
     headers = {
         "accept": "application/json",
-        "access-token": FAIR_API_KEY,
     }
     
     async with httpx.AsyncClient(timeout=30.0) as client:
