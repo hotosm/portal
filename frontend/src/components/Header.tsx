@@ -10,14 +10,14 @@ import { useLanguage } from "../contexts/LanguageContext";
 import { m } from "../paraglide/messages";
 
 function Header() {
-
-  const hankoUrl = import.meta.env.VITE_HANKO_URL || "https://login.hotosm.test";
+  const hankoUrl =
+    import.meta.env.VITE_HANKO_URL || "https://login.hotosm.test";
   const { isLogin } = useAuth();
-  const { currentLanguage: _currentLanguage } = useLanguage(); 
-  
+  const { currentLanguage: _currentLanguage } = useLanguage();
+
   return (
     <>
-      <div className="flex gap-xl py-md justify-between items-center">
+      <div className="flex gap-sm md:gap-xl py-md px-lg md:px-2xl justify-between items-center">
         <div className="flex gap-xl items-center">
           <Link to="/">
             <img
@@ -25,7 +25,7 @@ function Header() {
               alt="HOT Logo"
               style={{
                 height: "40px",
-                width: "158px",
+                minWidth: "158px",
               }}
             />
           </Link>
@@ -39,7 +39,7 @@ function Header() {
             {isLogin ? (
               <NavigationMain />
             ) : (
-              <span className="font-barlow-condensed text-xl uppercase">
+              <span className="hidden lg:block font-barlow-condensed text-lg leading-none xl:text-xl uppercase">
                 {m.header_tagline()}
               </span>
             )}
@@ -49,10 +49,7 @@ function Header() {
         <div className="flex gap-md items-center">
           <LanguageSwitcher />
           <div className="hidden sm:block">
-            <hotosm-auth
-              hanko-url={hankoUrl}
-              osm-required
-            />
+            <hotosm-auth hanko-url={hankoUrl} osm-required />
           </div>
 
           <Icon

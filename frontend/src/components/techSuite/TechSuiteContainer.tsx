@@ -1,8 +1,9 @@
+import { motion, useInView, useScroll, useTransform } from "motion/react";
 import { ReactNode, useRef } from "react";
-import { motion, useScroll, useTransform, useInView } from "motion/react";
 import { getProductsData } from "../../constants/productsData";
-import TechSuiteItem from "./TechSuiteItem";
+import { useIsMobile } from "../../hooks/useIsMobile";
 import { m } from "../../paraglide/messages";
+import TechSuiteItem from "./TechSuiteItem";
 
 function SectionBackgroundText({
   text,
@@ -13,12 +14,11 @@ function SectionBackgroundText({
   align?: "right" | "left";
   color?: "dark" | "light";
 }) {
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLParagraphElement>(null);
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start end", "end start"],
   });
-
   const y = useTransform(scrollYProgress, [0, 1], [0, -250]);
 
   return (
@@ -41,11 +41,21 @@ function SectionDescription({
   title: string;
   children: ReactNode;
 }) {
+  const ref = useRef<HTMLParagraphElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start end", "end 50%"],
+  });
+  const opacity = useTransform(scrollYProgress, [0, 0.8], [0, 1]);
   return (
-    <div className="relative z-10">
+    <motion.div
+      ref={ref}
+      style={{ opacity }}
+      className="relative z-10 mt-o md:mt-2xl ml-sm lg:ml-2xl"
+    >
       <h2 className="font-barlow-condensed">{title}</h2>
       <div className="max-w-xl">{children}</div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -63,113 +73,100 @@ function TechSuiteContainer() {
   const mappingVisible = useInView(mappingRef, { once: true, amount: 1 });
   const mapUseVisible = useInView(mapUseRef, { once: true, amount: 0.4 });
 
-  const renderImageryProducts = (items: typeof products, visible: boolean) => (
-    <div ref={imageryRef} className="mt-0 lg:mt-4xl mr-0 md:mr-4xl">
-      <div className="flex flex-col md:flex-row gap-0 md:gap-4xl items-center md:items-start">
-        {items.map((product, idx) => (
-          <div
-            key={product.id}
-            className={`flex text-center transition-all duration-800 mt-0 md:mt-[var(--stair-step)] ${
-              visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"
-            }`}
-            style={{
-              // @ts-ignore Tailwind can't process dynamic classes
-              "--stair-step": `${idx * 32}px`,
-              transitionDelay: visible ? `${idx * 800}ms` : "0ms",
-            }}
-          >
-            <TechSuiteItem
-              title={product.title}
-              description={product.description}
-            />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  const renderProducts = ({
+    ref,
+    items,
+  }: {
+    ref: React.RefObject<HTMLDivElement>;
+    items: typeof products;
+    visible: boolean;
+  }) => {
+    const isMobile = useIsMobile();
 
-  const renderMappingProducts = (items: typeof products, visible: boolean) => (
-    <div ref={mappingRef} className="relative z-10 w-full">
-      {/* Vertical layout: aligned to the right */}
-      <div className="flex flex-col items-end gap-8 py-8 ml-auto max-w-md">
-        {items.map((product) => (
-          <div
-            key={product.id}
-            className={`text-center transition-all duration-600 ${
-              visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"
-            }`}
-          >
-            <TechSuiteItem
-              title={product.title}
-              description={product.description}
-            />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+    const { scrollYProgress } = useScroll({
+      target: ref,
+      offset: ["start end", isMobile ? "100% 100%" : "end 80%"],
+    });
 
-  const renderMapUseProducts = (items: typeof products, visible: boolean) => (
-    <div ref={mapUseRef} className="mt-0 lg:mt-4xl mr-0 md:mr-4xl">
-      <div className="flex flex-col-reverse md:flex-row-reverse gap-0 md:gap-4xl items-center md:items-start">
-        {items.map((product, idx) => (
-          <div
-            key={product.id}
-            className={`flex-1 text-center transition-all duration-800 mt-0 lg:mt-[var(--stair-step)] ${
-              visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"
-            }`}
-            style={{
-              // @ts-ignore
-              "--stair-step": `${idx * 30}px`,
-              transitionDelay: visible ? `${idx * 800}ms` : "0ms",
-            }}
-          >
-            <TechSuiteItem
-              title={product.title}
-              description={product.description}
-            />
-          </div>
-        ))}
+    return (
+      <div
+        ref={ref}
+        className="flex flex-col md:flex-row mt-sm lg:mt-4xl mr-0 lg:mr-2xl gap-sm px-sm lg:px-0"
+      >
+        {items.map((product, idx) => {
+          const opacity = useTransform(
+            scrollYProgress,
+            [0, 1 + idx * 0.1],
+            [0, 1]
+          );
+          const x = useTransform(
+            scrollYProgress,
+            [0, isMobile ? 1 : 0.8 + idx * 0.1],
+            [80, 0]
+          );
+
+          return (
+            <motion.div key={product.id} style={{ opacity, x }}>
+              <TechSuiteItem
+                title={product.title}
+                description={product.description}
+              />
+            </motion.div>
+          );
+        })}
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div>
       {/* IMAGERY */}
-      <div className="relative overflow-hidden py-3xl lg:py-4xl">
+      <div className="relative overflow-hidden py-4xl lg:py-4xl ">
         <SectionBackgroundText text="IMAGERY" align="right" />
-
-        <div className="flex flex-col lg:flex-row gap-0 lg:gap-4xl container">
+        <div className="flex flex-col lg:flex-row gap-sm lg:gap-2xl">
           <SectionDescription title={`1. ${m.imagery_title()}`}>
             <p>{m.imagery_p1()}</p>
             <p>{m.imagery_p2()}</p>
           </SectionDescription>
-          {renderImageryProducts(imagery, imageryVisible)}
+          <div className="mt-100">
+            {renderProducts({
+              ref: imageryRef,
+              items: imagery,
+              visible: imageryVisible,
+            })}
+          </div>
         </div>
       </div>
 
       {/* MAPPING */}
-      <div className="bg-hot-red-50 relative overflow-hidden py-3xl">
-        <SectionBackgroundText text="MAPPING" align="left" color="dark" />
-        <div className="flex flex-col lg:flex-row gap-0 lg:gap-4xl container">
+      <div className="bg-hot-red-50 relative overflow-hidden py-4xl lg:py-4xl ">
+        <SectionBackgroundText text="MAPPING" align="right" color="dark" />
+        <div className="flex flex-col lg:flex-row gap-sm lg:gap-2xl">
           <SectionDescription title={`2. ${m.mapping_title()}`}>
             <p>{m.mapping_p1()}</p>
             <p>{m.mapping_p2()}</p>
           </SectionDescription>
-          {renderMappingProducts(mapping, mappingVisible)}
+          {renderProducts({
+            ref: mappingRef,
+            items: mapping,
+            visible: mappingVisible,
+          })}
         </div>
       </div>
 
       {/* MAP USE */}
-      <div className="relative overflow-hidden py-3xl">
+      <div className="relative overflow-hidden py-4xl lg:py-4xl ">
         <SectionBackgroundText text="MAP USE" align="right" />
-        <div className="flex flex-col lg:flex-row gap-0 lg:gap-4xl container">
+        <div className="flex flex-col lg:flex-row gap-sm lg:gap-2xl">
           <SectionDescription title={`3. ${m.mapUse_title()}`}>
             <p>{m.mapUse_p1()}</p>
             <p>{m.mapUse_p2()}</p>
           </SectionDescription>
-          {renderMapUseProducts(mapUse, mapUseVisible)}
+          {renderProducts({
+            ref: mapUseRef,
+            items: mapUse,
+            visible: mapUseVisible,
+          })}
         </div>
       </div>
     </div>

@@ -24,7 +24,7 @@ function App() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <div className="container">
+      <div className="container h-[10vh]">
         <Header />
       </div>
 
