@@ -73,7 +73,7 @@ async def get_project_by_id(
         except httpx.HTTPStatusError as e:
             raise HTTPException(
                 status_code=e.response.status_code,
-                detail=f"Error desde DroneTM API: {e.response.text}"
+                detail=f"Error from DroneTM API: {e.response.text}"
             )
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
