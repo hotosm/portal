@@ -45,7 +45,8 @@ async def get_fmtm_projects() -> dict:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(url)
             response.raise_for_status()
-            return response.json()
+            data = response.json()
+            return {"projects": data}
     except httpx.HTTPStatusError as e:
         raise HTTPException(
             status_code=e.response.status_code,
