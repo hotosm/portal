@@ -293,7 +293,7 @@ export function ProjectsMap({
   }, [mapResults, mapLoaded, onProjectClick]);
 
   return (
-    <div className="relative w-full h-full container">
+    <div className="relative w-full h-full">
       <ProjectsMapSearchBox map={map.current} position="top-right" />
       <div
         ref={mapContainer}
