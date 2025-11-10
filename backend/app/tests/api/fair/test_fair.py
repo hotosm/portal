@@ -47,6 +47,11 @@ class TestGetFairProjects:
             assert "status" in params
             assert params["status"] is None or getattr(params["status"], "default", None) is None
 
+            # Verify headers don't contain authentication
+            headers = call_args[1]["headers"]
+            assert "access-token" not in headers
+            assert headers["accept"] == "application/json"
+
     @pytest.mark.asyncio
     async def test_get_fair_projects_with_all_params(self):
         """Test with all optional parameters provided"""
@@ -85,6 +90,10 @@ class TestGetFairProjects:
             assert params["ordering"] == "created_at"
             assert params["id"] == 99
 
+            # Verify no authentication headers
+            headers = call_args[1]["headers"]
+            assert "access-token" not in headers
+
     @pytest.mark.asyncio
     async def test_get_fair_projects_partial_params(self):
         """Test with only some optional parameters"""
@@ -114,6 +123,11 @@ class TestGetFairProjects:
             assert val(params["offset"]) == 0
             assert val(params["ordering"]) == "-created_at"
             assert val(params["id"]) is None
+
+            # Verify headers are public (no auth token)
+            headers = call_args[1]["headers"]
+            assert "access-token" not in headers
+            assert headers["accept"] == "application/json"
 
     @pytest.mark.asyncio
     async def test_get_fair_projects_http_status_error(self):

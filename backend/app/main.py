@@ -12,6 +12,7 @@ from app.api.routes.tasking_manager import tasking_manager
 from app.api.routes.drone_tm import drone_tm
 from app.api.routes.open_aerial_map import open_aerial_map
 from app.api.routes.fair import fair
+from app.api.routes.field_tm import field_tm
 from app.core.config import settings
 from app.core.database import check_db_connection
 
@@ -128,6 +129,12 @@ app.include_router(
     fair.router,
     prefix=settings.api_v1_prefix,
     tags=["fair"],
+)
+
+app.include_router(
+    field_tm.router,
+    prefix=settings.api_v1_prefix,
+    tags=["field tasking manager"],
 )
 
 # Include authentication routers (OSM OAuth)
