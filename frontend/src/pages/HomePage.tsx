@@ -4,6 +4,7 @@ import Divider from "../components/shared/Divider";
 import TechSuiteContainer from "../components/techSuite/TechSuiteContainer";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useProjects } from "../hooks/useProjects";
+import { m } from "../paraglide/messages";
 
 function HomePage() {
   const { currentLanguage: _currentLanguage } = useLanguage(); // suscribe to force re-render on language change
@@ -42,9 +43,9 @@ function HomePage() {
   }, []);
 
   return (
-    <div className="space-y-11">
+    <div className="space-y-lg md:space-y-3xl">
       {/* Map Section */}
-      <div className="h-[83vh] relative">
+      <div className="h-[90vh] p-lg md:p-2xl relative">
         <ProjectsMap
           mapResults={projectsData}
           selectedProjectId={selectedProjectId}
@@ -53,18 +54,24 @@ function HomePage() {
         />
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/10 backdrop-blur-sm">
-            <p>Loading projects...</p>
+            <p>{m.loading_projects()}...</p>
           </div>
         )}
         {/* TODO customize error message */}
         {error && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/80">
-            <p>Error loading projects. Please try again later.</p>
+            <p>{m.loading_projects_error()}</p>
           </div>
         )}
       </div>
 
-      <Divider orientation="vertical" />
+      <h1>HOT's Mapping Workflow</h1>
+      <h2>
+        Geospatial data can solve many development and humanitarian issues
+        around the world. But this can't happen without accessible, easy-to-use
+        tools.
+      </h2>
+
       {/* Tech Suite */}
       <TechSuiteContainer />
 
@@ -81,7 +88,6 @@ function HomePage() {
           </>
         )}
       </div> */}
-      <Divider orientation="vertical" />
     </div>
   );
 }
