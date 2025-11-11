@@ -370,7 +370,7 @@ wheels = [
 [[package]]
 name = "hotosm-auth"
 version = "0.1.0"
-source = { git = "https://github.com/LawalCoop/hot-auth-libs.git?subdirectory=python&rev=main#7bb0ca6d65b57267d8dbe0c6e41c95cf3e58889c" }
+source = { git = "https://github.com/LawalCoop/hot-auth-libs.git?subdirectory=python&rev=main#f4173c44339c2f7c2c9baaedd9282f64e8bfcaec" }
 dependencies = [
     { name = "cryptography" },
     { name = "httpx" },
