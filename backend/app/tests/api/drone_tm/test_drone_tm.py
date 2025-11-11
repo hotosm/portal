@@ -221,7 +221,7 @@ class TestGetProjectById:
                 await endpoint(project_id)
             
             assert exc_info.value.status_code == 404
-            assert "Error desde DroneTM API" in exc_info.value.detail
+            assert "Error from DroneTM API" in exc_info.value.detail
     
     @pytest.mark.asyncio
     async def test_get_project_by_id_unauthorized(self):
