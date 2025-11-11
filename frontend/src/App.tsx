@@ -24,7 +24,7 @@ function App() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <div className="container h-[10vh]">
+      <div className="h-[12vh] flex align-middle">
         <Header />
       </div>
 
