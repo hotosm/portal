@@ -1,7 +1,12 @@
 // Sample projects data for the map
 // In production, this will be fetched from the HOT API
 
-export type ProductType = "tasking-manager" | "drone-tasking-manager" | "fair" | "field" | "imagery";
+export type ProductType =
+  | "tasking-manager"
+  | "drone-tasking-manager"
+  | "fair"
+  | "field"
+  | "imagery";
 
 export const sampleProjectsData: {
   type: "FeatureCollection";
@@ -116,7 +121,7 @@ export const sampleProjectsData: {
       type: "Feature" as const,
       geometry: {
         type: "Point" as const,
-        coordinates: [77.2090, 28.6139], // New Delhi
+        coordinates: [77.209, 28.6139], // New Delhi
       },
       properties: {
         projectId: 8,
