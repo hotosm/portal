@@ -3,7 +3,6 @@ import { useProjectDetails } from "../hooks/useProjectDetails";
 import { m } from "../paraglide/messages";
 import { shortenText } from "../utils/utils";
 import Button from "./shared/Button";
-import Divider from "./shared/Divider";
 import Icon from "./shared/Icon";
 
 interface ProjectsMapCalloutProps {
@@ -25,7 +24,6 @@ export function ProjectsMapCallout({
           <h3>Loading...</h3>
           <Icon name="close" onClick={onClose}></Icon>
         </div>
-        <Divider />
         <div className="flex items-center justify-center h-[400px]">
           <p className="text-hot-gray-600">Loading project details...</p>
         </div>
@@ -44,7 +42,6 @@ export function ProjectsMapCallout({
         <h3>{projectName}</h3>
         <Icon name="close" onClick={onClose}></Icon>
       </div>
-      <Divider />
       <div className="text-sm text-hot-gray-600 mb-2">
         <strong>Project ID:</strong> #{projectId}
       </div>
