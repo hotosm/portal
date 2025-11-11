@@ -51,9 +51,9 @@ function SectionDescription({
     <motion.div
       ref={ref}
       style={{ opacity }}
-      className="relative z-10 mt-o md:mt-2xl ml-sm lg:ml-2xl"
+      className="relative z-10 mt-o md:mt-2xl mx-sm lg:ml-2xl"
     >
-      <h2 className="font-barlow-condensed">{title}</h2>
+      <h2 className="font-barlow-condensed mb-sm">{title}</h2>
       <div className="max-w-xl">{children}</div>
     </motion.div>
   );
@@ -110,6 +110,7 @@ function TechSuiteContainer() {
               <TechSuiteItem
                 title={product.title}
                 description={product.description}
+                icon={product.icon}
               />
             </motion.div>
           );
