@@ -77,7 +77,7 @@ function TechSuiteContainer() {
     ref,
     items,
   }: {
-    ref: React.RefObject<HTMLDivElement>;
+    ref: any;
     items: typeof products;
     visible: boolean;
   }) => {
