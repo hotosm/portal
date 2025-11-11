@@ -1,5 +1,13 @@
 import { m } from "../paraglide/messages";
 import { getLocale } from "../paraglide/runtime";
+import droneIcon from "../assets/images/icon-drone.png";
+import oamIcon from "../assets/images/icon-oam.png";
+import tmIcon from "../assets/images/icon-tm.png";
+import fairIcon from "../assets/images/icon-fair.png";
+import fieldIcon from "../assets/images/icon-field.png";
+import chatmapIcon from "../assets/images/icon-chatmap.png";
+import exportIcon from "../assets/images/icon-export.png";
+import umapIcon from "../assets/images/icon-umap.png";
 
 export interface Product {
   id: string;
@@ -7,6 +15,7 @@ export interface Product {
   description: string;
   iconName: string;
   href: string;
+  icon: any;
   section: "imagery" | "mapping" | "mapUse";
 }
 export function getProductsData(): Product[] {
@@ -18,6 +27,7 @@ export function getProductsData(): Product[] {
       description: m.products_drone_description({}, { locale }),
       iconName: "layer-group",
       href: "/drone",
+      icon: droneIcon,
       section: "imagery",
     },
     {
@@ -26,6 +36,7 @@ export function getProductsData(): Product[] {
       description: m.products_oam_description({}, { locale }),
       iconName: "mobile-screen-button",
       href: "/osm",
+      icon: oamIcon,
       section: "imagery",
     },
     {
@@ -34,6 +45,7 @@ export function getProductsData(): Product[] {
       description: m.products_taskingManager_description({}, { locale }),
       iconName: "laptop",
       href: "/tasking-manager",
+      icon: tmIcon,
       section: "imagery",
     },
     {
@@ -42,6 +54,7 @@ export function getProductsData(): Product[] {
       description: m.products_fair_description({}, { locale }),
       iconName: "hexagon-nodes",
       href: "/fair",
+      icon: fairIcon,
       section: "mapping",
     },
     {
@@ -50,6 +63,7 @@ export function getProductsData(): Product[] {
       description: m.products_field_description({}, { locale }),
       iconName: "mobile-screen-button",
       href: "/field",
+      icon: fieldIcon,
       section: "mapping",
     },
     {
@@ -58,6 +72,7 @@ export function getProductsData(): Product[] {
       description: m.products_chatmap_description({}, { locale }),
       iconName: "hexagon-nodes",
       href: "/fair",
+      icon: chatmapIcon,
       section: "mapUse",
     },
     {
@@ -66,6 +81,7 @@ export function getProductsData(): Product[] {
       description: m.products_exportTool_description({}, { locale }),
       iconName: "download",
       href: "/export-tool",
+      icon: exportIcon,
       section: "mapUse",
     },
     {
@@ -74,6 +90,7 @@ export function getProductsData(): Product[] {
       description: m.products_umap_description({}, { locale }),
       iconName: "pen-to-square",
       href: "/umap",
+      icon: umapIcon,
       section: "mapUse",
     },
   ];
