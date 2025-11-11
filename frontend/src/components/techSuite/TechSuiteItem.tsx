@@ -1,19 +1,20 @@
 import { motion } from "motion/react";
-import vector from "../../assets/images/vector.png";
 
 interface ITechSuiteItemProps {
   title: string;
   description: string;
+  icon: any;
 }
 
-function TechSuiteItem({ title, description }: ITechSuiteItemProps) {
+function TechSuiteItem({ title, description, icon }: ITechSuiteItemProps) {
+  console.log(icon);
   return (
     <motion.div
       className="group flex flex-col justify-center items-center text-center hover:cursor-pointer"
       whileHover="hover"
     >
       <motion.img
-        src={vector}
+        src={icon}
         alt="Product vector icon"
         style={{
           height: "100px",
@@ -26,7 +27,7 @@ function TechSuiteItem({ title, description }: ITechSuiteItemProps) {
         transition={{ type: "spring", stiffness: 250, damping: 15 }}
       />
       <p className="m-xs">
-        <span className="text-white text-lg font-barlow uppercase px-sm bg-hot-red-900 group-hover:bg-hot-red-600 transition-opacity rounded-sm pb-[2px]">
+        <span className="text-white text-lg font-barlow uppercase px-sm bg-hot-red-600 group-hover:bg-hot-red-400 transition-opacity rounded-sm pb-[2px]">
           {title}
         </span>
       </p>
