@@ -1,7 +1,6 @@
 import WaDrawer from "@awesome.me/webawesome/dist/react/drawer/index.js";
 import { USER_MENU_ITEMS } from "../constants/menu";
 import NavigationMain from "./NavigationMain";
-import Divider from "./shared/Divider";
 import Icon from "./shared/Icon";
 
 function DrawerMenuContent() {
@@ -24,7 +23,6 @@ function DrawerMenuContent() {
     <div className="flex flex-col gap-md">
       <NavigationMain onLinkClick={closeDrawer} />
 
-      <Divider />
       <div className="flex flex-col gap-md">
         {/* TODO provisory styling */}
         {USER_MENU_ITEMS.map((item) => {

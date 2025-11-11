@@ -1,19 +1,12 @@
 import { useEffect, useState } from "react";
-import ProductCard from "../components/shared/ProductCard";
-import { getProductsData } from "../constants/productsData";
-import { useLanguage } from "../contexts/LanguageContext";
 import { ProjectsMap } from "../components/ProjectsMap";
-import Divider from "../components/shared/Divider";
-import PrimaryCallToAction from "../components/shared/PrimaryCallToAction";
-import SecondaryCallToAction from "../components/shared/SecondaryCallToAction";
-import { getCTAData } from "../constants/ctaData";
+import TechSuiteContainer from "../components/techSuite/TechSuiteContainer";
+import { useLanguage } from "../contexts/LanguageContext";
 import { useProjects } from "../hooks/useProjects";
 import { m } from "../paraglide/messages";
 
 function HomePage() {
   const { currentLanguage: _currentLanguage } = useLanguage(); // suscribe to force re-render on language change
-  const productsData = getProductsData();
-  const ctaData = getCTAData("mapping");
   // TODO relocate when adding other APIs
   const { data: projectsData, isLoading, error } = useProjects();
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(
@@ -49,9 +42,9 @@ function HomePage() {
   }, []);
 
   return (
-    <div className="space-y-11">
+    <div className="space-y-lg md:space-y-3xl">
       {/* Map Section */}
-      <div className="h-[83vh] relative">
+      <div className="h-[88vh] px-lg pb-lg md:px-2xl md:pb-2xl relative">
         <ProjectsMap
           mapResults={projectsData}
           selectedProjectId={selectedProjectId}
@@ -60,38 +53,29 @@ function HomePage() {
         />
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/10 backdrop-blur-sm">
-            <p>Loading projects...</p>
+            <p>{m.loading_projects()}...</p>
           </div>
         )}
         {/* TODO customize error message */}
         {error && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/80">
-            <p>Error loading projects. Please try again later.</p>
+            <p>{m.loading_projects_error()}</p>
           </div>
         )}
       </div>
-
-      {/* Products Grid */}
-      <div className="py-3xl bg-hot-gray-50">
-        <div className="gap-xl container">
-          <h2>{m.product_grid_title()}</h2>
-          <h3>{m.product_grid_description()}</h3>
-          <Divider className="h-lg"></Divider>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-xl">
-            {productsData.map((product) => (
-              <ProductCard
-                key={product.id}
-                title={product.title}
-                subtitle={product.subtitle}
-                iconName={product.iconName}
-                href={product.href}
-              />
-            ))}
-          </div>
-        </div>
+      <div className="container text-center">
+        <h2>{m.home_workflow_header()}</h2>
+        <h4>
+          {m.home_workflow_p1()}
+          <br />
+          {m.home_workflow_p2()}
+        </h4>
       </div>
 
-      {/*   example purpose */}
+      {/* Tech Suite */}
+      <TechSuiteContainer />
+
+      {/* 
       <div className="container flex flex-col md:flex-row gap-xl">
         {ctaData && (
           <>
@@ -103,7 +87,7 @@ function HomePage() {
             </div>
           </>
         )}
-      </div>
+      </div> */}
     </div>
   );
 }
