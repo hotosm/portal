@@ -10,8 +10,6 @@ import { useLanguage } from "../contexts/LanguageContext";
 import { m } from "../paraglide/messages";
 
 function Header() {
-  const hankoUrl =
-    import.meta.env.VITE_HANKO_URL || "https://login.hotosm.test";
   const { isLogin } = useAuth();
   const { currentLanguage: _currentLanguage } = useLanguage();
 
@@ -49,7 +47,7 @@ function Header() {
         <div className="flex gap-md items-center">
           <LanguageSwitcher />
           <div className="hidden sm:block">
-            <hotosm-auth hanko-url={hankoUrl} osm-required />
+            <hotosm-auth osm-required />
           </div>
 
           <Icon

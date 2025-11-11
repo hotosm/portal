@@ -126,7 +126,9 @@ jobs:
             -t ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-frontend:${{ github.sha }} \
             --target production \
             --build-arg VITE_HANKO_URL=https://login.hotosm.org \
+            --build-arg BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
             --no-cache \
+            --pull \
             ./frontend
           docker push ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-frontend:latest
           docker push ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-frontend:${{ github.sha }}
@@ -147,8 +149,9 @@ jobs:
             # Navigate to application directory
             cd /opt/portal || exit 1
 
-            # Pull latest changes
-            git pull origin develop
+            # Pull latest changes (reset to avoid divergent branches)
+            git fetch origin develop
+            git reset --hard origin/develop
 
             # Create/update .env file with secrets (if not exists)
             if [ ! -f .env ]; then
