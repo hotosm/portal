@@ -17,7 +17,7 @@ function Header() {
 
   return (
     <>
-      <div className="flex gap-sm md:gap-xl py-md px-lg md:px-2xl justify-between items-center">
+      <div className="w-full flex gap-sm md:gap-xl py-md px-lg md:px-2xl justify-between items-center">
         <div className="flex gap-xl items-center">
           <Link to="/">
             <img

@@ -300,7 +300,7 @@ export function ProjectsMap({
         className="w-full h-full rounded-xl overflow-hidden"
       />
       {selectedProjectId && (
-        <div className="absolute top-16 right-14 bg-white p-lg rounded-lg border border-hot-gray-300 max-h-[450px] sm:max-h-[550px] sm:h-full z-10 animate-in w-[250px] sm:w-[320px] slide-in-from-right duration-300 overflow-y-auto">
+        <div className="absolute top-0 right-0 bg-white p-lg rounded-lg border border-hot-gray-100 max-h-[84vh] z-10 animate-in w-[250px] sm:w-[320px] slide-in-from-right duration-300 overflow-y-auto">
           <ProjectsMapCallout
             projectId={selectedProjectId}
             onViewDetails={() => {
