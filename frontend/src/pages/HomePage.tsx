@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { ProjectsMap } from "../components/ProjectsMap";
-import Divider from "../components/shared/Divider";
 import TechSuiteContainer from "../components/techSuite/TechSuiteContainer";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useProjects } from "../hooks/useProjects";
@@ -45,7 +44,7 @@ function HomePage() {
   return (
     <div className="space-y-lg md:space-y-3xl">
       {/* Map Section */}
-      <div className="h-[90vh] p-lg md:p-2xl relative">
+      <div className="h-[88vh] px-lg pb-lg md:px-2xl md:pb-2xl relative">
         <ProjectsMap
           mapResults={projectsData}
           selectedProjectId={selectedProjectId}
@@ -64,13 +63,14 @@ function HomePage() {
           </div>
         )}
       </div>
-
-      <h1>HOT's Mapping Workflow</h1>
-      <h2>
-        Geospatial data can solve many development and humanitarian issues
-        around the world. But this can't happen without accessible, easy-to-use
-        tools.
-      </h2>
+      <div className="container text-center">
+        <h2>{m.home_workflow_header()}</h2>
+        <h4>
+          {m.home_workflow_p1()}
+          <br />
+          {m.home_workflow_p2()}
+        </h4>
+      </div>
 
       {/* Tech Suite */}
       <TechSuiteContainer />
