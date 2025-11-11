@@ -6,6 +6,7 @@
  * - Optional OSM connection
  * - Session management
  * - Event dispatching
+ * - URL fallback chain for production builds
  */
 
 import { LitElement, html, css } from 'lit';
@@ -501,41 +502,96 @@ export class HankoAuth extends LitElement {
     }
 
     try {
-      this.log('📡 Checking session validity...');
+      this.log('📡 Checking session validity via cookie...');
 
+      // First, try to validate the session cookie directly with Hanko
+      // This works across subdomains because the cookie has domain: .hotosm.test
       try {
-        const user = await this._hanko.user.getCurrent();
-        this.log('✅ Valid Hanko session found');
-        this.log('👤 Existing user session:', user);
+        const validateResponse = await fetch(`${this.hankoUrl}/sessions/validate`, {
+          method: 'GET',
+          credentials: 'include', // Include httpOnly cookies
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
 
-        this.user = {
-          id: user.id,
-          email: user.email,
-          username: user.username,
-          emailVerified: user.email_verified || false
-        };
+        if (validateResponse.ok) {
+          const sessionData = await validateResponse.json();
+          this.log('✅ Valid Hanko session found via cookie');
+          this.log('📋 Session data:', sessionData);
 
-        this.dispatchEvent(new CustomEvent('hanko-login', {
-          detail: { user: this.user },
-          bubbles: true,
-          composed: true
-        }));
+          // Now get the full user data from the login backend /me endpoint
+          // This endpoint validates the JWT and returns complete user info
+          try {
+            const meResponse = await fetch(`${this.hankoUrl}/me`, {
+              method: 'GET',
+              credentials: 'include', // Include httpOnly cookies
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
 
-        this.dispatchEvent(new CustomEvent('auth-complete', {
-          bubbles: true,
-          composed: true
-        }));
+            if (meResponse.ok) {
+              const userData = await meResponse.json();
+              this.log('👤 User data retrieved from /me:', userData);
 
-        await this.syncJWTToCookie();
+              this.user = {
+                id: userData.user_id,
+                email: userData.email || null,
+                username: userData.username || null,
+                emailVerified: false
+              };
+            } else {
+              this.log('⚠️ /me endpoint failed, trying SDK fallback');
+              // Fallback to SDK method
+              const user = await this._hanko.user.getCurrent();
+              this.user = {
+                id: user.id,
+                email: user.email,
+                username: user.username,
+                emailVerified: user.email_verified || false
+              };
+            }
+          } catch (userError) {
+            this.log('⚠️ Failed to get user data:', userError);
+            // Last resort: use session data if available
+            if (sessionData.user_id) {
+              this.user = {
+                id: sessionData.user_id,
+                email: sessionData.email || null,
+                username: null,
+                emailVerified: false
+              };
+            }
+          }
 
-        // Also check if we need to auto-connect to OSM
-        await this.checkOSMConnection();
-        if (this.osmRequired && this.autoConnect && !this.osmConnected) {
-          console.log('🔄 Auto-connecting to OSM (from existing session)...');
-          this.handleOSMConnect();
+          if (this.user) {
+            this.dispatchEvent(new CustomEvent('hanko-login', {
+              detail: { user: this.user },
+              bubbles: true,
+              composed: true
+            }));
+
+            this.dispatchEvent(new CustomEvent('auth-complete', {
+              bubbles: true,
+              composed: true
+            }));
+
+            await this.syncJWTToCookie();
+
+            // Also check if we need to auto-connect to OSM
+            await this.checkOSMConnection();
+            if (this.osmRequired && this.autoConnect && !this.osmConnected) {
+              console.log('🔄 Auto-connecting to OSM (from existing session)...');
+              this.handleOSMConnect();
+            }
+          }
+        } else {
+          this.log('ℹ️ No valid session cookie found - user needs to login');
         }
-      } catch (userError) {
-        this.log('ℹ️ No valid Hanko session found - user needs to login');
+      } catch (validateError) {
+        this.log('⚠️ Session validation failed:', validateError);
+        this.log('ℹ️ No valid session - user needs to login');
       }
     } catch (error) {
       this.log('⚠️ Session check error:', error);
@@ -845,16 +901,40 @@ export class HankoAuth extends LitElement {
       composed: true
     }));
 
-    this.log('🔄 Reloading page to clear all session data...');
-    window.location.reload();
+    this.log('✅ Logout complete - component will re-render with updated state');
+    // Don't reload - let Lit's reactivity handle the re-render
+    // This allows the browser to process Set-Cookie headers from the disconnect response
   }
 
-  private handleSessionExpired() {
-    this.log('🕒 Session expired - cleaning up state');
-    this.log('📊 State before cleanup:', {
+  private async handleSessionExpired() {
+    console.log('🆕🆕🆕 NEW CODE RUNNING - handleSessionExpired v3.0 🆕🆕🆕');
+    console.log('🕒 Session expired - cleaning up state');
+    console.log('📊 State before cleanup:', {
       user: this.user,
       osmConnected: this.osmConnected
     });
+
+    // Call OSM disconnect endpoint to clear httpOnly cookie
+    try {
+      const basePath = this.getBasePath();
+      const authPath = this.authPath;
+      const origin = window.location.origin;
+      const disconnectPath = this.addTrailingSlash(`${basePath}${authPath}/disconnect`, basePath);
+      const disconnectUrl = `${origin}${disconnectPath}`;
+      console.log('🔌 Calling OSM disconnect (session expired):', disconnectUrl);
+
+      const response = await fetch(disconnectUrl, {
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      console.log('📡 Disconnect response status:', response.status);
+      const data = await response.json();
+      console.log('📡 Disconnect response data:', data);
+      console.log('✅ OSM disconnected');
+    } catch (error) {
+      console.error('❌ OSM disconnect failed:', error);
+    }
 
     // Clear user state
     this.user = null;
@@ -868,7 +948,7 @@ export class HankoAuth extends LitElement {
     document.cookie = `osm_connection=; path=/; domain=${hostname}; max-age=0`;
     document.cookie = 'osm_connection=; path=/; max-age=0';
 
-    this.log('🍪 Cookies cleared after session expiration');
+    console.log('🍪 Cookies cleared after session expiration');
 
     // Dispatch logout event
     this.dispatchEvent(new CustomEvent('logout', {
@@ -877,7 +957,7 @@ export class HankoAuth extends LitElement {
     }));
 
     // Component will re-render and show login button
-    this.log('✅ Session cleanup complete - component will show login');
+    console.log('✅ Session cleanup complete - component will show login');
   }
 
   private handleUserLoggedOut() {
@@ -893,8 +973,14 @@ export class HankoAuth extends LitElement {
     if (selectedValue === 'profile') {
       window.location.href = '/profile';
     } else if (selectedValue === 'connect-osm') {
-      const currentUrl = window.location.href;
-      window.location.href = `/login?return_to=${encodeURIComponent(currentUrl)}&osm_required=true`;
+      // Smart return_to: if already on a login page, redirect to home instead
+      const currentPath = window.location.pathname;
+      const isOnLoginPage = currentPath.includes('/login');
+      const returnTo = isOnLoginPage ? window.location.origin : window.location.href;
+
+      // Use the getter which handles all fallbacks correctly
+      const baseUrl = this.hankoUrl;
+      window.location.href = `${baseUrl}/login?return_to=${encodeURIComponent(returnTo)}&osm_required=true`;
     } else if (selectedValue === 'logout') {
       this.handleLogout();
     }
@@ -1037,10 +1123,18 @@ export class HankoAuth extends LitElement {
         `;
       } else {
         // In header - show login link
-        const currentUrl = window.location.href;
+        // Smart return_to: if already on a login page, redirect to home instead
+        const currentPath = window.location.pathname;
+        const isOnLoginPage = currentPath.includes('/login');
+        const returnTo = isOnLoginPage ? window.location.origin : window.location.href;
+
         const urlParams = new URLSearchParams(window.location.search);
         const autoConnectParam = urlParams.get('auto_connect') === 'true' ? '&auto_connect=true' : '';
-        const loginUrl = `/login?return_to=${encodeURIComponent(currentUrl)}${this.osmRequired ? '&osm_required=true' : ''}${autoConnectParam}`;
+
+        // Use the getter which handles all fallbacks correctly
+        const baseUrl = this.hankoUrl;
+        console.log('🔗 Login URL base:', baseUrl);
+        const loginUrl = `${baseUrl}/login?return_to=${encodeURIComponent(returnTo)}${this.osmRequired ? '&osm_required=true' : ''}${autoConnectParam}`;
 
         return html`
           <div class="container">
