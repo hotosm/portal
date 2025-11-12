@@ -30,7 +30,6 @@ function App() {
 
       <main className="flex-1 flex flex-col justify-center">
         <AppRoutes />
-        <div className="h-2xl"></div>
       </main>
 
       <Footer />
