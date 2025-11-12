@@ -1,12 +1,13 @@
 import httpx
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional
+from app.models.fair import FAIRProjectsResponse
 
 FAIR_API_BASE_URL = "https://api-prod.fair.hotosm.org/api/v1"
 
 router = APIRouter(prefix="/fair")
 
-@router.get("/projects")
+@router.get("/projects", response_model=FAIRProjectsResponse)
 async def get_fair_projects(
     status: Optional[int] = Query(None, description="Filter by status (0=published, 1=draft, etc.)"),
     limit: int = Query(20, ge=1, le=100, description="Number of results to return"),
@@ -14,11 +15,21 @@ async def get_fair_projects(
     search: Optional[str] = Query(None, description="Search query"),
     ordering: Optional[str] = Query("-created_at", description="Order results by field (prefix with - for descending)"),
     id: Optional[int] = Query(None, description="Filter by model ID"),
-):
+) -> dict:
     """
     Get AI models from fAIr (AI-assisted mapping) API.
     
     Example: GET /api/fair/projects?status=0&limit=20&ordering=-created_at
+    
+    Response:
+    ```json
+        {
+            "count": 212,
+            "next": "http://...",
+            "previous": null,
+            "results": [...]
+        }
+    ```
     """
     url = f"{FAIR_API_BASE_URL}/model/"
     
