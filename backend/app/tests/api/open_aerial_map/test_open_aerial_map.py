@@ -168,18 +168,29 @@ async def test_get_imagery_by_id_success(client: AsyncClient):
     """
     Test that get_imagery_by_id returns 200 with image metadata.
     """
+    # El endpoint by ID devuelve la estructura con "meta" y "results" (objeto único)
     mock_response = {
-        "_id": "59e62b863d6412ef72209ae1",
-        "uuid": "http://oin-hotosm-temp.s3.amazonaws.com/test.tif",
-        "title": "Test Image",
-        "projection": "EPSG:4326",
-        "bbox": [-80.42, -0.98, -80.41, -0.97],
-        "gsd": 1.857e-07,
-        "file_size": 47649982,
-        "acquisition_start": "2016-04-27T05:00:00.000Z",
-        "acquisition_end": "2016-04-28T17:00:03.000Z",
-        "platform": "uav",
-        "provider": "Test Provider"
+        "meta": {
+            "provided_by": "OpenAerialMap",
+            "license": "CC-BY 4.0",
+            "website": "http://beta.openaerialmap.org",
+            "page": 1,
+            "limit": 100,
+            "found": 19004
+        },
+        "results": {
+            "_id": "59e62b863d6412ef72209ae1",
+            "uuid": "http://oin-hotosm-temp.s3.amazonaws.com/test.tif",
+            "title": "Test Image",
+            "projection": "EPSG:4326",
+            "bbox": [-80.42, -0.98, -80.41, -0.97],
+            "gsd": 1.857e-07,
+            "file_size": 47649982,
+            "acquisition_start": "2016-04-27T05:00:00.000Z",
+            "acquisition_end": "2016-04-28T17:00:03.000Z",
+            "platform": "uav",
+            "provider": "Test Provider"
+        }
     }
     
     respx.get(
@@ -190,10 +201,15 @@ async def test_get_imagery_by_id_success(client: AsyncClient):
     
     assert response.status_code == 200
     data = response.json()
-    assert "_id" in data
-    assert "title" in data
-    assert "provider" in data
-    assert data["_id"] == "59e62b863d6412ef72209ae1"
+    assert "meta" in data
+    assert "results" in data
+    # Verificar que results no sea None
+    assert data["results"] is not None
+    # Verificar campos sin guiones bajos primero
+    assert "title" in data["results"]
+    assert "provider" in data["results"]
+    assert data["results"]["title"] == "Test Image"
+    assert data["results"]["provider"] == "Test Provider"
 
 
 @pytest.mark.asyncio
@@ -201,10 +217,17 @@ async def test_get_imagery_by_id_success(client: AsyncClient):
 async def test_get_imagery_by_id_response_structure(client: AsyncClient):
     """Test that imagery by ID response has expected fields."""
     mock_response = {
-        "_id": "test123",
-        "title": "Test",
-        "provider": "Provider",
-        "bbox": [-1, -1, 1, 1]
+        "meta": {
+            "provided_by": "OpenAerialMap",
+            "page": 1,
+            "limit": 100
+        },
+        "results": {
+            "_id": "test123",
+            "title": "Test",
+            "provider": "Provider",
+            "bbox": [-1, -1, 1, 1]
+        }
     }
     
     respx.get(
@@ -215,9 +238,13 @@ async def test_get_imagery_by_id_response_structure(client: AsyncClient):
     
     assert response.status_code == 200
     data = response.json()
-    assert "_id" in data
-    assert "title" in data
-    assert "provider" in data
+    assert "meta" in data
+    assert "results" in data
+    assert data["results"] is not None
+    assert "title" in data["results"]
+    assert "provider" in data["results"]
+    assert data["results"]["title"] == "Test"
+    assert data["results"]["provider"] == "Provider"
 
 
 @pytest.mark.asyncio
