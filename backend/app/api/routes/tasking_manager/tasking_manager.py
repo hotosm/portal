@@ -2,13 +2,15 @@
 
 import httpx
 from fastapi import APIRouter, HTTPException, Path
+from app.models.tasking_manager import ProjectsResponse, Project, CountriesResponse
+
 
 router = APIRouter(prefix="/tasking-manager")
 
 # HOT OSM Tasking Manager API base URL
 HOTOSM_API_BASE_URL = "https://tasking-manager-production-api.hotosm.org/api/v2"
 
-@router.get("/projects")
+@router.get("/projects", response_model=ProjectsResponse)
 async def get_tasking_manager_projects() -> dict:
     """
     Gets all projects from the HOT OSM Tasking Manager.
@@ -23,16 +25,16 @@ async def get_tasking_manager_projects() -> dict:
 
     Example:
         ```bash
-        curl http://localhost:8000/api/hotosm-projects
+        curl http://localhost:8000/api/tasking-manager/projects
         ```
 
     Response:
         ```json
-                {
-                  "mapResults": {...},
-                  "results": [...],
-                  "pagination": {...}
-                }
+        {
+          "mapResults": {...},
+          "results": [...],
+          "pagination": {...}
+        }
         ```
     """
     url = f"{HOTOSM_API_BASE_URL}/projects/"
@@ -58,7 +60,7 @@ async def get_tasking_manager_projects() -> dict:
             status_code=500, detail=f"Error inesperado: {str(e)}"
         )
 
-@router.get("/countries")
+@router.get("/countries", response_model=CountriesResponse)
 async def get_hotosm_countries() -> dict:
     """
     Fetch all countries from HOT OSM Tasking Manager.
@@ -74,17 +76,17 @@ async def get_hotosm_countries() -> dict:
 
     Example:
         ```bash
-                curl http://localhost:8000/api/tasking-manager-countries
+        curl http://localhost:8000/api/tasking-manager/countries
         ```
 
     Response:
         ```json
-                {
-                  "tags": [
-                        "Argentina",
-                    ...
-                  ]
-                }
+        {
+          "tags": [
+            "Argentina",
+            ...
+          ]
+        }
         ```
     """
     url = f"{HOTOSM_API_BASE_URL}/countries/"
@@ -109,13 +111,28 @@ async def get_hotosm_countries() -> dict:
             status_code=500, detail=f"Unexpected error: {str(e)}"
         )
     
-@router.get("/projectid/{project_id}")
+@router.get("/projectid/{project_id}", response_model=Project)
 async def get_tasking_manager_project_by_id(
     project_id: int = Path(..., description="The project ID to retrieve", gt=0)
 ) -> dict:
     """
     Fetch and filter a specific project by ID from HOT OSM Tasking Manager.
     Only returns selected fields.
+    
+    Example:
+        ```bash
+        curl http://localhost:8000/api/tasking-manager/projectid/123
+        ```
+    
+    Response:
+        ```json
+        {
+          "organisationName": "...",
+          "organisationSlug": "...",
+          "projectInfo": {...},
+          ...
+        }
+        ```
     """
     url = f"{HOTOSM_API_BASE_URL}/projects/{project_id}/"
 
@@ -125,7 +142,7 @@ async def get_tasking_manager_project_by_id(
             response.raise_for_status()
             data = response.json()
 
-            # 🔹 Extraer solo las claves que te interesan
+            # Extraer solo las claves que te interesan
             filtered_data = {
                 "organisationName": data.get("organisationName"),
                 "organisationSlug": data.get("organisationSlug"),

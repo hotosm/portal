@@ -1,6 +1,7 @@
 import httpx
 from fastapi import APIRouter, HTTPException, Path
 from typing import Optional
+from app.models.drone_tm import DroneTMProjectsResponse, DroneTMProject
 
 HOTOSM_API_BASE_URL = "https://dronetm.org/api"
 
@@ -9,16 +10,24 @@ DRONETM_TOKEN = ""
 
 router = APIRouter(prefix="/drone-tm")
 
-@router.get("/projects")
+@router.get("/projects", response_model=DroneTMProjectsResponse)
 async def get_projects(
     filter_by_owner: Optional[bool] = False,
     status: Optional[str] = None,
     search: Optional[str] = None,
     page: int = 1,
     results_per_page: int = 20
-):
+) -> dict:
     """
     Proxy a DroneTM API
+    
+    Response:
+    ```json
+        {
+            "results": [...],
+            "pagination": {...}
+        }
+    ```
     """
     url = f"{HOTOSM_API_BASE_URL}/projects/"
     
@@ -51,13 +60,24 @@ async def get_projects(
             raise HTTPException(status_code=500, detail=str(e))
         
 
-@router.get("/projects/{project_id}")
+@router.get("/projects/{project_id}", response_model=DroneTMProject)
 async def get_project_by_id(
     project_id: str = Path(..., description="DroneTM project ID (UUID or number)")
-):
+) -> dict:
     """
     Get a specific project from the DroneTM API.
+    
     Example: GET /api/drone-tm/projects/5c92d0c5-1702-4ebd-b885-67867b488e8e
+    
+    Response:
+    ```json
+        {
+            "id": "5c92d0c5-1702-4ebd-b885-67867b488e8e",
+            "name": "RG Quarry",
+            "description": "...",
+            ...
+        }
+    ```
     """
     url = f"{HOTOSM_API_BASE_URL}/projects/{project_id}"
     headers = {

@@ -1,12 +1,13 @@
 import httpx
 from fastapi import APIRouter, HTTPException, Path, Query
 from typing import Optional
+from app.models.open_aerial_map import ImageryListResponse, ImageryDetailResponse
 
 OAM_API_BASE_URL = "https://api.openaerialmap.org"
 
 router = APIRouter(prefix="/open-aerial-map")
 
-@router.get("/projects")
+@router.get("/projects", response_model=ImageryListResponse)
 async def get_imagery_metadata(
     limit: int = Query(10, ge=1, le=100, description="Number of results to return"),
     page: int = Query(1, ge=1, description="Page number"),
@@ -19,7 +20,7 @@ async def get_imagery_metadata(
     gsd_to: Optional[float] = Query(None, description="Maximum GSD (resolution)"),
     acquisition_from: Optional[str] = Query(None, description="Acquisition date from (YYYY-MM-DD)"),
     acquisition_to: Optional[str] = Query(None, description="Acquisition date to (YYYY-MM-DD)"),
-):
+) -> dict:
     """
     Get imagery metadata from OpenAerialMap API.
     
@@ -65,10 +66,10 @@ async def get_imagery_metadata(
             raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/projects/{image_id}")
+@router.get("/projects/{image_id}", response_model=ImageryDetailResponse)
 async def get_imagery_by_id(
     image_id: str = Path(..., description="OpenAerialMap image ID")
-):
+) -> dict:
     """
     Get metadata for a specific image by ID.
     
