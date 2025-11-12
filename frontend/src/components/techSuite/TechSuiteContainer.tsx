@@ -61,9 +61,9 @@ function SectionDescription({
 
 function TechSuiteContainer() {
   const products = getProductsData();
-  const imagery = products.filter((p) => p.section === "imagery").slice(0, 3);
-  const mapping = products.filter((p) => p.section === "mapping").slice(0, 2);
-  const mapUse = products.filter((p) => p.section === "mapUse").slice(0, 3);
+  const imagery = products.filter((p) => p.section === "imagery");
+  const mapping = products.filter((p) => p.section === "mapping");
+  const mapUse = products.filter((p) => p.section === "mapUse");
 
   const imageryRef = useRef<HTMLDivElement>(null);
   const mappingRef = useRef<HTMLDivElement>(null);
