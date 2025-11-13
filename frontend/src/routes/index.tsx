@@ -3,7 +3,7 @@ import { Route, Routes } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import AuthTest from "../pages/AuthTest";
 import HomePage from "../pages/HomePage";
-import ImageryPage from "../pages/ImageryPage";
+import ImageryPage from "../imagery/ImageryPage";
 import LandingPage from "../pages/LandingPage";
 // LoginPage import removed - login is now handled by separate login-frontend service at /login
 import ProfilePage from "../pages/ProfilePage";
