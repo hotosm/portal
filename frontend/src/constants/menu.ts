@@ -35,7 +35,7 @@ export const MAIN_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: "drone-tm",
-    label: "Drone-TM",
+    label: "DTM",
     href: "/drone-tm-projects",
     requiresAuth: true,
     description: "My drone mapping projects",
