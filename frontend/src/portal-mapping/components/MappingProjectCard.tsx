@@ -1,4 +1,5 @@
 import ProgressBar from "../../components/shared/ProgressBar";
+import { m } from "../../paraglide/messages";
 
 interface IMappingProjectCard {
   title: string;
@@ -36,11 +37,15 @@ const MappingProjectCard = ({
             <div className="text-xs">
               <div className="flex items-center gap-1 mb-1">
                 <span className="inline-block w-2 h-2 bg-hot-gray-400 rounded-sm" />
-                <span>{percentMapped}% Mapped</span>
+                <span>
+                  {percentMapped}% {m.mapped()}
+                </span>
               </div>
               <div className="flex items-center gap-1">
                 <span className="inline-block w-2 h-2 bg-hot-red-500 rounded-sm" />
-                <span>{percentValidated}% Validated</span>
+                <span>
+                  {percentValidated}% {m.validated()}
+                </span>
               </div>
             </div>
           </ProgressBar>
