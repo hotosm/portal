@@ -44,7 +44,7 @@ function HomePage() {
   return (
     <div className="space-y-lg md:space-y-3xl">
       {/* Map Section */}
-      <div className="h-[88vh] px-lg pb-lg md:px-2xl md:pb-2xl relative">
+      <div className="h-[calc(100vh_-_100px)] p-lg md:p-2xl relative">
         <ProjectsMap
           mapResults={projectsData}
           selectedProjectId={selectedProjectId}
