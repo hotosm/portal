@@ -3,18 +3,15 @@ import { Route, Routes } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import AuthTest from "../pages/AuthTest";
 import HomePage from "../pages/HomePage";
-import ImageryPage from "../imagery/ImageryPage";
+import ImageryPage from "../portal-imagery/ImageryPage";
 import LandingPage from "../pages/LandingPage";
 // LoginPage import removed - login is now handled by separate login-frontend service at /login
 import ProfilePage from "../pages/ProfilePage";
 import DroneTMProjectsPage from "../pages/DroneTMProjectsPage";
-import MappingPage from "../mapping/MappingPage";
+import MappingPage from "../portal-mapping/MappingPage";
+import FieldPage from "../portal-field/FieldPage";
 
 // Placeholder components for now
-
-function FieldPage() {
-  return <div>Field page coming soon</div>;
-}
 
 function DataPage() {
   return <div>Data page coming soon</div>;
