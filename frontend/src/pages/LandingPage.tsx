@@ -4,6 +4,7 @@ import SecondaryCallToAction from "../components/shared/SecondaryCallToAction";
 import { getCTAData } from "../constants/ctaData";
 import { MAIN_MENU_ITEMS } from "../constants/menu";
 import { useLanguage } from "../contexts/LanguageContext";
+import PageWrapper from "../components/shared/PageWrapper";
 
 interface LandingPageProps {
   menuItemId?: string;
@@ -27,7 +28,7 @@ function LandingPage({ menuItemId }: LandingPageProps) {
   }
 
   return (
-    <>
+    <PageWrapper>
       <div className="container flex flex-col sm:flex-row gap-lg items-stretch">
         <div className="w-full sm:w-2/3 flex">
           <PrimaryCallToAction data={ctaData.primary} />
@@ -36,7 +37,7 @@ function LandingPage({ menuItemId }: LandingPageProps) {
           <SecondaryCallToAction data={ctaData.secondary} />
         </div>
       </div>
-    </>
+    </PageWrapper>
   );
 }
 
