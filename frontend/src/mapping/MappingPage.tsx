@@ -5,8 +5,7 @@ import { mappingProjectsData } from "./mappingProjectsData";
 function MappingPage() {
   const projects = mappingProjectsData;
   return (
-    // TODO check this my-xl md:my-2xl spacing under header and before footer
-    <div className="container space-y-xl my-xl md:my-2xl">
+    <div className="container space-y-xl">
       <GoToWesiteCTA
         titleBold="Tasking Manager"
         titleRegular="Remote Mapping"
@@ -24,6 +23,8 @@ function MappingPage() {
                 contributors={project.contributors}
                 id={project.id}
                 difficulty={project.difficulty}
+                percentMapped={project.percentMapped}
+                percentValidated={project.percentValidated}
               />
             );
           })}

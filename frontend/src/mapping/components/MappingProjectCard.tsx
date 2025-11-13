@@ -1,7 +1,11 @@
+import ProgressBar from "../../components/shared/ProgressBar";
+
 interface IMappingProjectCard {
   title: string;
   contributors: number;
   id: number;
+  percentMapped: number;
+  percentValidated: number;
   difficulty: string;
 }
 const MappingProjectCard = ({
@@ -9,6 +13,8 @@ const MappingProjectCard = ({
   contributors,
   id,
   difficulty,
+  percentMapped,
+  percentValidated,
 }: IMappingProjectCard) => {
   return (
     <a
@@ -19,8 +25,28 @@ const MappingProjectCard = ({
     >
       <div className="w-full h-full bg-white rounded-lg p-lg flex flex-col justify-between gap-lg shadow-sm transition-all duration-200 group-hover:shadow-lg group-hover:scale-[1.01]">
         <h4>{title}</h4>
-        <p className="text-gray-600">{contributors} contributors</p>
-        <p className="capitalize">{difficulty}</p>
+        <div>
+          <p className="text-hot-gray-800 mb-xs">
+            <strong>{contributors}</strong> contributors
+          </p>
+          <ProgressBar
+            firstValue={percentMapped}
+            secondValue={percentValidated}
+          >
+            <div className="text-xs">
+              <div className="flex items-center gap-1 mb-1">
+                <span className="inline-block w-2 h-2 bg-hot-gray-400 rounded-sm" />
+                <span>{percentMapped}% Mapped</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="inline-block w-2 h-2 bg-hot-red-500 rounded-sm" />
+                <span>{percentValidated}% Validated</span>
+              </div>
+            </div>
+          </ProgressBar>
+        </div>
+
+        <p className="capitalize text-sm">{difficulty}</p>
       </div>
     </a>
   );
