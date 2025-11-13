@@ -16,10 +16,14 @@ async def get_projects(
     status: Optional[str] = None,
     search: Optional[str] = None,
     page: int = 1,
-    results_per_page: int = 20
+    results_per_page: int = 20,
+    fetch_all: Optional[bool] = False
 ) -> dict:
     """
     Proxy a DroneTM API
+    
+    Args:
+        fetch_all: Si es True, obtiene todos los proyectos de todas las páginas
     
     Response:
     ```json
@@ -31,16 +35,6 @@ async def get_projects(
     """
     url = f"{HOTOSM_API_BASE_URL}/projects/"
     
-    params = {
-        "filter_by_owner": str(filter_by_owner).lower(),
-        "page": page,
-        "results_per_page": results_per_page,
-    }
-    if status:
-        params["status"] = status
-    if search:
-        params["search"] = search
-    
     headers = {
         "access-token": DRONETM_TOKEN,
         "Accept": "application/json",
@@ -48,9 +42,62 @@ async def get_projects(
     
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.get(url, headers=headers, params=params)
-            response.raise_for_status()
-            return response.json()
+            if not fetch_all:
+
+                params = {
+                    "filter_by_owner": str(filter_by_owner).lower(),
+                    "page": page,
+                    "results_per_page": results_per_page,
+                }
+                if status:
+                    params["status"] = status
+                if search:
+                    params["search"] = search
+                
+                response = await client.get(url, headers=headers, params=params)
+                response.raise_for_status()
+                return response.json()
+            
+            else:
+                all_results = []
+                current_page = 1
+                total_pages = None
+                
+                while True:
+                    params = {
+                        "filter_by_owner": str(filter_by_owner).lower(),
+                        "page": current_page,
+                        "results_per_page": results_per_page,
+                    }
+                    if status:
+                        params["status"] = status
+                    if search:
+                        params["search"] = search
+                    
+                    response = await client.get(url, headers=headers, params=params)
+                    response.raise_for_status()
+                    data = response.json()
+                    
+                    all_results.extend(data.get("results", []))
+                    
+                    pagination = data.get("pagination", {})
+                    total_pages = pagination.get("total_pages", 1)
+                    
+                    if current_page >= total_pages:
+                        break
+                    
+                    current_page += 1
+                
+                return {
+                    "results": all_results,
+                    "pagination": {
+                        "page": 1,
+                        "results_per_page": len(all_results),
+                        "total_pages": 1,
+                        "total": len(all_results)
+                    }
+                }
+                
         except httpx.HTTPStatusError as e:
             raise HTTPException(
                 status_code=e.response.status_code,
@@ -58,7 +105,6 @@ async def get_projects(
             )
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
-        
 
 @router.get("/projects/{project_id}", response_model=DroneTMProject)
 async def get_project_by_id(
