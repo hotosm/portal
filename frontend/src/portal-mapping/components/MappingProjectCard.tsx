@@ -24,7 +24,7 @@ const MappingProjectCard = ({
       rel="noopener noreferrer"
       className="block group no-underline hover:no-underline"
     >
-      <div className="w-full h-full bg-white rounded-lg p-lg flex flex-col justify-between gap-lg shadow-sm transition-all duration-200 group-hover:shadow-lg group-hover:scale-[1.01]">
+      <div className="w-full h-full bg-white rounded-lg p-md flex flex-col justify-between gap-lg shadow-sm transition-all duration-200 group-hover:shadow-lg group-hover:scale-[1.01]">
         <h4>{title}</h4>
         <div>
           <p className="text-hot-gray-800 mb-xs">
