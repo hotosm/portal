@@ -1,7 +1,5 @@
-import { motion, useInView, useScroll, useTransform } from "motion/react";
-import { ReactNode, useRef } from "react";
+import { ReactNode } from "react";
 import { getProductsData } from "../../constants/productsData";
-import { useIsMobile } from "../../hooks/useIsMobile";
 import { m } from "../../paraglide/messages";
 import TechSuiteItem from "./TechSuiteItem";
 
@@ -14,23 +12,14 @@ function SectionBackgroundText({
   align?: "right" | "left";
   color?: "dark" | "light";
 }) {
-  const ref = useRef<HTMLParagraphElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start end", "end start"],
-  });
-  const y = useTransform(scrollYProgress, [0, 1], [0, -250]);
-
   return (
-    <motion.p
-      ref={ref}
-      style={{ y }}
-      className={`absolute top-36 lg:top-20 z-0 font-barlow text-[6rem] sm:text-[12rem] leading-[3rem] sm:leading-[7.2rem] ${
+    <span
+      className={`absolute top-0  z-0 font-barlow text-[6rem] sm:text-[12rem] leading-[3rem] sm:leading-[7.2rem] ${
         color === "light" ? "text-hot-red-50" : "text-hot-red-100"
       } ${align === "right" ? "right-0" : "left-0"}`}
     >
       {text}
-    </motion.p>
+    </span>
   );
 }
 
@@ -41,21 +30,11 @@ function SectionDescription({
   title: string;
   children: ReactNode;
 }) {
-  const ref = useRef<HTMLParagraphElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start end", "end 50%"],
-  });
-  const opacity = useTransform(scrollYProgress, [0, 0.8], [0, 1]);
   return (
-    <motion.div
-      ref={ref}
-      style={{ opacity }}
-      className="relative z-10 mt-o md:mt-2xl mx-sm lg:ml-2xl"
-    >
+    <div className="relative z-10 mt-o md:mt-2xl mx-sm lg:ml-2xl">
       <h2 className="font-barlow-condensed mb-sm">{title}</h2>
       <div className="max-w-xl">{children}</div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -65,54 +44,18 @@ function TechSuiteContainer() {
   const mapping = products.filter((p) => p.section === "mapping");
   const mapUse = products.filter((p) => p.section === "mapUse");
 
-  const imageryRef = useRef<HTMLDivElement>(null);
-  const mappingRef = useRef<HTMLDivElement>(null);
-  const mapUseRef = useRef<HTMLDivElement>(null);
-
-  const imageryVisible = useInView(imageryRef, { once: true, amount: 0.4 });
-  const mappingVisible = useInView(mappingRef, { once: true, amount: 1 });
-  const mapUseVisible = useInView(mapUseRef, { once: true, amount: 0.4 });
-
-  const renderProducts = ({
-    ref,
-    items,
-  }: {
-    ref: any;
-    items: typeof products;
-    visible: boolean;
-  }) => {
-    const isMobile = useIsMobile();
-
-    const { scrollYProgress } = useScroll({
-      target: ref,
-      offset: ["start end", isMobile ? "100% 100%" : "end 80%"],
-    });
-
+  const renderProducts = ({ items }: { items: typeof products }) => {
     return (
-      <div
-        ref={ref}
-        className="flex flex-col md:flex-row mt-sm lg:mt-4xl mr-0 lg:mr-2xl gap-sm px-sm lg:px-0"
-      >
-        {items.map((product, idx) => {
-          const opacity = useTransform(
-            scrollYProgress,
-            [0, 1 + idx * 0.1],
-            [0, 1]
-          );
-          const x = useTransform(
-            scrollYProgress,
-            [0, isMobile ? 1 : 0.8 + idx * 0.1],
-            [80, 0]
-          );
-
+      <div className="flex flex-col md:flex-row mt-sm lg:mt-4xl mr-0 lg:mr-2xl gap-sm px-sm lg:px-0">
+        {items.map((product) => {
           return (
-            <motion.div key={product.id} style={{ opacity, x }}>
+            <div>
               <TechSuiteItem
                 title={product.title}
                 description={product.description}
                 icon={product.icon}
               />
-            </motion.div>
+            </div>
           );
         })}
       </div>
@@ -131,9 +74,7 @@ function TechSuiteContainer() {
           </SectionDescription>
           <div className="mt-100">
             {renderProducts({
-              ref: imageryRef,
               items: imagery,
-              visible: imageryVisible,
             })}
           </div>
         </div>
@@ -148,9 +89,7 @@ function TechSuiteContainer() {
             <p>{m.mapping_p2()}</p>
           </SectionDescription>
           {renderProducts({
-            ref: mappingRef,
             items: mapping,
-            visible: mappingVisible,
           })}
         </div>
       </div>
@@ -164,9 +103,7 @@ function TechSuiteContainer() {
             <p>{m.mapUse_p2()}</p>
           </SectionDescription>
           {renderProducts({
-            ref: mapUseRef,
             items: mapUse,
-            visible: mapUseVisible,
           })}
         </div>
       </div>

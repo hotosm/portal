@@ -7,38 +7,12 @@
 @import "./hot-font-face.css";
 
 /* 3. Then our WebAwesome overrides */
-@import "./hot-wa-override.css";
+@import "./hot-wa.css";
+@import "./hot-wa-portal.css";
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* defaults */
-
-html {
-  overflow: hidden;
-}
-
-html.lenis,
-html.lenis body {
-  height: auto;
-}
-
-.lenis.lenis-smooth {
-  scroll-behavior: auto !important;
-}
-
-.lenis.lenis-smooth [data-lenis-prevent] {
-  overscroll-behavior: contain;
-}
-
-.lenis.lenis-stopped {
-  overflow: hidden;
-}
-
-.lenis.lenis-scrolling iframe {
-  pointer-events: none;
-}
 
 html,
 body {
@@ -104,9 +78,4 @@ h6 {
 }
 p {
   margin-bottom: 1rem;
-}
-.container {
-  padding-right: var(--hot-spacing-3x-large);
-  padding-left: var(--hot-spacing-3x-large);
-  max-width: 100%;
 }
