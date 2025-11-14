@@ -10,12 +10,7 @@ import ProfilePage from "../pages/ProfilePage";
 import DroneTMProjectsPage from "../pages/DroneTMProjectsPage";
 import MappingPage from "../portal-mapping/MappingPage";
 import FieldPage from "../portal-field/FieldPage";
-
-// Placeholder components for now
-
-function DataPage() {
-  return <div>Data page coming soon</div>;
-}
+import DataPage from "../portal-data/DataPage";
 
 function LogoutPage() {
   return (
