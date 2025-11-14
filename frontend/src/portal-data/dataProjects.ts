@@ -6,66 +6,82 @@ import oam2 from "../assets/images/demo/oam2.png";
 import oam3 from "../assets/images/demo/oam3.png";
 import oam4 from "../assets/images/demo/oam4.png";
 
-export interface IImageryProject {
+export interface IDataProject {
   id: number;
   title: string;
   href: string;
-  section: "drone" | "oam";
+  status: "draft" | "published";
+  section: "model" | "set";
   image: string;
+  accuracy: number;
 }
 
-export function getImageryProjects(): IImageryProject[] {
+export function getDataProjects(): IDataProject[] {
   return [
     {
       id: 1,
       title: "Formation de la communauté d'OSM Morocco : Laayoune",
       href: "/",
-      section: "drone",
+      status: "published",
+      section: "model",
       image: demo1,
+      accuracy: Math.floor(Math.random() * 101),
     },
     {
       id: 2,
       title: "Serbia - Novi Pazar Sustainable Development Project",
       href: "/",
-      section: "drone",
+      status: "draft",
+      section: "model",
       image: demo3,
+      accuracy: Math.floor(Math.random() * 101),
     },
     {
       id: 3,
       title: "Missing Maps: Thompson, MB",
       href: "/",
-      section: "drone",
+      status: "published",
+      section: "model",
       image: demo2,
+      accuracy: Math.floor(Math.random() * 101),
     },
 
     {
       id: 1,
       title: "Formation de la communauté d'OSM Morocco : Laayoune",
       href: "/",
-      section: "oam",
+      status: "draft",
+      section: "set",
       image: oam1,
+      accuracy: Math.floor(Math.random() * 101),
     },
     {
       id: 2,
       title: "Serbia - Novi Pazar Sustainable Development Project",
       href: "/",
-      section: "oam",
+      status: "draft",
+      section: "set",
       image: oam2,
+      accuracy: Math.floor(Math.random() * 101),
     },
     {
       id: 3,
       title: "Missing Maps: Thompson, MB",
       href: "/",
-      section: "oam",
+      status: "draft",
+      section: "set",
       image: oam3,
+      accuracy: Math.floor(Math.random() * 101),
     },
     {
       id: 4,
       title:
         "Shiquan Land Use Map for Youthmappers Chapter, University of Tsukuba",
       href: "/",
-      section: "oam",
+      status: "draft",
+      section: "set",
       image: oam4,
+      accuracy: Math.floor(Math.random() * 101),
     },
   ];
 }
