@@ -8,7 +8,7 @@ function MappingPage() {
   return (
     <PageWrapper>
       <div className=" space-y-xl">
-        <GoToWesiteCTA>
+        <GoToWesiteCTA buttonLink="https://tasks.hotosm.org/">
           <strong>Tasking Manager</strong> Remote Mapping
         </GoToWesiteCTA>
         <div className="bg-hot-gray-50 p-md md:p-lg rounded-lg space-y-lg">

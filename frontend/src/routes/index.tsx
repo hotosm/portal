@@ -11,7 +11,9 @@ import DroneTMProjectsPage from "../pages/DroneTMProjectsPage";
 import MappingPage from "../portal-mapping/MappingPage";
 import FieldPage from "../portal-field/FieldPage";
 import DataPage from "../portal-data/DataPage";
+import MapUsePage from "../portal-mapuse/MapUsePage";
 
+// TODO logged out page layout
 function LogoutPage() {
   return (
     <div>
@@ -20,7 +22,7 @@ function LogoutPage() {
     </div>
   );
 }
-
+// TODO not found page layout
 function NotFoundPage() {
   return <div>Page not found</div>;
 }
@@ -29,21 +31,15 @@ function NotFoundPage() {
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isLogin } = useAuth();
 
-  // Debug logging - remove in production
-  console.log("ProtectedRoute - isLogin:", isLogin);
-
+  // TODO check layout if necessary
   if (!isLogin) {
     return (
       <div className="text-center py-16">
-        <h1 className="text-3xl font-bold mb-4 text-red-600">Access Denied</h1>
-        <p className="text-gray-600 mb-8">
+        <h1 className="text-3xl font-bold mb-4 text-hot-red-600">
+          Access Denied
+        </h1>
+        <p className="text-hot-gray-600 mb-8">
           You must be logged in to access this page.
-        </p>
-        <p className="text-sm text-gray-500">
-          Please log in using the toggle in the header for demo purposes.
-        </p>
-        <p className="text-xs text-gray-400 mt-4">
-          Debug: Auth state is {isLogin ? "logged in" : "logged out"}
         </p>
       </div>
     );
@@ -61,10 +57,7 @@ function MainNavRoute({
   menuItemId: string;
 }) {
   const { isLogin } = useAuth();
-
-  // Debug logging - remove in production
-  console.log(`MainNavRoute (${menuItemId}) - isLogin:`, isLogin);
-
+  // TODO check if this will remain
   return isLogin ? <>{children}</> : <LandingPage menuItemId={menuItemId} />;
 }
 
@@ -80,7 +73,7 @@ export function AppRoutes() {
         element={
           <Routes>
             <Route path="/" element={<HomePage />} />
-            {/* Main navigation routes - show different CTAs when not logged in */}
+            {/* TODO check if this will remain - Main navigation routes - show different CTAs when not logged in */}
             <Route
               path="/mapping"
               element={
@@ -110,6 +103,14 @@ export function AppRoutes() {
               element={
                 <MainNavRoute menuItemId="data">
                   <DataPage />
+                </MainNavRoute>
+              }
+            />
+            <Route
+              path="/mapuse"
+              element={
+                <MainNavRoute menuItemId="mapuse">
+                  <MapUsePage />
                 </MainNavRoute>
               }
             />

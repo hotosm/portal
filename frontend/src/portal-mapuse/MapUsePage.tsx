@@ -1,33 +1,34 @@
+import { useEffect, useState } from "react";
 import GoToWesiteCTA from "../components/shared/GoToWesiteCTA";
+import PortalPageSkeleton from "../components/shared/PortalPageSkeleton";
 import PageWrapper from "../components/shared/PageWrapper";
-import ImageryCard from "./components/FieldCard";
-import { getFieldProjects } from "./fieldProjects";
+import UMapCard from "./components/UMapCard";
+import { getUMapProjects } from "./umapProjects";
 
-function FieldPage() {
-  const projects = getFieldProjects();
+function MapUsePage() {
+  const projects = getUMapProjects();
 
   return (
     <PageWrapper>
       <div className="space-y-xl">
         <GoToWesiteCTA
-          buttonLink="https://fmtm.hotosm.org/"
-          buttonText="Field TM"
+          buttonLink="https://umap.hotosm.org/"
+          buttonText="uMap"
           link2={{
-            label: "ChatMap",
-            url: "https://www.hotosm.org/tech-suite/chatmap/",
+            label: "Export Tool",
+            url: "https://export.hotosm.org/",
           }}
         >
-          <strong>Field</strong> Tasking Manager and <strong>ChatMap</strong>
+          <strong>uMap</strong> and <strong>Export Tool</strong>
         </GoToWesiteCTA>
-
         <div className="bg-hot-gray-50 p-md items-center rounded-lg space-y-xl">
           <div>
             <p className="text-lg ">
-              Your <strong>projects</strong>
+              Your <strong>maps</strong>
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-lg">
               {projects.map((project) => {
-                return <ImageryCard project={project} />;
+                return <UMapCard project={project} />;
               })}
             </div>
           </div>
@@ -37,4 +38,4 @@ function FieldPage() {
   );
 }
 
-export default FieldPage;
+export default MapUsePage;
