@@ -34,12 +34,18 @@ export const MAIN_MENU_ITEMS: MenuItem[] = [
     requiresAuth: false,
   },
   {
+    id: "mapuse",
+    label: "Map Use",
+    href: "/mapuse",
+    requiresAuth: false,
+  },
+  /* {
     id: "drone-tm",
     label: "DTM",
     href: "/drone-tm-projects",
     requiresAuth: true,
     description: "My drone mapping projects",
-  },
+  }, */
 ];
 
 export const USER_MENU_ITEMS: MenuItem[] = [

@@ -11,7 +11,14 @@ function ImageryPage() {
   return (
     <PageWrapper>
       <div className="space-y-xl">
-        <GoToWesiteCTA>
+        <GoToWesiteCTA
+          buttonLink="https://dronetm.org"
+          buttonText="Drone TM"
+          link2={{
+            label: "OpenAerialMap",
+            url: "https://openaerialmap.org",
+          }}
+        >
           <strong>Drone</strong> Tasking Manager and{" "}
           <strong>OpenAerialMap</strong>
         </GoToWesiteCTA>
