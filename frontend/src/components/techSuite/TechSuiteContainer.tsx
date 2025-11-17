@@ -27,13 +27,13 @@ function SectionDescription({
   title,
   children,
 }: {
-  title: string;
+  title?: string;
   children: ReactNode;
 }) {
   return (
-    <div className="relative z-10 mt-o md:mt-2xl mx-sm lg:ml-2xl">
-      <h2 className="font-barlow-condensed mb-sm">{title}</h2>
-      <div className="max-w-xl">{children}</div>
+    <div className="relative z-10 mt-o mx-sm lg:ml-2xl">
+      <h3 className="mb-sm">{title}</h3>
+      <div className="max-w-xl text-lg">{children}</div>
     </div>
   );
 }
@@ -46,7 +46,7 @@ function TechSuiteContainer() {
 
   const renderProducts = ({ items }: { items: typeof products }) => {
     return (
-      <div className="flex flex-col md:flex-row mt-sm lg:mt-4xl mr-0 lg:mr-2xl gap-sm px-sm lg:px-0">
+      <div className="flex flex-col lg:flex-row gap-sm px-sm lg:px-0">
         {items.map((product) => {
           return (
             <div>
@@ -65,14 +65,26 @@ function TechSuiteContainer() {
   return (
     <div>
       {/* IMAGERY */}
-      <div className="relative overflow-hidden py-4xl lg:py-4xl ">
-        <SectionBackgroundText text="IMAGERY" align="right" />
-        <div className="flex flex-col lg:flex-row gap-sm lg:gap-2xl">
-          <SectionDescription title={`1. ${m.imagery_title()}`}>
-            <p>{m.imagery_p1()}</p>
-            <p>{m.imagery_p2()}</p>
-          </SectionDescription>
-          <div className="mt-100">
+      <div className="relative overflow-hidden">
+        <div className="grid grid-cols-6 grid-rows-[auto_auto_auto] gap-sm lg:gap-2xl">
+          <span className="text-white bg-hot-red-600 text-[4rem] sm:text-[4rem] leading-[4rem] sm:leading-[4rem] col-start-1 col-end-7  row-start-1 row-end-2 py-sm px-md z-10">
+            Aerial Imagery
+          </span>
+          <div className="col-start-4 lg:col-start-3 col-end-7 row-start-1 row-end-4 ">
+            <div
+              className="w-full h-full bg-cover bg-top grayscale"
+              style={{
+                backgroundImage: "url('/src/assets/images/drontm-portal.jpg')",
+              }}
+            />
+          </div>
+          <div className="row-start-2 col-start-1 col-end-4 lg:col-end-3">
+            <SectionDescription>
+              <p>{m.imagery_p1()}</p>
+              <p>{m.imagery_p2()}</p>
+            </SectionDescription>
+          </div>
+          <div className="row-start-3 col-start-1 col-end-4 lg:col-end-3 bg-white z-10 p-sm">
             {renderProducts({
               items: imagery,
             })}
@@ -81,30 +93,50 @@ function TechSuiteContainer() {
       </div>
 
       {/* MAPPING */}
-      <div className="bg-hot-red-50 relative overflow-hidden py-4xl lg:py-4xl ">
-        <SectionBackgroundText text="MAPPING" align="right" color="dark" />
-        <div className="flex flex-col lg:flex-row gap-sm lg:gap-2xl">
-          <SectionDescription title={`2. ${m.mapping_title()}`}>
-            <p>{m.mapping_p1()}</p>
-            <p>{m.mapping_p2()}</p>
-          </SectionDescription>
-          {renderProducts({
-            items: mapping,
-          })}
+      <div className="relative overflow-hidden bg-hot-red-50">
+        <div className="grid grid-cols-6 grid-rows-[auto_auto_auto] gap-sm lg:gap-2xl">
+          <span className="text-white bg-hot-red-600 text-[4rem] sm:text-[4rem] leading-[4rem] sm:leading-[4rem] col-start-2 col-end-7  row-start-1 row-end-2 py-sm px-md z-10">
+            Geospatial (or map) data
+          </span>
+          <div className="row-start-2 col-start-1 col-end-3 ">
+            <SectionDescription>
+              <p>{m.mapping_p1()}</p>
+              <p>{m.mapping_p2()}</p>
+            </SectionDescription>
+          </div>
+          <div className="row-start-2 col-start-3 col-end-7 z-10 p-sm">
+            {renderProducts({
+              items: mapping,
+            })}
+          </div>
         </div>
       </div>
 
       {/* MAP USE */}
-      <div className="relative overflow-hidden py-4xl lg:py-4xl ">
-        <SectionBackgroundText text="MAP USE" align="right" />
-        <div className="flex flex-col lg:flex-row gap-sm lg:gap-2xl">
-          <SectionDescription title={`3. ${m.mapUse_title()}`}>
-            <p>{m.mapUse_p1()}</p>
-            <p>{m.mapUse_p2()}</p>
-          </SectionDescription>
-          {renderProducts({
-            items: mapUse,
-          })}
+      <div className="relative overflow-hidden">
+        <div className="grid grid-cols-6 grid-rows-[auto_auto_auto] gap-sm lg:gap-2xl">
+          <span className="text-white bg-hot-red-600 text-[4rem] sm:text-[4rem] leading-[4rem] sm:leading-[4rem] col-start-3 col-end-7  row-start-1 row-end-2 py-sm px-md z-10">
+            Actionable Insights
+          </span>
+          <div className="col-start-1 col-end-4 lg:col-end-5 row-start-1 row-end-4">
+            <div
+              className="w-full h-full bg-cover bg-left-top grayscale"
+              style={{
+                backgroundImage: "url('/src/assets/images/mapuse-portal.jpg')",
+              }}
+            />
+          </div>
+          <div className="row-start-2 col-start-4 lg:col-start-5 col-end-7 ">
+            <SectionDescription>
+              <p>{m.mapUse_p1()}</p>
+              <p>{m.mapUse_p2()}</p>
+            </SectionDescription>
+          </div>
+          <div className="row-start-3 col-start-4 lg:col-start-5 col-end-7 bg-white z-10 p-sm">
+            {renderProducts({
+              items: mapUse,
+            })}
+          </div>
         </div>
       </div>
     </div>
