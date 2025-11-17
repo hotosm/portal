@@ -1,6 +1,4 @@
-import { useEffect, useState } from "react";
 import GoToWesiteCTA from "../components/shared/GoToWesiteCTA";
-import PortalPageSkeleton from "../components/shared/PortalPageSkeleton";
 import PageWrapper from "../components/shared/PageWrapper";
 import UMapCard from "./components/UMapCard";
 import { getUMapProjects } from "./umapProjects";
