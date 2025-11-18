@@ -3,22 +3,10 @@ import { getProductsData } from "../../constants/productsData";
 import { m } from "../../paraglide/messages";
 import TechSuiteItem from "./TechSuiteItem";
 
-function SectionBackgroundText({
-  text,
-  align = "right",
-  color = "light",
-}: {
-  text: string;
-  align?: "right" | "left";
-  color?: "dark" | "light";
-}) {
+function SectionTitle({ title }: { title: string }) {
   return (
-    <span
-      className={`absolute top-0  z-0 font-barlow text-[6rem] sm:text-[12rem] leading-[3rem] sm:leading-[7.2rem] ${
-        color === "light" ? "text-hot-red-50" : "text-hot-red-100"
-      } ${align === "right" ? "right-0" : "left-0"}`}
-    >
-      {text}
+    <span className="text-white text-[2rem] sm:text-[3.5rem] leading-[2rem] sm:leading-[3.5rem] ">
+      {title}
     </span>
   );
 }
@@ -33,7 +21,7 @@ function SectionDescription({
   return (
     <div className="relative z-10 mt-o mx-sm lg:ml-2xl">
       <h3 className="mb-sm">{title}</h3>
-      <div className="max-w-xl text-lg">{children}</div>
+      <div className="text-lg">{children}</div>
     </div>
   );
 }
@@ -46,7 +34,7 @@ function TechSuiteContainer() {
 
   const renderProducts = ({ items }: { items: typeof products }) => {
     return (
-      <div className="flex flex-col lg:flex-row gap-sm px-sm lg:px-0">
+      <div className="flex flex-col md:flex-row gap-sm px-sm lg:px-0">
         {items.map((product) => {
           return (
             <div>
@@ -67,24 +55,27 @@ function TechSuiteContainer() {
       {/* IMAGERY */}
       <div className="relative overflow-hidden">
         <div className="grid grid-cols-6 grid-rows-[auto_auto_auto] gap-sm lg:gap-2xl">
-          <span className="text-white bg-hot-red-600 text-[4rem] sm:text-[4rem] leading-[4rem] sm:leading-[4rem] col-start-1 col-end-7  row-start-1 row-end-2 py-sm px-md z-10">
-            Aerial Imagery
+          <span className="text-white bg-hot-red-600 col-start-1 col-end-7  row-start-1 row-end-2 py-sm px-md z-10">
+            <SectionTitle
+              title="
+            Aerial Imagery"
+            />
           </span>
-          <div className="col-start-4 lg:col-start-3 col-end-7 row-start-1 row-end-4 ">
+          <div className="col-start-1 md:col-start-4 lg:col-start-3 col-end-7 row-start-1 row-end-3 md:row-end-4 min-h-[300px] bg-hot-red-50">
             <div
-              className="w-full h-full bg-cover bg-top grayscale"
+              className="w-full h-full bg-cover bg-top grayscale opacity-70"
               style={{
                 backgroundImage: "url('/src/assets/images/drontm-portal.jpg')",
               }}
             />
           </div>
-          <div className="row-start-2 col-start-1 col-end-4 lg:col-end-3">
+          <div className="row-start-3 md:row-start-2 col-start-1 col-end-7 md:col-end-4 lg:col-end-3">
             <SectionDescription>
               <p>{m.imagery_p1()}</p>
               <p>{m.imagery_p2()}</p>
             </SectionDescription>
           </div>
-          <div className="row-start-3 col-start-1 col-end-4 lg:col-end-3 bg-white z-10 p-sm">
+          <div className="row-start-4 md:row-start-3 col-start-1 col-end-7 md:col-end-4 lg:col-end-3 bg-white z-10 p-sm">
             {renderProducts({
               items: imagery,
             })}
@@ -93,18 +84,18 @@ function TechSuiteContainer() {
       </div>
 
       {/* MAPPING */}
-      <div className="relative overflow-hidden bg-hot-red-50">
-        <div className="grid grid-cols-6 grid-rows-[auto_auto_auto] gap-sm lg:gap-2xl">
-          <span className="text-white bg-hot-red-600 text-[4rem] sm:text-[4rem] leading-[4rem] sm:leading-[4rem] col-start-2 col-end-7  row-start-1 row-end-2 py-sm px-md z-10">
-            Geospatial (or map) data
+      <div className="relative overflow-hidden bg-hot-gray-50">
+        <div className="grid grid-cols-6 grid-rows-[auto_auto_auto] gap-sm lg:gap-y-3xl lg:gap-x-2xl">
+          <span className="bg-hot-red-600 col-start-1 md:col-start-2 col-end-7  row-start-1 row-end-2 py-sm px-md z-10">
+            <SectionTitle title="Geospatial (or map) data" />
           </span>
-          <div className="row-start-2 col-start-1 col-end-3 ">
+          <div className="row-start-2 col-start-1 col-end-7 lg:col-end-3 ">
             <SectionDescription>
               <p>{m.mapping_p1()}</p>
               <p>{m.mapping_p2()}</p>
             </SectionDescription>
           </div>
-          <div className="row-start-2 col-start-3 col-end-7 z-10 p-sm">
+          <div className="row-start-3 lg:row-start-2 col-start-1 lg:col-start-3 col-end-7 z-10 p-sm">
             {renderProducts({
               items: mapping,
             })}
@@ -115,12 +106,12 @@ function TechSuiteContainer() {
       {/* MAP USE */}
       <div className="relative overflow-hidden">
         <div className="grid grid-cols-6 grid-rows-[auto_auto_auto] gap-sm lg:gap-2xl">
-          <span className="text-white bg-hot-red-600 text-[4rem] sm:text-[4rem] leading-[4rem] sm:leading-[4rem] col-start-3 col-end-7  row-start-1 row-end-2 py-sm px-md z-10">
-            Actionable Insights
+          <span className="bg-hot-red-600 col-start-1 md:col-start-3 col-end-7  row-start-1 row-end-2 py-sm px-md z-10">
+            <SectionTitle title="Actionable Insights" />
           </span>
-          <div className="col-start-1 col-end-4 lg:col-end-5 row-start-1 row-end-4">
+          <div className="col-start-1 col-end-4 lg:col-end-5 row-start-1 row-end-4 bg-hot-red-50">
             <div
-              className="w-full h-full bg-cover bg-left-top grayscale"
+              className="w-full h-full bg-cover bg-left-top grayscale opacity-70"
               style={{
                 backgroundImage: "url('/src/assets/images/mapuse-portal.jpg')",
               }}
