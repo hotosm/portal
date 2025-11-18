@@ -3,25 +3,17 @@ import { Route, Routes } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import AuthTest from "../pages/AuthTest";
 import HomePage from "../pages/HomePage";
-import ImageryPage from "../pages/ImageryPage";
+import ImageryPage from "../portal-imagery/ImageryPage";
 import LandingPage from "../pages/LandingPage";
 // LoginPage import removed - login is now handled by separate login-frontend service at /login
 import ProfilePage from "../pages/ProfilePage";
 import DroneTMProjectsPage from "../pages/DroneTMProjectsPage";
+import MappingPage from "../portal-mapping/MappingPage";
+import FieldPage from "../portal-field/FieldPage";
+import DataPage from "../portal-data/DataPage";
+import MapUsePage from "../portal-mapuse/MapUsePage";
 
-// Placeholder components for now
-function MappingPage() {
-  return <div>Mapping page coming soon</div>;
-}
-
-function FieldPage() {
-  return <div>Field page coming soon</div>;
-}
-
-function DataPage() {
-  return <div>Data page coming soon</div>;
-}
-
+// TODO logged out page layout
 function LogoutPage() {
   return (
     <div>
@@ -30,7 +22,7 @@ function LogoutPage() {
     </div>
   );
 }
-
+// TODO not found page layout
 function NotFoundPage() {
   return <div>Page not found</div>;
 }
@@ -38,22 +30,16 @@ function NotFoundPage() {
 // Component to handle protected routes
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isLogin } = useAuth();
-  
-  // Debug logging - remove in production
-  console.log('ProtectedRoute - isLogin:', isLogin);
 
+  // TODO check layout if necessary
   if (!isLogin) {
     return (
       <div className="text-center py-16">
-        <h1 className="text-3xl font-bold mb-4 text-red-600">Access Denied</h1>
-        <p className="text-gray-600 mb-8">
+        <h1 className="text-3xl font-bold mb-4 text-hot-red-600">
+          Access Denied
+        </h1>
+        <p className="text-hot-gray-600 mb-8">
           You must be logged in to access this page.
-        </p>
-        <p className="text-sm text-gray-500">
-          Please log in using the toggle in the header for demo purposes.
-        </p>
-        <p className="text-xs text-gray-400 mt-4">
-          Debug: Auth state is {isLogin ? 'logged in' : 'logged out'}
         </p>
       </div>
     );
@@ -71,10 +57,7 @@ function MainNavRoute({
   menuItemId: string;
 }) {
   const { isLogin } = useAuth();
-  
-  // Debug logging - remove in production
-  console.log(`MainNavRoute (${menuItemId}) - isLogin:`, isLogin);
-  
+  // TODO check if this will remain
   return isLogin ? <>{children}</> : <LandingPage menuItemId={menuItemId} />;
 }
 
@@ -83,76 +66,86 @@ export function AppRoutes() {
     <Routes>
       {/* Redirect root to default locale */}
       <Route path="/" element={<HomePage />} />
-      
+
       {/* All routes with locale prefix */}
-      <Route path="/:locale/*" element={
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          {/* Main navigation routes - show different CTAs when not logged in */}
-          <Route
-            path="/mapping"
-            element={
-              <MainNavRoute menuItemId="mapping">
-                <MappingPage />
-              </MainNavRoute>
-            }
-          />
-          <Route
-            path="/imagery"
-            element={
-              <MainNavRoute menuItemId="imagery">
-                <ImageryPage />
-              </MainNavRoute>
-            }
-          />
-          <Route
-            path="/field"
-            element={
-              <MainNavRoute menuItemId="field">
-                <FieldPage />
-              </MainNavRoute>
-            }
-          />
-          <Route
-            path="/data"
-            element={
-              <MainNavRoute menuItemId="data">
-                <DataPage />
-              </MainNavRoute>
-            }
-          />
-
-
-      {/* Authentication routes */}
-      {/* /login route removed - now handled by separate login-frontend service */}
-      <Route path="/logout" element={<LogoutPage />} />
-
-      {/* Protected user routes */}
       <Route
-        path="/profile"
+        path="/:locale/*"
         element={
-          <ProtectedRoute>
-            <ProfilePage />
-          </ProtectedRoute>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            {/* TODO check if this will remain - Main navigation routes - show different CTAs when not logged in */}
+            <Route
+              path="/mapping"
+              element={
+                <MainNavRoute menuItemId="mapping">
+                  <MappingPage />
+                </MainNavRoute>
+              }
+            />
+            <Route
+              path="/imagery"
+              element={
+                <MainNavRoute menuItemId="imagery">
+                  <ImageryPage />
+                </MainNavRoute>
+              }
+            />
+            <Route
+              path="/field"
+              element={
+                <MainNavRoute menuItemId="field">
+                  <FieldPage />
+                </MainNavRoute>
+              }
+            />
+            <Route
+              path="/data"
+              element={
+                <MainNavRoute menuItemId="data">
+                  <DataPage />
+                </MainNavRoute>
+              }
+            />
+            <Route
+              path="/mapuse"
+              element={
+                <MainNavRoute menuItemId="mapuse">
+                  <MapUsePage />
+                </MainNavRoute>
+              }
+            />
+
+            {/* Authentication routes */}
+            {/* /login route removed - now handled by separate login-frontend service */}
+            <Route path="/logout" element={<LogoutPage />} />
+
+            {/* Protected user routes */}
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/drone-tm-projects"
+              element={
+                <ProtectedRoute>
+                  <DroneTMProjectsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Testing routes */}
+            <Route path="/auth-test" element={<AuthTest />} />
+
+            {/* Fallback */}
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
         }
       />
-      <Route
-        path="/drone-tm-projects"
-        element={
-          <ProtectedRoute>
-            <DroneTMProjectsPage />
-          </ProtectedRoute>
-        }
-      />
 
-          {/* Testing routes */}
-          <Route path="/auth-test" element={<AuthTest />} />
-
-          {/* Fallback */}
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      } />
-      
       {/* Fallback for invalid routes */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

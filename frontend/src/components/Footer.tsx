@@ -1,7 +1,7 @@
 function Footer() {
   return (
     <footer className="bg-hot-gray-50 py-3xl">
-      <div className="container">
+      <div className="p-xl">
         {/* TODO update footer content */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
           <div>
