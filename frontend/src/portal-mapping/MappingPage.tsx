@@ -7,7 +7,7 @@ function MappingPage() {
   const projects = mappingProjectsData;
   return (
     <PageWrapper>
-      <div className=" space-y-xl">
+      <div className="space-y-xl">
         <GoToWesiteCTA buttonLink="https://tasks.hotosm.org/">
           <strong>Tasking Manager</strong> Remote Mapping
         </GoToWesiteCTA>
