@@ -46,7 +46,7 @@ export function getProductsData(): Product[] {
       iconName: "laptop",
       href: "/tasking-manager",
       icon: tmIcon,
-      section: "imagery",
+      section: "mapping",
     },
     {
       id: "fair",
@@ -73,7 +73,7 @@ export function getProductsData(): Product[] {
       iconName: "hexagon-nodes",
       href: "/fair",
       icon: chatmapIcon,
-      section: "mapUse",
+      section: "mapping",
     },
     {
       id: "export-tool",
