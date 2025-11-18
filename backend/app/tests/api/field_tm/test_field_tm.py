@@ -14,10 +14,20 @@ from httpx import AsyncClient, Response
 @respx.mock
 async def test_get_fmtm_projects_success(client: AsyncClient):
     """Test that get_fmtm_projects returns 200 and a valid dict response."""
-    mock_response = [
-        {"id": 1, "name": "Water Mapping"},
-        {"id": 2, "name": "Roads Project"}
-    ]
+    # El mock debe devolver un objeto con "results" y "pagination"
+    mock_response = {
+        "results": [
+            {"id": 1, "name": "Water Mapping"},
+            {"id": 2, "name": "Roads Project"}
+        ],
+        "pagination": {
+            "has_next": False,
+            "has_prev": False,
+            "page": 1,
+            "per_page": 20,
+            "total": 2
+        }
+    }
 
     respx.get("https://api.fmtm.hotosm.org/projects/summaries").mock(
         return_value=Response(200, json=mock_response)
@@ -28,13 +38,17 @@ async def test_get_fmtm_projects_success(client: AsyncClient):
     assert response.status_code == 200
     data = response.json()
 
-    # ✅ validar que sea dict y tenga la clave 'projects'
+    # Validar que sea dict y tenga la clave 'projects'
     assert isinstance(data, dict)
     assert "projects" in data
-    assert isinstance(data["projects"], list)
-    assert all(isinstance(item, dict) for item in data["projects"])
-    assert "id" in data["projects"][0]
-    assert "name" in data["projects"][0]
+    assert isinstance(data["projects"], dict)
+    assert "results" in data["projects"]
+    assert "pagination" in data["projects"]
+    assert isinstance(data["projects"]["results"], list)
+    assert len(data["projects"]["results"]) == 2
+    assert data["projects"]["results"][0]["id"] == 1
+    assert data["projects"]["results"][0]["name"] == "Water Mapping"
+
 
 @pytest.mark.asyncio
 @respx.mock
@@ -86,7 +100,14 @@ async def test_get_fmtm_projects_unexpected_error(client: AsyncClient):
 @respx.mock
 async def test_get_fmtm_project_by_id_success(client: AsyncClient):
     """Test that get_fmtm_project_by_id returns 200 and valid project data."""
-    mock_response = {"id": 123, "name": "Flood Mapping", "description": "A flood mapping project"}
+    # El modelo FMTMProjectSummary no tiene 'description', tiene 'short_description'
+    mock_response = {
+        "id": 123,
+        "name": "Flood Mapping",
+        "short_description": "A flood mapping project",
+        "status": "PUBLISHED",
+        "total_tasks": 10
+    }
 
     respx.get("https://api.fmtm.hotosm.org/projects/123").mock(
         return_value=Response(200, json=mock_response)
@@ -98,8 +119,8 @@ async def test_get_fmtm_project_by_id_success(client: AsyncClient):
     data = response.json()
     assert isinstance(data, dict)
     assert data["id"] == 123
-    assert "name" in data
-    assert "description" in data
+    assert data["name"] == "Flood Mapping"
+    assert data["short_description"] == "A flood mapping project"
 
 
 @pytest.mark.asyncio

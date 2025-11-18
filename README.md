@@ -523,6 +523,7 @@ The API is self-documented using FastAPI's built-in OpenAPI support:
 - `/api/tasking-manager/projects` - Return all project of Tasking Manager
 - `/api/tasking-manager/countries` - Return all countries of Tasking Manager
 - `/api/tasking-manager/projectid` - ProjectID data of Tasking Manager
+- `/api/drone-tm/projects?fetch_all=true` - Returns all Drone TM projects without pagination. (Drone Tasking Manager)
 - `/api/drone-tm/projects` - Return all project of Drone TM (Drone Tasking Manager)
 - `/api/drone-tm/projects/projectid` - ProjectID data of Drone TM (Drone Tasking Manager)
 - `/api/open-aerial-map/projects` - Return all project of Open Aerial Map
@@ -530,6 +531,7 @@ The API is self-documented using FastAPI's built-in OpenAPI support:
 - `/api/fair/projects` - Return all project of fAIr
 - `/api/field-tm/projects` - Return all project of Field Tasking Manager
 - `/api/field-tm/projectid` - ProjectID data of Field Tasking Manager
+- `/api/umap/{locationid}/{projectid}` - ProjectID data of UMap HOTOSM
 
 ## Contributing
 
