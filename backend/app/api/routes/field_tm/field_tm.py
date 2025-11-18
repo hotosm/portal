@@ -2,6 +2,7 @@
 
 import httpx
 from fastapi import APIRouter, HTTPException, Path
+from app.models.field_tm import FMTMProjectsResponse, FMTMProjectSummary
 
 router = APIRouter(prefix="/field-tm")
 
@@ -9,7 +10,7 @@ router = APIRouter(prefix="/field-tm")
 FMTM_API_BASE_URL = "https://api.fmtm.hotosm.org"
 
 
-@router.get("/projects")
+@router.get("/projects", response_model=FMTMProjectsResponse)
 async def get_fmtm_projects() -> dict:
     """
     Gets all project summaries from the FMTM API.
@@ -24,20 +25,19 @@ async def get_fmtm_projects() -> dict:
         HTTPException: If there is an error when querying the external API
 
     Example:
-        ```bash
-        curl http://localhost:8000/api/fmtm/projects
-        ```
+    ```bash
+        curl http://localhost:8000/api/field-tm/projects
+    ```
 
     Response:
-        ```json
-        [
-            {
-                "id": 1,
-                "name": "Project Name",
-                ...
+    ```json
+        {
+            "projects": {
+                "results": [...],
+                "pagination": {...}
             }
-        ]
-        ```
+        }
+    ```
     """
     url = f"{FMTM_API_BASE_URL}/projects/summaries"
 
@@ -63,7 +63,7 @@ async def get_fmtm_projects() -> dict:
         )
 
 
-@router.get("/projectid/{project_id}")
+@router.get("/projectid/{project_id}", response_model=FMTMProjectSummary)
 async def get_fmtm_project_by_id(
     project_id: int = Path(..., description="The project ID to retrieve", gt=0)
 ) -> dict:
@@ -84,19 +84,19 @@ async def get_fmtm_project_by_id(
                       if the project is not found
 
     Example:
-        ```bash
-        curl http://localhost:8000/api/fmtm/projectid/443
-        ```
+    ```bash
+        curl http://localhost:8000/api/field-tm/projectid/443
+    ```
 
     Response:
-        ```json
+    ```json
         {
             "id": 123,
             "name": "Project Name",
             "description": "Project description",
             ...
         }
-        ```
+    ```
     """
     url = f"{FMTM_API_BASE_URL}/projects/{project_id}"
 

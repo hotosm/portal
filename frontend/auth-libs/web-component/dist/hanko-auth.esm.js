@@ -4174,8 +4174,8 @@ let Ne = class extends Nt {
     try {
       const n = this._sessionJWT;
       if (n) {
-        const e = window.location.hostname, t = e === "localhost" || e === "127.0.0.1", o = t ? `; domain=${e}` : "";
-        document.cookie = `hanko=${n}; path=/${o}; max-age=86400; SameSite=Lax`, this.log(`🔐 JWT synced to cookie for SSO${t ? ` (domain=${e})` : ""}`);
+        const e = window.location.hostname, t = e === "localhost" || e === "127.0.0.1", o = t ? `; domain=${e}` : "; domain=.hotosm.org";
+        document.cookie = `hanko=${n}; path=/${o}; max-age=86400; SameSite=Lax`, this.log(`🔐 JWT synced to cookie for SSO${t ? ` (domain=${e})` : " (domain=.hotosm.org)"}`);
       } else
         this.log("⚠️ No JWT found in session event");
     } catch (n) {
@@ -4364,8 +4364,8 @@ let Ne = class extends Nt {
     if (this.log("🎯 Dropdown item selected:", e), e === "profile")
       window.location.href = "/profile";
     else if (e === "connect-osm") {
-      const i = window.location.pathname.includes("/login") ? window.location.origin : window.location.href, s = this.hankoUrl;
-      window.location.href = `${s}/login?return_to=${encodeURIComponent(i)}&osm_required=true`;
+      const i = window.location.pathname.includes("/app") ? window.location.origin : window.location.href, s = this.hankoUrl;
+      window.location.href = `${s}/app?return_to=${encodeURIComponent(i)}&osm_required=true`;
     } else e === "logout" && this.handleLogout();
   }
   handleSkipOSM() {
@@ -4482,9 +4482,9 @@ let Ne = class extends Nt {
           </div>
         `;
       {
-        const s = window.location.pathname.includes("/login") ? window.location.origin : window.location.href, c = new URLSearchParams(window.location.search).get("auto_connect") === "true" ? "&auto_connect=true" : "", d = this.hankoUrl;
+        const s = window.location.pathname.includes("/app") ? window.location.origin : window.location.href, c = new URLSearchParams(window.location.search).get("auto_connect") === "true" ? "&auto_connect=true" : "", d = this.hankoUrl;
         console.log("🔗 Login URL base:", d);
-        const l = `${d}/login?return_to=${encodeURIComponent(s)}${this.osmRequired ? "&osm_required=true" : ""}${c}`;
+        const l = `${d}/app?return_to=${encodeURIComponent(s)}${this.osmRequired ? "&osm_required=true" : ""}${c}`;
         return Ue`
           <div class="container">
             <a href="${l}" class="btn-login">Log In</a>
