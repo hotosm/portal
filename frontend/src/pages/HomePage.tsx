@@ -42,7 +42,7 @@ function HomePage() {
   }, []);
 
   return (
-    <div className="space-y-lg md:space-y-3xl">
+    <div>
       {/* Map Section */}
       <div className="h-[calc(100vh_-_100px)] px-lg md:px-2xl pb-lg md:pb-2xl relative">
         <ProjectsMap
@@ -63,13 +63,60 @@ function HomePage() {
           </div>
         )}
       </div>
-      <div className="container text-center">
+
+      <div className="text-center relative py-3xl">
+        {/* TODO replace with HOT resources */}
+        <svg
+          className="absolute bottom-0 inset-0 w-full h-full -z-10"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            <pattern
+              id="dot-pattern"
+              x="0"
+              y="0"
+              width="20"
+              height="20"
+              patternUnits="userSpaceOnUse"
+            >
+              <circle cx="6" cy="6" r="4" fill="#f1f0f0c3" />
+              <circle cx="18" cy="18" r="4" fill="#f1f0f0c3" />
+            </pattern>
+            <linearGradient
+              id="fade-gradient"
+              x1="100%"
+              y1="100%"
+              x2="0%"
+              y2="0%"
+            >
+              <stop offset="0%" stopColor="white" stopOpacity="1" />
+              <stop offset="100%" stopColor="white" stopOpacity="0" />
+            </linearGradient>
+            <mask id="fade-mask">
+              <rect
+                x="0"
+                y="0"
+                width="100%"
+                height="100%"
+                fill="url(#fade-gradient)"
+              />
+            </mask>
+          </defs>
+          <rect
+            x="0"
+            y="0"
+            width="100%"
+            height="100%"
+            fill="url(#dot-pattern)"
+            mask="url(#fade-mask)"
+          />
+        </svg>
         <h2>{m.home_workflow_header()}</h2>
-        <h4>
+        <p className="text-xl">
           {m.home_workflow_p1()}
           <br />
           {m.home_workflow_p2()}
-        </h4>
+        </p>
       </div>
 
       {/* Tech Suite */}
