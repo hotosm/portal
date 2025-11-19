@@ -1,5 +1,6 @@
 import GoToWesiteCTA from "../components/shared/GoToWesiteCTA";
 import PageWrapper from "../components/shared/PageWrapper";
+import ImagertNoProjects from "./components/ImagertNoProjects";
 import ImageryCard from "./components/ImageryCard";
 import { getImageryProjects } from "./imageryProjects";
 
@@ -23,29 +24,33 @@ function ImageryPage() {
           <strong>OpenAerialMap</strong>
         </GoToWesiteCTA>
 
-        <div className="bg-hot-gray-50 p-md items-center rounded-lg space-y-xl">
-          <div>
-            <p className="text-lg ">
-              Your <strong>projects</strong>
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-lg">
-              {droneProjects.map((project) => {
-                return <ImageryCard project={project} />;
-              })}
+        {projects.length !== 0 ? (
+          <ImagertNoProjects />
+        ) : (
+          <div className="bg-hot-gray-50 p-md items-center rounded-lg space-y-xl">
+            <div>
+              <p className="text-lg ">
+                Your <strong>projects</strong>
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-lg">
+                {droneProjects.map((project) => {
+                  return <ImageryCard project={project} />;
+                })}
+              </div>
             </div>
-          </div>
 
-          <div>
-            <p className="text-lg ">
-              Your <strong>imagery</strong>
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-lg">
-              {oamProjects.map((project) => {
-                return <ImageryCard project={project} />;
-              })}
+            <div>
+              <p className="text-lg ">
+                Your <strong>imagery</strong>
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-lg">
+                {oamProjects.map((project) => {
+                  return <ImageryCard project={project} />;
+                })}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </PageWrapper>
   );
