@@ -1,0 +1,29 @@
+/* ADDED FOR PORTAL */
+/* Remove shadows from plain buttons */
+wa-button[appearance="plain"]::part(base) {
+  box-shadow: none;
+}
+
+wa-button[appearance="plain"]::part(base):hover {
+  box-shadow: none;
+  transform: none;
+}
+
+wa-button[appearance="plain"]::part(base):active {
+  box-shadow: none;
+  transform: none;
+}
+
+wa-card::part(header) {
+  border: none;
+}
+
+wa-card::part(footer) {
+  border: none;
+}
+
+wa-card::part(base) {
+  border: none;
+  outline: none;
+  overflow: hidden;
+}

@@ -28,12 +28,12 @@ function Header() {
             />
           </Link>
           {/* mobile navigation */}
-          <div className="block sm:hidden">
+          <div className="block md:hidden">
             <DrawerMenu />
           </div>
 
           {/* desktop navigation */}
-          <div className="hidden sm:block">
+          <div className="hidden md:block">
             {isLogin ? (
               <NavigationMain />
             ) : (
