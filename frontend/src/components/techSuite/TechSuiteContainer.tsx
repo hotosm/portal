@@ -2,6 +2,8 @@ import { ReactNode } from "react";
 import { getProductsData } from "../../constants/productsData";
 import { m } from "../../paraglide/messages";
 import TechSuiteItem from "./TechSuiteItem";
+import drontmImage from "../../assets/images/drontm-portal.jpg";
+import mapuseImage from "../../assets/images/mapuse-portal.jpg";
 
 function SectionTitle({ title }: { title: string }) {
   return (
@@ -65,7 +67,7 @@ function TechSuiteContainer() {
             <div
               className="w-full h-full bg-cover bg-top grayscale opacity-70"
               style={{
-                backgroundImage: "url('/src/assets/images/drontm-portal.jpg')",
+                backgroundImage: `url(${drontmImage})`,
               }}
             />
           </div>
@@ -113,7 +115,7 @@ function TechSuiteContainer() {
             <div
               className="w-full h-full bg-cover bg-left-top grayscale opacity-70"
               style={{
-                backgroundImage: "url('/src/assets/images/mapuse-portal.jpg')",
+                backgroundImage: `url(${mapuseImage})`,
               }}
             />
           </div>
