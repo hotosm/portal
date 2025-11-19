@@ -24,20 +24,25 @@ const DEFAULT_MAP_STYLE = import.meta.env.VITE_MAP_STYLE || {
   version: 8,
   glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
   sources: {
-    osm: {
+    positron: {
       type: "raster",
-      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+      tiles: [
+        "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png",
+        "https://cartodb-basemaps-b.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png",
+        "https://cartodb-basemaps-c.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png",
+        "https://cartodb-basemaps-d.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png",
+      ],
       tileSize: 256,
       attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
       maxzoom: 19,
     },
   },
   layers: [
     {
-      id: "osm",
+      id: "positron",
       type: "raster",
-      source: "osm",
+      source: "positron",
     },
   ],
 };
@@ -217,6 +222,7 @@ export function ProjectsMap({
       center: [0, 0],
       zoom: 1.5,
       attributionControl: false,
+      scrollZoom: false, // Disable mouse wheel zoom
     });
 
     map.current.addControl(

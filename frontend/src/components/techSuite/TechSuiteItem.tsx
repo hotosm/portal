@@ -27,7 +27,7 @@ function TechSuiteItem({ title, description, icon }: ITechSuiteItemProps) {
         transition={{ type: "spring", stiffness: 250, damping: 15 }}
       />
       <p className="m-xs">
-        <span className="text-white text-lg font-barlow uppercase px-sm bg-hot-red-600 group-hover:bg-hot-red-400 transition-opacity rounded-sm pb-[2px]">
+        <span className="text-white text-lg uppercase px-sm bg-hot-red-600 group-hover:bg-hot-red-400 transition-opacity rounded-sm pb-[2px]">
           {title}
         </span>
       </p>
