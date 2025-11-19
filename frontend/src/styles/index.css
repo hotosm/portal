@@ -7,38 +7,12 @@
 @import "./hot-font-face.css";
 
 /* 3. Then our WebAwesome overrides */
-@import "./hot-wa-override.css";
+@import "./hot-wa.css";
+@import "./hot-wa-portal.css";
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* defaults */
-
-html {
-  overflow: hidden;
-}
-
-html.lenis,
-html.lenis body {
-  height: auto;
-}
-
-.lenis.lenis-smooth {
-  scroll-behavior: auto !important;
-}
-
-.lenis.lenis-smooth [data-lenis-prevent] {
-  overscroll-behavior: contain;
-}
-
-.lenis.lenis-stopped {
-  overflow: hidden;
-}
-
-.lenis.lenis-scrolling iframe {
-  pointer-events: none;
-}
 
 html,
 body {
@@ -63,7 +37,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: var(--hot-font-sans-variant); /* Barlow */
+  font-family: "Archivo";
   font-weight: var(--wa-font-weight-heading); /* Bold */
   line-height: var(--wa-line-height-condensed);
   color: var(--hot-color-gray-800);
@@ -83,7 +57,6 @@ h2 {
 h3 {
   font-size: var(--hot-font-size-2x-large); /* 36px */
   letter-spacing: -0.01em;
-  font-family: "Barlow Condensed";
   font-weight: 400;
   line-height: 2.4rem;
 }
@@ -104,9 +77,4 @@ h6 {
 }
 p {
   margin-bottom: 1rem;
-}
-.container {
-  padding-right: var(--hot-spacing-3x-large);
-  padding-left: var(--hot-spacing-3x-large);
-  max-width: 100%;
 }
