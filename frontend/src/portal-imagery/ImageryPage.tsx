@@ -1,10 +1,13 @@
 import GoToWesiteCTA from "../components/shared/GoToWesiteCTA";
 import PageWrapper from "../components/shared/PageWrapper";
-import ImagertNoProjects from "./components/ImagertNoProjects";
+import ImageryNoProjects from "./components/ImageryNoProjects";
 import ImageryCard from "./components/ImageryCard";
 import { getImageryProjects } from "./imageryProjects";
+import { useHasProjects } from "../hooks/useHasProjects";
+import Switch from "../components/shared/Switch";
 
 function ImageryPage() {
+  const { hasProjects, toggleHasProjects } = useHasProjects();
   const projects = getImageryProjects();
   const droneProjects = projects.filter((p) => p.section === "drone");
   const oamProjects = projects.filter((p) => p.section === "oam");
@@ -12,6 +15,17 @@ function ImageryPage() {
   return (
     <PageWrapper>
       <div className="space-y-xl">
+        {/* Dev Toggle */}
+        <div className="flex items-center gap-md p-md bg-yellow-50 rounded-lg border border-yellow-100">
+          <span className="text-sm font-semibold">Dev Mode:</span>
+          <label className="flex items-center gap-sm cursor-pointer">
+            <Switch checked={hasProjects} onChange={toggleHasProjects} />
+            <span className="text-sm">
+              Has Projects: {hasProjects ? "Yes" : "No"}
+            </span>
+          </label>
+        </div>
+
         <GoToWesiteCTA
           buttonLink="https://dronetm.org"
           buttonText="Drone TM"
@@ -24,8 +38,8 @@ function ImageryPage() {
           <strong>OpenAerialMap</strong>
         </GoToWesiteCTA>
 
-        {projects.length !== 0 ? (
-          <ImagertNoProjects />
+        {!hasProjects ? (
+          <ImageryNoProjects />
         ) : (
           <div className="bg-hot-gray-50 p-md items-center rounded-lg space-y-xl">
             <div>
