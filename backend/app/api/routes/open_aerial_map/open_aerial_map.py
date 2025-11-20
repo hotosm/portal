@@ -89,3 +89,40 @@ async def get_imagery_by_id(
             )
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/user/{user_id}", response_model=ImageryListResponse)
+async def get_imagery_by_user(
+    user_id: str = Path(..., description="OpenAerialMap user ID"),
+    limit: int = Query(10, ge=1, le=100, description="Number of results to return"),
+    page: int = Query(1, ge=1, description="Page number"),
+    order_by: str = Query("acquisition_end", description="Field to order by"),
+    sort: str = Query("desc", regex="^(asc|desc)$", description="Sort order"),
+) -> dict:
+    """
+    Get imagery metadata for a specific user from OpenAerialMap API.
+    
+    Example: GET /api/open-aerial-map/user/6918b688d06a6f5c0a953e2e?order_by=acquisition_end&sort=desc&limit=10
+    """
+    url = f"{OAM_API_BASE_URL}/meta"
+    
+    params = {
+        "user": user_id,
+        "limit": limit,
+        "page": page,
+        "order_by": order_by,
+        "sort": sort,
+    }
+    
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            response = await client.get(url, params=params)
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(
+                status_code=e.response.status_code,
+                detail=f"Error from OpenAerialMap API: {e.response.text}"
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
