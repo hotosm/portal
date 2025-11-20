@@ -1,6 +1,6 @@
 # app/models/open_aerial_map.py
-from pydantic import BaseModel
-from typing import List, Optional, Any
+from pydantic import BaseModel, Field
+from typing import List, Optional
 
 
 class Meta(BaseModel):
@@ -26,7 +26,7 @@ class GeoJSON(BaseModel):
 
 
 class ImageryResult(BaseModel):
-    _id: Optional[str] = None
+    id: Optional[str] = Field(None, alias="_id")
     uuid: Optional[str] = None
     __v: Optional[int] = None
     title: Optional[str] = None
@@ -45,14 +45,16 @@ class ImageryResult(BaseModel):
     meta_uri: Optional[str] = None
     geojson: Optional[GeoJSON] = None
 
+    model_config = {
+        "populate_by_name": True
+    }
+
 
 class ImageryListResponse(BaseModel):
-    """Response model for GET /projects (list of imagery)"""
     meta: Optional[Meta] = None
     results: List[ImageryResult] = []
 
 
 class ImageryDetailResponse(BaseModel):
-    """Response model for GET /projects/{image_id} (single imagery)"""
     meta: Optional[Meta] = None
     results: Optional[ImageryResult] = None
