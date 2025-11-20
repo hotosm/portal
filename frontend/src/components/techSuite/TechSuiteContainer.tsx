@@ -21,7 +21,7 @@ function SectionDescription({
   children: ReactNode;
 }) {
   return (
-    <div className="relative z-10 mt-o mx-sm lg:ml-2xl">
+    <div className="relative z-10">
       <h3 className="mb-sm">{title}</h3>
       <div className="text-lg">{children}</div>
     </div>
@@ -36,7 +36,7 @@ function TechSuiteContainer() {
 
   const renderProducts = ({ items }: { items: typeof products }) => {
     return (
-      <div className="flex flex-col md:flex-row gap-sm px-sm lg:px-0">
+      <div className="flex flex-col md:flex-row gap-sm md:gap-lg">
         {items.map((product) => {
           return (
             <div>
@@ -44,6 +44,7 @@ function TechSuiteContainer() {
                 title={product.title}
                 description={product.description}
                 icon={product.icon}
+                link={product.href}
               />
             </div>
           );
@@ -56,8 +57,8 @@ function TechSuiteContainer() {
     <div>
       {/* IMAGERY */}
       <div className="relative overflow-hidden">
-        <div className="grid grid-cols-6 grid-rows-[auto_auto_auto] gap-sm lg:gap-2xl">
-          <span className="text-white bg-hot-red-600 col-start-1 col-end-7  row-start-1 row-end-2 py-sm px-md z-10">
+        <div className="grid grid-cols-6 grid-rows-[auto_auto_auto] gap-sm lg:gap-lg">
+          <span className="text-white bg-hot-red-600 col-start-1 col-end-7 row-start-1 row-end-2 py-sm px-md z-10">
             <SectionTitle
               title="
             Aerial Imagery"
@@ -71,13 +72,13 @@ function TechSuiteContainer() {
               }}
             />
           </div>
-          <div className="row-start-3 md:row-start-2 col-start-1 col-end-7 md:col-end-4 lg:col-end-3">
+          <div className="row-start-3 md:row-start-2 col-start-1 col-end-7 md:col-end-4 lg:col-end-3 ml-sm md:ml-lg mr-sm md:mr-0">
             <SectionDescription>
               <p>{m.imagery_p1()}</p>
               <p>{m.imagery_p2()}</p>
             </SectionDescription>
           </div>
-          <div className="row-start-4 md:row-start-3 col-start-1 col-end-7 md:col-end-4 lg:col-end-3 bg-white z-10 p-sm">
+          <div className="row-start-4 md:row-start-3 col-start-1 col-end-7 md:col-end-4 lg:col-end-3 bg-white z-10 p-sm ">
             {renderProducts({
               items: imagery,
             })}
@@ -87,11 +88,11 @@ function TechSuiteContainer() {
 
       {/* MAPPING */}
       <div className="relative overflow-hidden bg-hot-gray-50">
-        <div className="grid grid-cols-6 grid-rows-[auto_auto_auto] gap-sm lg:gap-y-3xl lg:gap-x-2xl">
+        <div className="grid grid-cols-6 grid-rows-[auto_auto_auto] gap-sm lg:gap-y-3xl lg:gap-x-lg">
           <span className="bg-hot-red-600 col-start-1 md:col-start-2 col-end-7  row-start-1 row-end-2 py-sm px-md z-10">
             <SectionTitle title="Geospatial (or map) data" />
           </span>
-          <div className="row-start-2 col-start-1 col-end-7 lg:col-end-3 ">
+          <div className="row-start-2 col-start-1 col-end-7 lg:col-end-3 ml-sm md:ml-lg mr-sm md:mr-0">
             <SectionDescription>
               <p>{m.mapping_p1()}</p>
               <p>{m.mapping_p2()}</p>
@@ -107,11 +108,11 @@ function TechSuiteContainer() {
 
       {/* MAP USE */}
       <div className="relative overflow-hidden">
-        <div className="grid grid-cols-6 grid-rows-[auto_auto_auto] gap-sm lg:gap-2xl">
+        <div className="grid grid-cols-6 grid-rows-[auto_auto_auto] gap-sm lg:gap-lg">
           <span className="bg-hot-red-600 col-start-1 md:col-start-3 col-end-7  row-start-1 row-end-2 py-sm px-md z-10">
             <SectionTitle title="Actionable Insights" />
           </span>
-          <div className="col-start-1 col-end-4 lg:col-end-5 row-start-1 row-end-4 bg-hot-red-50">
+          <div className="col-start-1 col-end-7 md:col-end-4 lg:col-end-5 row-start-1 row-end-3 md:row-end-4 bg-hot-red-50 min-h-[300px]">
             <div
               className="w-full h-full bg-cover bg-left-top grayscale opacity-70"
               style={{
@@ -119,13 +120,13 @@ function TechSuiteContainer() {
               }}
             />
           </div>
-          <div className="row-start-2 col-start-4 lg:col-start-5 col-end-7 ">
+          <div className="row-start-3 md:row-start-2 col-start-1 md:col-start-4 col-end-7 lg:col-start-5 mr-sm md:mr-lg ml-sm md:ml-0">
             <SectionDescription>
               <p>{m.mapUse_p1()}</p>
               <p>{m.mapUse_p2()}</p>
             </SectionDescription>
           </div>
-          <div className="row-start-3 col-start-4 lg:col-start-5 col-end-7 bg-white z-10 p-sm">
+          <div className="row-start-4 md:row-start-3 col-start-1 md:col-start-4 lg:col-start-5 col-end-7 bg-white z-10 p-sm">
             {renderProducts({
               items: mapUse,
             })}
