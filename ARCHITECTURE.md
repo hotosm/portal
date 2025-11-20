@@ -111,6 +111,7 @@ portal/
   - `/api/drone-tm/projects/projectid` - ProjectID data of Drone TM (Drone Tasking Manager)
   - `/api/open-aerial-map/projects` - Return all project of Open Aerial Map
   - `/api/open-aerial-map/imageid` - ImageID data of Open Aerial Map
+  - `/api/open-aerial-map/user/userid` - UserID data of Open Aerial Map
   - `/api/fair/projects` - Return all project of fAIr
   - `/api/field-tm/projects` - Return all project of Field Tasking Manager
   - `/api/field-tm/projectid` - ProjectID data of Field Tasking Manager
