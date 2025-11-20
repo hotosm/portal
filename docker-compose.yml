@@ -1,0 +1,134 @@
+services:
+  # PostgreSQL with PostGIS extension
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: portal-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-portal}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-portal}
+      POSTGRES_DB: ${POSTGRES_DB:-portal}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-portal}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI backend
+  backend:
+    image: ghcr.io/hotosm/portal-backend:latest
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: ${BACKEND_TARGET:-production}
+    container_name: portal-backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-portal}:${POSTGRES_PASSWORD:-portal}@db:5432/${POSTGRES_DB:-portal}
+      DEBUG: ${DEBUG:-false}
+      # Authentication settings
+      HANKO_API_URL: ${HANKO_API_URL:-https://dev.login.hotosm.org}
+      JWT_ISSUER: ${JWT_ISSUER:-auto}
+      COOKIE_SECRET: ${COOKIE_SECRET}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      OSM_CLIENT_ID: ${OSM_CLIENT_ID:-}
+      OSM_CLIENT_SECRET: ${OSM_CLIENT_SECRET:-}
+      OSM_REDIRECT_URI: ${OSM_REDIRECT_URI:-}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    profiles:
+      - prod
+
+  # FastAPI backend (development with hot-reload)
+  backend-dev:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: development
+    container_name: portal-backend-dev
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-portal}:${POSTGRES_PASSWORD:-portal}@db:5432/${POSTGRES_DB:-portal}
+      DEBUG: "true"
+      # Authentication settings (expects login service to be running)
+      HANKO_API_URL: ${HANKO_API_URL:-https://login.hotosm.test}
+      JWT_ISSUER: ${JWT_ISSUER:-https://login.hotosm.test}
+      COOKIE_SECRET: ${COOKIE_SECRET}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      OSM_CLIENT_ID: ${OSM_CLIENT_ID:-}
+      OSM_CLIENT_SECRET: ${OSM_CLIENT_SECRET:-}
+      OSM_REDIRECT_URI: ${OSM_REDIRECT_URI:-}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    profiles:
+      - dev
+
+  # React frontend
+  frontend:
+    image: ghcr.io/hotosm/portal-frontend:latest
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: ${FRONTEND_TARGET:-production}
+    container_name: portal-frontend
+    environment:
+      - VITE_BACKEND_URL=http://backend:8000
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Mount SSL certificates from host
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      # Mount certbot webroot for ACME challenge
+      - /var/www/certbot:/var/www/certbot:ro
+      # Use SSL-enabled nginx config
+      - ./frontend/nginx-ssl.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+    profiles:
+      - prod
+
+  # React frontend (development with hot-reload)
+  frontend-dev:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: portal-frontend-dev
+    environment:
+      - VITE_API_URL=http://localhost:8000
+      - VITE_BACKEND_URL=http://backend-dev:8000
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend-dev
+    profiles:
+      - dev
+
+volumes:
+  postgres_data:
+    name: portal-postgres-data
