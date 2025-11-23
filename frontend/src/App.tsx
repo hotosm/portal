@@ -1,27 +1,8 @@
-import { useEffect } from "react";
-import Lenis from "lenis";
 import Footer from "./components/Footer";
 import Header from "./components/Header";
 import { AppRoutes } from "./routes";
 
 function App() {
-  useEffect(() => {
-    const lenis = new Lenis({
-      duration: 1.2,
-    });
-
-    function raf(time: number) {
-      lenis.raf(time);
-      requestAnimationFrame(raf);
-    }
-
-    requestAnimationFrame(raf);
-
-    return () => {
-      lenis.destroy();
-    };
-  }, []);
-
   return (
     <div className="flex flex-col min-h-screen">
       <div className="h-[100px] flex align-middle">
