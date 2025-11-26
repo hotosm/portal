@@ -113,6 +113,7 @@ portal/
   - `/api/open-aerial-map/imageid` - ImageID data of Open Aerial Map
   - `/api/open-aerial-map/user/userid` - UserID data of Open Aerial Map
   - `/api/fair/projects` - Return all project of fAIr
+  - `/api/fair/projects/user/{userid}` - UserID data of fAIr
   - `/api/field-tm/projects` - Return all project of Field Tasking Manager
   - `/api/field-tm/projectid` - ProjectID data of Field Tasking Manager
   - `/api/umap/{locationid}/{projectid}` - ProjectID data of UMap HOTOSM
