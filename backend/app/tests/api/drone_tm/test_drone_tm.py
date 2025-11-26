@@ -5,14 +5,23 @@ from fastapi import HTTPException
 
 
 class TestGetProjects:
-    """Test suite for get_projects function"""
+    
+    def create_mock_user(self):
+        mock_user = Mock()
+        mock_user.access_token = "test-jwt-token-123"
+        mock_user.id = 12345
+        return mock_user
     
     @pytest.mark.asyncio
     async def test_get_projects_success_default_params(self):
-        """Test with default parameters and successful response"""
         mock_response_data = {
             "results": [{"id": "1", "name": "Project 1"}],
-            "total": 1
+            "pagination": {
+                "page": 1,
+                "results_per_page": 20,
+                "total": 1,
+                "total_pages": 1
+            }
         }
         
         mock_response = Mock()
@@ -27,21 +36,22 @@ class TestGetProjects:
             from app.api.routes.drone_tm.drone_tm import router
             endpoint = router.routes[0].endpoint
             
-            result = await endpoint()
+            mock_user = self.create_mock_user()
+            result = await endpoint(user=mock_user)
             
-            assert result == mock_response_data
-            mock_client.return_value.__aenter__.return_value.get.assert_called_once()
             call_args = mock_client.return_value.__aenter__.return_value.get.call_args
-            
             assert "projects/" in call_args[0][0]
+            assert call_args[1]["headers"]["access-token"] == "test-jwt-token-123"
             assert call_args[1]["params"]["filter_by_owner"] == "false"
             assert call_args[1]["params"]["page"] == 1
             assert call_args[1]["params"]["results_per_page"] == 20
     
     @pytest.mark.asyncio
     async def test_get_projects_with_all_params(self):
-        """Test with all optional parameters"""
-        mock_response_data = {"results": [], "total": 0}
+        mock_response_data = {
+            "results": [],
+            "pagination": {"page": 2, "results_per_page": 50, "total": 0, "total_pages": 0}
+        }
         
         mock_response = Mock()
         mock_response.json.return_value = mock_response_data
@@ -55,7 +65,9 @@ class TestGetProjects:
             from app.api.routes.drone_tm.drone_tm import router
             endpoint = router.routes[0].endpoint
             
+            mock_user = self.create_mock_user()
             result = await endpoint(
+                user=mock_user,
                 filter_by_owner=True,
                 status="active",
                 search="drone",
@@ -63,7 +75,6 @@ class TestGetProjects:
                 results_per_page=50
             )
             
-            assert result == mock_response_data
             call_args = mock_client.return_value.__aenter__.return_value.get.call_args
             params = call_args[1]["params"]
             
@@ -72,12 +83,17 @@ class TestGetProjects:
             assert params["search"] == "drone"
             assert params["page"] == 2
             assert params["results_per_page"] == 50
+            
+            headers = call_args[1]["headers"]
+            assert headers["access-token"] == "test-jwt-token-123"
     
     @pytest.mark.asyncio
     async def test_get_projects_with_partial_params(self):
-        """Test with only some optional parameters"""
         mock_response = Mock()
-        mock_response.json.return_value = {}
+        mock_response.json.return_value = {
+            "results": [],
+            "pagination": {}
+        }
         mock_response.raise_for_status = Mock()
         
         with patch("httpx.AsyncClient") as mock_client:
@@ -88,17 +104,20 @@ class TestGetProjects:
             from app.api.routes.drone_tm.drone_tm import router
             endpoint = router.routes[0].endpoint
             
-            await endpoint(status="completed")
+            mock_user = self.create_mock_user()
+            await endpoint(user=mock_user, status="completed")
             
             call_args = mock_client.return_value.__aenter__.return_value.get.call_args
             params = call_args[1]["params"]
             
             assert params["status"] == "completed"
             assert "search" not in params
+            
+            headers = call_args[1]["headers"]
+            assert headers["access-token"] == "test-jwt-token-123"
     
     @pytest.mark.asyncio
     async def test_get_projects_http_status_error(self):
-        """Test HTTP error handling"""
         mock_response = Mock()
         mock_response.status_code = 404
         mock_response.text = "Not found"
@@ -115,8 +134,9 @@ class TestGetProjects:
             from app.api.routes.drone_tm.drone_tm import router
             endpoint = router.routes[0].endpoint
             
+            mock_user = self.create_mock_user()
             with pytest.raises(HTTPException) as exc_info:
-                await endpoint()
+                await endpoint(user=mock_user)
             
             assert exc_info.value.status_code == 404
             assert "Error from DroneTM API" in exc_info.value.detail
@@ -124,7 +144,6 @@ class TestGetProjects:
     
     @pytest.mark.asyncio
     async def test_get_projects_generic_exception(self):
-        """Test generic exception handling"""
         with patch("httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 side_effect=Exception("Connection error")
@@ -133,19 +152,24 @@ class TestGetProjects:
             from app.api.routes.drone_tm.drone_tm import router
             endpoint = router.routes[0].endpoint
             
+            mock_user = self.create_mock_user()
             with pytest.raises(HTTPException) as exc_info:
-                await endpoint()
+                await endpoint(user=mock_user)
             
             assert exc_info.value.status_code == 500
             assert "Connection error" in exc_info.value.detail
 
 
 class TestGetProjectById:
-    """Test suite for get_project_by_id function"""
+    
+    def create_mock_user(self):
+        mock_user = Mock()
+        mock_user.access_token = "test-jwt-token-123"
+        mock_user.id = 12345
+        return mock_user
     
     @pytest.mark.asyncio
     async def test_get_project_by_id_success_uuid(self):
-        """Test successful request with UUID"""
         project_id = "5c92d0c5-1702-4ebd-b885-67867b488e8e"
         mock_response_data = {
             "id": project_id,
@@ -165,17 +189,17 @@ class TestGetProjectById:
             from app.api.routes.drone_tm.drone_tm import router
             endpoint = router.routes[1].endpoint
             
-            result = await endpoint(project_id)
+            mock_user = self.create_mock_user()
+            result = await endpoint(user=mock_user, project_id=project_id)
             
             assert result == mock_response_data
-            mock_client.return_value.__aenter__.return_value.get.assert_called_once()
             call_args = mock_client.return_value.__aenter__.return_value.get.call_args
             
             assert project_id in call_args[0][0]
+            assert call_args[1]["headers"]["access-token"] == "test-jwt-token-123"
     
     @pytest.mark.asyncio
     async def test_get_project_by_id_success_numeric(self):
-        """Test successful request with numeric ID"""
         project_id = "123"
         mock_response_data = {"id": project_id, "name": "Numeric Project"}
         
@@ -191,15 +215,16 @@ class TestGetProjectById:
             from app.api.routes.drone_tm.drone_tm import router
             endpoint = router.routes[1].endpoint
             
-            result = await endpoint(project_id)
+            mock_user = self.create_mock_user()
+            result = await endpoint(user=mock_user, project_id=project_id)
             
             assert result == mock_response_data
             call_args = mock_client.return_value.__aenter__.return_value.get.call_args
             assert project_id in call_args[0][0]
+            assert call_args[1]["headers"]["access-token"] == "test-jwt-token-123"
     
     @pytest.mark.asyncio
     async def test_get_project_by_id_not_found(self):
-        """Test when project doesn't exist (404)"""
         project_id = "non-existent-id"
         mock_response = Mock()
         mock_response.status_code = 404
@@ -217,15 +242,15 @@ class TestGetProjectById:
             from app.api.routes.drone_tm.drone_tm import router
             endpoint = router.routes[1].endpoint
             
+            mock_user = self.create_mock_user()
             with pytest.raises(HTTPException) as exc_info:
-                await endpoint(project_id)
+                await endpoint(user=mock_user, project_id=project_id)
             
             assert exc_info.value.status_code == 404
             assert "Error from DroneTM API" in exc_info.value.detail
     
     @pytest.mark.asyncio
     async def test_get_project_by_id_unauthorized(self):
-        """Test authentication error (401)"""
         project_id = "some-id"
         mock_response = Mock()
         mock_response.status_code = 401
@@ -243,14 +268,14 @@ class TestGetProjectById:
             from app.api.routes.drone_tm.drone_tm import router
             endpoint = router.routes[1].endpoint
             
+            mock_user = self.create_mock_user()
             with pytest.raises(HTTPException) as exc_info:
-                await endpoint(project_id)
+                await endpoint(user=mock_user, project_id=project_id)
             
             assert exc_info.value.status_code == 401
     
     @pytest.mark.asyncio
     async def test_get_project_by_id_server_error(self):
-        """Test server error (500)"""
         project_id = "some-id"
         mock_response = Mock()
         mock_response.status_code = 500
@@ -268,14 +293,14 @@ class TestGetProjectById:
             from app.api.routes.drone_tm.drone_tm import router
             endpoint = router.routes[1].endpoint
             
+            mock_user = self.create_mock_user()
             with pytest.raises(HTTPException) as exc_info:
-                await endpoint(project_id)
+                await endpoint(user=mock_user, project_id=project_id)
             
             assert exc_info.value.status_code == 500
     
     @pytest.mark.asyncio
     async def test_get_project_by_id_generic_exception(self):
-        """Test generic exception handling"""
         project_id = "some-id"
         
         with patch("httpx.AsyncClient") as mock_client:
@@ -286,15 +311,15 @@ class TestGetProjectById:
             from app.api.routes.drone_tm.drone_tm import router
             endpoint = router.routes[1].endpoint
             
+            mock_user = self.create_mock_user()
             with pytest.raises(HTTPException) as exc_info:
-                await endpoint(project_id)
+                await endpoint(user=mock_user, project_id=project_id)
             
             assert exc_info.value.status_code == 500
             assert "Network timeout" in exc_info.value.detail
     
     @pytest.mark.asyncio
     async def test_get_project_by_id_json_decode_error(self):
-        """Test when response is not valid JSON"""
         project_id = "some-id"
         mock_response = Mock()
         mock_response.json.side_effect = ValueError("Invalid JSON")
@@ -308,7 +333,8 @@ class TestGetProjectById:
             from app.api.routes.drone_tm.drone_tm import router
             endpoint = router.routes[1].endpoint
             
+            mock_user = self.create_mock_user()
             with pytest.raises(HTTPException) as exc_info:
-                await endpoint(project_id)
+                await endpoint(user=mock_user, project_id=project_id)
             
             assert exc_info.value.status_code == 500

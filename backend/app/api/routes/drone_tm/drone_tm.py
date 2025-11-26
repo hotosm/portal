@@ -1,5 +1,5 @@
 import httpx
-from fastapi import APIRouter, HTTPException, Path, Request
+from fastapi import APIRouter, HTTPException, Path
 from typing import Optional
 
 from hotosm_auth.integrations.fastapi import CurrentUser
@@ -30,11 +30,10 @@ async def get_projects(
         "Accept": "application/json",
     }
 
-    jwt = await call_next(request)
     async with httpx.AsyncClient() as client:
         try:
             if not fetch_all:
-                params = jwt + {
+                params = {
                     "filter_by_owner": str(filter_by_owner).lower(),
                     "page": page,
                     "results_per_page": results_per_page,
@@ -45,9 +44,8 @@ async def get_projects(
                     params["search"] = search
 
                 response = await client.get(url, headers=headers, params=params)
-
                 response.raise_for_status()
-                return jwt + response.json()
+                return response.json()
 
             else:
                 all_results = []
@@ -79,7 +77,7 @@ async def get_projects(
 
                     current_page += 1
 
-                return jwt + {
+                return {
                     "results": all_results,
                     "pagination": {
                         "page": 1,
