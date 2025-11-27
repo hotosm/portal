@@ -36,6 +36,14 @@ declare module "react" {
         },
         HTMLElement
       >;
+
+      // HOTOSM Shared Menu component
+      "hotosm-shared-menu": React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement> & {
+          color?: string;
+        },
+        HTMLElement
+      >;
     }
   }
 }
