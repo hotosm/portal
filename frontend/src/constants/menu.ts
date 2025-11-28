@@ -48,21 +48,6 @@ export const MAIN_MENU_ITEMS: MenuItem[] = [
   }, */
 ];
 
-export const USER_MENU_ITEMS: MenuItem[] = [
-  {
-    id: "profile",
-    label: "My Profile",
-    href: "/profile",
-    requiresAuth: true,
-  },
-  {
-    id: "logout",
-    label: "Sign Out",
-    href: "/logout",
-    requiresAuth: true,
-  },
-];
-
 export const getVisibleMenuItems = (
   items: MenuItem[],
   isAuthenticated = false
