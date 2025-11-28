@@ -16,23 +16,22 @@ function Header() {
     <>
       <div className="w-full flex gap-sm md:gap-xl py-md px-lg md:px-2xl justify-between items-center">
         <div className="flex gap-xl items-center">
+          {isLogin && (
+            <div className="block lg:hidden">
+              <DrawerMenu />
+            </div>
+          )}
+
           <Link to="/">
             <img
               src={hotLogo}
               alt="HOT Logo"
-              style={{
-                height: "40px",
-                minWidth: "158px",
-              }}
+              className="h-[40px] w-[64px] lg:w-[158px] object-cover object-left lg:object-contain"
             />
           </Link>
-          {/* mobile navigation */}
-          <div className="block md:hidden">
-            <DrawerMenu />
-          </div>
 
           {/* desktop navigation */}
-          <div className="hidden md:block">
+          <div className="hidden lg:block">
             {isLogin ? (
               <NavigationMain />
             ) : (
@@ -45,10 +44,7 @@ function Header() {
 
         <div className="flex gap-md items-center">
           <LanguageSwitcher />
-          <div className="hidden sm:block">
-            <hotosm-auth osm-required />
-          </div>
-
+          <hotosm-auth osm-required />
           <hotosm-shared-menu />
         </div>
       </div>

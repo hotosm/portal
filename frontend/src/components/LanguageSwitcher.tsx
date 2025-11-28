@@ -14,7 +14,7 @@ function LanguageSwitcher() {
 
   return (
     <Dropdown onSelect={handleLanguageSelect}>
-      <Button slot="trigger" appearance="plain">
+      <Button slot="trigger" appearance="outlined">
         {getAvailableLangs(currentLanguage)}
       </Button>
       {availableLanguages.map((lang: Locale) => (
