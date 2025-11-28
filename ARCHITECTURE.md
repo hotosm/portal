@@ -117,6 +117,8 @@ portal/
   - `/api/field-tm/projects` - Return all project of Field Tasking Manager
   - `/api/field-tm/projectid` - ProjectID data of Field Tasking Manager
   - `/api/umap/{locationid}/{projectid}` - ProjectID data of UMap HOTOSM
+  - `/api/umap/user/{username}/templates` - UMap user templates
+  - `/api/umap//template/{map_id}/datalayer/{datalayer_id}`- UMap template data layer
 
 ### Frontend Architecture
 - **Component composition**: Small, reusable components
