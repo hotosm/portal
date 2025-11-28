@@ -125,7 +125,7 @@ jobs:
           docker build -t ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-frontend:latest \
             -t ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-frontend:${{ github.sha }} \
             --target production \
-            --build-arg VITE_HANKO_URL=https://login.hotosm.org \
+            --build-arg VITE_HANKO_URL=https://dev.login.hotosm.org \
             --build-arg BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
             --no-cache \
             --pull \
