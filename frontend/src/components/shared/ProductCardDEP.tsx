@@ -19,7 +19,7 @@ function ProductCard({
       <a href={href} className="block p-6 h-full relative hover:no-underline">
         <div className="h-full min-h-[120px]">
           <div slot="header">
-            <h3 className="font-barlow text-2xl leading-none mb-sm">{title}</h3>
+            <h3 className="text-2xl leading-none mb-sm">{title}</h3>
             <p className="text-lg">{subtitle}</p>
           </div>
         </div>
