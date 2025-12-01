@@ -35,7 +35,7 @@ function Header() {
             {isLogin ? (
               <NavigationMain />
             ) : (
-              <span className="hidden lg:block font-barlow-condensed text-lg leading-none xl:text-xl uppercase">
+              <span className="hidden lg:block text-lg leading-none xl:text-xl uppercase">
                 {m.header_tagline()}
               </span>
             )}
