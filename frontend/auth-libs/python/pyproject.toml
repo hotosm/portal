@@ -1,0 +1,79 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "hotosm-auth"
+version = "0.1.0"
+description = "HOTOSM SSO authentication library for Hanko + OSM OAuth"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "GPL-3.0-or-later" }
+authors = [
+    { name = "HOTOSM", email = "sysadmin@hotosm.org" },
+]
+keywords = ["authentication", "sso", "hanko", "openstreetmap", "oauth"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Framework :: FastAPI",
+    "Framework :: Django",
+]
+
+dependencies = [
+    "pyjwt[crypto]>=2.8.0",
+    "httpx>=0.25.0",
+    "cryptography>=41.0.0",
+    "pydantic>=2.0.0",
+    "python-dateutil>=2.8.0",
+]
+
+[project.optional-dependencies]
+fastapi = [
+    "fastapi>=0.104.0",
+]
+django = [
+    "django>=4.2.0",
+]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.5.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/hotosm/login"
+Documentation = "https://github.com/hotosm/login/blob/main/README.md"
+Repository = "https://github.com/hotosm/login"
+Issues = "https://github.com/hotosm/login/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/hotosm_auth"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.black]
+line-length = 88
+target-version = ['py310']
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+select = ["E", "F", "I", "N", "W"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true

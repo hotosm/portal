@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Force all HTTP requests to be upgraded to HTTPS -->
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+    <!-- Favicon (matching official HOT website) -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#d73f3f" />
+    <meta name="msapplication-TileColor" content="#d73f3f" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Hanko Authentication Configuration -->
+    <script>
+      // Set Hanko URL from environment variable (replaced by Vite at build time)
+      window.HANKO_URL = '%VITE_HANKO_URL%';
+      console.log('🔧 Hanko URL configured:', window.HANKO_URL);
+    </script>
+
+    <title>HOT Portal</title>
+    <meta
+      name="description"
+      content="A unified entry point for the HOT Tech Suite ecosystem"
+    />
+    <meta
+      name="keywords"
+      content="HOT, humanitarian, mapping, OpenStreetMap, geospatial"
+    />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="HOT Portal" />
+    <meta
+      property="og:description"
+      content="A unified entry point for the HOT Tech Suite ecosystem"
+    />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:title" content="HOT Portal" />
+    <meta
+      property="twitter:description"
+      content="A unified entry point for the HOT Tech Suite ecosystem"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
