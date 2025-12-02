@@ -1,12 +1,13 @@
 import { Link } from "react-router-dom";
 import "../../web-components/shared-menu/sharedMenu.component";
-import hotLogo from "../assets/images/hot-logo.svg";
+import hotLogo from "../assets/images/hot-icon.svg";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { m } from "../paraglide/messages";
 import DrawerMenu from "./DrawerMenu";
 import LanguageSwitcher from "./LanguageSwitcher";
 import NavigationMain from "./NavigationMain";
+import Divider from "./shared/Divider";
 
 function Header() {
   const { isLogin } = useAuth();
@@ -21,14 +22,16 @@ function Header() {
               <DrawerMenu />
             </div>
           )}
-
-          <Link to="/">
-            <img
-              src={hotLogo}
-              alt="HOT Logo"
-              className="h-[40px] w-[64px] lg:w-[158px] object-cover object-left lg:object-contain"
-            />
-          </Link>
+          <div className="flex items-center gap-2 font-black text-xl">
+            <Link to="/">
+              <img
+                src={hotLogo}
+                alt="HOT Logo"
+                className="h-[40px] w-[64px] object-cover object-left lg:object-contain"
+              />
+            </Link>
+            <span className="uppercase">Portal</span>
+          </div>
 
           {/* desktop navigation */}
           <div className="hidden lg:block">
@@ -43,8 +46,8 @@ function Header() {
         </div>
 
         <div className="flex gap-md items-center">
-          <LanguageSwitcher />
           <hotosm-auth osm-required />
+          <LanguageSwitcher />
           <hotosm-shared-menu />
         </div>
       </div>

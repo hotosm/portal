@@ -8,7 +8,15 @@
 import { LitElement, html } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import "@awesome.me/webawesome";
+import { registerIconLibrary } from "@awesome.me/webawesome/dist/webawesome.js";
 import { styles } from "./sharedMenu.styles";
+
+// Register Bootstrap Icons library
+registerIconLibrary("bootstrap", {
+  resolver: (name) => {
+    return `https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/icons/${name}.svg`;
+  },
+});
 
 // Import product icons
 import droneIcon from "./assets/icon-drone.png";
@@ -139,11 +147,11 @@ export class SharedMenu extends LitElement {
         <wa-button
           slot="trigger"
           appearance="plain"
-          size="small"
           aria-label="Open products menu"
         >
           <wa-icon
-            name="grip"
+            library="bootstrap"
+            name="grid-3x3-gap-fill"
             style="color: ${this.color || "#333333"}"
           ></wa-icon>
         </wa-button>
