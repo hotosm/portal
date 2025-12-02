@@ -44,79 +44,83 @@ function HomePage() {
   return (
     <div>
       {/* Map Section */}
-      <div className="h-[calc(100vh_-_100px)] px-lg md:px-2xl pb-lg md:pb-2xl relative">
-        <ProjectsMap
-          mapResults={projectsData}
-          selectedProjectId={selectedProjectId}
-          onProjectClick={handleProjectClick}
-          onCloseDetails={() => setSelectedProjectId(null)}
-        />
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/10 backdrop-blur-sm">
-            <p>{m.loading_projects()}...</p>
-          </div>
-        )}
-        {/* TODO customize error message */}
-        {error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/80">
-            <p>{m.loading_projects_error()}</p>
-          </div>
-        )}
-      </div>
+      <div className="h-[calc(100vh_-_100px)] flex flex-col">
+        <div className="flex-1 relative">
+          <ProjectsMap
+            mapResults={projectsData}
+            selectedProjectId={selectedProjectId}
+            onProjectClick={handleProjectClick}
+            onCloseDetails={() => setSelectedProjectId(null)}
+          />
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-white/10 backdrop-blur-sm">
+              <p>{m.loading_projects()}...</p>
+            </div>
+          )}
+          {/* TODO customize error message */}
+          {error && (
+            <div className="absolute inset-0 flex items-center justify-center bg-white/80">
+              <p>{m.loading_projects_error()}</p>
+            </div>
+          )}
+        </div>
 
-      <div className="text-center relative py-3xl">
-        {/* TODO replace with HOT resources */}
-        <svg
-          className="absolute bottom-0 inset-0 w-full h-full -z-10"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <defs>
-            <pattern
-              id="dot-pattern"
-              x="0"
-              y="0"
-              width="20"
-              height="20"
-              patternUnits="userSpaceOnUse"
-            >
-              <circle cx="6" cy="6" r="4" fill="#f1f0f0c3" />
-              <circle cx="18" cy="18" r="4" fill="#f1f0f0c3" />
-            </pattern>
-            <linearGradient
-              id="fade-gradient"
-              x1="100%"
-              y1="100%"
-              x2="0%"
-              y2="0%"
-            >
-              <stop offset="0%" stopColor="white" stopOpacity="1" />
-              <stop offset="100%" stopColor="white" stopOpacity="0" />
-            </linearGradient>
-            <mask id="fade-mask">
-              <rect
+        <div className="text-center relative py-lg lg:py-xl flex-shrink-0 px-lg md:px-2xl">
+          {/* TODO replace with HOT resources */}
+          <svg
+            className="absolute bottom-0 inset-0 w-full h-full -z-10"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <defs>
+              <pattern
+                id="dot-pattern"
                 x="0"
                 y="0"
-                width="100%"
-                height="100%"
-                fill="url(#fade-gradient)"
-              />
-            </mask>
-          </defs>
-          <rect
-            x="0"
-            y="0"
-            width="100%"
-            height="100%"
-            fill="url(#dot-pattern)"
-            mask="url(#fade-mask)"
-          />
-        </svg>
-        <h2>{m.home_workflow_header()}</h2>
-        <p className="text-xl">
-          {m.home_workflow_p1()}
-          <br />
-          {m.home_workflow_p2()}
-        </p>
+                width="20"
+                height="20"
+                patternUnits="userSpaceOnUse"
+              >
+                <circle cx="6" cy="6" r="4" fill="#f1f0f0c3" />
+                <circle cx="18" cy="18" r="4" fill="#f1f0f0c3" />
+              </pattern>
+              <linearGradient
+                id="fade-gradient"
+                x1="100%"
+                y1="100%"
+                x2="0%"
+                y2="0%"
+              >
+                <stop offset="0%" stopColor="white" stopOpacity="1" />
+                <stop offset="100%" stopColor="white" stopOpacity="0" />
+              </linearGradient>
+              <mask id="fade-mask">
+                <rect
+                  x="0"
+                  y="0"
+                  width="100%"
+                  height="100%"
+                  fill="url(#fade-gradient)"
+                />
+              </mask>
+            </defs>
+            <rect
+              x="0"
+              y="0"
+              width="100%"
+              height="100%"
+              fill="url(#dot-pattern)"
+              mask="url(#fade-mask)"
+            />
+          </svg>
+          <p className="text-2xl lg:text-3xl font-bold leading-tight ">
+            {m.home_workflow_header()}
+          </p>
+          <p className="text-lg md:text-xl leading-tight mb-0">
+            {m.home_workflow_p1()}
+            <br />
+            {m.home_workflow_p2()}
+          </p>
+        </div>
       </div>
 
       {/* Tech Suite */}

@@ -4,6 +4,7 @@ import { getAvailableLangs } from "../utils/languages";
 import Button from "./shared/Button";
 import Dropdown from "./shared/Dropdown";
 import DropdownItem from "./shared/DropdownItem";
+import Icon from "./shared/Icon";
 function LanguageSwitcher() {
   const { currentLanguage, setLanguage, availableLanguages } = useLanguage();
 
@@ -14,8 +15,10 @@ function LanguageSwitcher() {
 
   return (
     <Dropdown onSelect={handleLanguageSelect}>
-      <Button slot="trigger" appearance="outlined">
-        {getAvailableLangs(currentLanguage)}
+      <Button slot="trigger" appearance="plain">
+        <Icon library="bootstrap" name="translate">
+          {getAvailableLangs(currentLanguage)}
+        </Icon>
       </Button>
       {availableLanguages.map((lang: Locale) => (
         <DropdownItem key={lang} value={lang}>
