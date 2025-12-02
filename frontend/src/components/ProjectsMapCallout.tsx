@@ -21,9 +21,10 @@ export function ProjectsMapCallout({
     return (
       <>
         <div className="flex justify-between items-start">
-          <h3>Loading...</h3>
+          <span></span>
           <Icon name="close" onClick={onClose}></Icon>
         </div>
+        <p className="text-xl leading-tight">Loading...</p>
         <div className="flex items-center justify-center h-[400px]">
           <p className="text-hot-gray-600">Loading project details...</p>
         </div>
@@ -38,13 +39,13 @@ export function ProjectsMapCallout({
   const description = projectInfo?.description;
   return (
     <>
-      <div className="flex justify-between items-start">
-        <h3>{projectName}</h3>
+      <div className="flex justify-between items-start text-sm">
+        <span>
+          <strong>Project ID:</strong> #{projectId}
+        </span>
         <Icon name="close" onClick={onClose}></Icon>
       </div>
-      <div className="text-sm text-hot-gray-600 mb-2">
-        <strong>Project ID:</strong> #{projectId}
-      </div>
+      <p className="text-xl leading-tight">{projectName}</p>
       {organisationName && (
         <div className="text-sm text-hot-gray-600 mb-2">
           <strong>Organisation:</strong> {organisationName}

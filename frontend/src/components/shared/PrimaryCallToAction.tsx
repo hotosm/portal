@@ -13,7 +13,7 @@ function PrimaryCallToAction({ data }: PrimaryCallToActionProps) {
       appearance="filled"
     >
       <h2 slot="header">{data.title}</h2>
-      <p className="text-3xl font-barlow-light leading-tight">
+      <p className="text-3xl leading-tight">
         {data.description}{" "}
         <span className="font-bold">{data.descriptionHightlight}</span>
       </p>
