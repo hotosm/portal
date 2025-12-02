@@ -4,8 +4,6 @@ import { useAuth } from "../contexts/AuthContext";
 import AuthTest from "../pages/AuthTest";
 import HomePage from "../pages/HomePage";
 import ImageryPage from "../portal-imagery/ImageryPage";
-import LandingPage from "../pages/LandingPage";
-// LoginPage import removed - login is now handled by separate login-frontend service at /login
 import ProfilePage from "../pages/ProfilePage";
 import DroneTMProjectsPage from "../pages/DroneTMProjectsPage";
 import MappingPage from "../portal-mapping/MappingPage";
@@ -13,15 +11,6 @@ import FieldPage from "../portal-field/FieldPage";
 import DataPage from "../portal-data/DataPage";
 import MapUsePage from "../portal-mapuse/MapUsePage";
 
-// TODO logged out page layout
-function LogoutPage() {
-  return (
-    <div>
-      <h1>Logging out...</h1>
-      <p>You have been successfully logged out.</p>
-    </div>
-  );
-}
 // TODO not found page layout
 function NotFoundPage() {
   return <div>Page not found</div>;
@@ -32,6 +21,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isLogin } = useAuth();
 
   // TODO check layout if necessary
+  // menuItemId is accepted for pages that want to indicate the active main navigation item.
+  // It's currently unused here but kept for typing compatibility.
   if (!isLogin) {
     return (
       <div className="text-center py-16">
@@ -48,18 +39,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// Component to handle main navigation routes with different CTAs
-function MainNavRoute({
-  children,
-  menuItemId,
-}: {
-  children: React.ReactNode;
-  menuItemId: string;
-}) {
-  const { isLogin } = useAuth();
-  // TODO check if this will remain
-  return isLogin ? <>{children}</> : <LandingPage menuItemId={menuItemId} />;
-}
+// Main navigation routes use the same protection as ProtectedRoute
+const MainNavRoute = ProtectedRoute;
 
 export function AppRoutes() {
   return (
@@ -77,7 +58,7 @@ export function AppRoutes() {
             <Route
               path="/mapping"
               element={
-                <MainNavRoute menuItemId="mapping">
+                <MainNavRoute>
                   <MappingPage />
                 </MainNavRoute>
               }
@@ -85,7 +66,7 @@ export function AppRoutes() {
             <Route
               path="/imagery"
               element={
-                <MainNavRoute menuItemId="imagery">
+                <MainNavRoute>
                   <ImageryPage />
                 </MainNavRoute>
               }
@@ -93,7 +74,7 @@ export function AppRoutes() {
             <Route
               path="/field"
               element={
-                <MainNavRoute menuItemId="field">
+                <MainNavRoute>
                   <FieldPage />
                 </MainNavRoute>
               }
@@ -101,7 +82,7 @@ export function AppRoutes() {
             <Route
               path="/data"
               element={
-                <MainNavRoute menuItemId="data">
+                <MainNavRoute>
                   <DataPage />
                 </MainNavRoute>
               }
@@ -109,15 +90,11 @@ export function AppRoutes() {
             <Route
               path="/mapuse"
               element={
-                <MainNavRoute menuItemId="mapuse">
+                <MainNavRoute>
                   <MapUsePage />
                 </MainNavRoute>
               }
             />
-
-            {/* Authentication routes */}
-            {/* /login route removed - now handled by separate login-frontend service */}
-            <Route path="/logout" element={<LogoutPage />} />
 
             {/* Protected user routes */}
             <Route

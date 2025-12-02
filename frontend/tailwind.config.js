@@ -57,9 +57,6 @@ export default {
       // HOT Official Typography
       fontFamily: {
         sans: ["var(--hot-font-sans)"],
-        barlow: ["var(--hot-font-sans-variant)"],
-        "barlow-light": ["var(--hot-font-sans-variant-light)"],
-        "barlow-condensed": ["var(--hot-font-sans-variant-condensed)"],
         serif: ["var(--hot-font-sefif)"],
         mono: ["var(--hot-font-mono)"],
       },

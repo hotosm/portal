@@ -5,6 +5,8 @@ import ImageryCard from "./components/ImageryCard";
 import { getImageryProjects } from "./imageryProjects";
 import { useHasProjects } from "../hooks/useHasProjects";
 import Switch from "../components/shared/Switch";
+import YourProjectsTitle from "../components/shared/YourProjectsTitle";
+import { m } from "../paraglide/messages";
 
 function ImageryPage() {
   const { hasProjects, toggleHasProjects } = useHasProjects();
@@ -41,21 +43,18 @@ function ImageryPage() {
         {!hasProjects ? (
           <ImageryNoProjects />
         ) : (
-          <div className="bg-hot-gray-50 p-md items-center rounded-lg space-y-xl">
-            <div>
-              <p className="text-lg ">
-                Your <strong>projects</strong>
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-lg">
-                {droneProjects.map((project) => {
-                  return <ImageryCard project={project} />;
-                })}
-              </div>
+          <div className="bg-hot-gray-50 p-md md:p-lg rounded-lg space-y-lg">
+            <YourProjectsTitle projects={droneProjects} />
+
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-lg">
+              {droneProjects.map((project) => {
+                return <ImageryCard project={project} />;
+              })}
             </div>
 
             <div>
               <p className="text-lg ">
-                Your <strong>imagery</strong>
+                {m.your_plural()} <strong>{m.imagery()}</strong>
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-lg">
                 {oamProjects.map((project) => {

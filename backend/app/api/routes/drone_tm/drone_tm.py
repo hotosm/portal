@@ -5,6 +5,7 @@ from app.models.drone_tm import DroneTMProjectsResponse, DroneTMProject
 
 HOTOSM_API_BASE_URL = "https://dronetm.org/api"
 
+# Enter the access token in DRONETM_TOKEN
 DRONETM_TOKEN = ""
 
 router = APIRouter(prefix="/drone-tm")
