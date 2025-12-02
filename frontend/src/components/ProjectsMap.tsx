@@ -222,7 +222,7 @@ export function ProjectsMap({
       center: [0, 0],
       zoom: 1.5,
       attributionControl: false,
-      scrollZoom: false, // Disable mouse wheel zoom
+      scrollZoom: true, //  mouse wheel zoom
     });
 
     map.current.addControl(
@@ -301,12 +301,9 @@ export function ProjectsMap({
   return (
     <div className="relative w-full h-full">
       <ProjectsMapSearchBox map={map.current} position="top-right" />
-      <div
-        ref={mapContainer}
-        className="w-full h-full rounded-xl overflow-hidden"
-      />
+      <div ref={mapContainer} className="w-full h-full overflow-hidden" />
       {selectedProjectId && (
-        <div className="absolute top-0 right-0 bg-white p-lg rounded-lg border border-hot-gray-100 max-h-[84vh] z-10 animate-in w-[250px] sm:w-[320px] slide-in-from-right duration-300 overflow-y-auto">
+        <div className="absolute top-0 right-0 h-full bg-white p-lg border border-hot-gray-100 z-10 animate-in w-[250px] sm:w-[340px] slide-in-from-right duration-300 overflow-y-auto">
           <ProjectsMapCallout
             projectId={selectedProjectId}
             onViewDetails={() => {
