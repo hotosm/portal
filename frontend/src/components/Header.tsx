@@ -7,7 +7,6 @@ import { m } from "../paraglide/messages";
 import DrawerMenu from "./DrawerMenu";
 import LanguageSwitcher from "./LanguageSwitcher";
 import NavigationMain from "./NavigationMain";
-import Divider from "./shared/Divider";
 
 function Header() {
   const { isLogin } = useAuth();
