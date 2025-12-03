@@ -45,7 +45,7 @@ function Header() {
         </div>
 
         <div className="flex gap-md items-center">
-          <hotosm-auth osm-required />
+          <hotosm-auth osm-required redirect-after-logout="/" />
           <LanguageSwitcher />
           <hotosm-shared-menu />
         </div>
