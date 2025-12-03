@@ -9,7 +9,7 @@ from hotosm_auth.integrations.fastapi import init_auth
 
 from app.api.routes import example, test
 from app.api.routes.tasking_manager import tasking_manager
-from app.api.routes.drone_tm import drone_tm
+from app.api.routes.drone_tasking_manager import drone_tasking_manager
 from app.api.routes.open_aerial_map import open_aerial_map
 from app.api.routes.fair import fair
 from app.api.routes.field_tm import field_tm
@@ -115,7 +115,7 @@ app.include_router(
 )
 
 app.include_router(
-    drone_tm.router,
+    drone_tasking_manager.router,
     prefix=settings.api_v1_prefix,
     tags=["drone tasking manager"],
 )
