@@ -18,7 +18,6 @@ const ImageryCard = ({ project }: ImageryCardProps) => {
           alt={project.title}
           className="w-full h-48 object-cover rounded"
           onError={(e) => {
-            // Fallback si la imagen no carga (MinIO URLs expiradas)
             e.currentTarget.src = 'https://via.placeholder.com/400x300?text=No+Image';
           }}
         />
