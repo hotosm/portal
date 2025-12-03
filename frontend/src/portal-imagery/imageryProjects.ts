@@ -1,11 +1,3 @@
-import demo1 from "../assets/images/demo/demo1.png";
-import demo2 from "../assets/images/demo/demo2.png";
-import demo3 from "../assets/images/demo/demo3.png";
-import oam1 from "../assets/images/demo/oam1.png";
-import oam2 from "../assets/images/demo/oam2.png";
-import oam3 from "../assets/images/demo/oam3.png";
-import oam4 from "../assets/images/demo/oam4.png";
-
 export interface IImageryProject {
   id: number;
   title: string;
@@ -14,58 +6,89 @@ export interface IImageryProject {
   image: string;
 }
 
-export function getImageryProjects(): IImageryProject[] {
-  return [
-    {
-      id: 1,
-      title: "Formation de la communauté d'OSM Morocco : Laayoune",
-      href: "/",
-      section: "drone",
-      image: demo1,
-    },
-    {
-      id: 2,
-      title: "Serbia - Novi Pazar Sustainable Development Project",
-      href: "/",
-      section: "drone",
-      image: demo3,
-    },
-    {
-      id: 3,
-      title: "Missing Maps: Thompson, MB",
-      href: "/",
-      section: "drone",
-      image: demo2,
-    },
+interface ApiProject {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  image_url: string;
+  status: string;
+  total_task_count: number;
+  ongoing_task_count: number;
+  completed_task_count: number;
+}
 
-    {
-      id: 1,
-      title: "Formation de la communauté d'OSM Morocco : Laayoune",
-      href: "/",
-      section: "oam",
-      image: oam1,
-    },
-    {
-      id: 2,
-      title: "Serbia - Novi Pazar Sustainable Development Project",
-      href: "/",
-      section: "oam",
-      image: oam2,
-    },
-    {
-      id: 3,
-      title: "Missing Maps: Thompson, MB",
-      href: "/",
-      section: "oam",
-      image: oam3,
-    },
-    {
-      id: 4,
-      title:
-        "Shiquan Land Use Map for Youthmappers Chapter, University of Tsukuba",
-      href: "/",
-      section: "oam",
-      image: oam4,
-    },
-  ];
+interface ApiResponse {
+  results: ApiProject[];
+  pagination: {
+    has_next: boolean;
+    has_prev: boolean;
+    next_num: number | null;
+    prev_num: number | null;
+    page: number;
+    per_page: number;
+    total: number;
+  };
+}
+
+// Función principal para obtener proyectos desde la API
+export async function getImageryProjects(): Promise<IImageryProject[]> {
+  try {
+    const response = await fetch('https://portal.hotosm.test/api/drone-tasking-manager/projects/user');
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data: ApiResponse = await response.json();
+    
+    return data.results.map((project, index) => ({
+      id: index + 1,
+      title: project.name,
+      href: `/project/${project.slug}`,
+      section: "drone" as const,
+      image: project.image_url,
+    }));
+  } catch (error) {
+    console.error('Error fetching imagery projects:', error);
+    throw error; // Re-lanzar el error para que el componente lo maneje
+  }
+}
+
+// Función adicional si necesitas obtener todas las páginas
+export async function getAllImageryProjects(): Promise<IImageryProject[]> {
+  let allProjects: IImageryProject[] = [];
+  let page = 1;
+  let hasNext = true;
+
+  try {
+    while (hasNext) {
+      const response = await fetch(
+        `https://portal.hotosm.test/api/drone-tasking-manager/projects/user?page=${page}`
+      );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data: ApiResponse = await response.json();
+      
+      const projects = data.results.map((project, index) => ({
+        id: allProjects.length + index + 1,
+        title: project.name,
+        href: `/project/${project.slug}`,
+        section: "drone" as const,
+        image: project.image_url,
+      }));
+      
+      allProjects = [...allProjects, ...projects];
+      hasNext = data.pagination.has_next;
+      page++;
+    }
+    
+    return allProjects;
+  } catch (error) {
+    console.error('Error fetching all imagery projects:', error);
+    throw error;
+  }
 }
