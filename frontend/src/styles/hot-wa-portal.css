@@ -27,3 +27,35 @@ wa-card::part(base) {
   outline: none;
   overflow: hidden;
 }
+
+/* Carousel pagination positioning */
+.hero-carousel {
+  --wa-carousel-pagination-top: var(--wa-spacing-lg);
+  --wa-carousel-pagination-bottom: auto;
+  --wa-carousel-pagination-left: auto;
+  --wa-carousel-pagination-right: var(--wa-spacing-lg);
+  --wa-form-control-activated-color: #d73f3f;
+  --aspect-ratio: 5/5;
+}
+
+@media (min-width: 768px) {
+  .hero-carousel {
+    --aspect-ratio: auto;
+  }
+}
+
+.hero-carousel::part(pagination) {
+  position: absolute;
+  bottom: 10rem;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+@media (min-width: 768px) {
+  .hero-carousel::part(pagination) {
+    left: auto;
+    right: 3rem;
+    bottom: 3rem;
+    transform: none;
+  }
+}

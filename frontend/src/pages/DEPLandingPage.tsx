@@ -1,6 +1,6 @@
 import { useLocation } from "react-router-dom";
-import PrimaryCallToAction from "../components/shared/PrimaryCallToAction";
-import SecondaryCallToAction from "../components/shared/SecondaryCallToAction";
+/* import PrimaryCallToAction from "../components/shared/PrimaryCallToAction";
+import SecondaryCallToAction from "../components/shared/SecondaryCallToAction"; */
 import { getCTAData } from "../constants/ctaData";
 import { MAIN_MENU_ITEMS } from "../constants/menu";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -31,10 +31,10 @@ function LandingPage({ menuItemId }: LandingPageProps) {
     <PageWrapper>
       <div className="container flex flex-col sm:flex-row gap-lg items-stretch">
         <div className="w-full sm:w-2/3 flex">
-          <PrimaryCallToAction data={ctaData.primary} />
+          {/*  <PrimaryCallToAction data={ctaData.primary} /> */}
         </div>
         <div className="w-full sm:w-1/3 flex">
-          <SecondaryCallToAction data={ctaData.secondary} />
+          {/*  <SecondaryCallToAction data={ctaData.secondary} /> */}
         </div>
       </div>
     </PageWrapper>

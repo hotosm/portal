@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { ProjectsMap } from "../components/ProjectsMap";
-import TechSuiteContainer from "../components/techSuite/TechSuiteContainer";
+import Carousel from "../components/shared/Carousel";
+import CarouselItem from "../components/shared/CarouselItem";
+import { carouselItems } from "../constants/carouselItems";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useProjects } from "../hooks/useProjects";
 import { m } from "../paraglide/messages";
@@ -65,9 +67,9 @@ function HomePage() {
           )}
         </div>
 
-        <div className="text-center relative py-lg lg:py-xl flex-shrink-0 px-lg md:px-2xl">
+        <div className="container text-center relative py-lg lg:py-xl flex-shrink-0">
           {/* TODO replace with HOT resources */}
-          <svg
+          {/* <svg
             className="absolute bottom-0 inset-0 w-full h-full -z-10"
             xmlns="http://www.w3.org/2000/svg"
           >
@@ -111,11 +113,17 @@ function HomePage() {
               fill="url(#dot-pattern)"
               mask="url(#fade-mask)"
             />
-          </svg>
-          <p className="text-2xl lg:text-3xl font-bold leading-tight ">
-            {m.home_workflow_header()}
+          </svg> */}
+          <p className="text-xl lg:text-2xl leading-tight">
+            {m.home_workflow_header()}{" "}
+            <strong>{m.home_workflow_header_strong()}</strong>
+            <br />
+            <span className="text-2xl lg:text-3xl font-bold leading-tight bg-hot-red-600 text-white">
+              {m.home_workflow_header_hightlight()}
+            </span>
           </p>
-          <p className="text-lg md:text-xl leading-tight mb-0">
+
+          <p className="text-lg lg:text-xl leading-tight mb-0">
             {m.home_workflow_p1()}
             <br />
             {m.home_workflow_p2()}
@@ -123,9 +131,61 @@ function HomePage() {
         </div>
       </div>
 
-      {/* Tech Suite */}
-      <TechSuiteContainer />
+      {/* Carousel Section */}
+      <div className="relative mb-xl">
+        <Carousel
+          pagination
+          loop
+          /* autoplay */
+          autoplayInterval={5000}
+          mouseDragging
+          className="hero-carousel"
+        >
+          {carouselItems.map((item, index) => (
+            <CarouselItem key={index}>
+              <div
+                className="relative h-[400px] md:h-[500px] lg:h-[600px] w-full bg-cover bg-center grayscale"
+                style={{ backgroundImage: `url(${item.image})` }}
+              >
+                {/* desktop block */}
+                <div className="hidden md:block md:absolute left-md bottom-md bg-hot-gray-800 p-lg max-w-md text-center">
+                  <h3 className="text-white uppercase font-bold text-xl mb-sm">
+                    {item.title}
+                  </h3>
+                  <p className="text-white text-sm md:text-base leading-relaxed mb-0">
+                    {item.description}
+                  </p>
+                </div>
+                <div></div>
+              </div>
+              {/* mobile block */}
+              <div className="md:hidden bg-hot-gray-800 p-lg w-full text-center h-[150px]">
+                <h3 className="text-white uppercase font-bold text-xl">
+                  {item.title}
+                </h3>
+                <p className="text-white text-sm md:text-base leading-relaxed mb-0">
+                  {item.description}
+                </p>
+              </div>
 
+              {/* <div
+                className="relative h-[400px] md:h-[500px] lg:h-[600px] w-full bg-cover bg-center grayscale"
+                style={{ backgroundImage: `url(${item.image})` }}
+              >
+                <div className="absolute left-md bottom-md bg-hot-gray-800 p-lg max-w-md">
+                  <h3 className="text-white uppercase font-bold text-xl mb-sm">
+                    {item.title}
+                  </h3>
+                  <p className="text-white text-sm md:text-base leading-relaxed mb-0">
+                    {item.description}
+                  </p>
+                 
+                </div>
+              </div> */}
+            </CarouselItem>
+          ))}
+        </Carousel>
+      </div>
       {/* 
       <div className="container flex flex-col md:flex-row gap-xl">
         {ctaData && (
