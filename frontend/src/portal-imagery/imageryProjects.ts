@@ -31,7 +31,6 @@ interface ApiResponse {
   };
 }
 
-// Función principal para obtener proyectos desde la API
 export async function getImageryProjects(): Promise<IImageryProject[]> {
   try {
     const response = await fetch('https://portal.hotosm.test/api/drone-tasking-manager/projects/user');
@@ -45,17 +44,16 @@ export async function getImageryProjects(): Promise<IImageryProject[]> {
     return data.results.map((project, index) => ({
       id: index + 1,
       title: project.name,
-      href: `/project/${project.slug}`,
+      href: `https://dronetm.org/projects/${project.id}`,
       section: "drone" as const,
       image: project.image_url,
     }));
   } catch (error) {
     console.error('Error fetching imagery projects:', error);
-    throw error; // Re-lanzar el error para que el componente lo maneje
+    throw error;
   }
 }
 
-// Función adicional si necesitas obtener todas las páginas
 export async function getAllImageryProjects(): Promise<IImageryProject[]> {
   let allProjects: IImageryProject[] = [];
   let page = 1;
@@ -76,7 +74,7 @@ export async function getAllImageryProjects(): Promise<IImageryProject[]> {
       const projects = data.results.map((project, index) => ({
         id: allProjects.length + index + 1,
         title: project.name,
-        href: `/project/${project.slug}`,
+        href: `https://dronetm.org/projects/${project.id}`,
         section: "drone" as const,
         image: project.image_url,
       }));
