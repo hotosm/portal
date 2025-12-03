@@ -100,4 +100,4 @@ function ImageryPage() {
   );
 }
 
-export default ImageryPage;  // ← IMPORTANTE: Esta línea debe estar al final
+export default ImageryPage;  
