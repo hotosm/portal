@@ -21,15 +21,16 @@ function Header() {
               <DrawerMenu />
             </div>
           )}
-          <div className="flex items-center gap-2 font-black text-xl">
+          <div className="flex items-center gap-xs lg:gap-md">
             <Link to="/">
-              <img
-                src={hotLogo}
-                alt="HOT Logo"
-                className="h-[40px] w-[64px] object-cover object-left lg:object-contain"
-              />
+              <img src={hotLogo} alt="HOT Logo" className="h-[48px] w-[80px]" />
             </Link>
-            <span className="uppercase">Portal</span>
+            <span
+              className="uppercase text-md lg:text-2xl leading-dense"
+              style={{ fontFamily: "Barlow" }}
+            >
+              Portal
+            </span>
           </div>
 
           {/* desktop navigation */}
