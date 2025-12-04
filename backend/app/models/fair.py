@@ -1,4 +1,5 @@
-# app/models/fair.py
+# portal/backend/app/models/fair.py
+
 from pydantic import BaseModel
 from typing import List, Optional
 

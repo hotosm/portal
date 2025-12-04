@@ -1,3 +1,7 @@
+# portal/backend/app/tests/api/drone_tasking_manager/test_drone_tasking_manager.py
+
+"""Tests for Drone TM API endpoints."""
+
 import pytest
 import httpx
 from unittest.mock import AsyncMock, Mock, patch
