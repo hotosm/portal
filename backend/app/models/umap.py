@@ -1,4 +1,5 @@
-# app/models/umap.py
+# portal/backend/app/models/umap.py
+
 """Pydantic models for uMap API responses."""
 
 from pydantic import BaseModel, ConfigDict
