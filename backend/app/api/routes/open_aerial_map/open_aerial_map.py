@@ -1,3 +1,5 @@
+# portal/backend/app/api/routes/open_aerial_map/open_aerial_map.py
+
 import httpx
 from fastapi import APIRouter, HTTPException, Path, Query
 from typing import Optional
