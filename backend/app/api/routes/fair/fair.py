@@ -1,3 +1,5 @@
+# portal/backend/app/api/routes/fair/fair.py
+
 import httpx
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional

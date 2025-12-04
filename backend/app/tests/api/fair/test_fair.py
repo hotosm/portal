@@ -1,5 +1,7 @@
 # portal/backend/app/tests/api/fair/test_fair.py
 
+"""Tests for fAIr API endpoints."""
+
 import pytest
 import httpx
 from unittest.mock import AsyncMock, Mock, patch
