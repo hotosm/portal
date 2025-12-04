@@ -9,7 +9,7 @@ import DroneTMProjectsPage from "../pages/DroneTMProjectsPage";
 import MappingPage from "../portal-mapping/MappingPage";
 import FieldPage from "../portal-field/FieldPage";
 import DataPage from "../portal-data/DataPage";
-import MapUsePage from "../portal-mapuse/MapUsePage";
+import HelpPage from "../pages/HelpPage";
 
 // TODO not found page layout
 function NotFoundPage() {
@@ -88,10 +88,10 @@ export function AppRoutes() {
               }
             />
             <Route
-              path="/mapuse"
+              path="/help"
               element={
                 <MainNavRoute>
-                  <MapUsePage />
+                  <HelpPage />
                 </MainNavRoute>
               }
             />
