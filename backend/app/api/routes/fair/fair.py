@@ -64,3 +64,113 @@ async def get_fair_projects(
             )
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
+        
+@router.get("/model/user/{user_id}", response_model=FAIRProjectsResponse)
+async def get_fair_models_by_user(
+    user_id: int,
+    limit: int = Query(20, ge=1, le=100, description="Number of results to return"),
+    offset: int = Query(0, ge=0, description="Number of results to skip"),
+    search: Optional[str] = Query(None, description="Search query"),
+    ordering: Optional[str] = Query("-created_at", description="Order results by field (prefix with - for descending)"),
+    id: Optional[int] = Query(None, description="Filter by model ID"),
+) -> dict:
+    """
+    Get AI models from fAIr API filtered by user ID.
+    
+    Example: GET /api/fair/model/user/23470445?limit=20&ordering=-created_at
+    
+    Response:
+    ```json
+        {
+            "count": 5,
+            "next": "http://...",
+            "previous": null,
+            "results": [...]
+        }
+    ```
+    """
+    url = f"{FAIR_API_BASE_URL}/model/"
+    
+    params = {
+        "limit": limit,
+        "offset": offset,
+        "user": user_id,
+    }
+    
+    # Add optional parameters only if present
+    if search is not None:
+        params["search"] = search
+    if ordering:
+        params["ordering"] = ordering
+    if id is not None:
+        params["id"] = id
+    
+    headers = {
+        "accept": "application/json",
+    }
+    
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            response = await client.get(url, params=params, headers=headers)
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(
+                status_code=e.response.status_code,
+                detail=f"Error from fAIr API: {e.response.text}"
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/dataset/user/{user_id}")
+async def get_fair_datasets_by_user(
+    user_id: int,
+    limit: int = Query(20, ge=1, le=100, description="Number of results to return"),
+    offset: int = Query(0, ge=0, description="Number of results to skip"),
+    ordering: Optional[str] = Query("-created_at", description="Order results by field (prefix with - for descending)"),
+    id: Optional[int] = Query(None, description="Filter by dataset ID"),
+) -> dict:
+    """
+    Get datasets from fAIr API filtered by user ID.
+    
+    Example: GET /api/fair/dataset/user/23470445?limit=20&ordering=-created_at
+    
+    Response:
+    ```json
+        {
+            "count": 3,
+            "next": "http://...",
+            "previous": null,
+            "results": [...]
+        }
+    ```
+    """
+    url = f"{FAIR_API_BASE_URL}/dataset/"
+    
+    params = {
+        "limit": limit,
+        "offset": offset,
+        "ordering": ordering if ordering else "-created_at",
+        "user": user_id,
+    }
+    
+    # Add optional parameters only if present
+    if id is not None:
+        params["id"] = id
+    
+    headers = {
+        "accept": "application/json",
+    }
+    
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            response = await client.get(url, params=params, headers=headers)
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(
+                status_code=e.response.status_code,
+                detail=f"Error from fAIr API: {e.response.text}"
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
