@@ -3,7 +3,6 @@ import "../../web-components/shared-menu/sharedMenu.component";
 import hotLogo from "../assets/images/hot-icon.svg";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
-import { m } from "../paraglide/messages";
 import DrawerMenu from "./DrawerMenu";
 import LanguageSwitcher from "./LanguageSwitcher";
 import NavigationMain from "./NavigationMain";
@@ -14,7 +13,7 @@ function Header() {
 
   return (
     <>
-      <div className="w-full flex gap-sm md:gap-xl py-md px-lg md:px-2xl justify-between items-center">
+      <div className="container flex gap-sm md:gap-xl py-md justify-between items-center">
         <div className="flex gap-xl items-center">
           {isLogin && (
             <div className="block lg:hidden">
@@ -33,16 +32,16 @@ function Header() {
             </span>
           </div>
 
-          {/* desktop navigation */}
+          {/* desktop navigation with tagline
           <div className="hidden lg:block">
-            {isLogin ? (
-              <NavigationMain />
+            {isLogin ? <NavigationMain />
             ) : (
               <span className="hidden lg:block text-lg leading-none xl:text-xl uppercase">
                 {m.header_tagline()}
               </span>
             )}
-          </div>
+          </div> */}
+          <div className="hidden lg:block">{isLogin && <NavigationMain />}</div>
         </div>
 
         <div className="flex gap-md items-center">

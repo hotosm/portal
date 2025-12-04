@@ -35,7 +35,7 @@ wa-card::part(base) {
   --wa-carousel-pagination-left: auto;
   --wa-carousel-pagination-right: var(--wa-spacing-lg);
   --wa-form-control-activated-color: #d73f3f;
-  --aspect-ratio: 5/5;
+  --aspect-ratio: auto;
 }
 
 @media (min-width: 768px) {
@@ -43,10 +43,12 @@ wa-card::part(base) {
     --aspect-ratio: auto;
   }
 }
-
+.hero-carousel::part(base) {
+  display: flex;
+}
 .hero-carousel::part(pagination) {
   position: absolute;
-  bottom: 10rem;
+  bottom: 165px;
   left: 50%;
   transform: translateX(-50%);
 }
