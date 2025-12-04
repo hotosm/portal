@@ -1,4 +1,5 @@
-# app/models/drone_tm.py
+# portal/backend/app/models/drone_tasking_manager.py
+
 from pydantic import BaseModel
 from typing import List, Optional, Any
 
