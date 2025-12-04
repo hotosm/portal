@@ -1,4 +1,5 @@
-# app/models/open_aerial_map.py
+# portal/backend/app/models/open_aerial_map.py
+
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
