@@ -6,6 +6,7 @@ import { carouselItems } from "../constants/carouselItems";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useProjects } from "../hooks/useProjects";
 import { m } from "../paraglide/messages";
+import CallToAction from "../components/shared/CallToAction";
 
 function HomePage() {
   const { currentLanguage: _currentLanguage } = useLanguage(); // suscribe to force re-render on language change
@@ -67,7 +68,7 @@ function HomePage() {
           )}
         </div>
 
-        <div className="container text-center relative py-lg lg:py-xl flex-shrink-0">
+        <section className="text-center relative py-lg md:py-2xl flex-shrink-0 space-y-sm md:space-y-lg">
           {/* TODO replace with HOT resources */}
           {/* <svg
             className="absolute bottom-0 inset-0 w-full h-full -z-10"
@@ -114,32 +115,32 @@ function HomePage() {
               mask="url(#fade-mask)"
             />
           </svg> */}
-          <p className="text-xl lg:text-2xl leading-tight">
+          <div className="container text-xl md:text-2xl leading-tight ">
             {m.home_workflow_header()}{" "}
             <strong>{m.home_workflow_header_strong()}</strong>
-            <br />
-            <span className="text-2xl lg:text-3xl font-bold leading-tight bg-hot-red-600 text-white">
+          </div>
+          <div className="bg-hot-red-600 md:bg-transparent md:container leading-tight text-xl md:text-2xl font-bold text-white">
+            <span className="bg-hot-red-600 ">
               {m.home_workflow_header_hightlight()}
             </span>
-          </p>
+          </div>
 
-          <p className="text-lg lg:text-xl leading-tight mb-0">
+          <div className="container text-md md:text-lg leading-tight">
             {m.home_workflow_p1()}
             <br />
             {m.home_workflow_p2()}
-          </p>
-        </div>
+          </div>
+        </section>
       </div>
-
       {/* Carousel Section */}
-      <div className="relative mb-xl">
+      <section className="relative">
         <Carousel
           pagination
           loop
           /* autoplay */
           autoplayInterval={5000}
           mouseDragging
-          className="hero-carousel"
+          className="md:container hero-carousel"
         >
           {carouselItems.map((item, index) => (
             <CarouselItem key={index}>
@@ -152,7 +153,7 @@ function HomePage() {
                   <h3 className="text-white uppercase font-bold text-xl mb-sm">
                     {item.title}
                   </h3>
-                  <p className="text-white text-sm md:text-base leading-relaxed mb-0">
+                  <p className="text-white text-md md:text-lg leading-tight mb-0">
                     {item.description}
                   </p>
                 </div>
@@ -163,7 +164,7 @@ function HomePage() {
                 <h3 className="text-white uppercase font-bold text-xl">
                   {item.title}
                 </h3>
-                <p className="text-white text-sm md:text-base leading-relaxed mb-0">
+                <p className="text-white text-lg leading-tight mb-0 line-clamp-3">
                   {item.description}
                 </p>
               </div>
@@ -185,20 +186,26 @@ function HomePage() {
             </CarouselItem>
           ))}
         </Carousel>
-      </div>
-      {/* 
-      <div className="container flex flex-col md:flex-row gap-xl">
-        {ctaData && (
-          <>
-            <div className="w-full sm:w-2/3 flex">
-              <PrimaryCallToAction data={ctaData.primary} />
-            </div>
-            <div className="w-full sm:w-1/3 flex">
-              <SecondaryCallToAction data={ctaData.secondary} />
-            </div>
-          </>
-        )}
-      </div> */}
+      </section>
+
+      {/* Call to action */}
+      <section className="container py-xl md:py-2xl">
+        <CallToAction
+          title="Start mapping, today"
+          description="Fly drones, publish aerial imagery for free, organize mapping projects from home, go the field for easy mapping, free and open for everyone!"
+          buttonText="Start a mapping project"
+          buttonLink="#"
+        />
+      </section>
+
+      {/* Call to action */}
+      <section className="container py-xl md:py-2xl">
+        <CallToAction
+          description="Want to hire services from the community?"
+          buttonText="Get in touch"
+          buttonLink="#"
+        />
+      </section>
     </div>
   );
 }
