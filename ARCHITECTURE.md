@@ -117,6 +117,8 @@ portal/
   - `/api/field-tm/projects` - Return all project of Field Tasking Manager
   - `/api/field-tm/projectid` - ProjectID data of Field Tasking Manager
   - `/api/umap/{locationid}/{projectid}` - ProjectID data of UMap HOTOSM
+  - `/api/export-tool/jobs` - Data jobs of Export Tool
+  - `/api/export-tool/jobs/{job_uid}` - ID of data jobs of Export Tool
 
 ### Frontend Architecture
 - **Component composition**: Small, reusable components
