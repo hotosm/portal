@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import GoToWesiteCTA from "../components/shared/GoToWesiteCTA";
-import PortalPageSkeleton from "../components/shared/PortalPageSkeleton";
 import PageWrapper from "../components/shared/PageWrapper";
+import PortalPageSkeleton from "../components/shared/PortalPageSkeleton";
 import DataCard from "./components/DataCard";
+import ExportCard from "./components/ExportCard";
 import { getDataProjects } from "./dataProjects";
 
 function DataPage() {
@@ -32,8 +33,15 @@ function DataPage() {
   return (
     <PageWrapper>
       <div className="space-y-xl">
-        <GoToWesiteCTA buttonLink="https://fair.hotosm.org/">
-          <strong>fAIr</strong> AI-assisted Mapping
+        <GoToWesiteCTA
+          buttonLink="https://fair.hotosm.org/"
+          buttonText="fAIr"
+          link2={{
+            label: "Export Tool",
+            url: "https://export.hotosm.org/",
+          }}
+        >
+          <strong>fAIr</strong> and <strong>Export Tool</strong>
         </GoToWesiteCTA>
         <div className="bg-hot-gray-50 p-md items-center rounded-lg space-y-xl">
           <div>
@@ -54,6 +62,17 @@ function DataPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-lg">
               {sets.map((project) => {
                 return <DataCard project={project} />;
+              })}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-lg ">
+              Your <strong>exports</strong>
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-lg">
+              {sets.map((project) => {
+                return <ExportCard project={project} />;
               })}
             </div>
           </div>
