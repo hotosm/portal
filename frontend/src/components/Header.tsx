@@ -3,45 +3,51 @@ import "../../web-components/shared-menu/sharedMenu.component";
 import hotLogo from "../assets/images/hot-icon.svg";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
-import { m } from "../paraglide/messages";
 import DrawerMenu from "./DrawerMenu";
 import LanguageSwitcher from "./LanguageSwitcher";
 import NavigationMain from "./NavigationMain";
 
 function Header() {
   const { isLogin } = useAuth();
-  const { currentLanguage: _currentLanguage } = useLanguage();
+  const { currentLanguage } = useLanguage();
 
   return (
     <>
-      <div className="w-full flex gap-sm md:gap-xl py-md px-lg md:px-2xl justify-between items-center">
+      <div className="container flex gap-sm md:gap-xl py-md justify-between items-center">
         <div className="flex gap-xl items-center">
           {isLogin && (
             <div className="block lg:hidden">
               <DrawerMenu />
             </div>
           )}
-          <div className="flex items-center gap-2 font-black text-xl">
-            <Link to="/">
-              <img
-                src={hotLogo}
-                alt="HOT Logo"
-                className="h-[40px] w-[64px] object-cover object-left lg:object-contain"
-              />
-            </Link>
-            <span className="uppercase">Portal</span>
-          </div>
+          <Link
+            to={`/${currentLanguage}/`}
+            className="flex items-center gap-2 hover:no-underline"
+          >
+            <img
+              src={hotLogo}
+              alt="HOT Logo"
+              className="w-12 h-12 md:w-16 md:h-16"
+            />
 
-          {/* desktop navigation */}
+            <span
+              className="uppercase text-[28px] text-hot-gray-950 leading-tight hover:no-underline"
+              style={{ fontFamily: "Barlow" }}
+            >
+              Portal
+            </span>
+          </Link>
+
+          {/* desktop navigation with tagline
           <div className="hidden lg:block">
-            {isLogin ? (
-              <NavigationMain />
+            {isLogin ? <NavigationMain />
             ) : (
               <span className="hidden lg:block text-lg leading-none xl:text-xl uppercase">
                 {m.header_tagline()}
               </span>
             )}
-          </div>
+          </div> */}
+          <div className="hidden lg:block">{isLogin && <NavigationMain />}</div>
         </div>
 
         <div className="flex gap-md items-center">
