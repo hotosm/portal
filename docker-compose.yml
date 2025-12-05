@@ -38,6 +38,8 @@ services:
       OSM_CLIENT_ID: ${OSM_CLIENT_ID:-}
       OSM_CLIENT_SECRET: ${OSM_CLIENT_SECRET:-}
       OSM_REDIRECT_URI: ${OSM_REDIRECT_URI:-}
+      # External service URLs
+      DRONE_TM_BACKEND_URL: ${DRONE_TM_BACKEND_URL:-}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:
