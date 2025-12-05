@@ -1,5 +1,3 @@
-import Tag from "../../components/shared/Tag";
-
 const ExportCard = ({ project }: any) => {
   return (
     <a
