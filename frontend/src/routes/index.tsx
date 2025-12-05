@@ -9,7 +9,7 @@ import DroneTMProjectsPage from "../pages/DroneTMProjectsPage";
 import MappingPage from "../portal-mapping/MappingPage";
 import FieldPage from "../portal-field/FieldPage";
 import DataPage from "../portal-data/DataPage";
-import MapUsePage from "../portal-mapuse/MapUsePage";
+import HelpPage from "../pages/HelpPage";
 
 // TODO not found page layout
 function NotFoundPage() {
@@ -45,83 +45,74 @@ const MainNavRoute = ProtectedRoute;
 export function AppRoutes() {
   return (
     <Routes>
-      {/* Redirect root to default locale */}
+      {/* Root route */}
       <Route path="/" element={<HomePage />} />
 
-      {/* All routes with locale prefix */}
+      {/* Locale-prefixed routes */}
+      <Route path="/:locale" element={<HomePage />} />
+      
+      {/* TODO check if this will remain - Main navigation routes - show different CTAs when not logged in */}
       <Route
-        path="/:locale/*"
+        path="/:locale/mapping"
         element={
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            {/* TODO check if this will remain - Main navigation routes - show different CTAs when not logged in */}
-            <Route
-              path="/mapping"
-              element={
-                <MainNavRoute>
-                  <MappingPage />
-                </MainNavRoute>
-              }
-            />
-            <Route
-              path="/imagery"
-              element={
-                <MainNavRoute>
-                  <ImageryPage />
-                </MainNavRoute>
-              }
-            />
-            <Route
-              path="/field"
-              element={
-                <MainNavRoute>
-                  <FieldPage />
-                </MainNavRoute>
-              }
-            />
-            <Route
-              path="/data"
-              element={
-                <MainNavRoute>
-                  <DataPage />
-                </MainNavRoute>
-              }
-            />
-            <Route
-              path="/mapuse"
-              element={
-                <MainNavRoute>
-                  <MapUsePage />
-                </MainNavRoute>
-              }
-            />
-
-            {/* Protected user routes */}
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <ProfilePage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/drone-tm-projects"
-              element={
-                <ProtectedRoute>
-                  <DroneTMProjectsPage />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Testing routes */}
-            <Route path="/auth-test" element={<AuthTest />} />
-
-            {/* Fallback */}
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
+          <MainNavRoute>
+            <MappingPage />
+          </MainNavRoute>
         }
       />
+      <Route
+        path="/:locale/imagery"
+        element={
+          <MainNavRoute>
+            <ImageryPage />
+          </MainNavRoute>
+        }
+      />
+      <Route
+        path="/:locale/field"
+        element={
+          <MainNavRoute>
+            <FieldPage />
+          </MainNavRoute>
+        }
+      />
+      <Route
+        path="/:locale/data"
+        element={
+          <MainNavRoute>
+            <DataPage />
+          </MainNavRoute>
+        }
+      />
+      <Route
+        path="/:locale/help"
+        element={
+          <MainNavRoute>
+            <HelpPage />
+          </MainNavRoute>
+        }
+      />
+
+      {/* Protected user routes */}
+      <Route
+        path="/:locale/profile"
+        element={
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/:locale/drone-tm-projects"
+        element={
+          <ProtectedRoute>
+            <DroneTMProjectsPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Testing routes */}
+      <Route path="/:locale/auth-test" element={<AuthTest />} />
 
       {/* Fallback for invalid routes */}
       <Route path="*" element={<NotFoundPage />} />

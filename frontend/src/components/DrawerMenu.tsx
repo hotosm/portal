@@ -20,7 +20,7 @@ function DrawerMenuContent() {
 function DrawerMenu() {
   return (
     <>
-      <WaDrawer placement="start" label="HOT Portal" id="mobile-drawer">
+      <WaDrawer placement="top" label="HOT Portal" id="mobile-drawer">
         <DrawerMenuContent />
       </WaDrawer>
 

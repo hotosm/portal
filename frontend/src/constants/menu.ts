@@ -34,9 +34,9 @@ export const MAIN_MENU_ITEMS: MenuItem[] = [
     requiresAuth: false,
   },
   {
-    id: "mapuse",
-    label: "Map Use",
-    href: "/mapuse",
+    id: "help",
+    label: "Help",
+    href: "/help",
     requiresAuth: false,
   },
   /* {
