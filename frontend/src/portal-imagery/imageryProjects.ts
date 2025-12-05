@@ -33,7 +33,9 @@ interface ApiResponse {
 
 export async function getImageryProjects(): Promise<IImageryProject[]> {
   try {
-    const response = await fetch('https://portal.hotosm.test/api/drone-tasking-manager/projects/user');
+    const response = await fetch('/api/drone-tasking-manager/projects/user', {
+      credentials: 'include',
+    });
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -62,7 +64,8 @@ export async function getAllImageryProjects(): Promise<IImageryProject[]> {
   try {
     while (hasNext) {
       const response = await fetch(
-        `https://portal.hotosm.test/api/drone-tasking-manager/projects/user?page=${page}`
+        `/api/drone-tasking-manager/projects/user?page=${page}`,
+        { credentials: 'include' }
       );
       
       if (!response.ok) {
