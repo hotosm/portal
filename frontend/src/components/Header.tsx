@@ -9,7 +9,7 @@ import NavigationMain from "./NavigationMain";
 
 function Header() {
   const { isLogin } = useAuth();
-  const { currentLanguage: _currentLanguage } = useLanguage();
+  const { currentLanguage } = useLanguage();
 
   return (
     <>
@@ -20,17 +20,23 @@ function Header() {
               <DrawerMenu />
             </div>
           )}
-          <div className="flex items-center gap-xs lg:gap-md">
-            <Link to="/">
-              <img src={hotLogo} alt="HOT Logo" className="h-[48px] w-[80px]" />
-            </Link>
+          <Link
+            to={`/${currentLanguage}/`}
+            className="flex items-center gap-2 hover:no-underline"
+          >
+            <img
+              src={hotLogo}
+              alt="HOT Logo"
+              className="w-12 h-12 md:w-16 md:h-16"
+            />
+
             <span
-              className="uppercase text-md lg:text-2xl leading-dense"
+              className="uppercase text-[28px] text-hot-gray-950 leading-tight hover:no-underline"
               style={{ fontFamily: "Barlow" }}
             >
               Portal
             </span>
-          </div>
+          </Link>
 
           {/* desktop navigation with tagline
           <div className="hidden lg:block">
