@@ -1,6 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { MAIN_MENU_ITEMS, getVisibleMenuItems } from "../constants/menu";
 import { useAuth } from "../contexts/AuthContext";
+import { useLanguage } from "../contexts/LanguageContext";
 
 interface NavigationMainProps {
   onLinkClick?: () => void;
@@ -8,6 +9,7 @@ interface NavigationMainProps {
 
 function NavigationMain({ onLinkClick }: NavigationMainProps) {
   const { isLogin } = useAuth();
+  const { currentLanguage } = useLanguage();
   const location = useLocation();
   const visibleItems = getVisibleMenuItems(MAIN_MENU_ITEMS, isLogin);
 
@@ -23,13 +25,14 @@ function NavigationMain({ onLinkClick }: NavigationMainProps) {
     <div className="flex gap-sm flex-col lg:flex-row">
       {visibleItems.map((item) => {
         const isActive = isActiveItem(item.href);
+        const localizedHref = `/${currentLanguage}${item.href}`;
         return (
           <NavLink
             key={item.id}
-            className={`hover:no-underline text-lg font-bold px-sm py-xs rounded transition-colors ${
+            className={`text-hot-gray-800 hover:no-underline text-lg font-bold px-sm py-xs rounded transition-colors ${
               isActive ? "bg-hot-gray-50" : "hover:bg-hot-gray-50"
             }`}
-            to={item.href}
+            to={localizedHref}
             onClick={onLinkClick}
           >
             {item.label}
