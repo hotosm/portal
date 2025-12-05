@@ -198,14 +198,6 @@ function HomePage() {
         />
       </section>
 
-      {/* Call to action */}
-      <section className="container py-xl md:py-2xl">
-        <CallToAction
-          description="Want to hire services from the community?"
-          buttonText="Get in touch"
-          buttonLink="#"
-        />
-      </section>
     </div>
   );
 }
