@@ -1,5 +1,5 @@
 // Get Drone-TM frontend URL from environment (defaults to production)
-const DRONE_TM_URL = import.meta.env.VITE_DRONE_TM_URL || 'https://dronetm.org';
+const DRONE_TM_URL = import.meta.env.VITE_DRONE_TM_URL || import.meta.env.VITE_DRONE_TM_FRONTEND_URL || 'https://dronetm.org';
 
 export interface IImageryProject {
   id: number;
