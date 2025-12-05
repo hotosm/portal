@@ -166,6 +166,14 @@ jobs:
             sed -i 's|^OSM_REDIRECT_URI=.*|OSM_REDIRECT_URI=${{ secrets.OSM_REDIRECT_URI }}|' .env
             echo "✓ Updated authentication secrets in .env"
 
+            # Configure Drone-TM backend URL (point to testlogin for SSO testing)
+            if grep -q '^DRONE_TM_BACKEND_URL=' .env; then
+              sed -i 's|^DRONE_TM_BACKEND_URL=.*|DRONE_TM_BACKEND_URL=https://testlogin.dronetm.hotosm.org/api|' .env
+            else
+              echo 'DRONE_TM_BACKEND_URL=https://testlogin.dronetm.hotosm.org/api' >> .env
+            fi
+            echo "✓ Updated Drone-TM backend URL"
+
             # Login to GitHub Container Registry
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
