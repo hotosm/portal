@@ -33,6 +33,7 @@ export interface ProjectMapFeature {
   };
   properties: {
     projectId: number;
+    name?: string | null;
   };
 }
 

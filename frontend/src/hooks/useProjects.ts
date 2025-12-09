@@ -14,7 +14,15 @@ async function fetchProjects(): Promise<ProjectsMapResults> {
   const data = await response.json();
   console.log("API response:", data);
 
-  // Transform API response to match our expected format - minimal data only
+  // Create a map of projectId -> name from results for quick lookup
+  const projectNamesMap = new Map<number, string | null>();
+  data.results?.forEach((project: any) => {
+    if (project.projectId) {
+      projectNamesMap.set(project.projectId, project.projectInfo?.name || null);
+    }
+  });
+
+  // Transform API response to match our expected format
   const features =
     data.mapResults?.features?.map((feature: any) => ({
       type: "Feature" as const,
@@ -24,6 +32,7 @@ async function fetchProjects(): Promise<ProjectsMapResults> {
       },
       properties: {
         projectId: feature.properties.projectId,
+        name: projectNamesMap.get(feature.properties.projectId) || null,
         product: "tasking-manager" as ProductType,
       },
     })) || [];
