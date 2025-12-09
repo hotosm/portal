@@ -282,17 +282,8 @@ class TestGetUserProjects:
 
 
 class TestGetProjectById:
-    """Test suite for get_project_by_id function"""
-    
-    def create_mock_request(self, has_cookie: bool = True):
-        """Helper to create a mock request with or without Hanko cookie"""
-        mock_request = Mock(spec=Request)
-        if has_cookie:
-            mock_request.cookies = {"hanko": "mock-hanko-token-12345"}
-        else:
-            mock_request.cookies = {}
-        return mock_request
-    
+    """Test suite for get_project_by_id function (public endpoint, no auth)"""
+
     @pytest.mark.asyncio
     async def test_get_project_by_id_success_uuid(self):
         """Test successful request with UUID"""
@@ -302,46 +293,32 @@ class TestGetProjectById:
             "name": "Test Project",
             "status": "active"
         }
-        
+
         mock_response = Mock()
         mock_response.json.return_value = mock_response_data
         mock_response.raise_for_status = Mock()
         mock_response.status_code = 200
-        
+
         with patch("httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 return_value=mock_response
             )
-            
+
             from app.api.routes.drone_tasking_manager.drone_tasking_manager import router
-            # /projects/{project_id} is now the fourth route (index 3)
+            # /projects/{project_id} is the fourth route (index 3)
             endpoint = router.routes[3].endpoint
-            
-            mock_request = self.create_mock_request(has_cookie=True)
-            result = await endpoint(mock_request, project_id)
-            
+
+            # No request needed - public endpoint
+            result = await endpoint(project_id)
+
             assert result == mock_response_data
             mock_client.return_value.__aenter__.return_value.get.assert_called_once()
             call_args = mock_client.return_value.__aenter__.return_value.get.call_args
-            
+
             assert project_id in call_args[0][0]
-            assert "Cookie" in call_args[1]["headers"]
-            assert "hanko=mock-hanko-token-12345" in call_args[1]["headers"]["Cookie"]
-    
-    @pytest.mark.asyncio
-    async def test_get_project_by_id_no_hanko_cookie(self):
-        """Test when Hanko cookie is missing"""
-        from app.api.routes.drone_tasking_manager.drone_tasking_manager import router
-        endpoint = router.routes[3].endpoint
-        
-        mock_request = self.create_mock_request(has_cookie=False)
-        
-        with pytest.raises(HTTPException) as exc_info:
-            await endpoint(mock_request, "some-project-id")
-        
-        assert exc_info.value.status_code == 401
-        assert "Hanko authentication cookie not found" in exc_info.value.detail
-    
+            # Verify no Cookie header (public endpoint)
+            assert "Cookie" not in call_args[1]["headers"]
+
     @pytest.mark.asyncio
     async def test_get_project_by_id_not_found(self):
         """Test when project doesn't exist (404)"""
@@ -349,7 +326,7 @@ class TestGetProjectById:
         mock_response = Mock()
         mock_response.status_code = 404
         mock_response.text = "Project not found"
-        
+
         with patch("httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 side_effect=httpx.HTTPStatusError(
@@ -358,14 +335,12 @@ class TestGetProjectById:
                     response=mock_response
                 )
             )
-            
+
             from app.api.routes.drone_tasking_manager.drone_tasking_manager import router
             endpoint = router.routes[3].endpoint
 
-            mock_request = self.create_mock_request(has_cookie=True)
-
             with pytest.raises(HTTPException) as exc_info:
-                await endpoint(mock_request, project_id)
+                await endpoint(project_id)
 
             assert exc_info.value.status_code == 404
             assert "Error from DroneTM API" in exc_info.value.detail

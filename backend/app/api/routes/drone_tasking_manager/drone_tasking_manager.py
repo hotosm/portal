@@ -353,14 +353,13 @@ async def get_user_projects(
 
 @router.get("/projects/{project_id}", response_model=DroneTMProject)
 async def get_project_by_id(
-    request: Request,
     project_id: str = Path(..., description="DroneTM project ID (UUID or number)")
 ) -> dict:
     """
-    Get a specific project from the DroneTM API with Hanko authentication.
-    
-    Example: GET /api/drone-tm/projects/5c92d0c5-1702-4ebd-b885-67867b488e8e
-    
+    Get a specific project from the DroneTM API (public endpoint, no auth required).
+
+    Example: GET /api/drone-tasking-manager/projects/5c92d0c5-1702-4ebd-b885-67867b488e8e
+
     Response:
     ```json
         {
@@ -372,23 +371,11 @@ async def get_project_by_id(
     ```
     """
     url = f"{HOTOSM_API_BASE_URL}/projects/{project_id}"
-    
-    # Extract Hanko cookie from the incoming request
-    hanko_cookie = request.cookies.get("hanko")
-    
-    if not hanko_cookie:
-        raise HTTPException(
-            status_code=401,
-            detail="Hanko authentication cookie not found. Please log in."
-        )
-    
+
     headers = {
-        "Cookie": f"hanko={hanko_cookie}",
         "Accept": "application/json",
     }
-    
-    # If using HTTPS with self-signed certificates in Docker, disable verification
-    # In production with valid certs, set verify=True
+
     verify_ssl = not HOTOSM_API_BASE_URL.startswith("https://") or os.getenv("DRONE_TM_VERIFY_SSL", "false").lower() == "true"
 
     async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl) as client:
