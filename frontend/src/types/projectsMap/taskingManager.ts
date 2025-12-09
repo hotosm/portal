@@ -32,12 +32,42 @@ export interface ProjectMapFeature {
     coordinates: [number, number];
   };
   properties: {
-    projectId: number;
+    projectId: number | string;
     name?: string | null;
+    product?: "tasking-manager" | "drone-tasking-manager" | "fair" | "field" | "imagery";
   };
 }
 
 export interface ProjectsMapResults {
   type: "FeatureCollection";
   features: ProjectMapFeature[];
+}
+
+// Drone Tasking Manager types
+export interface DroneProjectCentroid {
+  id: string;
+  slug: string;
+  name: string;
+  centroid: {
+    type: "Point";
+    coordinates: [number, number];
+  };
+  total_task_count: number;
+  ongoing_task_count: number;
+  completed_task_count: number;
+  status: string;
+}
+
+export interface DroneProjectDetails {
+  id: string;
+  slug?: string;
+  name: string;
+  description?: string;
+  author_name?: string;
+  status?: string;
+  total_task_count?: number;
+  ongoing_task_count?: number;
+  completed_task_count?: number;
+  project_area?: number;
+  created_at?: string;
 }

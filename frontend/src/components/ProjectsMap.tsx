@@ -12,10 +12,15 @@ import { ProjectsMapSearchBox } from "./ProjectsMapSearchBox";
 import { ProjectsMapCallout } from "./ProjectsMapCallout";
 import { ProjectsMapResults } from "../types/projectsMap/taskingManager";
 
+interface SelectedProject {
+  projectId: number | string;
+  product: "tasking-manager" | "drone-tasking-manager" | "fair" | "field" | "imagery";
+}
+
 interface ProjectsMapProps {
   mapResults?: ProjectsMapResults;
-  onProjectClick?: (projectId: number) => void;
-  selectedProjectId?: number | null;
+  onProjectClick?: (projectId: number | string, product: string) => void;
+  selectedProject?: SelectedProject | null;
   onCloseDetails?: () => void;
   className?: string;
 }
@@ -64,7 +69,7 @@ const loadImage = async (
 const addMapLayers = (
   map: maplibregl.Map,
   mapResults: ProjectsMapProps["mapResults"],
-  onProjectClick?: (projectId: number) => void
+  onProjectClick?: (projectId: number | string, product: string) => void
 ) => {
   // Add GeoJSON source with clustering
   map.addSource("projects", {
@@ -194,10 +199,11 @@ const addMapLayers = (
     if (!feature) return;
 
     const projectId = feature.properties?.projectId;
+    const product = feature.properties?.product || "tasking-manager";
 
     // Trigger callback to fetch project details
     if (projectId && onProjectClick) {
-      onProjectClick(projectId);
+      onProjectClick(projectId, product);
     }
   });
 };
@@ -205,7 +211,7 @@ const addMapLayers = (
 export function ProjectsMap({
   mapResults,
   onProjectClick,
-  selectedProjectId,
+  selectedProject,
   onCloseDetails,
 }: ProjectsMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -302,14 +308,18 @@ export function ProjectsMap({
     <div className="relative w-full h-full">
       <ProjectsMapSearchBox map={map.current} position="top-right" />
       <div ref={mapContainer} className="w-full h-full overflow-hidden" />
-      {selectedProjectId && (
+      {selectedProject && (
         <div className="absolute top-0 right-0 h-full bg-white p-lg border border-hot-gray-100 z-10 animate-in w-[250px] sm:w-[340px] slide-in-from-right duration-300 overflow-y-auto">
           <ProjectsMapCallout
-            projectId={selectedProjectId}
+            projectId={selectedProject.projectId}
+            product={selectedProject.product}
             onViewDetails={() => {
               window.dispatchEvent(
                 new CustomEvent("viewProject", {
-                  detail: { projectId: selectedProjectId },
+                  detail: {
+                    projectId: selectedProject.projectId,
+                    product: selectedProject.product,
+                  },
                 })
               );
             }}
