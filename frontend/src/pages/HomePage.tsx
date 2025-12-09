@@ -8,17 +8,24 @@ import { useProjects } from "../hooks/useProjects";
 import { m } from "../paraglide/messages";
 import CallToAction from "../components/shared/CallToAction";
 
+type ProductType = "tasking-manager" | "drone-tasking-manager" | "fair" | "field" | "imagery";
+
+interface SelectedProject {
+  projectId: number | string;
+  product: ProductType;
+}
+
 function HomePage() {
   const { currentLanguage: _currentLanguage } = useLanguage(); // suscribe to force re-render on language change
   // TODO relocate when adding other APIs
   const { data: projectsData, isLoading, error } = useProjects();
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(
+  const [selectedProject, setSelectedProject] = useState<SelectedProject | null>(
     null
   );
 
-  const handleProjectClick = (projectId: number) => {
-    console.log("Project clicked:", projectId);
-    setSelectedProjectId(projectId);
+  const handleProjectClick = (projectId: number | string, product: string) => {
+    console.log("Project clicked:", projectId, "product:", product);
+    setSelectedProject({ projectId, product: product as ProductType });
   };
 
   // Listen for popup button clicks
@@ -51,9 +58,9 @@ function HomePage() {
         <div className="flex-1 relative">
           <ProjectsMap
             mapResults={projectsData}
-            selectedProjectId={selectedProjectId}
+            selectedProject={selectedProject}
             onProjectClick={handleProjectClick}
-            onCloseDetails={() => setSelectedProjectId(null)}
+            onCloseDetails={() => setSelectedProject(null)}
           />
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-white/10 backdrop-blur-sm">
