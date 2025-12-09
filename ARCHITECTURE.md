@@ -110,6 +110,7 @@ portal/
   - `/api/drone-tasking-manager/projects?fetch_all=true` - Returns all Drone TM projects without pagination. (Drone Tasking Manager)
   - `/api/drone-tasking-manager/projects/projectid` - ProjectID data of Drone TM (Drone Tasking Manager)
   - `/api/drone-tasking-manager/projects/user` - Project user data of Drone TM (Drone Tasking Manager)
+  - `/api/drone-tasking-manager/projects/centroids` - Get project centroids from the DroneTM API.
   - `/api/open-aerial-map/projects` - Return all project of Open Aerial Map
   - `/api/open-aerial-map/imageid` - ImageID data of Open Aerial Map
   - `/api/open-aerial-map/user/userid` - UserID data of Open Aerial Map
@@ -120,8 +121,6 @@ portal/
   - `/api/fair/me/datasets` - Get datasets from fAIr API for the authenticated user
   - `/api/fair/model/user/{user_id}` - Returns the user models of fAIr
   - `/api/fair/dataset/user/{user_id}` - Returns the user dataset of fAIr
-  - `/api/model/user/{user_id}` - Returns the user models of fAIr
-  - `/api/dataset/user/{user_id}` - Returns the user dataset of fAIr
   - `/api/field-tm/projects` - Return all project of Field Tasking Manager
   - `/api/field-tm/projectid` - ProjectID data of Field Tasking Manager
   - `/api/umap/{locationid}/{projectid}` - ProjectID data of UMap HOTOSM

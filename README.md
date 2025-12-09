@@ -527,6 +527,7 @@ The API is self-documented using FastAPI's built-in OpenAPI support:
 - `/api/drone-tasking-manager/projects` - Return all project of Drone TM (Drone Tasking Manager)
 - `/api/drone-tasking-manager/projects/projectid` - ProjectID data of Drone TM (Drone Tasking Manager)
 - `/api/drone-tasking-manager/projects/user` - Project user data of Drone TM (Drone Tasking Manager)
+- `/api/drone-tasking-manager/projects/centroids` - Get project centroids from the DroneTM API.
 - `/api/open-aerial-map/projects` - Return all project of Open Aerial Map
 - `/api/open-aerial-map/imageid` - ImageID data of Open Aerial Map
 - `/api/open-aerial-map/user/userid` - UserID data of Open Aerial Map
