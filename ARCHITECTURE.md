@@ -114,6 +114,12 @@ portal/
   - `/api/open-aerial-map/imageid` - ImageID data of Open Aerial Map
   - `/api/open-aerial-map/user/userid` - UserID data of Open Aerial Map
   - `/api/fair/projects` - Return all project of fAIr
+  - `/api/fair/dataset/user/{user_id}` - Get AI models from fAIr API filtered by user ID
+  - `/api/fair/model/user/{user_id}` - Get datasets from fAIr API filtered by user ID
+  - `/api/fair/me/models` - Get AI models from fAIr API for the authenticated user
+  - `/api/fair/me/datasets` - Get datasets from fAIr API for the authenticated user
+  - `/api/fair/model/user/{user_id}` - Returns the user models of fAIr
+  - `/api/fair/dataset/user/{user_id}` - Returns the user dataset of fAIr
   - `/api/model/user/{user_id}` - Returns the user models of fAIr
   - `/api/dataset/user/{user_id}` - Returns the user dataset of fAIr
   - `/api/field-tm/projects` - Return all project of Field Tasking Manager
