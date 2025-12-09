@@ -89,3 +89,27 @@ class DroneTMProjectsResponse(BaseModel):
     """Response model for GET /projects (list of projects)"""
     results: List[DroneTMProject] = []
     pagination: Optional[DroneTMPagination] = None
+
+
+class CentroidGeometry(BaseModel):
+    """GeoJSON Point geometry for project centroid"""
+    type: str = "Point"
+    coordinates: List[float] = []  # [longitude, latitude]
+
+
+class ProjectCentroid(BaseModel):
+    """Model for a project centroid in the centroids list"""
+    id: Optional[str] = None
+    slug: Optional[str] = None
+    name: Optional[str] = None
+    centroid: Optional[CentroidGeometry] = None
+    total_task_count: Optional[int] = None
+    ongoing_task_count: Optional[int] = None
+    completed_task_count: Optional[int] = None
+    status: Optional[str] = None
+
+
+class DroneTMCentroidsResponse(BaseModel):
+    """Response model for GET /projects/centroids"""
+    results: List[ProjectCentroid] = []
+    pagination: Optional[DroneTMPagination] = None
