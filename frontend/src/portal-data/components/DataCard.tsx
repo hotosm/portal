@@ -1,6 +1,11 @@
 import Tag from "../../components/shared/Tag";
+import type { IDataProject } from "../dataProjects";
 
-const DataCard = ({ project }: any) => {
+interface DataCardProps {
+  project: IDataProject;
+}
+
+const DataCard = ({ project }: DataCardProps) => {
   return (
     <a
       href={project.href}
@@ -12,7 +17,7 @@ const DataCard = ({ project }: any) => {
         <div className="relative">
           <img
             src={project.image}
-            alt={project.name}
+            alt={project.title}
             className="w-full h-auto"
           />
           <Tag
@@ -24,9 +29,11 @@ const DataCard = ({ project }: any) => {
         </div>
         <div>
           <p className="bold line-clamp-2">{project.title}</p>
-          <strong className="text-sm  text-gray-600">
-            Accuracy: {project.accuracy}%
-          </strong>
+          {project.accuracy !== null && (
+            <strong className="text-sm text-gray-600">
+              Accuracy: {project.accuracy}%
+            </strong>
+          )}
         </div>
       </div>
     </a>
