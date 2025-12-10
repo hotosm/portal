@@ -1,6 +1,7 @@
 import ReactMarkdown from "react-markdown";
 import { useProjectDetails } from "../hooks/useProjectDetails";
 import { useDroneProjectDetails } from "../hooks/useDroneProjectDetails";
+import { useOAMProjectDetails } from "../hooks/useOAMProjectDetails";
 import { m } from "../paraglide/messages";
 import { shortenText } from "../utils/utils";
 import Button from "./shared/Button";
@@ -27,13 +28,18 @@ export function ProjectsMapCallout({
   const droneTaskingManagerQuery = useDroneProjectDetails(
     product === "drone-tasking-manager" ? String(projectId) : null
   );
+  const oamQuery = useOAMProjectDetails(
+    product === "imagery" ? String(projectId) : null
+  );
 
   const isLoading =
     product === "tasking-manager"
       ? taskingManagerQuery.isLoading
       : product === "drone-tasking-manager"
         ? droneTaskingManagerQuery.isLoading
-        : false;
+        : product === "imagery"
+          ? oamQuery.isLoading
+          : false;
 
   if (isLoading) {
     return (
@@ -142,6 +148,64 @@ export function ProjectsMapCallout({
         )}
         <Button
           href={`https://dronetm.org/projects/${projectId}`}
+          target="_blank"
+        >
+          {m.view_project_detail()}
+        </Button>
+      </>
+    );
+  }
+
+  // Render Open Aerial Map imagery
+  if (product === "imagery") {
+    const oamDetails = oamQuery.data;
+    const title = oamDetails?.title || `Imagery #${projectId}`;
+    const provider = oamDetails?.provider;
+    const platform = oamDetails?.platform;
+    const acquisitionDate = oamDetails?.acquisition_start
+      ? new Date(oamDetails.acquisition_start).toLocaleDateString()
+      : undefined;
+    const thumbnail = oamDetails?.properties?.thumbnail;
+    // Calculate center from bbox for fallback URL
+    const bbox = oamDetails?.bbox;
+    const centerLon = bbox && bbox.length === 4 ? (bbox[0]! + bbox[2]!) / 2 : 0;
+    const centerLat = bbox && bbox.length === 4 ? (bbox[1]! + bbox[3]!) / 2 : 0;
+
+    return (
+      <>
+        <div className="flex justify-between items-start text-sm">
+          <span>
+            <strong>Imagery ID:</strong> {projectId}
+          </span>
+          <Icon name="close" onClick={onClose}></Icon>
+        </div>
+        <p className="text-xl leading-tight">{title}</p>
+        {thumbnail && (
+          <div className="mb-3">
+            <img
+              src={thumbnail}
+              alt={title}
+              className="w-full h-32 object-cover rounded"
+            />
+          </div>
+        )}
+        {provider && (
+          <div className="text-sm text-hot-gray-600 mb-2">
+            <strong>Provider:</strong> {provider}
+          </div>
+        )}
+        {platform && (
+          <div className="text-sm text-hot-gray-600 mb-2">
+            <strong>Platform:</strong> {platform}
+          </div>
+        )}
+        {acquisitionDate && (
+          <div className="text-sm text-hot-gray-600 mb-2">
+            <strong>Acquisition:</strong> {acquisitionDate}
+          </div>
+        )}
+        <Button
+          href={`https://map.openaerialmap.org/#/${centerLon},${centerLat},14`}
           target="_blank"
         >
           {m.view_project_detail()}
