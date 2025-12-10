@@ -411,3 +411,221 @@ class TestGetFairDatasetsByUser:
 
             assert exc_info.value.status_code == 500
             assert "Network error" in exc_info.value.detail
+
+
+class TestGetMyFairModels:
+    """Test suite for get_my_fair_models function (authenticated endpoint)"""
+
+    @pytest.mark.asyncio
+    async def test_get_my_models_success(self):
+        """Test successful request with mocked authentication"""
+        mock_response_data = {
+            "results": [{"id": 1, "name": "My AI Model"}],
+            "count": 1
+        }
+
+        mock_response = Mock()
+        mock_response.json.return_value = mock_response_data
+        mock_response.raise_for_status = Mock()
+
+        # Mock OSM connection with osm_user_id
+        mock_osm = Mock()
+        mock_osm.osm_user_id = 23470445
+
+        # Mock Hanko user
+        mock_user = Mock()
+        mock_user.id = "test-user-uuid"
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
+
+            from app.api.routes.fair.fair import router
+            # Get the /me/models endpoint (index 3)
+            endpoint = router.routes[3].endpoint
+
+            result = await endpoint(user=mock_user, osm=mock_osm)
+
+            assert result == mock_response_data
+            mock_client.return_value.__aenter__.return_value.get.assert_called_once()
+
+            call_args = mock_client.return_value.__aenter__.return_value.get.call_args
+            assert "/model/" in call_args[0][0]
+
+            params = call_args[1]["params"]
+
+            def val(v):
+                return v.default if hasattr(v, "default") else v
+
+            # Verify it uses the OSM user ID from the mocked connection
+            assert params["user"] == 23470445
+            assert val(params["limit"]) == 20
+            assert val(params["offset"]) == 0
+
+    @pytest.mark.asyncio
+    async def test_get_my_models_with_params(self):
+        """Test with optional parameters"""
+        mock_response_data = {"results": [], "count": 0}
+
+        mock_response = Mock()
+        mock_response.json.return_value = mock_response_data
+        mock_response.raise_for_status = Mock()
+
+        mock_osm = Mock()
+        mock_osm.osm_user_id = 12345
+
+        mock_user = Mock()
+        mock_user.id = "test-user-uuid"
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
+
+            from app.api.routes.fair.fair import router
+            endpoint = router.routes[3].endpoint
+
+            result = await endpoint(
+                user=mock_user,
+                osm=mock_osm,
+                limit=50,
+                offset=10,
+                search="test",
+                ordering="created_at",
+                id=99
+            )
+
+            assert result == mock_response_data
+
+            call_args = mock_client.return_value.__aenter__.return_value.get.call_args
+            params = call_args[1]["params"]
+
+            assert params["user"] == 12345
+            assert params["limit"] == 50
+            assert params["offset"] == 10
+            assert params["search"] == "test"
+            assert params["ordering"] == "created_at"
+            assert params["id"] == 99
+
+
+class TestGetMyFairDatasets:
+    """Test suite for get_my_fair_datasets function (authenticated endpoint)"""
+
+    @pytest.mark.asyncio
+    async def test_get_my_datasets_success(self):
+        """Test successful request with mocked authentication"""
+        mock_response_data = {
+            "results": [{"id": 1, "name": "My Dataset"}],
+            "count": 1
+        }
+
+        mock_response = Mock()
+        mock_response.json.return_value = mock_response_data
+        mock_response.raise_for_status = Mock()
+
+        mock_osm = Mock()
+        mock_osm.osm_user_id = 23470445
+
+        mock_user = Mock()
+        mock_user.id = "test-user-uuid"
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
+
+            from app.api.routes.fair.fair import router
+            # Get the /me/datasets endpoint (index 4)
+            endpoint = router.routes[4].endpoint
+
+            result = await endpoint(user=mock_user, osm=mock_osm)
+
+            assert result == mock_response_data
+            mock_client.return_value.__aenter__.return_value.get.assert_called_once()
+
+            call_args = mock_client.return_value.__aenter__.return_value.get.call_args
+            assert "/dataset/" in call_args[0][0]
+
+            params = call_args[1]["params"]
+
+            def val(v):
+                return v.default if hasattr(v, "default") else v
+
+            assert params["user"] == 23470445
+            assert val(params["limit"]) == 20
+            assert val(params["offset"]) == 0
+
+    @pytest.mark.asyncio
+    async def test_get_my_datasets_with_params(self):
+        """Test with optional parameters"""
+        mock_response_data = {"results": [], "count": 0}
+
+        mock_response = Mock()
+        mock_response.json.return_value = mock_response_data
+        mock_response.raise_for_status = Mock()
+
+        mock_osm = Mock()
+        mock_osm.osm_user_id = 99999
+
+        mock_user = Mock()
+        mock_user.id = "test-user-uuid"
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
+
+            from app.api.routes.fair.fair import router
+            endpoint = router.routes[4].endpoint
+
+            result = await endpoint(
+                user=mock_user,
+                osm=mock_osm,
+                limit=100,
+                offset=20,
+                ordering="name",
+                id=5
+            )
+
+            assert result == mock_response_data
+
+            call_args = mock_client.return_value.__aenter__.return_value.get.call_args
+            params = call_args[1]["params"]
+
+            assert params["user"] == 99999
+            assert params["limit"] == 100
+            assert params["offset"] == 20
+            assert params["ordering"] == "name"
+            assert params["id"] == 5
+
+    @pytest.mark.asyncio
+    async def test_get_my_datasets_http_error(self):
+        """Test handling of HTTPStatusError"""
+        mock_response = Mock()
+        mock_response.status_code = 503
+        mock_response.text = "Service unavailable"
+
+        mock_osm = Mock()
+        mock_osm.osm_user_id = 12345
+
+        mock_user = Mock()
+        mock_user.id = "test-user-uuid"
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                side_effect=httpx.HTTPStatusError(
+                    "Error from fAIr API",
+                    request=Mock(),
+                    response=mock_response
+                )
+            )
+
+            from app.api.routes.fair.fair import router
+            endpoint = router.routes[4].endpoint
+
+            with pytest.raises(HTTPException) as exc_info:
+                await endpoint(user=mock_user, osm=mock_osm)
+
+            assert exc_info.value.status_code == 503
+            assert "Error from fAIr API" in exc_info.value.detail

@@ -74,7 +74,7 @@ const loadImage = async (
 const addMapLayers = (
   map: maplibregl.Map,
   mapResults: ProjectsMapProps["mapResults"],
-  onProjectClick?: (projectId: number) => void
+  onProjectClick?: (projectId: number | string, product: string) => void
 ) => {
   // Add GeoJSON source with clustering
   map.addSource("projects", {
@@ -204,10 +204,11 @@ const addMapLayers = (
     if (!feature) return;
 
     const projectId = feature.properties?.projectId;
+    const product = feature.properties?.product || "tasking-manager";
 
     // Trigger callback to fetch project details
     if (projectId && onProjectClick) {
-      onProjectClick(projectId);
+      onProjectClick(projectId, product);
     }
   });
 };
