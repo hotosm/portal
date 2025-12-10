@@ -12,7 +12,6 @@ interface ProjectsMapCalloutProps {
   // For project lists (geographic search or zoom-based)
   projects?: ProjectMapFeature[];
   locationName?: string; // For geographic searches
-  onViewDetails?: () => void;
   onClose: () => void;
   onProjectClick?: (projectId: number) => void;
 }

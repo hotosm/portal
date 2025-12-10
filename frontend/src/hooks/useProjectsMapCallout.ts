@@ -42,25 +42,6 @@ export function useProjectsMapCallout(): UseProjectsMapCalloutReturn {
     setLocationName('');
   }, []);
 
-  // Listen for popup button clicks (view project details)
-  useEffect(() => {
-    const handleViewProject = (event: CustomEvent) => {
-      const projectId = event.detail?.projectId;
-      if (projectId) {
-        console.log('View project details:', projectId);
-        // TODO: Navigate to project details page
-        // Example: navigate(`/projects/${projectId}`);
-        alert(
-          `Viewing project #${projectId}\\n\\nThis will navigate to the project details page.`
-        );
-      }
-    };
-
-    window.addEventListener('viewProject' as any, handleViewProject as any);
-    return () => {
-      window.removeEventListener('viewProject' as any, handleViewProject as any);
-    };
-  }, []);
 
   // Computed property to check if callout is open
   const isCalloutOpen = selectedProjectId !== null || selectedProjects.length > 0;
