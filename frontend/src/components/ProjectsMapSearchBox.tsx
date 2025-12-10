@@ -9,8 +9,6 @@ interface ProjectsMapSearchBoxProps {
     projects: ProjectMapFeature[],
     locationName: string
   ) => void;
-
-  locationName: string;
 }
 
 interface SearchResult {

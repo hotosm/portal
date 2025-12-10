@@ -10,7 +10,10 @@ import markerField from "../assets/images/marker-field.svg";
 import markerImagery from "../assets/images/marker-imagery.svg";
 import { ProjectsMapSearchBox } from "./ProjectsMapSearchBox";
 import { ProjectsMapCallout } from "./ProjectsMapCallout";
-import { ProjectsMapResults, ProjectMapFeature } from "../types/projectsMap/taskingManager";
+import {
+  ProjectsMapResults,
+  ProjectMapFeature,
+} from "../types/projectsMap/taskingManager";
 
 interface ProjectListData {
   projects: ProjectMapFeature[];
