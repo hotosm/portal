@@ -388,15 +388,6 @@ export function ProjectsMap({
             projectId={selectedProjectId || undefined}
             projects={selectedProjects}
             locationName={locationName}
-            onViewDetails={() => {
-              if (selectedProjectId) {
-                window.dispatchEvent(
-                  new CustomEvent("viewProject", {
-                    detail: { projectId: selectedProjectId },
-                  })
-                );
-              }
-            }}
             onProjectClick={onProjectClick}
             onClose={onCloseDetails || (() => {})}
           />
