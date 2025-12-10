@@ -29,7 +29,7 @@ function NavigationMain({ onLinkClick }: NavigationMainProps) {
         return (
           <NavLink
             key={item.id}
-            className={`text-hot-gray-800 hover:no-underline text-lg font-bold px-sm py-xs rounded transition-colors ${
+            className={`text-hot-gray-800 hover:no-underline font-bold px-sm py-xs rounded transition-colors ${
               isActive ? "bg-hot-gray-50" : "hover:bg-hot-gray-50"
             }`}
             to={localizedHref}

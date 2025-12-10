@@ -8,6 +8,18 @@ import { useProjectsMapCallout } from "../hooks/useProjectsMapCallout";
 import { m } from "../paraglide/messages";
 import CallToAction from "../components/shared/CallToAction";
 
+type ProductType =
+  | "tasking-manager"
+  | "drone-tasking-manager"
+  | "fair"
+  | "field"
+  | "imagery";
+
+interface SelectedProject {
+  projectId: number | string;
+  product: ProductType;
+}
+
 function HomePage() {
   const { currentLanguage: _currentLanguage } = useLanguage(); // suscribe to force re-render on language change
   // TODO relocate when adding other APIs

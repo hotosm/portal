@@ -27,11 +27,11 @@ function Header() {
             <img
               src={hotLogo}
               alt="HOT Logo"
-              className="w-12 h-12 md:w-16 md:h-16"
+              className="w-14 h-14"
             />
 
             <span
-              className="uppercase text-[28px] text-hot-gray-950 leading-tight hover:no-underline"
+              className="uppercase text-[22px] text-hot-gray-950 leading-tight hover:no-underline"
               style={{ fontFamily: "Barlow" }}
             >
               Portal

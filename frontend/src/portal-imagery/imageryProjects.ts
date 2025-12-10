@@ -1,3 +1,6 @@
+// Get Drone-TM frontend URL from environment (defaults to production)
+const DRONE_TM_URL = import.meta.env.VITE_DRONE_TM_URL || import.meta.env.VITE_DRONE_TM_FRONTEND_URL || 'https://dronetm.org';
+
 export interface IImageryProject {
   id: number;
   title: string;
@@ -46,7 +49,7 @@ export async function getImageryProjects(): Promise<IImageryProject[]> {
     return data.results.map((project, index) => ({
       id: index + 1,
       title: project.name,
-      href: `https://dronetm.org/projects/${project.id}`,
+      href: `${DRONE_TM_URL}/projects/${project.id}`,
       section: "drone" as const,
       image: project.image_url,
     }));
@@ -77,7 +80,7 @@ export async function getAllImageryProjects(): Promise<IImageryProject[]> {
       const projects = data.results.map((project, index) => ({
         id: allProjects.length + index + 1,
         title: project.name,
-        href: `https://dronetm.org/projects/${project.id}`,
+        href: `${DRONE_TM_URL}/projects/${project.id}`,
         section: "drone" as const,
         image: project.image_url,
       }));

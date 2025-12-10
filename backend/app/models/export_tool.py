@@ -1,51 +1,45 @@
 # portal/backend/app/models/export_tool.py
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional, Any
 from datetime import datetime
 
 
-class User(BaseModel):
-    """User information"""
+class ExportJobUser(BaseModel):
+    """User information for export job"""
     username: str
-    id: Optional[int] = None
 
 
-class Region(BaseModel):
-    """Region information"""
-    id: Optional[int] = None
-    name: Optional[str] = None
-    description: Optional[str] = None
-
-
-class ExportFormat(BaseModel):
-    """Export format details"""
-    uid: str
-    url: str
-    name: Optional[str] = None
-    description: Optional[str] = None
-    size: Optional[float] = None
-    deleted: Optional[bool] = False
+class GeoJSONGeometry(BaseModel):
+    """GeoJSON geometry"""
+    type: str
+    coordinates: Any
 
 
 class ExportJob(BaseModel):
-    """Individual export job"""
-    model_config = ConfigDict(json_encoders={datetime: lambda v: v.isoformat()})
-    
+    """Individual export job from HOT Export Tool API"""
+    model_config = ConfigDict(extra="allow")
+
+    id: int
     uid: str
+    user: Optional[ExportJobUser] = None
     name: str
     description: Optional[str] = None
     event: Optional[str] = None
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-    owner: Optional[User] = None
-    region: Optional[Region] = None
-    extent: Optional[Any] = None  # GeoJSON geometry
+    export_formats: Optional[List[str]] = None
     published: Optional[bool] = False
-    featured: Optional[bool] = False
+    feature_selection: Optional[str] = None
+    buffer_aoi: Optional[bool] = False
+    osma_link: Optional[str] = None
+    created_at: datetime
+    area: Optional[float] = None
+    simplified_geom: Optional[GeoJSONGeometry] = None
+    mbtiles_source: Optional[str] = None
+    mbtiles_minzoom: Optional[int] = None
+    mbtiles_maxzoom: Optional[int] = None
     pinned: Optional[bool] = False
-    status: Optional[str] = None
-    formats: Optional[List[ExportFormat]] = []
+    unfiltered: Optional[bool] = False
+    userinfo: Optional[bool] = False
 
 
 class ExportJobsResponse(BaseModel):

@@ -1,5 +1,6 @@
 import ReactMarkdown from "react-markdown";
 import { useProjectDetails } from "../hooks/useProjectDetails";
+import { useDroneProjectDetails } from "../hooks/useDroneProjectDetails";
 import { m } from "../paraglide/messages";
 import { shortenText } from "../utils/utils";
 import Button from "./shared/Button";
@@ -79,8 +80,11 @@ function IndividualProjectCallout({
     );
   }
 
-  const { projectInfo, organisationName, percentMapped, percentValidated } =
-    projectDetails || {};
+  // Render Tasking Manager project
+  if (product === "tasking-manager") {
+    const projectDetails = taskingManagerQuery.data;
+    const { projectInfo, organisationName, percentMapped, percentValidated } =
+      projectDetails || {};
 
   const projectName = projectInfo?.name || `Project #${projectId}`;
   const description = projectInfo?.description;
