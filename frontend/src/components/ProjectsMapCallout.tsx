@@ -141,7 +141,7 @@ export function ProjectsMapCallout({
           </div>
         )}
         <Button
-          href={`https://dronetm.org/projects/${droneDetails?.slug || projectId}`}
+          href={`https://dronetm.org/projects/${projectId}`}
           target="_blank"
         >
           {m.view_project_detail()}
