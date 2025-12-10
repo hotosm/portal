@@ -71,3 +71,77 @@ export interface DroneProjectDetails {
   project_area?: number;
   created_at?: string;
 }
+
+// fAIr types
+export interface FAIRUser {
+  osm_id?: number;
+  username?: string;
+}
+
+export interface FAIRProject {
+  id: number;
+  user?: FAIRUser;
+  accuracy?: number;
+  thumbnail_url?: string;
+  name?: string;
+  created_at?: string;
+  last_modified?: string;
+  description?: string;
+  published_training?: number;
+  status?: number;
+  base_model?: string;
+  dataset?: number;
+}
+
+export interface FAIRProjectsResponse {
+  count?: number;
+  next?: string;
+  previous?: string;
+  results: FAIRProject[];
+}
+
+// Open Aerial Map types
+export interface OAMProperties {
+  wmts?: string;
+  tms?: string;
+  thumbnail?: string;
+  sensor?: string;
+}
+
+export interface OAMGeoJSON {
+  bbox?: number[];
+  coordinates?: number[][][];
+  type?: string;
+}
+
+export interface OAMImagery {
+  _id?: string;
+  uuid?: string;
+  title?: string;
+  projection?: string;
+  bbox?: number[];
+  footprint?: string;
+  gsd?: number;
+  file_size?: number;
+  acquisition_start?: string;
+  acquisition_end?: string;
+  platform?: string;
+  provider?: string;
+  contact?: string;
+  properties?: OAMProperties;
+  uploaded_at?: string;
+  meta_uri?: string;
+  geojson?: OAMGeoJSON;
+}
+
+export interface OAMListResponse {
+  meta?: {
+    provided_by?: string;
+    license?: string;
+    website?: string;
+    page?: number;
+    limit?: number;
+    found?: number;
+  };
+  results: OAMImagery[];
+}

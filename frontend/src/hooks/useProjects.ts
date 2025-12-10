@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type {
   ProjectsMapResults,
   DroneProjectCentroid,
+  OAMImagery,
 } from "../types/projectsMap/taskingManager";
 import { ProductType } from "../constants/sampleProjectsData";
 
@@ -79,18 +80,61 @@ async function fetchDroneTaskingManagerProjects(): Promise<ProjectsMapResults["f
   }
 }
 
+async function fetchOpenAerialMapProjects(): Promise<ProjectsMapResults["features"]> {
+  try {
+    const response = await fetch("/api/open-aerial-map/projects?limit=100");
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Open Aerial Map response error:", errorText);
+      return [];
+    }
+
+    const data = await response.json();
+
+    // Transform OAM imagery to map features using bbox centroid
+    return (
+      data.results
+        ?.filter((imagery: OAMImagery) => imagery.bbox && imagery.bbox.length === 4)
+        .map((imagery: OAMImagery) => {
+          // Calculate centroid from bbox [minLon, minLat, maxLon, maxLat]
+          const bbox = imagery.bbox as [number, number, number, number];
+          const centerLon = (bbox[0] + bbox[2]) / 2;
+          const centerLat = (bbox[1] + bbox[3]) / 2;
+
+          return {
+            type: "Feature" as const,
+            geometry: {
+              type: "Point" as const,
+              coordinates: [centerLon, centerLat] as [number, number],
+            },
+            properties: {
+              projectId: imagery._id || imagery.uuid || "",
+              name: imagery.title || null,
+              product: "imagery" as ProductType,
+            },
+          };
+        }) || []
+    );
+  } catch (error) {
+    console.error("Error fetching Open Aerial Map projects:", error);
+    return [];
+  }
+}
+
 async function fetchProjects(): Promise<ProjectsMapResults> {
-  // Fetch both sources in parallel
-  const [taskingManagerFeatures, droneFeatures] = await Promise.all([
+  // Fetch all sources in parallel
+  const [taskingManagerFeatures, droneFeatures, oamFeatures] = await Promise.all([
     fetchTaskingManagerProjects(),
     fetchDroneTaskingManagerProjects(),
+    fetchOpenAerialMapProjects(),
   ]);
 
   // Combine all features
-  const allFeatures = [...taskingManagerFeatures, ...droneFeatures];
+  const allFeatures = [...taskingManagerFeatures, ...droneFeatures, ...oamFeatures];
 
   console.log(
-    `Loaded ${taskingManagerFeatures.length} Tasking Manager projects and ${droneFeatures.length} Drone TM projects`
+    `Loaded ${taskingManagerFeatures.length} Tasking Manager, ${droneFeatures.length} Drone TM, ${oamFeatures.length} OAM projects`
   );
 
   return {
