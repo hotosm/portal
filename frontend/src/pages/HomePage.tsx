@@ -1,66 +1,40 @@
-import { useEffect, useState } from "react";
 import { ProjectsMap } from "../components/ProjectsMap";
 import Carousel from "../components/shared/Carousel";
 import CarouselItem from "../components/shared/CarouselItem";
 import { carouselItems } from "../constants/carouselItems";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useProjects } from "../hooks/useProjects";
+import { useProjectsMapCallout } from "../hooks/useProjectsMapCallout";
 import { m } from "../paraglide/messages";
 import CallToAction from "../components/shared/CallToAction";
 
-type ProductType = "tasking-manager" | "drone-tasking-manager" | "fair" | "field" | "imagery";
-
-interface SelectedProject {
-  projectId: number | string;
-  product: ProductType;
-}
 
 function HomePage() {
   const { currentLanguage: _currentLanguage } = useLanguage(); // suscribe to force re-render on language change
   // TODO relocate when adding other APIs
   const { data: projectsData, isLoading, error } = useProjects();
-  const [selectedProject, setSelectedProject] = useState<SelectedProject | null>(
-    null
-  );
-
-  const handleProjectClick = (projectId: number | string, product: string) => {
-    console.log("Project clicked:", projectId, "product:", product);
-    setSelectedProject({ projectId, product: product as ProductType });
-  };
-
-  // Listen for popup button clicks
-  useEffect(() => {
-    const handleViewProject = (event: CustomEvent) => {
-      const projectId = event.detail?.projectId;
-      if (projectId) {
-        console.log("View project details:", projectId);
-        // TODO: Navigate to project details page
-        // Example: navigate(`/projects/${projectId}`);
-        alert(
-          `Viewing project #${projectId}\n\nThis will navigate to the project details page.`
-        );
-      }
-    };
-
-    window.addEventListener("viewProject" as any, handleViewProject as any);
-    return () => {
-      window.removeEventListener(
-        "viewProject" as any,
-        handleViewProject as any
-      );
-    };
-  }, []);
+  const {
+    selectedProjectId,
+    selectedProjects,
+    locationName,
+    selectedProduct,
+    handleProjectClick,
+    handleCloseDetails,
+  } = useProjectsMapCallout();
 
   return (
     <div>
       {/* Map Section */}
       <div className="h-[calc(100vh_-_100px)] flex flex-col">
-        <div className="flex-1 relative">
+        <section className="flex-1 relative">
           <ProjectsMap
             mapResults={projectsData}
-            selectedProject={selectedProject}
+            selectedProjectId={selectedProjectId}
+            selectedProduct={selectedProduct}
+            selectedProjects={selectedProjects}
+            locationName={locationName}
             onProjectClick={handleProjectClick}
-            onCloseDetails={() => setSelectedProject(null)}
+            onCloseDetails={handleCloseDetails}
           />
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-white/10 backdrop-blur-sm">
@@ -73,7 +47,7 @@ function HomePage() {
               <p>{m.loading_projects_error()}</p>
             </div>
           )}
-        </div>
+        </section>
 
         <section className="text-center relative py-lg md:py-2xl flex-shrink-0 space-y-sm md:space-y-lg">
           {/* TODO replace with HOT resources */}
@@ -175,27 +149,12 @@ function HomePage() {
                   {item.description}
                 </p>
               </div>
-
-              {/* <div
-                className="relative h-[400px] md:h-[500px] lg:h-[600px] w-full bg-cover bg-center grayscale"
-                style={{ backgroundImage: `url(${item.image})` }}
-              >
-                <div className="absolute left-md bottom-md bg-hot-gray-800 p-lg max-w-md">
-                  <h3 className="text-white uppercase font-bold text-xl mb-sm">
-                    {item.title}
-                  </h3>
-                  <p className="text-white text-sm md:text-base leading-relaxed mb-0">
-                    {item.description}
-                  </p>
-                 
-                </div>
-              </div> */}
             </CarouselItem>
           ))}
         </Carousel>
       </section>
 
-      {/* Call to action */}
+      {/* Call to action TODO change button appearence */}
       <section className="container py-xl md:py-2xl">
         <CallToAction
           title="Start mapping, today"
@@ -204,7 +163,6 @@ function HomePage() {
           buttonLink="#"
         />
       </section>
-
     </div>
   );
 }
