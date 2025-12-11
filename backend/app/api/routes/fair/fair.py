@@ -3,7 +3,7 @@
 import httpx
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional
-from app.models.fair import FAIRProjectsResponse
+from app.models.fair import FAIRProjectsResponse, FAIRCentroidsResponse, FAIRModelDetail
 from hotosm_auth.integrations.fastapi import CurrentUser, OSMConnectionRequired
 
 FAIR_API_BASE_URL = "https://api-prod.fair.hotosm.org/api/v1"
@@ -67,7 +67,104 @@ async def get_fair_projects(
             )
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
-        
+
+
+@router.get("/models/centroid", response_model=FAIRCentroidsResponse)
+async def get_fair_models_centroids() -> dict:
+    """
+    Get all AI model centroids from fAIr API as GeoJSON.
+
+    Returns a GeoJSON FeatureCollection with Point geometries representing
+    the centroid location of each AI model. Each feature includes a `mid`
+    (model ID) property that can be used to fetch model details.
+
+    Example: GET /api/fair/models/centroid
+
+    Response:
+    ```json
+        {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [85.52, 27.63]
+                    },
+                    "properties": {"mid": 3}
+                }
+            ]
+        }
+    ```
+    """
+    url = f"{FAIR_API_BASE_URL}/models/centroid/"
+
+    headers = {
+        "accept": "application/json",
+    }
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            response = await client.get(url, headers=headers)
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(
+                status_code=e.response.status_code,
+                detail=f"Error from fAIr API: {e.response.text}"
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/model/{mid}", response_model=FAIRModelDetail)
+async def get_fair_model_detail(mid: int) -> dict:
+    """
+    Get detailed information for a specific AI model from fAIr API.
+
+    Args:
+        mid: The model ID to retrieve details for
+
+    Example: GET /api/fair/model/3
+
+    Response:
+    ```json
+        {
+            "id": 3,
+            "name": "Building Model Banepa",
+            "description": null,
+            "accuracy": 88.9,
+            "status": 0,
+            "base_model": "RAMP",
+            "published_training": 22,
+            "user": {"osm_id": 12345, "username": "mapper"},
+            "dataset": {"id": 1, "name": "Dataset Name", "source_imagery": "..."},
+            "created_at": "2023-01-01T00:00:00Z",
+            "last_modified": "2023-06-01T00:00:00Z",
+            "thumbnail_url": "https://..."
+        }
+    ```
+    """
+    url = f"{FAIR_API_BASE_URL}/model/{mid}/"
+
+    headers = {
+        "accept": "application/json",
+    }
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            response = await client.get(url, headers=headers)
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(
+                status_code=e.response.status_code,
+                detail=f"Error from fAIr API: {e.response.text}"
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/model/user/{user_id}", response_model=FAIRProjectsResponse)
 async def get_fair_models_by_user(
     user_id: int,
