@@ -197,8 +197,8 @@ class TestGetFairModelsByUser:
             )
 
             from app.api.routes.fair.fair import router
-            # Get the second endpoint (index 1)
-            endpoint = router.routes[1].endpoint
+            # Get the model/user endpoint (index 3 after adding centroid and model detail)
+            endpoint = router.routes[3].endpoint
 
             result = await endpoint(user_id=23470445)
 
@@ -238,7 +238,7 @@ class TestGetFairModelsByUser:
             )
 
             from app.api.routes.fair.fair import router
-            endpoint = router.routes[1].endpoint
+            endpoint = router.routes[3].endpoint
 
             result = await endpoint(
                 user_id=23470445,
@@ -278,7 +278,7 @@ class TestGetFairModelsByUser:
             )
 
             from app.api.routes.fair.fair import router
-            endpoint = router.routes[1].endpoint
+            endpoint = router.routes[3].endpoint
 
             with pytest.raises(HTTPException) as exc_info:
                 await endpoint(user_id=99999)
@@ -308,8 +308,8 @@ class TestGetFairDatasetsByUser:
             )
 
             from app.api.routes.fair.fair import router
-            # Get the third endpoint (index 2)
-            endpoint = router.routes[2].endpoint
+            # Get the dataset/user endpoint (index 4 after adding centroid and model detail)
+            endpoint = router.routes[4].endpoint
 
             result = await endpoint(user_id=23470445)
 
@@ -349,7 +349,7 @@ class TestGetFairDatasetsByUser:
             )
 
             from app.api.routes.fair.fair import router
-            endpoint = router.routes[2].endpoint
+            endpoint = router.routes[4].endpoint
 
             result = await endpoint(
                 user_id=23470445,
@@ -387,7 +387,7 @@ class TestGetFairDatasetsByUser:
             )
 
             from app.api.routes.fair.fair import router
-            endpoint = router.routes[2].endpoint
+            endpoint = router.routes[4].endpoint
 
             with pytest.raises(HTTPException) as exc_info:
                 await endpoint(user_id=23470445)
@@ -404,7 +404,7 @@ class TestGetFairDatasetsByUser:
             )
 
             from app.api.routes.fair.fair import router
-            endpoint = router.routes[2].endpoint
+            endpoint = router.routes[4].endpoint
 
             with pytest.raises(HTTPException) as exc_info:
                 await endpoint(user_id=23470445)
@@ -442,8 +442,8 @@ class TestGetMyFairModels:
             )
 
             from app.api.routes.fair.fair import router
-            # Get the /me/models endpoint (index 3)
-            endpoint = router.routes[3].endpoint
+            # Get the /me/models endpoint (index 5 after adding centroid and model detail)
+            endpoint = router.routes[5].endpoint
 
             result = await endpoint(user=mock_user, osm=mock_osm)
 
@@ -484,7 +484,7 @@ class TestGetMyFairModels:
             )
 
             from app.api.routes.fair.fair import router
-            endpoint = router.routes[3].endpoint
+            endpoint = router.routes[5].endpoint
 
             result = await endpoint(
                 user=mock_user,
@@ -536,8 +536,8 @@ class TestGetMyFairDatasets:
             )
 
             from app.api.routes.fair.fair import router
-            # Get the /me/datasets endpoint (index 4)
-            endpoint = router.routes[4].endpoint
+            # Get the /me/datasets endpoint (index 6 after adding centroid and model detail)
+            endpoint = router.routes[6].endpoint
 
             result = await endpoint(user=mock_user, osm=mock_osm)
 
@@ -577,7 +577,7 @@ class TestGetMyFairDatasets:
             )
 
             from app.api.routes.fair.fair import router
-            endpoint = router.routes[4].endpoint
+            endpoint = router.routes[6].endpoint
 
             result = await endpoint(
                 user=mock_user,
@@ -622,10 +622,275 @@ class TestGetMyFairDatasets:
             )
 
             from app.api.routes.fair.fair import router
-            endpoint = router.routes[4].endpoint
+            endpoint = router.routes[6].endpoint
 
             with pytest.raises(HTTPException) as exc_info:
                 await endpoint(user=mock_user, osm=mock_osm)
 
             assert exc_info.value.status_code == 503
             assert "Error from fAIr API" in exc_info.value.detail
+
+
+class TestGetFairModelsCentroids:
+    """Test suite for get_fair_models_centroids function"""
+
+    @pytest.mark.asyncio
+    async def test_get_centroids_success(self):
+        """Test successful request for model centroids"""
+        mock_response_data = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [85.52, 27.63]
+                    },
+                    "properties": {"mid": 3}
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [90.12, 23.45]
+                    },
+                    "properties": {"mid": 38}
+                }
+            ]
+        }
+
+        mock_response = Mock()
+        mock_response.json.return_value = mock_response_data
+        mock_response.raise_for_status = Mock()
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
+
+            from app.api.routes.fair.fair import get_fair_models_centroids
+
+            result = await get_fair_models_centroids()
+
+            assert result == mock_response_data
+            assert result["type"] == "FeatureCollection"
+            assert len(result["features"]) == 2
+            assert result["features"][0]["properties"]["mid"] == 3
+
+            call_args = mock_client.return_value.__aenter__.return_value.get.call_args
+            assert "/models/centroid/" in call_args[0][0]
+
+            headers = call_args[1]["headers"]
+            assert headers["accept"] == "application/json"
+
+    @pytest.mark.asyncio
+    async def test_get_centroids_empty_response(self):
+        """Test handling of empty FeatureCollection"""
+        mock_response_data = {
+            "type": "FeatureCollection",
+            "features": []
+        }
+
+        mock_response = Mock()
+        mock_response.json.return_value = mock_response_data
+        mock_response.raise_for_status = Mock()
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
+
+            from app.api.routes.fair.fair import get_fair_models_centroids
+
+            result = await get_fair_models_centroids()
+
+            assert result == mock_response_data
+            assert result["type"] == "FeatureCollection"
+            assert len(result["features"]) == 0
+
+    @pytest.mark.asyncio
+    async def test_get_centroids_http_error(self):
+        """Test handling of HTTPStatusError from fAIr API"""
+        mock_response = Mock()
+        mock_response.status_code = 500
+        mock_response.text = "Internal server error"
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                side_effect=httpx.HTTPStatusError(
+                    "Error from fAIr API",
+                    request=Mock(),
+                    response=mock_response
+                )
+            )
+
+            from app.api.routes.fair.fair import get_fair_models_centroids
+
+            with pytest.raises(HTTPException) as exc_info:
+                await get_fair_models_centroids()
+
+            assert exc_info.value.status_code == 500
+            assert "Error from fAIr API" in exc_info.value.detail
+
+    @pytest.mark.asyncio
+    async def test_get_centroids_generic_exception(self):
+        """Test handling of generic exceptions"""
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                side_effect=Exception("Connection timeout")
+            )
+
+            from app.api.routes.fair.fair import get_fair_models_centroids
+
+            with pytest.raises(HTTPException) as exc_info:
+                await get_fair_models_centroids()
+
+            assert exc_info.value.status_code == 500
+            assert "Connection timeout" in exc_info.value.detail
+
+
+class TestGetFairModelDetail:
+    """Test suite for get_fair_model_detail function"""
+
+    @pytest.mark.asyncio
+    async def test_get_model_detail_success(self):
+        """Test successful request for model details"""
+        mock_response_data = {
+            "id": 3,
+            "name": "Building Model Banepa",
+            "description": "A model for detecting buildings",
+            "accuracy": 88.9,
+            "status": 0,
+            "base_model": "RAMP",
+            "published_training": 22,
+            "user": {"osm_id": 12345, "username": "mapper"},
+            "dataset": {"id": 1, "name": "Banepa Dataset", "source_imagery": "maxar"},
+            "created_at": "2023-01-01T00:00:00Z",
+            "last_modified": "2023-06-01T00:00:00Z",
+            "thumbnail_url": "https://example.com/thumb.png"
+        }
+
+        mock_response = Mock()
+        mock_response.json.return_value = mock_response_data
+        mock_response.raise_for_status = Mock()
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
+
+            from app.api.routes.fair.fair import get_fair_model_detail
+
+            result = await get_fair_model_detail(mid=3)
+
+            assert result == mock_response_data
+            assert result["id"] == 3
+            assert result["name"] == "Building Model Banepa"
+            assert result["accuracy"] == 88.9
+            assert result["user"]["username"] == "mapper"
+
+            call_args = mock_client.return_value.__aenter__.return_value.get.call_args
+            assert "/model/3/" in call_args[0][0]
+
+            headers = call_args[1]["headers"]
+            assert headers["accept"] == "application/json"
+
+    @pytest.mark.asyncio
+    async def test_get_model_detail_with_null_fields(self):
+        """Test handling of model with null optional fields"""
+        mock_response_data = {
+            "id": 5,
+            "name": "Test Model",
+            "description": None,
+            "accuracy": None,
+            "status": 1,
+            "base_model": "RAMP",
+            "published_training": None,
+            "user": {"osm_id": 99999, "username": "testuser"},
+            "dataset": None,
+            "created_at": "2023-02-01T00:00:00Z",
+            "last_modified": "2023-02-01T00:00:00Z",
+            "thumbnail_url": None
+        }
+
+        mock_response = Mock()
+        mock_response.json.return_value = mock_response_data
+        mock_response.raise_for_status = Mock()
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
+
+            from app.api.routes.fair.fair import get_fair_model_detail
+
+            result = await get_fair_model_detail(mid=5)
+
+            assert result == mock_response_data
+            assert result["id"] == 5
+            assert result["description"] is None
+            assert result["dataset"] is None
+
+    @pytest.mark.asyncio
+    async def test_get_model_detail_not_found(self):
+        """Test handling of 404 when model doesn't exist"""
+        mock_response = Mock()
+        mock_response.status_code = 404
+        mock_response.text = "Model not found"
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                side_effect=httpx.HTTPStatusError(
+                    "Error from fAIr API",
+                    request=Mock(),
+                    response=mock_response
+                )
+            )
+
+            from app.api.routes.fair.fair import get_fair_model_detail
+
+            with pytest.raises(HTTPException) as exc_info:
+                await get_fair_model_detail(mid=99999)
+
+            assert exc_info.value.status_code == 404
+            assert "Error from fAIr API" in exc_info.value.detail
+
+    @pytest.mark.asyncio
+    async def test_get_model_detail_server_error(self):
+        """Test handling of server errors"""
+        mock_response = Mock()
+        mock_response.status_code = 503
+        mock_response.text = "Service unavailable"
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                side_effect=httpx.HTTPStatusError(
+                    "Error from fAIr API",
+                    request=Mock(),
+                    response=mock_response
+                )
+            )
+
+            from app.api.routes.fair.fair import get_fair_model_detail
+
+            with pytest.raises(HTTPException) as exc_info:
+                await get_fair_model_detail(mid=3)
+
+            assert exc_info.value.status_code == 503
+            assert "Error from fAIr API" in exc_info.value.detail
+
+    @pytest.mark.asyncio
+    async def test_get_model_detail_generic_exception(self):
+        """Test handling of generic exceptions"""
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                side_effect=Exception("Network error")
+            )
+
+            from app.api.routes.fair.fair import get_fair_model_detail
+
+            with pytest.raises(HTTPException) as exc_info:
+                await get_fair_model_detail(mid=3)
+
+            assert exc_info.value.status_code == 500
+            assert "Network error" in exc_info.value.detail
