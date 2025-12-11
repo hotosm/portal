@@ -1,4 +1,4 @@
-import type { FAIRModel, FAIRDataset } from "../hooks/useFairData";
+import { FAIRModel, FAIRDataset } from "../types/projectsMap";
 import placeholderImage from "../assets/images/demo/demo1.png";
 
 export interface IDataProject {

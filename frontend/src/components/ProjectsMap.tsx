@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 // import MapboxLanguage from "@mapbox/mapbox-gl-language";
@@ -10,17 +10,19 @@ import markerField from "../assets/images/marker-field.svg";
 import markerImagery from "../assets/images/marker-imagery.svg";
 import { ProjectsMapSearchBox } from "./ProjectsMapSearchBox";
 import { ProjectsMapCallout } from "./ProjectsMapCallout";
-import { ProjectsMapResults } from "../types/projectsMap/taskingManager";
-
-interface SelectedProject {
-  projectId: number | string;
-  product: "tasking-manager" | "drone-tasking-manager" | "fair" | "field" | "imagery";
-}
+import {
+  ProjectsMapResults,
+  ProjectMapFeature,
+} from "../types/projectsMap";
+import type { ProjectListData } from "../types/projectsMap/mapCallout";
 
 interface ProjectsMapProps {
   mapResults?: ProjectsMapResults;
-  onProjectClick?: (projectId: number | string, product: string) => void;
-  selectedProject?: SelectedProject | null;
+  onProjectClick?: (projectId: number | string, data?: ProjectListData | string) => void;
+  selectedProjectId?: number | string | null;
+  selectedProduct?: string;
+  selectedProjects?: ProjectMapFeature[];
+  locationName?: string;
   onCloseDetails?: () => void;
   className?: string;
 }
@@ -211,7 +213,10 @@ const addMapLayers = (
 export function ProjectsMap({
   mapResults,
   onProjectClick,
-  selectedProject,
+  selectedProjectId,
+  selectedProduct,
+  selectedProjects,
+  locationName,
   onCloseDetails,
 }: ProjectsMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -287,6 +292,16 @@ export function ProjectsMap({
     };
   }, []);
 
+  // Define handleShowProjects before using it in useEffect
+  const handleShowProjects = useCallback(
+    (projects: ProjectMapFeature[], locationName: string) => {
+      if (onProjectClick) {
+        onProjectClick("projects-list", { projects, locationName });
+      }
+    },
+    [onProjectClick]
+  );
+
   // Update map data
   useEffect(() => {
     if (!map.current || !mapLoaded) return;
@@ -304,25 +319,79 @@ export function ProjectsMap({
     }
   }, [mapResults, mapLoaded, onProjectClick]);
 
+  // Add zoom event listener for zoom-based project display
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+
+    const getProjectsInView = () => {
+      if (!map.current) return [];
+
+      try {
+        const bounds = map.current.getBounds();
+        const source = map.current.getSource(
+          "projects"
+        ) as maplibregl.GeoJSONSource;
+        if (!source || !source._data) return [];
+
+        const sourceData = source._data as any;
+        if (!sourceData || !sourceData.features) return [];
+
+        return sourceData.features.filter((feature: any) => {
+          if (!feature.geometry || feature.geometry.type !== "Point")
+            return false;
+          const [lng, lat] = feature.geometry.coordinates;
+          return bounds.contains([lng, lat]);
+        });
+      } catch (error) {
+        console.error("Error getting projects in view:", error);
+        return [];
+      }
+    };
+
+    const handleZoomEnd = () => {
+      if (!map.current) return;
+      const zoom = map.current.getZoom();
+
+      // Show projects when zoomed in close (zoom level 10 or higher)
+      if (zoom >= 10) {
+        const projectsInView = getProjectsInView();
+        if (projectsInView.length > 0 && projectsInView.length <= 20) {
+          // Only show if there's a reasonable number of projects
+          const center = map.current.getCenter();
+          // Create a more user-friendly location name
+          const locationName = `this area (${center.lat.toFixed(
+            2
+          )}°, ${center.lng.toFixed(2)}°)`;
+          handleShowProjects(projectsInView, locationName);
+        }
+      }
+    };
+
+    map.current.on("zoomend", handleZoomEnd);
+
+    return () => {
+      if (map.current) {
+        map.current.off("zoomend", handleZoomEnd);
+      }
+    };
+  }, [mapLoaded, handleShowProjects]);
+
   return (
     <div className="relative w-full h-full">
-      <ProjectsMapSearchBox map={map.current} position="top-right" />
+      <ProjectsMapSearchBox
+        map={map.current}
+        onShowProjects={handleShowProjects}
+      />
       <div ref={mapContainer} className="w-full h-full overflow-hidden" />
-      {selectedProject && (
+      {(selectedProjectId ||
+        (selectedProjects && selectedProjects.length > 0)) && (
         <div className="absolute top-0 right-0 h-full bg-white p-lg border border-hot-gray-100 z-10 animate-in w-[250px] sm:w-[340px] slide-in-from-right duration-300 overflow-y-auto">
           <ProjectsMapCallout
-            projectId={selectedProject.projectId}
-            product={selectedProject.product}
-            onViewDetails={() => {
-              window.dispatchEvent(
-                new CustomEvent("viewProject", {
-                  detail: {
-                    projectId: selectedProject.projectId,
-                    product: selectedProject.product,
-                  },
-                })
-              );
-            }}
+            projectId={selectedProjectId || undefined}
+            product={selectedProduct}
+            projects={selectedProjects}
+            locationName={locationName}
+            onProjectClick={onProjectClick}
             onClose={onCloseDetails || (() => {})}
           />
         </div>
