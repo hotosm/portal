@@ -522,7 +522,7 @@ The API is self-documented using FastAPI's built-in OpenAPI support:
 - `GET /api/health-check` - Detailed health with response times
 - `/api/tasking-manager/projects` - Return all project of Tasking Manager
 - `/api/tasking-manager/countries` - Return all countries of Tasking Manager
-- `/api/tasking-manager/projectid` - ProjectID data of Tasking Manager
+- `/api/tasking-manager/{projectid}` - ProjectID data of Tasking Manager
 - `/api/drone-tasking-manager/projects?fetch_all=true` - Returns all Drone TM projects without pagination. (Drone Tasking Manager)
 - `/api/drone-tasking-manager/projects` - Return all project of Drone TM (Drone Tasking Manager)
 - `/api/drone-tasking-manager/projects/projectid` - ProjectID data of Drone TM (Drone Tasking Manager)
@@ -545,6 +545,7 @@ The API is self-documented using FastAPI's built-in OpenAPI support:
 - `/api/umap/{locationid}/{projectid}` - ProjectID data of UMap HOTOSM
 - `/api/export-tool/jobs` - Data jobs of Export Tool
 - `/api/export-tool/jobs/{job_uid}` - ID of data jobs of Export Tool
+- `/api/homepage-map/unified` - Unified endpoints for the homepage map
 
 ## Contributing
 
