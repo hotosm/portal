@@ -121,6 +121,8 @@ portal/
   - `/api/fair/me/datasets` - Get datasets from fAIr API for the authenticated user
   - `/api/fair/model/user/{user_id}` - Returns the user models of fAIr
   - `/api/fair/dataset/user/{user_id}` - Returns the user dataset of fAIr
+  - `/api/fair/models/centroid` - Get all centroids of fAIr
+  - `/api/fair/model/{mid}` - Obtain details of a specific model using the centroid model id of fAIr
   - `/api/field-tm/projects` - Return all project of Field Tasking Manager
   - `/api/field-tm/projectid` - ProjectID data of Field Tasking Manager
   - `/api/umap/{locationid}/{projectid}` - ProjectID data of UMap HOTOSM
