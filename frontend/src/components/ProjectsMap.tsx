@@ -22,8 +22,9 @@ interface ProjectListData {
 
 interface ProjectsMapProps {
   mapResults?: ProjectsMapResults;
-  onProjectClick?: (projectId: number | string, data?: ProjectListData) => void;
-  selectedProjectId?: number | null;
+  onProjectClick?: (projectId: number | string, data?: ProjectListData | string) => void;
+  selectedProjectId?: number | string | null;
+  selectedProduct?: string;
   selectedProjects?: ProjectMapFeature[];
   locationName?: string;
   onCloseDetails?: () => void;
@@ -217,6 +218,7 @@ export function ProjectsMap({
   mapResults,
   onProjectClick,
   selectedProjectId,
+  selectedProduct,
   selectedProjects,
   locationName,
   onCloseDetails,
@@ -390,6 +392,7 @@ export function ProjectsMap({
         <div className="absolute top-0 right-0 h-full bg-white p-lg border border-hot-gray-100 z-10 animate-in w-[250px] sm:w-[340px] slide-in-from-right duration-300 overflow-y-auto">
           <ProjectsMapCallout
             projectId={selectedProjectId || undefined}
+            product={selectedProduct}
             projects={selectedProjects}
             locationName={locationName}
             onProjectClick={onProjectClick}

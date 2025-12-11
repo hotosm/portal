@@ -7,44 +7,46 @@ interface ProjectListData {
 }
 
 interface UseProjectsMapCalloutReturn {
-  selectedProjectId: number | null;
+  selectedProjectId: number | string | null;
   selectedProjects: ProjectMapFeature[];
   locationName: string;
+  selectedProduct: string;
   handleProjectClick: (
     projectId: number | string,
-    data?: ProjectListData
+    data?: ProjectListData | string
   ) => void;
   handleCloseDetails: () => void;
   isCalloutOpen: boolean;
 }
 
 export function useProjectsMapCallout(): UseProjectsMapCalloutReturn {
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(
+  const [selectedProjectId, setSelectedProjectId] = useState<number | string | null>(
     null
   );
   const [selectedProjects, setSelectedProjects] = useState<ProjectMapFeature[]>(
     []
   );
   const [locationName, setLocationName] = useState<string>("");
+  const [selectedProduct, setSelectedProduct] = useState<string>("tasking-manager");
 
   const handleProjectClick = useCallback(
-    (projectId: number | string, data?: ProjectListData) => {
-      if (projectId === "projects-list" && data) {
+    (projectId: number | string, data?: ProjectListData | string) => {
+      if (projectId === "projects-list" && data && typeof data === 'object') {
         // Handle project list display (from geographic search or zoom)
-        console.log(
-          "Showing projects in area:",
-          data.locationName,
-          data.projects
-        );
         setSelectedProjectId(null);
         setSelectedProjects(data.projects);
         setLocationName(data.locationName);
-      } else if (typeof projectId === "number") {
+      } else if (typeof projectId === "number" || typeof projectId === "string") {
         // Handle individual project click
-        console.log("Project clicked:", projectId);
         setSelectedProjects([]);
         setLocationName("");
         setSelectedProjectId(projectId);
+        // Store product type if provided as string
+        if (typeof data === 'string') {
+          setSelectedProduct(data);
+        } else {
+          setSelectedProduct("tasking-manager");
+        }
       }
     },
     []
@@ -54,6 +56,7 @@ export function useProjectsMapCallout(): UseProjectsMapCalloutReturn {
     setSelectedProjectId(null);
     setSelectedProjects([]);
     setLocationName("");
+    setSelectedProduct("tasking-manager");
   }, []);
 
   // Computed property to check if callout is open
@@ -64,6 +67,7 @@ export function useProjectsMapCallout(): UseProjectsMapCalloutReturn {
     selectedProjectId,
     selectedProjects,
     locationName,
+    selectedProduct,
     handleProjectClick,
     handleCloseDetails,
     isCalloutOpen,
