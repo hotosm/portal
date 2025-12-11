@@ -13,7 +13,7 @@ import { ProjectsMapCallout } from "./ProjectsMapCallout";
 import {
   ProjectsMapResults,
   ProjectMapFeature,
-} from "../types/projectsMap/taskingManager";
+} from "../types/projectsMap";
 
 interface ProjectListData {
   projects: ProjectMapFeature[];

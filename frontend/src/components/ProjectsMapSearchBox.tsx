@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import maplibregl from "maplibre-gl";
 import Icon from "./shared/Icon";
-import { ProjectMapFeature } from "../types/projectsMap/taskingManager";
+import { ProjectMapFeature } from "../types/projectsMap";
 
 interface ProjectsMapSearchBoxProps {
   map: maplibregl.Map | null;
