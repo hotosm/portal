@@ -14,11 +14,7 @@ import {
   ProjectsMapResults,
   ProjectMapFeature,
 } from "../types/projectsMap";
-
-interface ProjectListData {
-  projects: ProjectMapFeature[];
-  locationName: string;
-}
+import type { ProjectListData } from "../types/projectsMap/mapCallout";
 
 interface ProjectsMapProps {
   mapResults?: ProjectsMapResults;
