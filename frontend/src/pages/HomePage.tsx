@@ -8,17 +8,6 @@ import { useProjectsMapCallout } from "../hooks/useProjectsMapCallout";
 import { m } from "../paraglide/messages";
 import CallToAction from "../components/shared/CallToAction";
 
-type ProductType =
-  | "tasking-manager"
-  | "drone-tasking-manager"
-  | "fair"
-  | "field"
-  | "imagery";
-
-interface SelectedProject {
-  projectId: number | string;
-  product: ProductType;
-}
 
 function HomePage() {
   const { currentLanguage: _currentLanguage } = useLanguage(); // suscribe to force re-render on language change
@@ -28,6 +17,7 @@ function HomePage() {
     selectedProjectId,
     selectedProjects,
     locationName,
+    selectedProduct,
     handleProjectClick,
     handleCloseDetails,
   } = useProjectsMapCallout();
@@ -40,6 +30,7 @@ function HomePage() {
           <ProjectsMap
             mapResults={projectsData}
             selectedProjectId={selectedProjectId}
+            selectedProduct={selectedProduct}
             selectedProjects={selectedProjects}
             locationName={locationName}
             onProjectClick={handleProjectClick}

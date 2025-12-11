@@ -7,10 +7,12 @@ import { shortenText } from "../utils/utils";
 import Button from "./shared/Button";
 import Icon from "./shared/Icon";
 import { ProjectMapFeature } from "../types/projectsMap/taskingManager";
+import { ProjectMapListCallout } from "./ProjectsMapListCallout";
 
 interface ProjectsMapCalloutProps {
   // For individual project details
-  projectId?: number;
+  projectId?: number | string;
+  product?: string;
   // For project lists (geographic search or zoom-based)
   projects?: ProjectMapFeature[];
   locationName?: string; // For geographic searches
@@ -20,6 +22,7 @@ interface ProjectsMapCalloutProps {
 
 export function ProjectsMapCallout({
   projectId,
+  product,
   projects,
   locationName,
   onClose,
@@ -27,13 +30,13 @@ export function ProjectsMapCallout({
 }: ProjectsMapCalloutProps) {
   // If we have a single project ID, show individual project details
   if (projectId) {
-    return <IndividualProjectCallout projectId={projectId} onClose={onClose} />;
+    return <IndividualProjectCallout projectId={projectId} product={product || "tasking-manager"} onClose={onClose} />;
   }
 
   // If we have a list of projects, show project list
   if (projects && projects.length > 0) {
     return (
-      <ProjectListCallout
+      <ProjectMapListCallout
         projects={projects}
         locationName={locationName}
         onClose={onClose}
@@ -59,12 +62,32 @@ export function ProjectsMapCallout({
 // Component for individual project details (existing functionality)
 function IndividualProjectCallout({
   projectId,
+  product,
   onClose,
 }: {
-  projectId: number;
+  projectId: number | string;
+  product: string;
   onClose: () => void;
 }) {
-  const { data: projectDetails, isLoading } = useProjectDetails(projectId);
+  // Use appropriate hook based on product type
+  const taskingManagerQuery = useProjectDetails(
+    product === "tasking-manager" ? Number(projectId) : null
+  );
+  const droneTaskingManagerQuery = useDroneProjectDetails(
+    product === "drone-tasking-manager" ? String(projectId) : null
+  );
+  const oamQuery = useOAMProjectDetails(
+    product === "imagery" ? String(projectId) : null
+  );
+  
+  const isLoading =
+    product === "tasking-manager"
+      ? taskingManagerQuery.isLoading
+      : product === "drone-tasking-manager"
+        ? droneTaskingManagerQuery.isLoading
+        : product === "imagery"
+          ? oamQuery.isLoading
+          : false;
 
   if (isLoading) {
     return (
@@ -83,9 +106,8 @@ function IndividualProjectCallout({
 
   // Render Tasking Manager project
   if (product === "tasking-manager") {
-    const projectDetails = taskingManagerQuery.data;
     const { projectInfo, organisationName, percentMapped, percentValidated } =
-      projectDetails || {};
+      taskingManagerQuery.data || {};
 
     const projectName = projectInfo?.name || `Project #${projectId}`;
     const description = projectInfo?.description;
@@ -243,44 +265,16 @@ function IndividualProjectCallout({
   // Fallback for unsupported product types
   return (
     <>
-      <div className="flex justify-between items-start text-sm mb-3">
+      <div className="flex justify-between items-start text-sm">
         <span>
-          <strong>Projects in {locationName || "this area"}</strong>
+          <strong>Project ID:</strong> {projectId}
         </span>
         <Icon name="close" onClick={onClose} className="cursor-pointer" />
       </div>
-
-      <div className="text-sm text-hot-gray-600 mb-3">
-        Found {projects.length} project{projects.length !== 1 ? "s" : ""}
-      </div>
-
-      <div className="space-y-2">
-        {projects.map((project) => {
-          const projectId = project.properties.projectId;
-          return (
-            <div
-              key={projectId}
-              onClick={() => handleProjectClick(projectId)}
-              className="border border-hot-gray-200 rounded-lg p-3 cursor-pointer hover:bg-hot-gray-50 transition-colors"
-            >
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="font-medium text-sm">
-                    Project #{projectId}
-                  </div>
-                  <div className="text-xs text-hot-gray-500 mt-1">
-                    Click to view details
-                  </div>
-                </div>
-                <Icon
-                  name="chevron-right"
-                  className="w-4 h-4 text-hot-gray-400 flex-shrink-0 ml-2"
-                />
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <p className="text-xl leading-tight">Project #{projectId}</p>
+      <p className="text-sm text-hot-gray-600">
+        Details not available for this product type.
+      </p>
     </>
   );
 }
