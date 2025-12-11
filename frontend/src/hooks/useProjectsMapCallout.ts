@@ -1,23 +1,6 @@
 import { useState, useCallback } from "react";
-import { ProjectMapFeature } from "../types/projectsMap/taskingManager";
-
-interface ProjectListData {
-  projects: ProjectMapFeature[];
-  locationName: string;
-}
-
-interface UseProjectsMapCalloutReturn {
-  selectedProjectId: number | string | null;
-  selectedProjects: ProjectMapFeature[];
-  locationName: string;
-  selectedProduct: string;
-  handleProjectClick: (
-    projectId: number | string,
-    data?: ProjectListData | string
-  ) => void;
-  handleCloseDetails: () => void;
-  isCalloutOpen: boolean;
-}
+import { ProjectMapFeature } from "../types/projectsMap";
+import type { ProjectListData, UseProjectsMapCalloutReturn } from "../types/projectsMap/mapCallout";
 
 export function useProjectsMapCallout(): UseProjectsMapCalloutReturn {
   const [selectedProjectId, setSelectedProjectId] = useState<number | string | null>(
@@ -41,10 +24,11 @@ export function useProjectsMapCallout(): UseProjectsMapCalloutReturn {
         setSelectedProjects([]);
         setLocationName("");
         setSelectedProjectId(projectId);
-        // Store product type if provided as string
-        if (typeof data === 'string') {
+        // Store product type if provided as string (from map marker or list click)
+        if (typeof data === 'string' && data) {
           setSelectedProduct(data);
         } else {
+          // Default to tasking-manager only if no product provided
           setSelectedProduct("tasking-manager");
         }
       }

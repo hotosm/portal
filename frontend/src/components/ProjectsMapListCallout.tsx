@@ -1,5 +1,6 @@
-import { ProjectMapFeature } from "../types/projectsMap/taskingManager";
+import { ProjectMapFeature } from "../types/projectsMap";
 import Icon from "./shared/Icon";
+import { getProductConfig } from "../utils/productConfig";
 
 export function ProjectMapListCallout({
   projects,
@@ -10,11 +11,11 @@ export function ProjectMapListCallout({
   projects: ProjectMapFeature[];
   locationName?: string;
   onClose: () => void;
-  onProjectClick?: (projectId: number) => void;
+  onProjectClick?: (projectId: number | string, product?: string) => void;
 }) {
-  const handleProjectClick = (projectId: number) => {
+  const handleProjectClick = (projectId: number | string, product?: string) => {
     if (onProjectClick) {
-      onProjectClick(projectId);
+      onProjectClick(projectId, product);
     }
   };
 
@@ -34,25 +35,32 @@ export function ProjectMapListCallout({
       <div className="space-y-2">
         {projects.map((project) => {
           const projectId = project.properties.projectId;
-          const numericProjectId = typeof projectId === 'string' ? Number(projectId) : projectId;
+          const productInfo = getProductConfig(project.properties.product);
+          const projectName = project.properties.name || `Project #${projectId}`;
+          
           return (
             <div
               key={projectId}
-              onClick={() => handleProjectClick(numericProjectId)}
+              onClick={() => handleProjectClick(projectId, project.properties.product)}
               className="border border-hot-gray-200 rounded-lg p-3 cursor-pointer hover:bg-hot-gray-50 transition-colors"
             >
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="font-medium text-sm">
-                    Project #{projectId}
+              <div className="flex items-start gap-3">
+                <img 
+                  src={productInfo.icon} 
+                  alt={productInfo.name}
+                  className="w-6 h-6 flex-shrink-0 mt-0.5"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm truncate">
+                    {projectName}
                   </div>
-                  <div className="text-xs text-hot-gray-500 mt-1">
-                    Click to view details
+                  <div className="text-xs text-hot-gray-500 mt-0.5">
+                    {productInfo.name}
                   </div>
                 </div>
                 <Icon
                   name="chevron-right"
-                  className="w-4 h-4 text-hot-gray-400 flex-shrink-0 ml-2"
+                  className="w-4 h-4 text-hot-gray-400 flex-shrink-0 mt-1"
                 />
               </div>
             </div>

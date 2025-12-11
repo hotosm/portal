@@ -3,10 +3,12 @@ import type {
   ProjectsMapResults,
   DroneProjectCentroid,
   OAMImagery,
-} from "../types/projectsMap/taskingManager";
-import { ProductType } from "../constants/sampleProjectsData";
+} from "../types/projectsMap";
+import { ProductType } from "../types/projectsMap/products";
 
-async function fetchTaskingManagerProjects(): Promise<ProjectsMapResults["features"]> {
+async function fetchTaskingManagerProjects(): Promise<
+  ProjectsMapResults["features"]
+> {
   try {
     const response = await fetch("/api/tasking-manager/projects");
 
@@ -22,7 +24,10 @@ async function fetchTaskingManagerProjects(): Promise<ProjectsMapResults["featur
     const projectNamesMap = new Map<number, string | null>();
     data.results?.forEach((project: any) => {
       if (project.projectId) {
-        projectNamesMap.set(project.projectId, project.projectInfo?.name || null);
+        projectNamesMap.set(
+          project.projectId,
+          project.projectInfo?.name || null
+        );
       }
     });
 
@@ -47,9 +52,13 @@ async function fetchTaskingManagerProjects(): Promise<ProjectsMapResults["featur
   }
 }
 
-async function fetchDroneTaskingManagerProjects(): Promise<ProjectsMapResults["features"]> {
+async function fetchDroneTaskingManagerProjects(): Promise<
+  ProjectsMapResults["features"]
+> {
   try {
-    const response = await fetch("/api/drone-tasking-manager/projects/centroids?results_per_page=1000");
+    const response = await fetch(
+      "/api/drone-tasking-manager/projects/centroids?results_per_page=1000"
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -80,7 +89,9 @@ async function fetchDroneTaskingManagerProjects(): Promise<ProjectsMapResults["f
   }
 }
 
-async function fetchOpenAerialMapProjects(): Promise<ProjectsMapResults["features"]> {
+async function fetchOpenAerialMapProjects(): Promise<
+  ProjectsMapResults["features"]
+> {
   try {
     const response = await fetch("/api/open-aerial-map/projects?limit=100");
 
@@ -95,7 +106,9 @@ async function fetchOpenAerialMapProjects(): Promise<ProjectsMapResults["feature
     // Transform OAM imagery to map features using bbox centroid
     return (
       data.results
-        ?.filter((imagery: OAMImagery) => imagery.bbox && imagery.bbox.length === 4)
+        ?.filter(
+          (imagery: OAMImagery) => imagery.bbox && imagery.bbox.length === 4
+        )
         .map((imagery: OAMImagery) => {
           // Calculate centroid from bbox [minLon, minLat, maxLon, maxLat]
           const bbox = imagery.bbox as [number, number, number, number];
@@ -123,15 +136,34 @@ async function fetchOpenAerialMapProjects(): Promise<ProjectsMapResults["feature
 }
 
 async function fetchProjects(): Promise<ProjectsMapResults> {
-  // Fetch all sources in parallel
-  const [taskingManagerFeatures, droneFeatures, oamFeatures] = await Promise.all([
+  // Fetch all sources in parallel - use allSettled to be resilient to individual failures
+  const results = await Promise.allSettled([
     fetchTaskingManagerProjects(),
     fetchDroneTaskingManagerProjects(),
     fetchOpenAerialMapProjects(),
   ]);
 
+  // Extract successful results, falling back to empty arrays for failures
+  const taskingManagerFeatures =
+    results[0].status === "fulfilled" ? results[0].value : [];
+  const droneFeatures =
+    results[1].status === "fulfilled" ? results[1].value : [];
+  const oamFeatures = results[2].status === "fulfilled" ? results[2].value : [];
+
+  // Log any failures
+  results.forEach((result, index) => {
+    if (result.status === "rejected") {
+      const source = ["Tasking Manager", "Drone TM", "Open Aerial Map"][index];
+      console.error(`Failed to fetch ${source} projects:`, result.reason);
+    }
+  });
+
   // Combine all features
-  const allFeatures = [...taskingManagerFeatures, ...droneFeatures, ...oamFeatures];
+  const allFeatures = [
+    ...taskingManagerFeatures,
+    ...droneFeatures,
+    ...oamFeatures,
+  ];
 
   console.log(
     `Loaded ${taskingManagerFeatures.length} Tasking Manager, ${droneFeatures.length} Drone TM, ${oamFeatures.length} OAM projects`
@@ -147,5 +179,8 @@ export function useProjects() {
   return useQuery({
     queryKey: ["projects"],
     queryFn: fetchProjects,
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
+    retry: 1, // Only retry once on failure
   });
 }
