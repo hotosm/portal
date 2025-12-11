@@ -1,30 +1,18 @@
-import { useEffect, useState } from "react";
 import GoToWesiteCTA from "../components/shared/GoToWesiteCTA";
 import PageWrapper from "../components/shared/PageWrapper";
 import PortalPageSkeleton from "../components/shared/PortalPageSkeleton";
 import DataCard from "./components/DataCard";
 import ExportCard from "./components/ExportCard";
-import { getDataProjects } from "./dataProjects";
+import { mapModelsToDataProjects, mapDatasetsToDataProjects } from "./dataProjects";
+import { useMyModels, useMyDatasets } from "../hooks/useFairData";
 
 function DataPage() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [projects, setProjects] = useState<any[]>([]);
+  const { data: modelsData, isLoading: modelsLoading } = useMyModels();
+  const { data: datasetsData, isLoading: datasetsLoading } = useMyDatasets();
 
-  useEffect(() => {
-    // Simulate loading data
-    const loadData = async () => {
-      // Replace this with actual API call
-      const data = getDataProjects();
-      // Add timeout to see skeleton loading state
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      setProjects(data);
-      setIsLoading(false);
-    };
-    loadData();
-  }, []);
-
-  const models = projects.filter((p) => p.section === "model");
-  const sets = projects.filter((p) => p.section === "set");
+  const isLoading = modelsLoading || datasetsLoading;
+  const models = mapModelsToDataProjects(modelsData || []);
+  const sets = mapDatasetsToDataProjects(datasetsData || []);
 
   if (isLoading) {
     return <PortalPageSkeleton />;

@@ -1,6 +1,7 @@
 import ReactMarkdown from "react-markdown";
 import { useProjectDetails } from "../hooks/useProjectDetails";
 import { useDroneProjectDetails } from "../hooks/useDroneProjectDetails";
+import { useOAMProjectDetails } from "../hooks/useOAMProjectDetails";
 import { m } from "../paraglide/messages";
 import { shortenText } from "../utils/utils";
 import Button from "./shared/Button";
@@ -86,70 +87,160 @@ function IndividualProjectCallout({
     const { projectInfo, organisationName, percentMapped, percentValidated } =
       projectDetails || {};
 
-  const projectName = projectInfo?.name || `Project #${projectId}`;
-  const description = projectInfo?.description;
+    const projectName = projectInfo?.name || `Project #${projectId}`;
+    const description = projectInfo?.description;
 
-  return (
-    <>
-      <div className="flex justify-between items-start text-sm">
-        <span>
-          <strong>Project ID:</strong> #{projectId}
-        </span>
-        <Icon name="close" onClick={onClose} className="cursor-pointer" />
-      </div>
-      <p className="text-xl leading-tight">{projectName}</p>
-      {organisationName && (
-        <div className="text-sm text-hot-gray-600 mb-2">
-          <strong>Organisation:</strong> {organisationName}
+    return (
+      <>
+        <div className="flex justify-between items-start text-sm">
+          <span>
+            <strong>Project ID:</strong> #{projectId}
+          </span>
+          <Icon name="close" onClick={onClose} className="cursor-pointer" />
         </div>
-      )}
-      {description && (
-        <div className="text-sm text-hot-gray-600 mb-3">
-          <ReactMarkdown>{shortenText(description)}</ReactMarkdown>
+        <p className="text-xl leading-tight">{projectName}</p>
+        {organisationName && (
+          <div className="text-sm text-hot-gray-600 mb-2">
+            <strong>Organisation:</strong> {organisationName}
+          </div>
+        )}
+        {description && (
+          <div className="text-sm text-hot-gray-600 mb-3">
+            <ReactMarkdown>{shortenText(description)}</ReactMarkdown>
+          </div>
+        )}
+        {(percentMapped !== undefined || percentValidated !== undefined) && (
+          <div className="text-sm text-hot-gray-600 mb-2">
+            {percentMapped !== undefined && (
+              <div>
+                <strong>Mapped:</strong> {percentMapped}%
+              </div>
+            )}
+            {percentValidated !== undefined && (
+              <div>
+                <strong>Validated:</strong> {percentValidated}%
+              </div>
+            )}
+          </div>
+        )}
+        <Button
+          href={`https://tasks.hotosm.org/projects/${projectId}`}
+          target="_blank"
+        >
+          {m.view_project_detail()}
+        </Button>
+      </>
+    );
+  }
+
+  // Render Drone Tasking Manager project
+  if (product === "drone-tasking-manager") {
+    const droneDetails = droneTaskingManagerQuery.data;
+    const projectName = droneDetails?.name || `Drone Project #${projectId}`;
+    const description = droneDetails?.description;
+    const totalTasks = droneDetails?.total_task_count;
+    const completedTasks = droneDetails?.completed_task_count;
+    const progressPercent =
+      totalTasks && totalTasks > 0
+        ? Math.round(((completedTasks || 0) / totalTasks) * 100)
+        : undefined;
+
+    return (
+      <>
+        <div className="flex justify-between items-start text-sm">
+          <span>
+            <strong>Project ID:</strong> {projectId}
+          </span>
+          <Icon name="close" onClick={onClose}></Icon>
         </div>
-      )}
-      {(percentMapped !== undefined || percentValidated !== undefined) && (
-        <div className="text-sm text-hot-gray-600 mb-2">
-          {percentMapped !== undefined && (
+        <p className="text-xl leading-tight">{projectName}</p>
+        {droneDetails?.author_name && (
+          <div className="text-sm text-hot-gray-600 mb-2">
+            <strong>Author:</strong> {droneDetails.author_name}
+          </div>
+        )}
+        {description && (
+          <div className="text-sm text-hot-gray-600 mb-3">
+            <ReactMarkdown>{shortenText(description)}</ReactMarkdown>
+          </div>
+        )}
+        {progressPercent !== undefined && (
+          <div className="text-sm text-hot-gray-600 mb-2">
             <div>
-              <strong>Mapped:</strong> {percentMapped}%
+              <strong>Progress:</strong> {progressPercent}% ({completedTasks}/
+              {totalTasks} tasks)
             </div>
-          )}
-          {percentValidated !== undefined && (
-            <div>
-              <strong>Validated:</strong> {percentValidated}%
-            </div>
-          )}
+          </div>
+        )}
+        <Button
+          href={`https://dronetm.org/projects/${projectId}`}
+          target="_blank"
+        >
+          {m.view_project_detail()}
+        </Button>
+      </>
+    );
+  }
+
+  // Render Open Aerial Map imagery
+  if (product === "imagery") {
+    const oamDetails = oamQuery.data;
+    const title = oamDetails?.title || `Imagery #${projectId}`;
+    const provider = oamDetails?.provider;
+    const platform = oamDetails?.platform;
+    const acquisitionDate = oamDetails?.acquisition_start
+      ? new Date(oamDetails.acquisition_start).toLocaleDateString()
+      : undefined;
+    const thumbnail = oamDetails?.properties?.thumbnail;
+    // Calculate center from bbox for fallback URL
+    const bbox = oamDetails?.bbox;
+    const centerLon = bbox && bbox.length === 4 ? (bbox[0]! + bbox[2]!) / 2 : 0;
+    const centerLat = bbox && bbox.length === 4 ? (bbox[1]! + bbox[3]!) / 2 : 0;
+
+    return (
+      <>
+        <div className="flex justify-between items-start text-sm">
+          <span>
+            <strong>Imagery ID:</strong> {projectId}
+          </span>
+          <Icon name="close" onClick={onClose}></Icon>
         </div>
-      )}
-      <Button
-        href={`https://tasks.hotosm.org/projects/${projectId}`}
-        target="_blank"
-      >
-        {m.view_project_detail()}
-      </Button>
-    </>
-  );
-}
+        <p className="text-xl leading-tight">{title}</p>
+        {thumbnail && (
+          <div className="mb-3">
+            <img
+              src={thumbnail}
+              alt={title}
+              className="w-full h-32 object-cover rounded"
+            />
+          </div>
+        )}
+        {provider && (
+          <div className="text-sm text-hot-gray-600 mb-2">
+            <strong>Provider:</strong> {provider}
+          </div>
+        )}
+        {platform && (
+          <div className="text-sm text-hot-gray-600 mb-2">
+            <strong>Platform:</strong> {platform}
+          </div>
+        )}
+        {acquisitionDate && (
+          <div className="text-sm text-hot-gray-600 mb-2">
+            <strong>Acquisition:</strong> {acquisitionDate}
+          </div>
+        )}
+        <Button
+          href={`https://map.openaerialmap.org/#/${centerLon},${centerLat},14`}
+          target="_blank"
+        >
+          {m.view_project_detail()}
+        </Button>
+      </>
+    );
+  }
 
-// Component for project lists (new functionality)
-function ProjectListCallout({
-  projects,
-  locationName,
-  onClose,
-  onProjectClick,
-}: {
-  projects: ProjectMapFeature[];
-  locationName?: string;
-  onClose: () => void;
-  onProjectClick?: (projectId: number) => void;
-}) {
-  const handleProjectClick = (projectId: number) => {
-    if (onProjectClick) {
-      onProjectClick(projectId);
-    }
-  };
-
+  // Fallback for unsupported product types
   return (
     <>
       <div className="flex justify-between items-start text-sm mb-3">
@@ -158,7 +249,7 @@ function ProjectListCallout({
         </span>
         <Icon name="close" onClick={onClose} className="cursor-pointer" />
       </div>
-      
+
       <div className="text-sm text-hot-gray-600 mb-3">
         Found {projects.length} project{projects.length !== 1 ? "s" : ""}
       </div>
