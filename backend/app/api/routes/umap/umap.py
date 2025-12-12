@@ -5,6 +5,7 @@
 import httpx
 from fastapi import APIRouter, HTTPException, Path
 from app.models.umap import UMapFeatureCollection
+from app.core.cache import get_cached, set_cached, DEFAULT_TTL
 
 
 router = APIRouter(prefix="/umap")
@@ -20,24 +21,24 @@ async def get_umap_data(
 ) -> dict:
     """
     Fetch GeoJSON data from uMap HOT OSM.
-    
+
     This endpoint retrieves geographic features from a specific uMap layer.
-    
+
     Args:
         location: Location identifier (e.g., "1428")
         project_id: Project UUID (e.g., "a59b5458-8c8e-48b1-911f-4c6c602fc357")
-    
+
     Returns:
         dict: GeoJSON FeatureCollection with map data
-    
+
     Raises:
         HTTPException: If there's an error querying the external API
-    
+
     Example:
         ```bash
         curl http://localhost:8000/api/umap/1428/a59b5458-8c8e-48b1-911f-4c6c602fc357
         ```
-    
+
     Response:
         ```json
         {
@@ -60,13 +61,20 @@ async def get_umap_data(
         }
         ```
     """
+    cache_key = f"umap_{location}_{project_id}"
+    cached_data = get_cached(cache_key)
+    if cached_data is not None:
+        return cached_data
+
     url = f"{UMAP_API_BASE_URL}/{location}/{project_id}/"
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(url)
             response.raise_for_status()
-            return response.json()
+            data = response.json()
+            set_cached(cache_key, data, DEFAULT_TTL)
+            return data
     except httpx.HTTPStatusError as e:
         if e.response.status_code == 404:
             raise HTTPException(

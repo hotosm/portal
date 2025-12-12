@@ -34,10 +34,9 @@ export function ProjectMapListCallout({
 
       <div className="space-y-2">
         {projects.map((project) => {
-          const projectId = project.properties.projectId;
           const productInfo = getProductConfig(project.properties.product);
-          const projectName = project.properties.name || `Project #${projectId}`;
-          
+          const projectId = project.properties.projectId;
+
           return (
             <div
               key={projectId}
@@ -52,10 +51,13 @@ export function ProjectMapListCallout({
                 />
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-sm truncate">
-                    {projectName}
+                    {project.properties.name ||
+                      (project.properties.product === "fair"
+                        ? `Model #${projectId}`
+                        : `Project #${projectId}`)}
                   </div>
                   <div className="text-xs text-hot-gray-500 mt-0.5">
-                    {productInfo.name}
+                    #{projectId} · {productInfo.name}
                   </div>
                 </div>
                 <Icon

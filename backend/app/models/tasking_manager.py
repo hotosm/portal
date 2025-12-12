@@ -19,6 +19,7 @@ class ProjectInfo(BaseModel):
 
 class Project(BaseModel):
     projectId: Optional[int] = None
+    name: Optional[str] = None
     organisationName: Optional[str] = None
     organisationSlug: Optional[str] = None
     projectInfo: Optional[ProjectInfo] = None

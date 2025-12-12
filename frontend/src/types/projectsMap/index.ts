@@ -146,6 +146,19 @@ export interface FAIRResponse<T> {
   results: T[];
 }
 
+// fAIr centroid from /api/fair/models/centroid endpoint
+export interface FAIRModelCentroid {
+  type: "Feature";
+  geometry: {
+    type: "Point";
+    coordinates: [number, number];
+  };
+  properties: {
+    mid: number; // model ID
+    name?: string; // model name (enriched by backend)
+  };
+}
+
 // ============================================================================
 // OPEN AERIAL MAP TYPES
 // ============================================================================
