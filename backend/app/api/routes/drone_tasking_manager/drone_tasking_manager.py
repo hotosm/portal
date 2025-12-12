@@ -8,6 +8,7 @@ from app.models.drone_tasking_manager import (
     DroneTMProject,
     DroneTMCentroidsResponse,
 )
+from app.core.cache import get_cached, set_cached, DEFAULT_TTL, SHORT_TTL
 
 import os
 import logging
@@ -20,6 +21,9 @@ logger = logging.getLogger(__name__)
 # For external access: use public URL (e.g., "https://dronetm.hotosm.test/api")
 DRONE_TM_BACKEND_URL = os.getenv("DRONE_TM_BACKEND_URL", "http://hotosm-dronetm-backend:8000/api")
 HOTOSM_API_BASE_URL = DRONE_TM_BACKEND_URL
+
+# Production API for public endpoints (centroids, project details)
+DRONE_TM_PRODUCTION_URL = "https://dronetm.org/api"
 
 logger.info(f"🚁 Drone-TM Backend URL: {HOTOSM_API_BASE_URL}")
 
@@ -169,7 +173,7 @@ async def get_projects_centroids(
     results_per_page: int = 12,
 ) -> dict:
     """
-    Get project centroids from the DroneTM API (public endpoint, no auth required).
+    Get project centroids from DroneTM Production API (public endpoint, no auth required).
 
     Returns a list of projects with their geographic centroids (GeoJSON Points).
     Useful for displaying projects on a map.
@@ -204,7 +208,14 @@ async def get_projects_centroids(
         }
     ```
     """
-    url = f"{HOTOSM_API_BASE_URL}/projects/centroids"
+    # Cache key based on parameters
+    cache_key = f"dronetm_centroids_{filter_by_owner}_{search}_{page}_{results_per_page}"
+    cached_data = get_cached(cache_key)
+    if cached_data is not None:
+        return cached_data
+
+    # Use production URL for public centroids endpoint
+    url = f"{DRONE_TM_PRODUCTION_URL}/projects/centroids"
 
     logger.info(f"🌐 [Centroids] Target URL: {url}")
 
@@ -220,9 +231,7 @@ async def get_projects_centroids(
     if search:
         params["search"] = search
 
-    verify_ssl = not HOTOSM_API_BASE_URL.startswith("https://") or os.getenv("DRONE_TM_VERIFY_SSL", "false").lower() == "true"
-
-    async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl) as client:
+    async with httpx.AsyncClient(timeout=30.0) as client:
         try:
             logger.info(f"📡 [Centroids] Making request to {url} with params: {params}")
             response = await client.get(url, headers=headers, params=params)
@@ -234,7 +243,7 @@ async def get_projects_centroids(
 
             # If the response is an array, wrap it in our expected format
             if isinstance(data, list):
-                return {
+                result = {
                     "results": data,
                     "pagination": {
                         "page": page,
@@ -242,9 +251,11 @@ async def get_projects_centroids(
                         "total": len(data),
                     }
                 }
+            else:
+                result = data
 
-            # If it already has the expected format, return as-is
-            return data
+            set_cached(cache_key, result, DEFAULT_TTL)
+            return result
 
         except httpx.HTTPStatusError as e:
             logger.error(f"❌ HTTP Error: {e.response.status_code} - {e.response.text}")
@@ -356,7 +367,7 @@ async def get_project_by_id(
     project_id: str = Path(..., description="DroneTM project ID (UUID or number)")
 ) -> dict:
     """
-    Get a specific project from the DroneTM API (public endpoint, no auth required).
+    Get a specific project from DroneTM Production API (public endpoint, no auth required).
 
     Example: GET /api/drone-tasking-manager/projects/5c92d0c5-1702-4ebd-b885-67867b488e8e
 
@@ -370,20 +381,31 @@ async def get_project_by_id(
         }
     ```
     """
-    url = f"{HOTOSM_API_BASE_URL}/projects/{project_id}"
+    cache_key = f"dronetm_project_{project_id}"
+    cached_data = get_cached(cache_key)
+    if cached_data is not None:
+        return cached_data
+
+    # Use production URL for public project details endpoint
+    url = f"{DRONE_TM_PRODUCTION_URL}/projects/{project_id}"
 
     headers = {
         "Accept": "application/json",
     }
 
-    verify_ssl = not HOTOSM_API_BASE_URL.startswith("https://") or os.getenv("DRONE_TM_VERIFY_SSL", "false").lower() == "true"
-
-    async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl) as client:
+    async with httpx.AsyncClient(timeout=30.0) as client:
         try:
             response = await client.get(url, headers=headers)
             response.raise_for_status()
-            return response.json()
+            data = response.json()
+            set_cached(cache_key, data, DEFAULT_TTL)
+            return data
         except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"DroneTM project '{project_id}' not found"
+                )
             raise HTTPException(
                 status_code=e.response.status_code,
                 detail=f"Error from DroneTM API: {e.response.text}"

@@ -5,6 +5,7 @@
 import httpx
 from fastapi import APIRouter, HTTPException, Path
 from app.models.field_tm import FMTMProjectsResponse, FMTMProjectSummary
+from app.core.cache import get_cached, set_cached, DEFAULT_TTL
 
 router = APIRouter(prefix="/field-tm")
 
@@ -17,7 +18,7 @@ async def get_fmtm_projects() -> dict:
     """
     Gets all project summaries from the FMTM API.
 
-    This endpoint consumes the FMTM external API and returns the full list 
+    This endpoint consumes the FMTM external API and returns the full list
     of available project summaries.
 
     Returns:
@@ -41,6 +42,11 @@ async def get_fmtm_projects() -> dict:
         }
     ```
     """
+    cache_key = "fmtm_projects"
+    cached_data = get_cached(cache_key)
+    if cached_data is not None:
+        return cached_data
+
     url = f"{FMTM_API_BASE_URL}/projects/summaries"
 
     try:
@@ -48,7 +54,9 @@ async def get_fmtm_projects() -> dict:
             response = await client.get(url)
             response.raise_for_status()
             data = response.json()
-            return {"projects": data}
+            result = {"projects": data}
+            set_cached(cache_key, result, DEFAULT_TTL)
+            return result
     except httpx.HTTPStatusError as e:
         raise HTTPException(
             status_code=e.response.status_code,
@@ -100,13 +108,20 @@ async def get_fmtm_project_by_id(
         }
     ```
     """
+    cache_key = f"fmtm_project_{project_id}"
+    cached_data = get_cached(cache_key)
+    if cached_data is not None:
+        return cached_data
+
     url = f"{FMTM_API_BASE_URL}/projects/{project_id}"
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(url)
             response.raise_for_status()
-            return response.json()
+            data = response.json()
+            set_cached(cache_key, data, DEFAULT_TTL)
+            return data
     except httpx.HTTPStatusError as e:
         if e.response.status_code == 404:
             raise HTTPException(
@@ -125,5 +140,5 @@ async def get_fmtm_project_by_id(
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Typing error: {str(e)}",
+            detail=f"Unexpected error: {str(e)}",
         )

@@ -3,6 +3,7 @@ import type {
   ProjectsMapResults,
   DroneProjectCentroid,
   OAMImagery,
+  FAIRModelCentroid,
 } from "../types/projectsMap";
 import { ProductType } from "../types/projectsMap/products";
 
@@ -20,18 +21,8 @@ async function fetchTaskingManagerProjects(): Promise<
 
     const data = await response.json();
 
-    // Create a map of projectId -> name from results for quick lookup
-    const projectNamesMap = new Map<number, string | null>();
-    data.results?.forEach((project: any) => {
-      if (project.projectId) {
-        projectNamesMap.set(
-          project.projectId,
-          project.projectInfo?.name || null
-        );
-      }
-    });
-
     // Transform API response to match our expected format
+    // The backend now enriches mapResults.features with project names
     return (
       data.mapResults?.features?.map((feature: any) => ({
         type: "Feature" as const,
@@ -41,7 +32,7 @@ async function fetchTaskingManagerProjects(): Promise<
         },
         properties: {
           projectId: feature.properties.projectId,
-          name: projectNamesMap.get(feature.properties.projectId) || null,
+          name: feature.properties.name || null,
           product: "tasking-manager" as ProductType,
         },
       })) || []
@@ -85,6 +76,40 @@ async function fetchDroneTaskingManagerProjects(): Promise<
     );
   } catch (error) {
     console.error("Error fetching Drone TM projects:", error);
+    return [];
+  }
+}
+
+async function fetchFAIRModels(): Promise<ProjectsMapResults["features"]> {
+  try {
+    const response = await fetch("/api/fair/models/centroid");
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("fAIr response error:", errorText);
+      return [];
+    }
+
+    const data = await response.json();
+
+    // Transform fAIr GeoJSON FeatureCollection to our format
+    // The API returns: { type: "FeatureCollection", features: [{ type: "Feature", geometry: {...}, properties: { mid: number, name?: string } }] }
+    return (
+      data.features?.map((feature: FAIRModelCentroid) => ({
+        type: "Feature" as const,
+        geometry: {
+          type: "Point" as const,
+          coordinates: feature.geometry.coordinates,
+        },
+        properties: {
+          projectId: feature.properties.mid,
+          name: feature.properties.name || null, // Name is enriched by backend
+          product: "fair" as ProductType,
+        },
+      })) || []
+    );
+  } catch (error) {
+    console.error("Error fetching fAIr models:", error);
     return [];
   }
 }
@@ -141,6 +166,7 @@ async function fetchProjects(): Promise<ProjectsMapResults> {
     fetchTaskingManagerProjects(),
     fetchDroneTaskingManagerProjects(),
     fetchOpenAerialMapProjects(),
+    fetchFAIRModels(),
   ]);
 
   // Extract successful results, falling back to empty arrays for failures
@@ -149,11 +175,12 @@ async function fetchProjects(): Promise<ProjectsMapResults> {
   const droneFeatures =
     results[1].status === "fulfilled" ? results[1].value : [];
   const oamFeatures = results[2].status === "fulfilled" ? results[2].value : [];
+  const fairFeatures = results[3].status === "fulfilled" ? results[3].value : [];
 
   // Log any failures
   results.forEach((result, index) => {
     if (result.status === "rejected") {
-      const source = ["Tasking Manager", "Drone TM", "Open Aerial Map"][index];
+      const source = ["Tasking Manager", "Drone TM", "Open Aerial Map", "fAIr"][index];
       console.error(`Failed to fetch ${source} projects:`, result.reason);
     }
   });
@@ -163,10 +190,11 @@ async function fetchProjects(): Promise<ProjectsMapResults> {
     ...taskingManagerFeatures,
     ...droneFeatures,
     ...oamFeatures,
+    ...fairFeatures,
   ];
 
   console.log(
-    `Loaded ${taskingManagerFeatures.length} Tasking Manager, ${droneFeatures.length} Drone TM, ${oamFeatures.length} OAM projects`
+    `Loaded ${taskingManagerFeatures.length} Tasking Manager, ${droneFeatures.length} Drone TM, ${oamFeatures.length} OAM, ${fairFeatures.length} fAIr projects`
   );
 
   return {

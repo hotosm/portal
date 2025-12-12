@@ -2,6 +2,7 @@ import ReactMarkdown from "react-markdown";
 import { useProjectDetails } from "../hooks/useProjectDetails";
 import { useDroneProjectDetails } from "../hooks/useDroneProjectDetails";
 import { useOAMProjectDetails } from "../hooks/useOAMProjectDetails";
+import { useFAIRModelDetails } from "../hooks/useFAIRModelDetails";
 import { m } from "../paraglide/messages";
 import { shortenText } from "../utils/utils";
 import Button from "./shared/Button";
@@ -85,6 +86,9 @@ function IndividualProjectCallout({
   const oamQuery = useOAMProjectDetails(
     product === "imagery" ? String(projectId) : null
   );
+  const fairQuery = useFAIRModelDetails(
+    product === "fair" ? Number(projectId) : null
+  );
 
   // Get the active query data
   const projectData =
@@ -94,6 +98,8 @@ function IndividualProjectCallout({
       ? droneTaskingManagerQuery.data
       : product === "imagery"
       ? oamQuery.data
+      : product === "fair"
+      ? fairQuery.data
       : null;
 
   const isLoading =
@@ -103,6 +109,8 @@ function IndividualProjectCallout({
       ? droneTaskingManagerQuery.isLoading
       : product === "imagery"
       ? oamQuery.isLoading
+      : product === "fair"
+      ? fairQuery.isLoading
       : false;
 
   if (isLoading) {
