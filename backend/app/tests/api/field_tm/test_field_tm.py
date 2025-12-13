@@ -178,7 +178,7 @@ async def test_get_fmtm_project_by_id_unexpected_error(client: AsyncClient):
     response = await client.get("/api/field-tm/projectid/222")
 
     assert response.status_code == 500
-    assert "Typing error" in response.json()["detail"]
+    assert "Unexpected error" in response.json()["detail"]
 
 
 @pytest.mark.asyncio

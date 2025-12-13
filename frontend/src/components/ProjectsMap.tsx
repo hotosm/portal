@@ -233,7 +233,18 @@ export function ProjectsMap({
       center: [0, 0],
       zoom: 1.5,
       attributionControl: false,
-      scrollZoom: true, //  mouse wheel zoom
+      scrollZoom: true, // mouse wheel zoom
+      dragRotate: false, // Disable rotation with right-click + drag
+      pitchWithRotate: false, // Disable pitch (3D tilt) with rotation
+      dragPan: true, // Enable panning with mouse drag
+    });
+
+    // Enable right-click drag for panning (without rotation)
+    map.current.dragPan.enable();
+
+    // Prevent context menu on right-click
+    map.current.getCanvas().addEventListener("contextmenu", (e) => {
+      e.preventDefault();
     });
 
     map.current.addControl(
