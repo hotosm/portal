@@ -1,5 +1,6 @@
 """Main FastAPI application."""
 
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -19,6 +20,102 @@ from app.core.config import settings
 from app.core.database import check_db_connection
 
 
+async def preload_cache():
+    """Preload cache with frequently accessed data on startup."""
+    import httpx
+    from app.api.routes.tasking_manager.tasking_manager import fetch_and_enrich_in_background
+    from app.api.routes.fair.fair import enrich_fair_centroids_in_background
+    from app.core.cache import get_cached, set_cached, DEFAULT_TTL
+
+    print("🚀 Preloading cache in background...")
+
+    async def preload_drone_tm():
+        """Preload Drone TM centroids from production API."""
+        try:
+            # Use production URL directly (same as the endpoint)
+            drone_tm_production_url = "https://dronetm.org/api"
+            # Cache key must match: f"dronetm_centroids_{filter_by_owner}_{search}_{page}_{results_per_page}"
+            # Frontend uses: /api/drone-tasking-manager/projects/centroids?results_per_page=1000
+            cache_key = "dronetm_centroids_False_None_1_1000"
+
+            if get_cached(cache_key):
+                print("✅ Drone TM already cached")
+                return
+
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.get(
+                    f"{drone_tm_production_url}/projects/centroids",
+                    params={"filter_by_owner": "false", "page": 1, "results_per_page": 1000}
+                )
+                response.raise_for_status()
+                data = response.json()
+                if isinstance(data, list):
+                    result = {"results": data, "pagination": {"page": 1, "per_page": 1000, "total": len(data)}}
+                else:
+                    result = data
+                set_cached(cache_key, result, DEFAULT_TTL)
+                results_count = len(result.get("results", [])) if isinstance(result, dict) else "N/A"
+                print(f"✅ Drone TM preload complete: {results_count} projects")
+        except Exception as e:
+            print(f"⚠️ Drone TM preload failed (non-critical): {e}")
+
+    async def preload_oam():
+        """Preload Open Aerial Map projects."""
+        try:
+            # Cache key: f"oam_projects_{limit}_{page}_{sort}_{bbox}_{has_tiled}_{title}_{provider}_{gsd_from}_{gsd_to}_{acquisition_from}_{acquisition_to}"
+            # Frontend uses: /api/open-aerial-map/projects?limit=100
+            cache_key = "oam_projects_100_1_desc_None_None_None_None_None_None_None_None"
+
+            if get_cached(cache_key):
+                print("✅ OAM already cached")
+                return
+
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(
+                    "https://api.openaerialmap.org/meta",
+                    params={"limit": 100, "page": 1, "sort": "desc"}
+                )
+                response.raise_for_status()
+                data = response.json()
+                set_cached(cache_key, data, DEFAULT_TTL)
+                print(f"✅ OAM preload complete: {len(data.get('results', []))} images")
+        except Exception as e:
+            print(f"⚠️ OAM preload failed (non-critical): {e}")
+
+    async def preload_fair():
+        """Preload fAIr model centroids and enrich with names."""
+        try:
+            cache_key = "fair_models_centroids"
+
+            if get_cached(cache_key):
+                print("✅ fAIr already cached")
+                # Still run enrichment in case names aren't populated yet
+                asyncio.create_task(enrich_fair_centroids_in_background())
+                return
+
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(
+                    "https://api-prod.fair.hotosm.org/api/v1/models/centroid/",
+                    headers={"accept": "application/json"}
+                )
+                response.raise_for_status()
+                data = response.json()
+                set_cached(cache_key, data, DEFAULT_TTL)
+                features = data.get("features", []) if isinstance(data, dict) else []
+                print(f"✅ fAIr preload complete: {len(features)} models")
+
+                # Enrich with model names in background
+                asyncio.create_task(enrich_fair_centroids_in_background())
+        except Exception as e:
+            print(f"⚠️ fAIr preload failed (non-critical): {e}")
+
+    # Run all preloads in parallel (non-blocking)
+    asyncio.create_task(fetch_and_enrich_in_background())  # Tasking Manager
+    asyncio.create_task(preload_drone_tm())
+    asyncio.create_task(preload_oam())
+    asyncio.create_task(preload_fair())
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
@@ -36,6 +133,9 @@ async def lifespan(app: FastAPI):
     print(f"🔧 AuthConfig loaded: hanko_api_url={auth_config.hanko_api_url}, jwt_issuer={auth_config.jwt_issuer}")
     init_auth(auth_config)
     print("Authentication initialized")
+
+    # Preload cache in background (non-blocking)
+    await preload_cache()
 
     yield
     # Shutdown

@@ -4,6 +4,7 @@ import httpx
 from fastapi import APIRouter, HTTPException, Path, Query
 from typing import Optional
 from app.models.open_aerial_map import ImageryListResponse, ImageryDetailResponse
+from app.core.cache import get_cached, set_cached, DEFAULT_TTL, SHORT_TTL
 
 OAM_API_BASE_URL = "https://api.openaerialmap.org"
 
@@ -54,11 +55,19 @@ async def get_imagery_metadata(
     if acquisition_to:
         params["acquisition_to"] = acquisition_to
     
+    # Cache key based on parameters
+    cache_key = f"oam_projects_{limit}_{page}_{sort}_{bbox}_{has_tiled}_{title}_{provider}_{gsd_from}_{gsd_to}_{acquisition_from}_{acquisition_to}"
+    cached_data = get_cached(cache_key)
+    if cached_data is not None:
+        return cached_data
+
     async with httpx.AsyncClient(timeout=30.0) as client:
         try:
             response = await client.get(url, params=params)
             response.raise_for_status()
-            return response.json()
+            data = response.json()
+            set_cached(cache_key, data, DEFAULT_TTL)
+            return data
         except httpx.HTTPStatusError as e:
             raise HTTPException(
                 status_code=e.response.status_code,
@@ -74,16 +83,23 @@ async def get_imagery_by_id(
 ) -> dict:
     """
     Get metadata for a specific image by ID.
-    
+
     Example: GET /api/open-aerial-map/projects/59e62b863d6412ef72209ae1
     """
+    cache_key = f"oam_image_{image_id}"
+    cached_data = get_cached(cache_key)
+    if cached_data is not None:
+        return cached_data
+
     url = f"{OAM_API_BASE_URL}/meta/{image_id}"
-    
+
     async with httpx.AsyncClient(timeout=30.0) as client:
         try:
             response = await client.get(url)
             response.raise_for_status()
-            return response.json()
+            data = response.json()
+            set_cached(cache_key, data, DEFAULT_TTL)
+            return data
         except httpx.HTTPStatusError as e:
             raise HTTPException(
                 status_code=e.response.status_code,
