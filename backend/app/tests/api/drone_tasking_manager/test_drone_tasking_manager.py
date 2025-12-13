@@ -343,7 +343,7 @@ class TestGetProjectById:
                 await endpoint(project_id)
 
             assert exc_info.value.status_code == 404
-            assert "Error from DroneTM API" in exc_info.value.detail
+            assert "not found" in exc_info.value.detail.lower()
 
 
 class TestGetProjectsCentroids:
@@ -534,7 +534,7 @@ class TestGetProjectsCentroids:
         mock_response.status_code = 500
         mock_response.text = "Internal Server Error"
 
-        with patch("httpx.AsyncClient") as mock_client:
+        with patch("app.api.routes.drone_tasking_manager.drone_tasking_manager.httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 side_effect=httpx.HTTPStatusError(
                     "Error",
@@ -555,7 +555,7 @@ class TestGetProjectsCentroids:
     @pytest.mark.asyncio
     async def test_get_projects_centroids_timeout(self):
         """Test timeout handling"""
-        with patch("httpx.AsyncClient") as mock_client:
+        with patch("app.api.routes.drone_tasking_manager.drone_tasking_manager.httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 side_effect=httpx.TimeoutException("Connection timed out")
             )

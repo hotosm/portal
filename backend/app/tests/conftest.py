@@ -8,7 +8,16 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.database import Base, get_db
+from app.core.cache import clear_cache
 from app.main import app
+
+
+@pytest.fixture(autouse=True)
+def clear_cache_before_test():
+    """Clear the cache before each test to ensure isolation."""
+    clear_cache()
+    yield
+    clear_cache()
 
 # Test database URL (using in-memory SQLite for simplicity)
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
