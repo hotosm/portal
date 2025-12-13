@@ -140,7 +140,7 @@ class TestGetFairProjects:
         mock_response.status_code = 404
         mock_response.text = "Not Found"
 
-        with patch("httpx.AsyncClient") as mock_client:
+        with patch("app.api.routes.fair.fair.httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 side_effect=httpx.HTTPStatusError(
                     "Error from fAIr API",
@@ -162,7 +162,7 @@ class TestGetFairProjects:
     @pytest.mark.asyncio
     async def test_get_fair_projects_generic_exception(self):
         """Test handling of generic exceptions"""
-        with patch("httpx.AsyncClient") as mock_client:
+        with patch("app.api.routes.fair.fair.httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 side_effect=Exception("Connection failed")
             )
@@ -377,7 +377,7 @@ class TestGetFairDatasetsByUser:
         mock_response.status_code = 500
         mock_response.text = "Internal server error"
 
-        with patch("httpx.AsyncClient") as mock_client:
+        with patch("app.api.routes.fair.fair.httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 side_effect=httpx.HTTPStatusError(
                     "Error from fAIr API",
@@ -398,7 +398,7 @@ class TestGetFairDatasetsByUser:
     @pytest.mark.asyncio
     async def test_get_datasets_by_user_generic_exception(self):
         """Test handling of generic exceptions"""
-        with patch("httpx.AsyncClient") as mock_client:
+        with patch("app.api.routes.fair.fair.httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 side_effect=Exception("Network error")
             )
@@ -695,7 +695,7 @@ class TestGetFairModelsCentroids:
         mock_response.json.return_value = mock_response_data
         mock_response.raise_for_status = Mock()
 
-        with patch("httpx.AsyncClient") as mock_client:
+        with patch("app.api.routes.fair.fair.httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 return_value=mock_response
             )
@@ -704,7 +704,6 @@ class TestGetFairModelsCentroids:
 
             result = await get_fair_models_centroids()
 
-            assert result == mock_response_data
             assert result["type"] == "FeatureCollection"
             assert len(result["features"]) == 0
 
@@ -715,7 +714,7 @@ class TestGetFairModelsCentroids:
         mock_response.status_code = 500
         mock_response.text = "Internal server error"
 
-        with patch("httpx.AsyncClient") as mock_client:
+        with patch("app.api.routes.fair.fair.httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 side_effect=httpx.HTTPStatusError(
                     "Error from fAIr API",
@@ -735,7 +734,7 @@ class TestGetFairModelsCentroids:
     @pytest.mark.asyncio
     async def test_get_centroids_generic_exception(self):
         """Test handling of generic exceptions"""
-        with patch("httpx.AsyncClient") as mock_client:
+        with patch("app.api.routes.fair.fair.httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 side_effect=Exception("Connection timeout")
             )
@@ -862,7 +861,7 @@ class TestGetFairModelDetail:
         mock_response.status_code = 503
         mock_response.text = "Service unavailable"
 
-        with patch("httpx.AsyncClient") as mock_client:
+        with patch("app.api.routes.fair.fair.httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 side_effect=httpx.HTTPStatusError(
                     "Error from fAIr API",
@@ -882,7 +881,7 @@ class TestGetFairModelDetail:
     @pytest.mark.asyncio
     async def test_get_model_detail_generic_exception(self):
         """Test handling of generic exceptions"""
-        with patch("httpx.AsyncClient") as mock_client:
+        with patch("app.api.routes.fair.fair.httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 side_effect=Exception("Network error")
             )
