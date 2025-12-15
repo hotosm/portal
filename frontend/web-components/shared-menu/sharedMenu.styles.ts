@@ -31,18 +31,24 @@ export const styles = css`
     gap: 4px;
     text-align: left;
   }
+  /* Section styling */
+
+  .section-divider {
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+
+  wa-dropdown-label {
+    font-weight: 600;
+    font-size: 14px;
+    padding: 8px 16px 4px 16px;
+  }
 
   .product-title {
-    font-weight: 600;
+    font-weight: 300;
     font-size: 14px;
     color: #1a1a1a;
     line-height: 1.3;
-  }
-
-  .product-description {
-    font-size: 12px;
-    color: #666;
-    line-height: 1.4;
   }
 
   /* Trigger button styling */

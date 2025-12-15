@@ -35,8 +35,21 @@ interface Product {
   iconName: string;
   href: string;
   icon: string;
-  section: "imagery" | "mapping" | "mapUse";
+  section: "imagery" | "mapping" | "field" | "data";
 }
+
+interface Section {
+  id: "imagery" | "mapping" | "field" | "data";
+  title: string;
+}
+
+// Section titles
+const SECTIONS: Section[] = [
+  { id: "imagery", title: "Imagery" },
+  { id: "mapping", title: "Mapping" },
+  { id: "field", title: "Field" },
+  { id: "data", title: "Data" },
+];
 
 // Product data lives in the component
 const PRODUCTS_DATA: Product[] = [
@@ -83,7 +96,7 @@ const PRODUCTS_DATA: Product[] = [
     iconName: "mobile-screen-button",
     href: "https://fmtm.hotosm.org/",
     icon: fieldIcon,
-    section: "mapping",
+    section: "field",
   },
   {
     id: "chat-map",
@@ -92,7 +105,7 @@ const PRODUCTS_DATA: Product[] = [
     iconName: "hexagon-nodes",
     href: "https://www.hotosm.org/tech-suite/chatmap/",
     icon: chatmapIcon,
-    section: "mapping",
+    section: "field",
   },
   {
     id: "export-tool",
@@ -101,16 +114,16 @@ const PRODUCTS_DATA: Product[] = [
     iconName: "download",
     href: "https://export.hotosm.org/",
     icon: exportIcon,
-    section: "mapUse",
+    section: "data",
   },
   {
     id: "umap",
-    title: "uMap",
+    title: "Maps",
     description: "Create custom maps",
     iconName: "pen-to-square",
     href: "https://umap.hotosm.org/",
     icon: umapIcon,
-    section: "mapUse",
+    section: "data",
   },
 ];
 
@@ -119,8 +132,14 @@ export class SharedMenu extends LitElement {
   static styles = styles;
 
   @property({ type: String, attribute: "color" }) color?: string;
+  @property({ type: Boolean, attribute: "show-logos", reflect: false })
+  showLogos = false;
 
   private products: Product[] = PRODUCTS_DATA;
+
+  private getProductsBySection(sectionId: string): Product[] {
+    return this.products.filter((p) => p.section === sectionId);
+  }
 
   private handleSelect(event: CustomEvent) {
     const selectedValue = event.detail.item.value;
@@ -142,6 +161,7 @@ export class SharedMenu extends LitElement {
   }
 
   render() {
+    console.log("SharedMenu showLogos:", this.showLogos);
     return html`
       <wa-dropdown placement="bottom-end" @wa-select=${this.handleSelect}>
         <wa-button
@@ -156,22 +176,38 @@ export class SharedMenu extends LitElement {
           ></wa-icon>
         </wa-button>
 
-        ${this.products.map(
-          (product) => html`
-            <wa-dropdown-item value="${product.id}">
-              <img
-                slot="icon"
-                src="${product.icon}"
-                alt="${product.title}"
-                class="product-icon"
-              />
-              <div class="product-content">
-                <div class="product-title">${product.title}</div>
-                <div class="product-description">${product.description}</div>
-              </div>
-            </wa-dropdown-item>
-          `
-        )}
+        ${SECTIONS.map((section, sectionIndex) => {
+          const products = this.getProductsBySection(section.id);
+          if (products.length === 0) return "";
+
+          return html`
+            <div
+              class="section-group ${sectionIndex > 0 ? "section-divider" : ""}"
+            >
+              <wa-dropdown-label>${section.title}</wa-dropdown-label>
+              ${products.map(
+                (product) => html`
+                  <wa-dropdown-item value="${product.id}">
+                    ${this.showLogos
+                      ? html`<img
+                          slot="icon"
+                          src="${product.icon}"
+                          alt="${product.title}"
+                          class="product-icon"
+                        />`
+                      : ""}
+                    <div class="product-content">
+                      <div class="product-title">${product.title}</div>
+                    </div>
+                  </wa-dropdown-item>
+                `
+              )}
+            </div>
+          `;
+        })}
+                </wa-dropdown-item>
+          
+       
       </wa-dropdown>
     `;
   }
