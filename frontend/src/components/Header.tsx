@@ -46,7 +46,7 @@ function Header() {
           <div className="hidden lg:block">{isLogin && <NavigationMain />}</div>
         </div>
 
-        <div className="flex gap-md items-center">
+        <div className="flex items-center">
           <hotosm-auth osm-required redirect-after-logout="/" />
           <LanguageSwitcher />
 
