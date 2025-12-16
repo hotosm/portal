@@ -24,11 +24,7 @@ function Header() {
             to={`/${currentLanguage}/`}
             className="flex items-center gap-2 hover:no-underline"
           >
-            <img
-              src={hotLogo}
-              alt="HOT Logo"
-              className="w-14 h-14"
-            />
+            <img src={hotLogo} alt="HOT Logo" className="w-14 h-14" />
 
             <span
               className="uppercase text-[22px] text-hot-gray-950 leading-tight hover:no-underline"
@@ -50,10 +46,11 @@ function Header() {
           <div className="hidden lg:block">{isLogin && <NavigationMain />}</div>
         </div>
 
-        <div className="flex gap-md items-center">
+        <div className="flex items-center">
           <hotosm-auth osm-required redirect-after-logout="/" />
           <LanguageSwitcher />
-          <hotosm-shared-menu />
+
+          <hotosm-shared-menu></hotosm-shared-menu>
         </div>
       </div>
     </>
