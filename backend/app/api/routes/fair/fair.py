@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException, Query
 from typing import Optional
 from app.models.fair import FAIRProjectsResponse, FAIRCentroidsResponse, FAIRModelDetail
 from hotosm_auth.integrations.fastapi import CurrentUser, OSMConnectionRequired
-from app.core.cache import get_cached, set_cached, DEFAULT_TTL, LONG_TTL
+from app.core.cache import get_cached, set_cached, delete_cached, DEFAULT_TTL, LONG_TTL
 
 FAIR_API_BASE_URL = "https://api-prod.fair.hotosm.org/api/v1"
 
@@ -168,6 +168,13 @@ async def get_fair_projects(
             raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.delete("/models/centroid/cache")
+async def clear_fair_centroids_cache() -> dict:
+    """Clear the fAIr centroids cache to force re-fetching with enriched names."""
+    deleted = delete_cached("fair_models_centroids")
+    return {"deleted": deleted, "message": "Cache cleared. Next request will fetch fresh data with names."}
+
+
 @router.get("/models/centroid", response_model=FAIRCentroidsResponse)
 async def get_fair_models_centroids() -> dict:
     """
@@ -177,8 +184,8 @@ async def get_fair_models_centroids() -> dict:
     the centroid location of each AI model. Each feature includes `mid`
     (model ID) and `name` properties.
 
-    Returns data immediately, then enriches with model names in background.
-    Subsequent requests will have model names.
+    Model names are fetched and enriched synchronously on first request,
+    then cached for subsequent requests.
 
     Example: GET /api/fair/models/centroid
 
@@ -216,11 +223,21 @@ async def get_fair_models_centroids() -> dict:
             response.raise_for_status()
             data = response.json()
 
-            # Cache the base data immediately (without names)
-            set_cached(cache_key, data, DEFAULT_TTL)
+            # Fetch model names synchronously and enrich before caching
+            logger.info("🔄 Fetching fAIr model names for enrichment...")
+            model_names = await fetch_all_fair_model_names()
 
-            # Schedule background enrichment with model names
-            asyncio.create_task(enrich_fair_centroids_in_background())
+            # Enrich centroids with names
+            if data.get("features"):
+                for feature in data["features"]:
+                    mid = feature.get("properties", {}).get("mid")
+                    if mid and mid in model_names:
+                        feature["properties"]["name"] = model_names[mid]
+
+            logger.info(f"✅ Enriched {len(model_names)} fAIr model names")
+
+            # Cache the enriched data
+            set_cached(cache_key, data, DEFAULT_TTL)
 
             return data
         except httpx.HTTPStatusError as e:

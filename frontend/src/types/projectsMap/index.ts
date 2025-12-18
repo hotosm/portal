@@ -176,6 +176,7 @@ export interface OAMGeoJSON {
   type?: string;
 }
 
+// Full OAM imagery (from /projects/{id} endpoint)
 export interface OAMImagery {
   _id?: string;
   uuid?: string;
@@ -194,6 +195,24 @@ export interface OAMImagery {
   uploaded_at?: string;
   meta_uri?: string;
   geojson?: OAMGeoJSON;
+}
+
+// Compact OAM imagery (from /projects/snapshot endpoint - optimized for size)
+export interface OAMCompactImagery {
+  _id?: string;
+  t?: string;      // title
+  bbox?: number[];
+  gsd?: number;
+  acq?: string;    // acquisition_end
+  prov?: string;   // provider
+  tms?: string;
+  th?: string;     // thumbnail
+}
+
+export interface OAMSnapshotResponse {
+  count: number;
+  updated_at: string;
+  results: OAMCompactImagery[];
 }
 
 export interface OAMListResponse {

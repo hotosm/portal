@@ -59,3 +59,50 @@ class ImageryListResponse(BaseModel):
 class ImageryDetailResponse(BaseModel):
     meta: Optional[Meta] = None
     results: Optional[ImageryResult] = None
+
+
+# Compact models for snapshot storage (optimized for size)
+class CompactProperties(BaseModel):
+    """Minimal properties - only essential fields."""
+    tms: Optional[str] = None
+    thumbnail: Optional[str] = Field(None, alias="th")
+
+    model_config = {"populate_by_name": True}
+
+
+class CompactImagery(BaseModel):
+    """
+    Compact imagery model optimized for snapshot storage.
+    Uses short field names to minimize JSON size.
+    """
+    id: Optional[str] = Field(None, alias="_id")
+    t: Optional[str] = Field(None, description="title")
+    bbox: Optional[List[float]] = None
+    gsd: Optional[float] = None
+    acq: Optional[str] = Field(None, description="acquisition_end")
+    prov: Optional[str] = Field(None, description="provider")
+    tms: Optional[str] = None
+    th: Optional[str] = Field(None, description="thumbnail")
+
+    model_config = {"populate_by_name": True}
+
+    @classmethod
+    def from_full(cls, full: ImageryResult) -> "CompactImagery":
+        """Convert full ImageryResult to compact format."""
+        return cls(
+            id=full.id,
+            t=full.title,
+            bbox=full.bbox,
+            gsd=full.gsd,
+            acq=full.acquisition_end,
+            prov=full.provider,
+            tms=full.properties.tms if full.properties else None,
+            th=full.properties.thumbnail if full.properties else None,
+        )
+
+
+class CompactSnapshotResponse(BaseModel):
+    """Compact snapshot response with metadata."""
+    count: int
+    updated_at: str
+    results: List[CompactImagery] = []

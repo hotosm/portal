@@ -1,4 +1,4 @@
-.PHONY: help install dev dev-docker stop test test-backend test-frontend lint lint-fix clean build deploy-test
+.PHONY: help install dev dev-docker stop test test-backend test-frontend lint lint-fix clean build deploy-test oam-snapshot
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -24,12 +24,23 @@ dev-frontend: ## Run frontend locally (without Docker)
 	cd frontend && pnpm dev
 
 # Development (Docker)
-dev: ## Run all services with Docker (development profile)
+dev: oam-snapshot ## Run all services with Docker (development profile)
 	@echo "Building web component..."
 	cd frontend/auth-libs/web-component && pnpm install && pnpm build
 	@echo "Starting development environment..."
 	@echo ""
 	docker compose --profile dev up --build
+
+oam-snapshot: ## Generate OAM snapshot if it doesn't exist
+	@if [ ! -f backend/app/data/oam_snapshot.json ]; then \
+		echo "📸 Generating OAM snapshot (this may take ~2 minutes)..."; \
+		mkdir -p backend/app/data; \
+		curl -s "https://api.openaerialmap.org/meta?limit=99999&sort=desc" | \
+		python3 -c "import sys,json; d=json.load(sys.stdin); r=[{k:v for k,v in {'_id':i.get('_id'),'t':i.get('title'),'bbox':i.get('bbox'),'gsd':i.get('gsd'),'acq':i.get('acquisition_end'),'prov':i.get('provider'),'tms':(i.get('properties') or {}).get('tms'),'th':(i.get('properties') or {}).get('thumbnail')}.items() if v} for i in d.get('results',[])]; print(json.dumps({'count':len(r),'updated_at':'$$(date -u +%Y-%m-%dT%H:%M:%SZ)','results':r},separators=(',',':')))" > backend/app/data/oam_snapshot.json; \
+		echo "✅ OAM snapshot generated: $$(wc -c < backend/app/data/oam_snapshot.json | xargs) bytes"; \
+	else \
+		echo "✅ OAM snapshot already exists"; \
+	fi
 
 dev-down: ## Stop development environment
 	docker compose --profile dev down

@@ -178,7 +178,7 @@ class TestGetFairProjects:
 
 class TestGetFairModelsByUser:
     """Test suite for get_fair_models_by_user function"""
-    
+
     @pytest.mark.asyncio
     async def test_get_models_by_user_success_default_params(self):
         """Test successful request with default parameters"""
@@ -196,11 +196,9 @@ class TestGetFairModelsByUser:
                 return_value=mock_response
             )
 
-            from app.api.routes.fair.fair import router
-            # Get the model/user endpoint (index 3 after adding centroid and model detail)
-            endpoint = router.routes[3].endpoint
+            from app.api.routes.fair.fair import get_fair_models_by_user
 
-            result = await endpoint(user_id=23470445)
+            result = await get_fair_models_by_user(user_id=23470445)
 
             assert result == mock_response_data
             mock_client.return_value.__aenter__.return_value.get.assert_called_once()
@@ -209,10 +207,10 @@ class TestGetFairModelsByUser:
             assert "/model/" in call_args[0][0]
 
             params = call_args[1]["params"]
-            
+
             def val(v):
                 return v.default if hasattr(v, "default") else v
-            
+
             assert params["user"] == 23470445
             assert val(params["limit"]) == 20
             assert val(params["offset"]) == 0
@@ -237,10 +235,9 @@ class TestGetFairModelsByUser:
                 return_value=mock_response
             )
 
-            from app.api.routes.fair.fair import router
-            endpoint = router.routes[3].endpoint
+            from app.api.routes.fair.fair import get_fair_models_by_user
 
-            result = await endpoint(
+            result = await get_fair_models_by_user(
                 user_id=23470445,
                 limit=50,
                 offset=10,
@@ -277,11 +274,10 @@ class TestGetFairModelsByUser:
                 )
             )
 
-            from app.api.routes.fair.fair import router
-            endpoint = router.routes[3].endpoint
+            from app.api.routes.fair.fair import get_fair_models_by_user
 
             with pytest.raises(HTTPException) as exc_info:
-                await endpoint(user_id=99999)
+                await get_fair_models_by_user(user_id=99999)
 
             assert exc_info.value.status_code == 404
             assert "Error from fAIr API" in exc_info.value.detail
@@ -289,7 +285,7 @@ class TestGetFairModelsByUser:
 
 class TestGetFairDatasetsByUser:
     """Test suite for get_fair_datasets_by_user function"""
-    
+
     @pytest.mark.asyncio
     async def test_get_datasets_by_user_success_default_params(self):
         """Test successful request with default parameters"""
@@ -307,11 +303,9 @@ class TestGetFairDatasetsByUser:
                 return_value=mock_response
             )
 
-            from app.api.routes.fair.fair import router
-            # Get the dataset/user endpoint (index 4 after adding centroid and model detail)
-            endpoint = router.routes[4].endpoint
+            from app.api.routes.fair.fair import get_fair_datasets_by_user
 
-            result = await endpoint(user_id=23470445)
+            result = await get_fair_datasets_by_user(user_id=23470445)
 
             assert result == mock_response_data
             mock_client.return_value.__aenter__.return_value.get.assert_called_once()
@@ -320,10 +314,10 @@ class TestGetFairDatasetsByUser:
             assert "/dataset/" in call_args[0][0]
 
             params = call_args[1]["params"]
-            
+
             def val(v):
                 return v.default if hasattr(v, "default") else v
-            
+
             assert params["user"] == 23470445
             assert val(params["limit"]) == 20
             assert val(params["offset"]) == 0
@@ -348,10 +342,9 @@ class TestGetFairDatasetsByUser:
                 return_value=mock_response
             )
 
-            from app.api.routes.fair.fair import router
-            endpoint = router.routes[4].endpoint
+            from app.api.routes.fair.fair import get_fair_datasets_by_user
 
-            result = await endpoint(
+            result = await get_fair_datasets_by_user(
                 user_id=23470445,
                 limit=50,
                 offset=10,
@@ -386,11 +379,10 @@ class TestGetFairDatasetsByUser:
                 )
             )
 
-            from app.api.routes.fair.fair import router
-            endpoint = router.routes[4].endpoint
+            from app.api.routes.fair.fair import get_fair_datasets_by_user
 
             with pytest.raises(HTTPException) as exc_info:
-                await endpoint(user_id=23470445)
+                await get_fair_datasets_by_user(user_id=23470445)
 
             assert exc_info.value.status_code == 500
             assert "Error from fAIr API" in exc_info.value.detail
@@ -403,11 +395,10 @@ class TestGetFairDatasetsByUser:
                 side_effect=Exception("Network error")
             )
 
-            from app.api.routes.fair.fair import router
-            endpoint = router.routes[4].endpoint
+            from app.api.routes.fair.fair import get_fair_datasets_by_user
 
             with pytest.raises(HTTPException) as exc_info:
-                await endpoint(user_id=23470445)
+                await get_fair_datasets_by_user(user_id=23470445)
 
             assert exc_info.value.status_code == 500
             assert "Network error" in exc_info.value.detail
@@ -441,11 +432,9 @@ class TestGetMyFairModels:
                 return_value=mock_response
             )
 
-            from app.api.routes.fair.fair import router
-            # Get the /me/models endpoint (index 5 after adding centroid and model detail)
-            endpoint = router.routes[5].endpoint
+            from app.api.routes.fair.fair import get_my_fair_models
 
-            result = await endpoint(user=mock_user, osm=mock_osm)
+            result = await get_my_fair_models(user=mock_user, osm=mock_osm)
 
             assert result == mock_response_data
             mock_client.return_value.__aenter__.return_value.get.assert_called_once()
@@ -483,10 +472,9 @@ class TestGetMyFairModels:
                 return_value=mock_response
             )
 
-            from app.api.routes.fair.fair import router
-            endpoint = router.routes[5].endpoint
+            from app.api.routes.fair.fair import get_my_fair_models
 
-            result = await endpoint(
+            result = await get_my_fair_models(
                 user=mock_user,
                 osm=mock_osm,
                 limit=50,
@@ -535,11 +523,9 @@ class TestGetMyFairDatasets:
                 return_value=mock_response
             )
 
-            from app.api.routes.fair.fair import router
-            # Get the /me/datasets endpoint (index 6 after adding centroid and model detail)
-            endpoint = router.routes[6].endpoint
+            from app.api.routes.fair.fair import get_my_fair_datasets
 
-            result = await endpoint(user=mock_user, osm=mock_osm)
+            result = await get_my_fair_datasets(user=mock_user, osm=mock_osm)
 
             assert result == mock_response_data
             mock_client.return_value.__aenter__.return_value.get.assert_called_once()
@@ -576,10 +562,9 @@ class TestGetMyFairDatasets:
                 return_value=mock_response
             )
 
-            from app.api.routes.fair.fair import router
-            endpoint = router.routes[6].endpoint
+            from app.api.routes.fair.fair import get_my_fair_datasets
 
-            result = await endpoint(
+            result = await get_my_fair_datasets(
                 user=mock_user,
                 osm=mock_osm,
                 limit=100,
@@ -621,11 +606,10 @@ class TestGetMyFairDatasets:
                 )
             )
 
-            from app.api.routes.fair.fair import router
-            endpoint = router.routes[6].endpoint
+            from app.api.routes.fair.fair import get_my_fair_datasets
 
             with pytest.raises(HTTPException) as exc_info:
-                await endpoint(user=mock_user, osm=mock_osm)
+                await get_my_fair_datasets(user=mock_user, osm=mock_osm)
 
             assert exc_info.value.status_code == 503
             assert "Error from fAIr API" in exc_info.value.detail
@@ -637,7 +621,7 @@ class TestGetFairModelsCentroids:
     @pytest.mark.asyncio
     async def test_get_centroids_success(self):
         """Test successful request for model centroids"""
-        mock_response_data = {
+        mock_centroids_data = {
             "type": "FeatureCollection",
             "features": [
                 {
@@ -659,29 +643,44 @@ class TestGetFairModelsCentroids:
             ]
         }
 
-        mock_response = Mock()
-        mock_response.json.return_value = mock_response_data
-        mock_response.raise_for_status = Mock()
+        mock_models_data = {
+            "results": [
+                {"id": 3, "name": "Building Model Banepa"},
+                {"id": 38, "name": "Road Model Nepal"}
+            ],
+            "next": None
+        }
+
+        mock_centroids_response = Mock()
+        mock_centroids_response.json.return_value = mock_centroids_data
+        mock_centroids_response.raise_for_status = Mock()
+
+        mock_models_response = Mock()
+        mock_models_response.json.return_value = mock_models_data
+        mock_models_response.raise_for_status = Mock()
+
+        # Create a mock that returns different responses based on URL
+        async def mock_get(url, *args, **kwargs):
+            if "/models/centroid/" in url:
+                return mock_centroids_response
+            elif "/model/" in url:
+                return mock_models_response
+            return mock_centroids_response
 
         with patch("httpx.AsyncClient") as mock_client:
-            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
-                return_value=mock_response
-            )
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(side_effect=mock_get)
 
             from app.api.routes.fair.fair import get_fair_models_centroids
 
             result = await get_fair_models_centroids()
 
-            assert result == mock_response_data
             assert result["type"] == "FeatureCollection"
             assert len(result["features"]) == 2
+            # Check that names were enriched
             assert result["features"][0]["properties"]["mid"] == 3
-
-            call_args = mock_client.return_value.__aenter__.return_value.get.call_args
-            assert "/models/centroid/" in call_args[0][0]
-
-            headers = call_args[1]["headers"]
-            assert headers["accept"] == "application/json"
+            assert result["features"][0]["properties"].get("name") == "Building Model Banepa"
+            assert result["features"][1]["properties"]["mid"] == 38
+            assert result["features"][1]["properties"].get("name") == "Road Model Nepal"
 
     @pytest.mark.asyncio
     async def test_get_centroids_empty_response(self):

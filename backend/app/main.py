@@ -12,6 +12,7 @@ from app.api.routes import example, test
 from app.api.routes.tasking_manager import tasking_manager
 from app.api.routes.drone_tasking_manager import drone_tasking_manager
 from app.api.routes.open_aerial_map import open_aerial_map
+from app.api.routes.open_aerial_map.open_aerial_map import start_snapshot_scheduler
 from app.api.routes.fair import fair
 from app.api.routes.field_tm import field_tm
 from app.api.routes.umap import umap
@@ -114,6 +115,9 @@ async def preload_cache():
     asyncio.create_task(preload_drone_tm())
     asyncio.create_task(preload_oam())
     asyncio.create_task(preload_fair())
+
+    # Start OAM snapshot scheduler (weekly background updates)
+    start_snapshot_scheduler()
 
 
 @asynccontextmanager

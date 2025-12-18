@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type {
   ProjectsMapResults,
   DroneProjectCentroid,
-  OAMImagery,
+  OAMCompactImagery,
   FAIRModelCentroid,
 } from "../types/projectsMap";
 import { ProductType } from "../types/projectsMap/products";
@@ -118,7 +118,7 @@ async function fetchOpenAerialMapProjects(): Promise<
   ProjectsMapResults["features"]
 > {
   try {
-    const response = await fetch("/api/open-aerial-map/projects?limit=100");
+    const response = await fetch("/api/open-aerial-map/projects/snapshot");
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -128,13 +128,14 @@ async function fetchOpenAerialMapProjects(): Promise<
 
     const data = await response.json();
 
-    // Transform OAM imagery to map features using bbox centroid
+    // Transform OAM compact imagery to map features using bbox centroid
+    // Compact format: _id, t (title), bbox, gsd, acq, prov, tms, th
     return (
       data.results
         ?.filter(
-          (imagery: OAMImagery) => imagery.bbox && imagery.bbox.length === 4
+          (imagery: OAMCompactImagery) => imagery.bbox && imagery.bbox.length === 4
         )
-        .map((imagery: OAMImagery) => {
+        .map((imagery: OAMCompactImagery) => {
           // Calculate centroid from bbox [minLon, minLat, maxLon, maxLat]
           const bbox = imagery.bbox as [number, number, number, number];
           const centerLon = (bbox[0] + bbox[2]) / 2;
@@ -147,8 +148,8 @@ async function fetchOpenAerialMapProjects(): Promise<
               coordinates: [centerLon, centerLat] as [number, number],
             },
             properties: {
-              projectId: imagery._id || imagery.uuid || "",
-              name: imagery.title || null,
+              projectId: imagery._id || "",
+              name: imagery.t || null, // t = title in compact format
               product: "imagery" as ProductType,
             },
           };

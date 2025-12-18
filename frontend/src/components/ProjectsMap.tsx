@@ -233,18 +233,53 @@ export function ProjectsMap({
       center: [0, 0],
       zoom: 1.5,
       attributionControl: false,
-      scrollZoom: true, // mouse wheel zoom
-      dragRotate: false, // Disable rotation with right-click + drag
-      pitchWithRotate: false, // Disable pitch (3D tilt) with rotation
-      dragPan: true, // Enable panning with mouse drag
+      scrollZoom: true,
+      dragRotate: false,
+      pitchWithRotate: false,
+      dragPan: true,
     });
 
-    // Enable right-click drag for panning (without rotation)
-    map.current.dragPan.enable();
-
     // Prevent context menu on right-click
-    map.current.getCanvas().addEventListener("contextmenu", (e) => {
+    const canvas = map.current.getCanvas();
+    canvas.addEventListener("contextmenu", (e) => {
       e.preventDefault();
+    });
+
+    // Enable panning with right mouse button
+    // We need to manually handle right-click drag since dragPan only uses left button
+    let isRightDragging = false;
+    let lastPos = { x: 0, y: 0 };
+
+    canvas.addEventListener("mousedown", (e) => {
+      if (e.button === 2) { // Right mouse button
+        isRightDragging = true;
+        lastPos = { x: e.clientX, y: e.clientY };
+        canvas.style.cursor = "grabbing";
+      }
+    });
+
+    canvas.addEventListener("mousemove", (e) => {
+      if (isRightDragging && map.current) {
+        const deltaX = e.clientX - lastPos.x;
+        const deltaY = e.clientY - lastPos.y;
+
+        // Pan the map by the delta
+        map.current.panBy([-deltaX, -deltaY], { duration: 0 });
+
+        lastPos = { x: e.clientX, y: e.clientY };
+      }
+    });
+
+    canvas.addEventListener("mouseup", (e) => {
+      if (e.button === 2) {
+        isRightDragging = false;
+        canvas.style.cursor = "";
+      }
+    });
+
+    canvas.addEventListener("mouseleave", () => {
+      isRightDragging = false;
+      canvas.style.cursor = "";
     });
 
     map.current.addControl(
