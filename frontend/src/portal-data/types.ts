@@ -11,6 +11,8 @@ export interface IDataProject {
   accuracy: number | null;
 }
 
+export type { FAIRModel, FAIRDataset };
+
 // fAIr status: 0 = published, 1 = draft
 function mapFairStatus(status: number | null): "draft" | "published" {
   return status === 0 ? "published" : "draft";

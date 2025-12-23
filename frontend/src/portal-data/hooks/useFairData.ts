@@ -1,5 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import type { FAIRModel, FAIRDataset, FAIRResponse } from "../types/projectsMap";
+import type { FAIRResponse } from "../../types/projectsMap";
+import {
+  type IDataProject,
+  type FAIRModel,
+  type FAIRDataset,
+  mapModelsToDataProjects,
+  mapDatasetsToDataProjects,
+} from "../types";
 
 async function fetchMyModels(): Promise<FAIRModel[]> {
   try {
@@ -44,13 +51,19 @@ async function fetchMyDatasets(): Promise<FAIRDataset[]> {
 export function useMyModels() {
   return useQuery({
     queryKey: ["fair", "my-models"],
-    queryFn: fetchMyModels,
+    queryFn: async (): Promise<IDataProject[]> => {
+      const models = await fetchMyModels();
+      return mapModelsToDataProjects(models);
+    },
   });
 }
 
 export function useMyDatasets() {
   return useQuery({
     queryKey: ["fair", "my-datasets"],
-    queryFn: fetchMyDatasets,
+    queryFn: async (): Promise<IDataProject[]> => {
+      const datasets = await fetchMyDatasets();
+      return mapDatasetsToDataProjects(datasets);
+    },
   });
 }
