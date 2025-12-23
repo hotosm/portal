@@ -2,7 +2,7 @@
 const DRONE_TM_URL = import.meta.env.VITE_DRONE_TM_URL || import.meta.env.VITE_DRONE_TM_FRONTEND_URL || 'https://dronetm.org';
 
 export interface IImageryProject {
-  id: number;
+  id: string;
   title: string;
   href: string;
   section: "drone" | "oam";
@@ -46,8 +46,8 @@ export async function getImageryProjects(): Promise<IImageryProject[]> {
     
     const data: ApiResponse = await response.json();
     
-    return data.results.map((project, index) => ({
-      id: index + 1,
+    return data.results.map((project) => ({
+      id: `drone-${project.id}`,
       title: project.name,
       href: `${DRONE_TM_URL}/projects/${project.id}`,
       section: "drone" as const,
@@ -77,8 +77,8 @@ export async function getAllImageryProjects(): Promise<IImageryProject[]> {
       
       const data: ApiResponse = await response.json();
       
-      const projects = data.results.map((project, index) => ({
-        id: allProjects.length + index + 1,
+      const projects = data.results.map((project) => ({
+        id: `drone-${project.id}`,
         title: project.name,
         href: `${DRONE_TM_URL}/projects/${project.id}`,
         section: "drone" as const,

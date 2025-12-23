@@ -53,5 +53,10 @@ class Settings(BaseSettings):
     osm_client_id: str | None = None
     osm_client_secret: str | None = None
 
+    # OpenAerialMap STAC API
+    # Local: https://openaerialmap.hotosm.test/api
+    # Production: https://api.imagery.hotosm.org/stac
+    oam_stac_api_url: str = "https://openaerialmap.hotosm.test/api"
+
 
 settings = Settings()

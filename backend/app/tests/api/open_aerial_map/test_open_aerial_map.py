@@ -474,8 +474,214 @@ async def test_get_imagery_by_user_timeout_error(client: AsyncClient):
     respx.get(
         "https://api.openaerialmap.org/meta"
     ).mock(side_effect=httpx.TimeoutException("Request timeout"))
-    
+
     response = await client.get("/api/open-aerial-map/user/test_user")
-    
+
     assert response.status_code == 500
     assert "Request timeout" in response.json()["detail"]
+
+
+# Tests for /user/me endpoint (authenticated) - queries OAM API by email
+class TestGetMyImagery:
+    """Test suite for get_my_imagery endpoint (authenticated, filters by email)."""
+
+    @pytest.mark.asyncio
+    async def test_get_my_imagery_success(self):
+        """Test successful request with mocked authentication."""
+        from unittest.mock import Mock, AsyncMock, patch
+
+        mock_response_data = {
+            "meta": {
+                "provided_by": "OpenAerialMap",
+                "license": "CC-BY 4.0",
+                "page": 1,
+                "limit": 100,
+                "found": 2
+            },
+            "results": [
+                {
+                    "_id": "691e75d9628460062aec9418",
+                    "title": "Test Imagery 1",
+                    "provider": "Test Provider",
+                    "contact": "test@example.com"
+                },
+                {
+                    "_id": "6918cd3e6bc7378f0aa8c66e",
+                    "title": "Test Imagery 2",
+                    "provider": "Test Provider",
+                    "contact": "test@example.com"
+                }
+            ]
+        }
+
+        mock_response = Mock()
+        mock_response.json.return_value = mock_response_data
+        mock_response.raise_for_status = Mock()
+
+        # Mock Hanko user
+        mock_user = Mock()
+        mock_user.id = "test-hanko-uuid-123"
+        mock_user.email = "test@example.com"
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
+
+            from app.api.routes.open_aerial_map.open_aerial_map import get_my_imagery
+
+            result = await get_my_imagery(user=mock_user)
+
+            assert result == mock_response_data
+            assert result["meta"]["found"] == 2
+            assert len(result["results"]) == 2
+            mock_client.return_value.__aenter__.return_value.get.assert_called_once()
+
+            call_args = mock_client.return_value.__aenter__.return_value.get.call_args
+            params = call_args[1]["params"]
+
+            # Verify the contact filter uses the user's email
+            assert params["contact"] == "test@example.com"
+
+    @pytest.mark.asyncio
+    async def test_get_my_imagery_with_pagination(self):
+        """Test with custom pagination parameters."""
+        from unittest.mock import Mock, AsyncMock, patch
+
+        mock_response_data = {
+            "meta": {"page": 2, "limit": 50, "found": 100},
+            "results": []
+        }
+
+        mock_response = Mock()
+        mock_response.json.return_value = mock_response_data
+        mock_response.raise_for_status = Mock()
+
+        mock_user = Mock()
+        mock_user.id = "test-hanko-uuid"
+        mock_user.email = "test@example.com"
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
+
+            from app.api.routes.open_aerial_map.open_aerial_map import get_my_imagery
+
+            result = await get_my_imagery(
+                user=mock_user,
+                limit=50,
+                page=2,
+                order_by="uploaded_at",
+                sort="asc"
+            )
+
+            assert result == mock_response_data
+
+            call_args = mock_client.return_value.__aenter__.return_value.get.call_args
+            params = call_args[1]["params"]
+
+            assert params["limit"] == 50
+            assert params["page"] == 2
+            assert params["order_by"] == "uploaded_at"
+            assert params["sort"] == "asc"
+
+    @pytest.mark.asyncio
+    async def test_get_my_imagery_no_email(self):
+        """Test error when user has no email."""
+        from unittest.mock import Mock
+        from fastapi import HTTPException
+
+        mock_user = Mock()
+        mock_user.id = "test-hanko-uuid"
+        mock_user.email = None
+
+        from app.api.routes.open_aerial_map.open_aerial_map import get_my_imagery
+
+        with pytest.raises(HTTPException) as exc_info:
+            await get_my_imagery(user=mock_user)
+
+        assert exc_info.value.status_code == 400
+        assert "email not available" in exc_info.value.detail
+
+    @pytest.mark.asyncio
+    async def test_get_my_imagery_api_error(self):
+        """Test handling of OAM API errors."""
+        from unittest.mock import Mock, AsyncMock, patch
+        from fastapi import HTTPException
+
+        mock_response = Mock()
+        mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
+            "Server Error",
+            request=Mock(),
+            response=Mock(status_code=500, text="Internal Server Error")
+        )
+
+        mock_user = Mock()
+        mock_user.id = "test-hanko-uuid"
+        mock_user.email = "test@example.com"
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
+
+            from app.api.routes.open_aerial_map.open_aerial_map import get_my_imagery
+
+            with pytest.raises(HTTPException) as exc_info:
+                await get_my_imagery(user=mock_user)
+
+            assert exc_info.value.status_code == 500
+
+    @pytest.mark.asyncio
+    async def test_get_my_imagery_connection_error(self):
+        """Test handling of connection errors."""
+        from unittest.mock import Mock, AsyncMock, patch
+        from fastapi import HTTPException
+
+        mock_user = Mock()
+        mock_user.id = "test-hanko-uuid"
+        mock_user.email = "test@example.com"
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                side_effect=Exception("Connection failed")
+            )
+
+            from app.api.routes.open_aerial_map.open_aerial_map import get_my_imagery
+
+            with pytest.raises(HTTPException) as exc_info:
+                await get_my_imagery(user=mock_user)
+
+            assert exc_info.value.status_code == 500
+            assert "Connection failed" in exc_info.value.detail
+
+    @pytest.mark.asyncio
+    async def test_get_my_imagery_empty_results(self):
+        """Test when user has no imagery."""
+        from unittest.mock import Mock, AsyncMock, patch
+
+        mock_response_data = {
+            "meta": {"page": 1, "limit": 100, "found": 0},
+            "results": []
+        }
+
+        mock_response = Mock()
+        mock_response.json.return_value = mock_response_data
+        mock_response.raise_for_status = Mock()
+
+        mock_user = Mock()
+        mock_user.id = "user-with-no-imagery"
+        mock_user.email = "nodata@example.com"
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
+
+            from app.api.routes.open_aerial_map.open_aerial_map import get_my_imagery
+
+            result = await get_my_imagery(user=mock_user)
+
+            assert result["meta"]["found"] == 0
+            assert result["results"] == []

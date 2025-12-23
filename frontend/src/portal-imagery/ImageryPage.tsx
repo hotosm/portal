@@ -1,37 +1,20 @@
-import { useEffect, useState } from "react";
 import GoToWesiteCTA from "../components/shared/GoToWesiteCTA";
 import PageWrapper from "../components/shared/PageWrapper";
 import YourProjectsTitle from "../components/shared/YourProjectsTitle";
 import { m } from "../paraglide/messages";
 import ImageryCard from "./components/ImageryCard";
 import ImageryNoProjects from "./components/ImageryNoProjects";
-import { getImageryProjects, IImageryProject } from "./imageryProjects";
+import { useAllImageryData } from "./hooks/useImageryData";
 
 function ImageryPage() {
-  const [projects, setProjects] = useState<IImageryProject[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function loadProjects() {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await getImageryProjects();
-        setProjects(data);
-      } catch (err) {
-        console.error("Error loading projects:", err);
-        setError("Failed to load projects");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadProjects();
-  }, []);
-
-  const droneProjects = projects.filter((p) => p.section === "drone");
-  const oamProjects = projects.filter((p) => p.section === "oam");
+  const {
+    allProjects,
+    droneProjects,
+    oamProjects,
+    isLoading,
+    isError,
+    error,
+  } = useAllImageryData();
 
   return (
     <PageWrapper>
@@ -48,15 +31,15 @@ function ImageryPage() {
           <strong>OpenAerialMap</strong>
         </GoToWesiteCTA>
 
-        {loading ? (
+        {isLoading ? (
           <div className="flex justify-center items-center py-xl">
             <div className="text-lg">Loading projects...</div>
           </div>
-        ) : error ? (
+        ) : isError ? (
           <div className="bg-red-50 border border-red-200 rounded-lg p-md">
-            <p className="text-red-800">{error}</p>
+            <p className="text-red-800">{error?.message || "Failed to load projects"}</p>
           </div>
-        ) : projects.length === 0 ? (
+        ) : allProjects.length === 0 ? (
           <ImageryNoProjects />
         ) : (
           <div className="bg-hot-gray-50 p-md md:p-lg rounded-lg space-y-lg">
