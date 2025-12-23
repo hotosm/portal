@@ -531,6 +531,7 @@ The API is self-documented using FastAPI's built-in OpenAPI support:
 - `/api/open-aerial-map/projects` - Return all project of Open Aerial Map
 - `/api/open-aerial-map/imageid` - ImageID data of Open Aerial Map
 - `/api/open-aerial-map/user/userid` - UserID data of Open Aerial Map
+- `/api/open-aerial-map/user/me` - User data of Open Aerial Map
 - `/api/fair/projects` - Return all project of fAIr
 - `/api/fair/dataset/user/{user_id}` - Get AI models from fAIr API filtered by user ID
 - `/api/fair/model/user/{user_id}` - Get datasets from fAIr API filtered by user ID
