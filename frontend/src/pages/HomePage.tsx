@@ -8,7 +8,6 @@ import { useProjectsMapCallout } from "../hooks/useProjectsMapCallout";
 import { m } from "../paraglide/messages";
 import CallToAction from "../components/shared/CallToAction";
 
-
 function HomePage() {
   const { currentLanguage: _currentLanguage } = useLanguage(); // suscribe to force re-render on language change
   // TODO relocate when adding other APIs
@@ -25,7 +24,7 @@ function HomePage() {
   return (
     <div>
       {/* Map Section */}
-      <div className="h-[calc(100vh_-_100px)] flex flex-col">
+      <div className="h-[calc(100vh_-_68px)] flex flex-col">
         <section className="flex-1 relative">
           <ProjectsMap
             mapResults={projectsData}

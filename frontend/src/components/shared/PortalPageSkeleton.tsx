@@ -26,9 +26,7 @@ function CardSkeleton({ hasImage = false, linesCount = 3 }: CardSkeletonProps) {
 function GoToWesiteCTASkeleton() {
   return (
     <div className="bg-hot-gray-50 flex flex-col md:flex-row gap-sm w-full justify-between p-md items-start md:items-center rounded-lg">
-      <div className="p-1 bg-hot-gray-300 rounded w-64 text-white">
-        Simulating loading...
-      </div>
+      <div className="p-1 bg-hot-gray-300 rounded w-64 text-white h-[28px]"></div>
       <div className="h-[41px] bg-hot-gray-300 rounded w-40" />
     </div>
   );
