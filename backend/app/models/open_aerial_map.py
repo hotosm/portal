@@ -106,3 +106,62 @@ class CompactSnapshotResponse(BaseModel):
     count: int
     updated_at: str
     results: List[CompactImagery] = []
+
+
+# STAC API models for OpenAerialMap local instance
+class STACLink(BaseModel):
+    """STAC Link object."""
+    rel: str
+    href: str
+    type: Optional[str] = None
+    title: Optional[str] = None
+
+
+class STACAsset(BaseModel):
+    """STAC Asset object."""
+    href: str
+    type: Optional[str] = None
+    title: Optional[str] = None
+    roles: Optional[List[str]] = None
+
+
+class STACItemProperties(BaseModel):
+    """STAC Item properties for OAM imagery."""
+    datetime: Optional[str] = None
+    gsd: Optional[float] = None
+    license: Optional[str] = None
+    # OAM Extension fields
+    oam_producer_name: Optional[str] = Field(None, alias="oam:producer_name")
+    oam_platform_type: Optional[str] = Field(None, alias="oam:platform_type")
+    oam_hanko_user_id: Optional[str] = Field(None, alias="oam:hanko_user_id")
+
+    model_config = {"populate_by_name": True}
+
+
+class STACItemGeometry(BaseModel):
+    """GeoJSON geometry for STAC item."""
+    type: str
+    coordinates: List
+
+
+class STACItem(BaseModel):
+    """STAC Item representing an OAM imagery."""
+    type: str = "Feature"
+    stac_version: Optional[str] = None
+    stac_extensions: Optional[List[str]] = None
+    id: str
+    geometry: Optional[STACItemGeometry] = None
+    bbox: Optional[List[float]] = None
+    properties: STACItemProperties
+    links: Optional[List[STACLink]] = None
+    assets: Optional[dict[str, STACAsset]] = None
+    collection: Optional[str] = None
+
+
+class STACItemsResponse(BaseModel):
+    """STAC FeatureCollection response."""
+    type: str = "FeatureCollection"
+    features: List[STACItem] = []
+    links: Optional[List[STACLink]] = None
+    numberMatched: Optional[int] = None
+    numberReturned: Optional[int] = None
