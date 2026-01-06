@@ -261,7 +261,6 @@ from hotosm_auth.integrations.fastapi_osm_routes import router as osm_router
 
 app.include_router(osm_router, prefix=settings.api_v1_prefix)
 
-
 # Root endpoint
 @app.get("/")
 async def root() -> dict[str, str]:
