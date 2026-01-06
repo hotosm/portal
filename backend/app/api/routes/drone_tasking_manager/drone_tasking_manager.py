@@ -16,14 +16,16 @@ import logging
 # Setup logging
 logger = logging.getLogger(__name__)
 
+# Production API for public endpoints (centroids, project details)
+DRONE_TM_PRODUCTION_URL = "https://dronetm.org/api"
+
 # Configurable via environment variable
 # For Docker internal: use service name (e.g., "http://dronetm-backend:8000/api")
 # For external access: use public URL (e.g., "https://dronetm.hotosm.test/api")
-DRONE_TM_BACKEND_URL = os.getenv("DRONE_TM_BACKEND_URL", "http://hotosm-dronetm-backend:8000/api")
+# Default to the production URL so Portal will use the public DroneTM instance
+# unless `DRONE_TM_BACKEND_URL` is explicitly set in the environment.
+DRONE_TM_BACKEND_URL = os.getenv("DRONE_TM_BACKEND_URL", DRONE_TM_PRODUCTION_URL)
 HOTOSM_API_BASE_URL = DRONE_TM_BACKEND_URL
-
-# Production API for public endpoints (centroids, project details)
-DRONE_TM_PRODUCTION_URL = "https://dronetm.org/api"
 
 logger.info(f"🚁 Drone-TM Backend URL: {HOTOSM_API_BASE_URL}")
 
