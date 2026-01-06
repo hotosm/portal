@@ -142,6 +142,7 @@ jobs:
           OSM_CLIENT_ID: ${{ secrets.OSM_CLIENT_ID }}
           OSM_CLIENT_SECRET: ${{ secrets.OSM_CLIENT_SECRET }}
           OSM_REDIRECT_URI: ${{ secrets.OSM_REDIRECT_URI }}
+          ADMIN_EMAILS: ${{ secrets.ADMIN_EMAILS }}
         run: |
           # Deploy via SSH (using ssh-agent from webfactory/ssh-agent action)
           ssh $EC2_USER@$EC2_HOST << 'EOF'
@@ -165,6 +166,7 @@ jobs:
             sed -i 's|^OSM_CLIENT_ID=.*|OSM_CLIENT_ID=${{ secrets.OSM_CLIENT_ID }}|' .env
             sed -i 's|^OSM_CLIENT_SECRET=.*|OSM_CLIENT_SECRET=${{ secrets.OSM_CLIENT_SECRET }}|' .env
             sed -i 's|^OSM_REDIRECT_URI=.*|OSM_REDIRECT_URI=${{ secrets.OSM_REDIRECT_URI }}|' .env
+            sed -i 's|^ADMIN_EMAILS=.*|ADMIN_EMAILS=${{ secrets.ADMIN_EMAILS }}|' .env
             echo "✓ Updated authentication secrets in .env"
 
             # Configure Drone-TM backend URL (point to testlogin for SSO testing)
