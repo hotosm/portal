@@ -3,13 +3,19 @@
 import asyncio
 import logging
 import httpx
+import os
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional
 from app.models.fair import FAIRProjectsResponse, FAIRCentroidsResponse, FAIRModelDetail
 from hotosm_auth.integrations.fastapi import CurrentUser, OSMConnectionRequired
 from app.core.cache import get_cached, set_cached, delete_cached, DEFAULT_TTL, LONG_TTL
 
-FAIR_API_BASE_URL = "https://api-prod.fair.hotosm.org/api/v1"
+# Read the fAIr backend URL from environment (set in `portal/.env` as FAIR_BACKEND_URL).
+# Falls back to the production endpoint when the env var is not provided.
+# - Production fAIr URL: "https://fair.hotosm.org/"
+# - Test fAIr (Hanko-backed) URL: "https://testlogin.dronetm.hotosm.org/"
+# - Local fAIr (Hanko-backed) URL: "https://fair.hotosm.test/"
+FAIR_API_BASE_URL = os.getenv("FAIR_BACKEND_URL", "https://api-prod.fair.hotosm.org/api/v1")
 
 router = APIRouter(prefix="/fair")
 logger = logging.getLogger(__name__)
