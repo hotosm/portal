@@ -18,22 +18,17 @@ function NotFoundPage() {
 
 // Component to handle protected routes
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isLogin } = useAuth();
+  const { isLogin, isLoading } = useAuth();
 
-  // TODO check layout if necessary
-  // menuItemId is accepted for pages that want to indicate the active main navigation item.
-  // It's currently unused here but kept for typing compatibility.
+  // Show nothing while checking auth status
+  if (isLoading) {
+    return null;
+  }
+
+  // Redirect to home if not logged in
   if (!isLogin) {
-    return (
-      <div className="text-center py-16">
-        <h1 className="text-3xl font-bold mb-4 text-hot-red-600">
-          Access Denied
-        </h1>
-        <p className="text-hot-gray-600 mb-8">
-          You must be logged in to access this page.
-        </p>
-      </div>
-    );
+    window.location.href = '/';
+    return null;
   }
 
   return <>{children}</>;

@@ -98,10 +98,11 @@ function HomePage() {
           <div className="container text-xl md:text-2xl leading-tight ">
             {m.home_workflow_header()}{" "}
             <strong>{m.home_workflow_header_strong()}</strong>
-          </div>
-          <div className="bg-hot-red-600 md:bg-transparent md:container leading-tight text-xl md:text-2xl font-bold text-white">
-            <span className="bg-hot-red-600 ">
-              {m.home_workflow_header_hightlight()}
+            <br />
+            <span className="bg-hot-red-600 md:bg-transparent md:container leading-tight text-xl md:text-2xl font-bold text-white">
+              <span className="bg-hot-red-600 ">
+                {m.home_workflow_header_hightlight()}
+              </span>
             </span>
           </div>
 

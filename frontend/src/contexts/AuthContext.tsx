@@ -23,6 +23,7 @@ interface AuthContextType {
   user: HankoUser | null;
   osmConnection: OSMConnection | null;
   isLogin: boolean; // Computed from user !== null
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -36,8 +37,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [osmConnection, setOsmConnection] = useState<OSMConnection | null>(
     null
   );
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Check if hanko cookie exists to determine initial auth state
+    const hasHankoCookie = document.cookie.split(';').some(c => c.trim().startsWith('hanko='));
+    if (!hasHankoCookie) {
+      // No cookie means not logged in
+      setIsLoading(false);
+    }
+
     // Check initial OSM connection status
     const checkOsmStatus = async () => {
       try {
@@ -68,6 +77,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const customEvent = event as CustomEvent;
       console.log("AuthContext: hanko-login event received", customEvent.detail);
       setUser(customEvent.detail.user);
+      setIsLoading(false);
       // Re-check OSM status after login
       checkOsmStatus();
     };
@@ -77,6 +87,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.log("AuthContext: logout event received");
       setUser(null);
       setOsmConnection(null);
+      setIsLoading(false);
     };
 
     // Listen to osm-connected event from web component
@@ -106,6 +117,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     user,
     osmConnection,
     isLogin: user !== null,
+    isLoading,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
