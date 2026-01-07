@@ -26,7 +26,7 @@ export function useAllImageryData() {
   const oamQuery = useOAMImagery();
 
   const isLoading = droneQuery.isLoading || oamQuery.isLoading;
-  const isError = droneQuery.isError && oamQuery.isError;
+  const isError = droneQuery.isError || oamQuery.isError;
   const error = droneQuery.error || oamQuery.error;
 
   const droneProjects = droneQuery.data || [];
