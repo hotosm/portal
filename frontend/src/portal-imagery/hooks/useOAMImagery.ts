@@ -36,42 +36,9 @@ export interface OAMApiResponse {
 
 // Query keys for cache management
 export const oamImageryQueryKeys = {
-  all: ["oam-imagery"] as const,
-  user: () => [...oamImageryQueryKeys.all, "user"] as const,
+  all: ["oam", "my-imagery"] as const,
+  user: () => [...oamImageryQueryKeys.all] as const,
 };
-
-/**
- * Fetch user's OAM imagery
- */
-async function fetchUserOAMImagery(): Promise<IImageryProject[]> {
-  const response = await fetch("/api/open-aerial-map/user/me", {
-    credentials: "include",
-  });
-
-  if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      return [];
-    }
-    if (response.status === 400) {
-      // User has no email - can't fetch OAM data
-      console.warn("User email not available for OAM lookup");
-      return [];
-    }
-    console.error("Error fetching OAM imagery:", await response.text());
-    return [];
-  }
-
-  const data: OAMApiResponse = await response.json();
-  const results = data.results || [];
-
-  return results.map((item) => ({
-    id: `oam-${item._id}`,
-    title: item.title || "Untitled Imagery",
-    href: `${OAM_URL}/#/${item._id}`,
-    section: "oam" as const,
-    image: item.properties?.thumbnail || "",
-  }));
-}
 
 /**
  * Hook to fetch user's OAM imagery with caching
@@ -85,7 +52,40 @@ async function fetchUserOAMImagery(): Promise<IImageryProject[]> {
 export function useOAMImagery() {
   return useQuery({
     queryKey: oamImageryQueryKeys.user(),
-    queryFn: fetchUserOAMImagery,
+    queryFn: async (): Promise<IImageryProject[]> => {
+      try {
+        const response = await fetch("/api/open-aerial-map/user/me", {
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            return [];
+          }
+          if (response.status === 400) {
+            // User has no email - can't fetch OAM data
+            console.warn("User email not available for OAM lookup");
+            return [];
+          }
+          console.error("Error fetching OAM imagery:", await response.text());
+          return [];
+        }
+
+        const data: OAMApiResponse = await response.json();
+        const results = data.results || [];
+
+        return results.map((item) => ({
+          id: `oam-${item._id}`,
+          title: item.title || "Untitled Imagery",
+          href: `${OAM_URL}/#/${item._id}`,
+          section: "oam" as const,
+          image: item.properties?.thumbnail || "",
+        }));
+      } catch (error) {
+        console.error("Error fetching OAM imagery:", error);
+        return [];
+      }
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes (formerly cacheTime)
     refetchOnWindowFocus: true,
@@ -100,22 +100,28 @@ export function useOAMImageryRaw() {
   return useQuery({
     queryKey: [...oamImageryQueryKeys.user(), "raw"],
     queryFn: async (): Promise<OAMImageryResult[]> => {
-      const response = await fetch("/api/open-aerial-map/user/me", {
-        credentials: "include",
-      });
+      try {
+        const response = await fetch("/api/open-aerial-map/user/me", {
+          credentials: "include",
+        });
 
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            return [];
+          }
+          if (response.status === 400) {
+            return [];
+          }
+          console.error("Error fetching raw OAM imagery:", await response.text());
           return [];
         }
-        if (response.status === 400) {
-          return [];
-        }
-        throw new Error(`HTTP error! status: ${response.status}`);
+
+        const data: OAMApiResponse = await response.json();
+        return data.results || [];
+      } catch (error) {
+        console.error("Error fetching raw OAM imagery:", error);
+        return [];
       }
-
-      const data: OAMApiResponse = await response.json();
-      return data.results || [];
     },
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
