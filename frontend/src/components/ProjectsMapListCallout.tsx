@@ -97,7 +97,9 @@ export function ProjectMapListCallout({
           return (
             <div
               key={projectId}
-              onClick={() => handleProjectClick(projectId, project.properties.product)}
+              onClick={() =>
+                handleProjectClick(projectId, project.properties.product)
+              }
               className="border border-hot-gray-200 rounded-lg p-3 cursor-pointer hover:bg-hot-gray-50 transition-colors"
             >
               <div className="flex items-start gap-3">
@@ -110,8 +112,8 @@ export function ProjectMapListCallout({
                   <div className="font-medium text-sm truncate">
                     {getProjectName(project)}
                   </div>
-                  <div className="text-xs text-hot-gray-500 mt-0.5">
-                    #{projectId} · {productInfo.name}
+                  <div className="text-xs text-hot-gray-500 mt-0.5 break-words">
+                    Id: {projectId} | {productInfo.name}
                   </div>
                 </div>
                 <Icon
