@@ -474,6 +474,7 @@ async def get_my_fair_models(
     params = {
         "limit": limit,
         "offset": offset,
+        "mine": "true",  # Request user-specific filtering
     }
 
     if search is not None:
@@ -536,6 +537,7 @@ async def get_my_fair_datasets(
         "limit": limit,
         "offset": offset,
         "ordering": ordering if ordering else "-created_at",
+        "mine": "true",  # Request user-specific filtering
     }
 
     if id is not None:

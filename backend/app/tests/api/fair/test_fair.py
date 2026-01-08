@@ -447,6 +447,10 @@ class TestGetMyFairModels:
             assert "Cookie" in headers
             assert "hanko=test-hanko-jwt" in headers["Cookie"]
 
+            # Verify mine=true is passed
+            params = call_args[1]["params"]
+            assert params["mine"] == "true"
+
     @pytest.mark.asyncio
     async def test_get_my_models_with_params(self):
         """Test with optional parameters"""
@@ -489,6 +493,7 @@ class TestGetMyFairModels:
             assert params["search"] == "test"
             assert params["ordering"] == "created_at"
             assert params["id"] == 99
+            assert params["mine"] == "true"
 
 
 class TestGetMyFairDatasets:
@@ -532,6 +537,10 @@ class TestGetMyFairDatasets:
             assert "Cookie" in headers
             assert "hanko=test-hanko-jwt" in headers["Cookie"]
 
+            # Verify mine=true is passed
+            params = call_args[1]["params"]
+            assert params["mine"] == "true"
+
     @pytest.mark.asyncio
     async def test_get_my_datasets_with_params(self):
         """Test with optional parameters"""
@@ -572,6 +581,7 @@ class TestGetMyFairDatasets:
             assert params["offset"] == 20
             assert params["ordering"] == "name"
             assert params["id"] == 5
+            assert params["mine"] == "true"
 
     @pytest.mark.asyncio
     async def test_get_my_datasets_http_error(self):
