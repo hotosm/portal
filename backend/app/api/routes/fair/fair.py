@@ -4,10 +4,10 @@ import asyncio
 import logging
 import os
 import httpx
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from typing import Optional
 from app.models.fair import FAIRProjectsResponse, FAIRCentroidsResponse, FAIRModelDetail
-from hotosm_auth.integrations.fastapi import CurrentUser, OSMConnectionRequired
+from hotosm_auth.integrations.fastapi import CurrentUser
 from app.core.cache import get_cached, set_cached, delete_cached, DEFAULT_TTL, LONG_TTL
 
 # Production API URL
@@ -445,8 +445,8 @@ async def get_fair_datasets_by_user(
 
 @router.get("/me/models", response_model=FAIRProjectsResponse)
 async def get_my_fair_models(
+    request: Request,
     user: CurrentUser,
-    osm: OSMConnectionRequired,
     limit: int = Query(20, ge=1, le=100, description="Number of results to return"),
     offset: int = Query(0, ge=0, description="Number of results to skip"),
     search: Optional[str] = Query(None, description="Search query"),
@@ -456,17 +456,15 @@ async def get_my_fair_models(
     """
     Get AI models from fAIr API for the authenticated user.
 
-    Requires authentication with Hanko and OSM connection.
-    Automatically uses the logged-in user's OSM ID.
+    Forwards Hanko cookie to fAIr API for authentication.
+    fAIr will auto-filter by the authenticated user.
 
     **Authentication**:
-    - Requires valid Hanko session (JWT in cookie or Bearer token)
-    - Requires OSM connection (encrypted cookie from OAuth flow)
+    - Requires valid Hanko session (JWT in cookie)
 
     **Returns**:
     - 200: User's models
     - 401: Not authenticated
-    - 403: OSM connection required
 
     Example: GET /api/fair/me/models?limit=20&ordering=-created_at
     """
@@ -476,7 +474,6 @@ async def get_my_fair_models(
     params = {
         "limit": limit,
         "offset": offset,
-        "user": osm.osm_user_id,
     }
 
     if search is not None:
@@ -486,9 +483,13 @@ async def get_my_fair_models(
     if id is not None:
         params["id"] = id
 
+    # Forward hanko cookie for fAIr authentication
+    hanko_cookie = request.cookies.get("hanko")
     headers = {
         "accept": "application/json",
     }
+    if hanko_cookie:
+        headers["Cookie"] = f"hanko={hanko_cookie}"
 
     async with httpx.AsyncClient(timeout=30.0, verify=FAIR_VERIFY_SSL) as client:
         try:
@@ -506,8 +507,8 @@ async def get_my_fair_models(
 
 @router.get("/me/datasets")
 async def get_my_fair_datasets(
+    request: Request,
     user: CurrentUser,
-    osm: OSMConnectionRequired,
     limit: int = Query(20, ge=1, le=100, description="Number of results to return"),
     offset: int = Query(0, ge=0, description="Number of results to skip"),
     ordering: Optional[str] = Query("-created_at", description="Order results by field (prefix with - for descending)"),
@@ -516,17 +517,15 @@ async def get_my_fair_datasets(
     """
     Get datasets from fAIr API for the authenticated user.
 
-    Requires authentication with Hanko and OSM connection.
-    Automatically uses the logged-in user's OSM ID.
+    Forwards Hanko cookie to fAIr API for authentication.
+    fAIr will auto-filter by the authenticated user.
 
     **Authentication**:
-    - Requires valid Hanko session (JWT in cookie or Bearer token)
-    - Requires OSM connection (encrypted cookie from OAuth flow)
+    - Requires valid Hanko session (JWT in cookie)
 
     **Returns**:
     - 200: User's datasets
     - 401: Not authenticated
-    - 403: OSM connection required
 
     Example: GET /api/fair/me/datasets?limit=20&ordering=-created_at
     """
@@ -537,15 +536,18 @@ async def get_my_fair_datasets(
         "limit": limit,
         "offset": offset,
         "ordering": ordering if ordering else "-created_at",
-        "user": osm.osm_user_id,
     }
 
     if id is not None:
         params["id"] = id
 
+    # Forward hanko cookie for fAIr authentication
+    hanko_cookie = request.cookies.get("hanko")
     headers = {
         "accept": "application/json",
     }
+    if hanko_cookie:
+        headers["Cookie"] = f"hanko={hanko_cookie}"
 
     async with httpx.AsyncClient(timeout=30.0, verify=FAIR_VERIFY_SSL) as client:
         try:
