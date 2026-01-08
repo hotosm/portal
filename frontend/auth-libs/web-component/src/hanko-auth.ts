@@ -55,6 +55,8 @@ export class HankoAuth extends LitElement {
     false;
   @property({ type: String, attribute: "redirect-after-logout" })
   redirectAfterLogout = "";
+  @property({ type: String, attribute: "display-name" })
+  displayNameAttr = "";
 
   // Internal state
   @state() private user: UserState | null = null;
@@ -63,6 +65,7 @@ export class HankoAuth extends LitElement {
   @state() private osmLoading = false;
   @state() private loading = true;
   @state() private error: string | null = null;
+  @state() private profileDisplayName: string = "";
 
   // Private fields
   private _trailingSlashCache: Record<string, boolean> = {};
@@ -364,16 +367,17 @@ export class HankoAuth extends LitElement {
     this.log("  hankoUrl:", this.hankoUrl);
     this.log("  basePath:", this.basePath);
 
-    // If already initialized by another instance, sync state and skip init
-    if (sharedAuth.initialized) {
+    // If already initialized or being initialized by another instance, sync state and skip init
+    if (sharedAuth.initialized || sharedAuth.primary) {
       this.log("🔄 Using shared state from primary instance");
       this._syncFromShared();
       this._isPrimary = false;
     } else {
-      // This is the first/primary instance
+      // This is the first/primary instance - claim it immediately to prevent race conditions
       this.log("👑 This is the primary instance");
       this._isPrimary = true;
       sharedAuth.primary = this;
+      sharedAuth.initialized = true; // Mark as initialized immediately to prevent other instances from also initializing
       this.init();
     }
   }
@@ -407,13 +411,13 @@ export class HankoAuth extends LitElement {
     }
   }
 
-  // Sync local state from shared state
+  // Sync local state from shared state (only if values changed to prevent render loops)
   private _syncFromShared() {
-    this.user = sharedAuth.user;
-    this.osmConnected = sharedAuth.osmConnected;
-    this.osmData = sharedAuth.osmData;
-    this.loading = sharedAuth.loading;
-    this._hanko = sharedAuth.hanko;
+    if (this.user !== sharedAuth.user) this.user = sharedAuth.user;
+    if (this.osmConnected !== sharedAuth.osmConnected) this.osmConnected = sharedAuth.osmConnected;
+    if (this.osmData !== sharedAuth.osmData) this.osmData = sharedAuth.osmData;
+    if (this.loading !== sharedAuth.loading) this.loading = sharedAuth.loading;
+    if (this._hanko !== sharedAuth.hanko) this._hanko = sharedAuth.hanko;
   }
 
   // Update shared state and broadcast to all instances
@@ -432,6 +436,9 @@ export class HankoAuth extends LitElement {
   }
 
   private _handleVisibilityChange = () => {
+    // Only primary instance should handle visibility changes to prevent race conditions
+    if (!this._isPrimary) return;
+
     if (!document.hidden && !this.showProfile && !this.user) {
       // Page became visible, we're in header mode, and no user is logged in
       // Re-check session in case user logged in elsewhere
@@ -441,6 +448,9 @@ export class HankoAuth extends LitElement {
   };
 
   private _handleWindowFocus = () => {
+    // Only primary instance should handle window focus to prevent race conditions
+    if (!this._isPrimary) return;
+
     if (!this.showProfile && !this.user) {
       // Window focused, we're in header mode, and no user is logged in
       // Re-check session in case user logged in
@@ -450,11 +460,15 @@ export class HankoAuth extends LitElement {
   };
 
   private _handleExternalLogin = (event: Event) => {
+    // Only primary instance should handle external login events to prevent race conditions
+    if (!this._isPrimary) return;
+
     const customEvent = event as CustomEvent;
     if (!this.showProfile && !this.user && customEvent.detail?.user) {
       // Another component (e.g., login page) logged in
       this.log("🔔 External login detected, updating user state...");
       this.user = customEvent.detail.user;
+      this._broadcastState();
       // Also re-check OSM connection
       this.checkOSMConnection();
     }
@@ -599,10 +613,10 @@ export class HankoAuth extends LitElement {
 
       await this.checkSession();
       await this.checkOSMConnection();
+      await this.fetchProfileDisplayName();
       this.loading = false;
 
-      // Mark as initialized and broadcast to other instances
-      sharedAuth.initialized = true;
+      // Broadcast final state to other instances
       this._broadcastState();
 
       this.setupEventListeners();
@@ -610,7 +624,6 @@ export class HankoAuth extends LitElement {
       console.error("Failed to initialize hanko-auth:", error);
       this.error = error.message;
       this.loading = false;
-      sharedAuth.initialized = true; // Still mark as initialized so others don't try
       this._broadcastState();
     }
   }
@@ -736,6 +749,8 @@ export class HankoAuth extends LitElement {
 
             // Also check if we need to auto-connect to OSM
             await this.checkOSMConnection();
+            // Fetch profile display name
+            await this.fetchProfileDisplayName();
             if (this.osmRequired && this.autoConnect && !this.osmConnected) {
               console.log(
                 "🔄 Auto-connecting to OSM (from existing session)..."
@@ -873,6 +888,30 @@ export class HankoAuth extends LitElement {
       if (this._isPrimary) {
         this._broadcastState();
       }
+    }
+  }
+
+  // Fetch profile display name from login backend
+  private async fetchProfileDisplayName() {
+    try {
+      const profileUrl = `${this.hankoUrl}/api/profile/me`;
+      this.log("👤 Fetching profile from:", profileUrl);
+
+      const response = await fetch(profileUrl, {
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        const profile = await response.json();
+        this.log("👤 Profile data:", profile);
+
+        if (profile.first_name || profile.last_name) {
+          this.profileDisplayName = `${profile.first_name || ""} ${profile.last_name || ""}`.trim();
+          this.log("👤 Display name set to:", this.profileDisplayName);
+        }
+      }
+    } catch (error) {
+      this.log("⚠️ Could not fetch profile:", error);
     }
   }
 
@@ -1016,6 +1055,8 @@ export class HankoAuth extends LitElement {
 
     // Check OSM connection before deciding redirect
     await this.checkOSMConnection();
+    // Fetch profile display name
+    await this.fetchProfileDisplayName();
 
     // Auto-connect to OSM if required and auto-connect is enabled
     if (this.osmRequired && this.autoConnect && !this.osmConnected) {
@@ -1187,12 +1228,20 @@ export class HankoAuth extends LitElement {
   }
 
   private async handleSessionExpired() {
-    console.log("🆕🆕🆕 NEW CODE RUNNING - handleSessionExpired v3.0 🆕🆕🆕");
-    console.log("🕒 Session expired - cleaning up state");
-    console.log("📊 State before cleanup:", {
+    console.log("🕒 Session expired event received");
+    console.log("📊 Current state:", {
       user: this.user,
       osmConnected: this.osmConnected,
     });
+
+    // If we have an active user, the session is still valid
+    // The SDK may fire this event for old/stale sessions while a new session exists
+    if (this.user) {
+      console.log("✅ User is logged in, ignoring stale session expired event");
+      return;
+    }
+
+    console.log("🧹 No active user - cleaning up state");
 
     // Call OSM disconnect endpoint to clear httpOnly cookie
     try {
@@ -1278,7 +1327,9 @@ export class HankoAuth extends LitElement {
     this.log("🎯 Dropdown item selected:", selectedValue);
 
     if (selectedValue === "profile") {
-      window.location.href = "/profile";
+      // Profile page lives on the login site
+      const baseUrl = this.hankoUrl;
+      window.location.href = `${baseUrl}/app/profile`;
     } else if (selectedValue === "connect-osm") {
       // Smart return_to: if already on a login page, redirect to home instead
       const currentPath = window.location.pathname;
@@ -1333,7 +1384,7 @@ export class HankoAuth extends LitElement {
       // User is logged in
       const needsOSM =
         this.osmRequired && !this.osmConnected && !this.osmLoading;
-      const displayName = this.user.username || this.user.email || this.user.id;
+      const displayName = this.displayNameAttr || this.profileDisplayName || this.user.username || this.user.email || this.user.id;
       const initial = displayName ? displayName[0].toUpperCase() : "U";
 
       if (this.showProfile) {
@@ -1345,7 +1396,7 @@ export class HankoAuth extends LitElement {
                 <div class="profile-avatar">${initial}</div>
                 <div class="profile-info">
                   <div class="profile-name">
-                    ${this.user.username || this.user.email || "User"}
+                    ${displayName}
                   </div>
                   <div class="profile-email">
                     ${this.user.email || this.user.id}
@@ -1449,7 +1500,7 @@ export class HankoAuth extends LitElement {
                 : ""}
             </wa-button>
             <div class="profile-info">
-              <div class="profile-name">${this.user.username || "User"}</div>
+              <div class="profile-name">${displayName}</div>
               <div class="profile-email">
                 ${this.user.email || this.user.id}
               </div>

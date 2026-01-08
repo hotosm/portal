@@ -177,6 +177,27 @@ jobs:
             fi
             echo "✓ Updated Drone-TM backend URL"
 
+            # Configure fAIr API URL (point to testlogin for SSO testing)
+            if grep -q '^FAIR_API_BASE_URL=' .env; then
+              sed -i 's|^FAIR_API_BASE_URL=.*|FAIR_API_BASE_URL=https://testlogin.fair.hotosm.org/api/v1|' .env
+            else
+              echo 'FAIR_API_BASE_URL=https://testlogin.fair.hotosm.org/api/v1' >> .env
+            fi
+            echo "✓ Updated fAIr API URL"
+
+            # Enable SSL verification for production (valid certs)
+            if grep -q '^DRONE_TM_VERIFY_SSL=' .env; then
+              sed -i 's|^DRONE_TM_VERIFY_SSL=.*|DRONE_TM_VERIFY_SSL=true|' .env
+            else
+              echo 'DRONE_TM_VERIFY_SSL=true' >> .env
+            fi
+            if grep -q '^FAIR_VERIFY_SSL=' .env; then
+              sed -i 's|^FAIR_VERIFY_SSL=.*|FAIR_VERIFY_SSL=true|' .env
+            else
+              echo 'FAIR_VERIFY_SSL=true' >> .env
+            fi
+            echo "✓ Enabled SSL verification"
+
             # Login to GitHub Container Registry
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
