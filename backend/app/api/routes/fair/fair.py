@@ -7,7 +7,7 @@ import httpx
 from fastapi import APIRouter, HTTPException, Query, Request
 from typing import Optional
 from app.models.fair import FAIRProjectsResponse, FAIRCentroidsResponse, FAIRModelDetail
-from hotosm_auth.integrations.fastapi import CurrentUser
+from hotosm_auth_fastapi import CurrentUser
 from app.core.cache import get_cached, set_cached, delete_cached, DEFAULT_TTL, LONG_TTL
 
 # Production API URL
