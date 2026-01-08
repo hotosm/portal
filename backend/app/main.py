@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from hotosm_auth import AuthConfig
-from hotosm_auth.integrations.fastapi import init_auth
+from hotosm_auth_fastapi import init_auth
 
 from app.api.routes import example, test
 from app.api.routes.tasking_manager import tasking_manager
@@ -257,7 +257,7 @@ app.include_router(
 
 # Include authentication routers (OSM OAuth)
 # Import here to avoid circular dependencies
-from hotosm_auth.integrations.fastapi_osm_routes import router as osm_router
+from hotosm_auth_fastapi import osm_router
 
 app.include_router(osm_router, prefix=settings.api_v1_prefix)
 

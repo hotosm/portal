@@ -7,7 +7,7 @@ These endpoints demonstrate the hotosm-auth integration:
 
 from fastapi import APIRouter
 
-from hotosm_auth.integrations.fastapi import CurrentUser, OSMConnectionRequired
+from hotosm_auth_fastapi import CurrentUser, OSMConnectionRequired
 from app.schemas.auth import UserInfoResponse, OSMInfoResponse
 
 router = APIRouter()

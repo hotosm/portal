@@ -9,7 +9,7 @@ from typing import Optional
 import httpx
 from fastapi import APIRouter, HTTPException, Path, Query
 from starlette.responses import FileResponse
-from hotosm_auth.integrations.fastapi import CurrentUser
+from hotosm_auth_fastapi import CurrentUser
 
 from app.models.open_aerial_map import (
     ImageryListResponse,
