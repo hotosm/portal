@@ -419,9 +419,9 @@ class TestGetMyFairModels:
         mock_response.json.return_value = mock_response_data
         mock_response.raise_for_status = Mock()
 
-        # Mock OSM connection with osm_user_id
-        mock_osm = Mock()
-        mock_osm.osm_user_id = 23470445
+        # Mock request with hanko cookie
+        mock_request = Mock()
+        mock_request.cookies.get.return_value = "test-hanko-jwt"
 
         # Mock Hanko user
         mock_user = Mock()
@@ -434,7 +434,7 @@ class TestGetMyFairModels:
 
             from app.api.routes.fair.fair import get_my_fair_models
 
-            result = await get_my_fair_models(user=mock_user, osm=mock_osm)
+            result = await get_my_fair_models(request=mock_request, user=mock_user)
 
             assert result == mock_response_data
             mock_client.return_value.__aenter__.return_value.get.assert_called_once()
@@ -442,15 +442,10 @@ class TestGetMyFairModels:
             call_args = mock_client.return_value.__aenter__.return_value.get.call_args
             assert "/model/" in call_args[0][0]
 
-            params = call_args[1]["params"]
-
-            def val(v):
-                return v.default if hasattr(v, "default") else v
-
-            # Verify it uses the OSM user ID from the mocked connection
-            assert params["user"] == 23470445
-            assert val(params["limit"]) == 20
-            assert val(params["offset"]) == 0
+            # Verify cookie is forwarded in headers
+            headers = call_args[1]["headers"]
+            assert "Cookie" in headers
+            assert "hanko=test-hanko-jwt" in headers["Cookie"]
 
     @pytest.mark.asyncio
     async def test_get_my_models_with_params(self):
@@ -461,8 +456,8 @@ class TestGetMyFairModels:
         mock_response.json.return_value = mock_response_data
         mock_response.raise_for_status = Mock()
 
-        mock_osm = Mock()
-        mock_osm.osm_user_id = 12345
+        mock_request = Mock()
+        mock_request.cookies.get.return_value = "test-hanko-jwt"
 
         mock_user = Mock()
         mock_user.id = "test-user-uuid"
@@ -475,8 +470,8 @@ class TestGetMyFairModels:
             from app.api.routes.fair.fair import get_my_fair_models
 
             result = await get_my_fair_models(
+                request=mock_request,
                 user=mock_user,
-                osm=mock_osm,
                 limit=50,
                 offset=10,
                 search="test",
@@ -489,7 +484,6 @@ class TestGetMyFairModels:
             call_args = mock_client.return_value.__aenter__.return_value.get.call_args
             params = call_args[1]["params"]
 
-            assert params["user"] == 12345
             assert params["limit"] == 50
             assert params["offset"] == 10
             assert params["search"] == "test"
@@ -512,8 +506,8 @@ class TestGetMyFairDatasets:
         mock_response.json.return_value = mock_response_data
         mock_response.raise_for_status = Mock()
 
-        mock_osm = Mock()
-        mock_osm.osm_user_id = 23470445
+        mock_request = Mock()
+        mock_request.cookies.get.return_value = "test-hanko-jwt"
 
         mock_user = Mock()
         mock_user.id = "test-user-uuid"
@@ -525,7 +519,7 @@ class TestGetMyFairDatasets:
 
             from app.api.routes.fair.fair import get_my_fair_datasets
 
-            result = await get_my_fair_datasets(user=mock_user, osm=mock_osm)
+            result = await get_my_fair_datasets(request=mock_request, user=mock_user)
 
             assert result == mock_response_data
             mock_client.return_value.__aenter__.return_value.get.assert_called_once()
@@ -533,14 +527,10 @@ class TestGetMyFairDatasets:
             call_args = mock_client.return_value.__aenter__.return_value.get.call_args
             assert "/dataset/" in call_args[0][0]
 
-            params = call_args[1]["params"]
-
-            def val(v):
-                return v.default if hasattr(v, "default") else v
-
-            assert params["user"] == 23470445
-            assert val(params["limit"]) == 20
-            assert val(params["offset"]) == 0
+            # Verify cookie is forwarded in headers
+            headers = call_args[1]["headers"]
+            assert "Cookie" in headers
+            assert "hanko=test-hanko-jwt" in headers["Cookie"]
 
     @pytest.mark.asyncio
     async def test_get_my_datasets_with_params(self):
@@ -551,8 +541,8 @@ class TestGetMyFairDatasets:
         mock_response.json.return_value = mock_response_data
         mock_response.raise_for_status = Mock()
 
-        mock_osm = Mock()
-        mock_osm.osm_user_id = 99999
+        mock_request = Mock()
+        mock_request.cookies.get.return_value = "test-hanko-jwt"
 
         mock_user = Mock()
         mock_user.id = "test-user-uuid"
@@ -565,8 +555,8 @@ class TestGetMyFairDatasets:
             from app.api.routes.fair.fair import get_my_fair_datasets
 
             result = await get_my_fair_datasets(
+                request=mock_request,
                 user=mock_user,
-                osm=mock_osm,
                 limit=100,
                 offset=20,
                 ordering="name",
@@ -578,7 +568,6 @@ class TestGetMyFairDatasets:
             call_args = mock_client.return_value.__aenter__.return_value.get.call_args
             params = call_args[1]["params"]
 
-            assert params["user"] == 99999
             assert params["limit"] == 100
             assert params["offset"] == 20
             assert params["ordering"] == "name"
@@ -591,8 +580,8 @@ class TestGetMyFairDatasets:
         mock_response.status_code = 503
         mock_response.text = "Service unavailable"
 
-        mock_osm = Mock()
-        mock_osm.osm_user_id = 12345
+        mock_request = Mock()
+        mock_request.cookies.get.return_value = "test-hanko-jwt"
 
         mock_user = Mock()
         mock_user.id = "test-user-uuid"
@@ -609,7 +598,7 @@ class TestGetMyFairDatasets:
             from app.api.routes.fair.fair import get_my_fair_datasets
 
             with pytest.raises(HTTPException) as exc_info:
-                await get_my_fair_datasets(user=mock_user, osm=mock_osm)
+                await get_my_fair_datasets(request=mock_request, user=mock_user)
 
             assert exc_info.value.status_code == 503
             assert "Error from fAIr API" in exc_info.value.detail
