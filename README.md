@@ -544,6 +544,8 @@ The API is self-documented using FastAPI's built-in OpenAPI support:
 - `/api/field-tm/projects` - Return all project of Field Tasking Manager
 - `/api/field-tm/projectid` - ProjectID data of Field Tasking Manager
 - `/api/umap/{locationid}/{projectid}` - ProjectID data of UMap HOTOSM
+- `/api/umap/user/templates` - UMap HOTOSM user template information
+- `/api/umap/user/maps` - UMap HOTOSM user maps information
 - `/api/export-tool/jobs` - Data jobs of Export Tool
 - `/api/export-tool/jobs/{job_uid}` - ID of data jobs of Export Tool
 
