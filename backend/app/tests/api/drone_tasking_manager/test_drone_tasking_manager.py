@@ -51,9 +51,9 @@ class TestGetProjects:
             # Verify URL
             assert "projects/" in call_args[0][0]
             
-            # Verify headers contain Cookie with Hanko token
-            assert "Cookie" in call_args[1]["headers"]
-            assert "hanko=mock-hanko-token-12345" in call_args[1]["headers"]["Cookie"]
+            # Verify headers contain Authorization with Hanko token
+            assert "Authorization" in call_args[1]["headers"]
+            assert "Bearer mock-hanko-token-12345" in call_args[1]["headers"]["Authorization"]
             
             # Verify params
             assert call_args[1]["params"]["filter_by_owner"] == "false"
@@ -226,9 +226,9 @@ class TestGetUserProjects:
             # Verify URL
             assert "projects/" in call_args[0][0]
             
-            # Verify headers contain Cookie with Hanko token
-            assert "Cookie" in call_args[1]["headers"]
-            assert "hanko=mock-hanko-token-12345" in call_args[1]["headers"]["Cookie"]
+            # Verify headers contain Authorization with Hanko token
+            assert "Authorization" in call_args[1]["headers"]
+            assert "Bearer mock-hanko-token-12345" in call_args[1]["headers"]["Authorization"]
             
             # Verify params - filter_by_owner should always be true
             assert call_args[1]["params"]["filter_by_owner"] == "true"
