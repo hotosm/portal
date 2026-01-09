@@ -523,6 +523,7 @@ The API is self-documented using FastAPI's built-in OpenAPI support:
 - `/api/tasking-manager/projects` - Return all project of Tasking Manager
 - `/api/tasking-manager/countries` - Return all countries of Tasking Manager
 - `/api/tasking-manager/projectid` - ProjectID data of Tasking Manager
+- `/api/tasking-manager/projects/user` - User data of Tasking Manager
 - `/api/drone-tasking-manager/projects?fetch_all=true` - Returns all Drone TM projects without pagination. (Drone Tasking Manager)
 - `/api/drone-tasking-manager/projects` - Return all project of Drone TM (Drone Tasking Manager)
 - `/api/drone-tasking-manager/projects/projectid` - ProjectID data of Drone TM (Drone Tasking Manager)
@@ -544,7 +545,7 @@ The API is self-documented using FastAPI's built-in OpenAPI support:
 - `/api/field-tm/projects` - Return all project of Field Tasking Manager
 - `/api/field-tm/projectid` - ProjectID data of Field Tasking Manager
 - `/api/umap/{locationid}/{projectid}` - ProjectID data of UMap HOTOSM
-- `/api/umap/user/templates` - UMap HOTOSM user template information
+- `/api/umap/user/templates` - UMap HOTOSM user templates information
 - `/api/umap/user/maps` - UMap HOTOSM user maps information
 - `/api/export-tool/jobs` - Data jobs of Export Tool
 - `/api/export-tool/jobs/{job_uid}` - ID of data jobs of Export Tool

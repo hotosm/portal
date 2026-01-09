@@ -106,6 +106,7 @@ portal/
   - `/api/tasking-manager/projects` - Return all project of Tasking Manager
   - `/api/tasking-manager/countries` - Return all countries of Tasking Manager
   - `/api/tasking-manager/projectid` - ProjectID data of Tasking Manager
+  - `/api/tasking-manager/projects/user` - User data of Tasking Manager
   - `/api/drone-tasking-manager/projects` - Return all project of Drone TM (Drone Tasking Manager)
   - `/api/drone-tasking-manager/projects?fetch_all=true` - Returns all Drone TM projects without pagination. (Drone Tasking Manager)
   - `/api/drone-tasking-manager/projects/projectid` - ProjectID data of Drone TM (Drone Tasking Manager)
