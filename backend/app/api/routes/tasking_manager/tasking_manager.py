@@ -318,3 +318,66 @@ async def get_tasking_manager_project_by_id(
             status_code=500,
             detail=f"Unexpected error: {str(e)}",
         )
+
+
+@router.get("/projects/user")
+async def get_user_projects() -> dict:
+    """
+    Fetch projects mapped by the authenticated user from HOT OSM Tasking Manager.
+
+    This endpoint retrieves all projects that have been mapped by the
+    currently authenticated user using the provided Authorization token.
+
+    Returns:
+        dict: JSON with user's projects
+
+    Raises:
+        HTTPException: If there's an error querying the external API
+
+    Example:
+        ```bash
+        curl http://localhost:8000/api/tasking-manager/projects/user
+        ```
+
+    Response:
+        ```json
+        {
+          "mapResults": {...},
+          "results": [...],
+          "pagination": {...}
+        }
+        ```
+    """
+    cache_key = "tasking_manager_user_projects"
+    cached_data = get_cached(cache_key)
+    if cached_data is not None:
+        return cached_data
+
+    url = f"{HOTOSM_API_BASE_URL}/projects/"
+    params = {"mappedByMe": "true", "action": "any"}
+    headers = {
+        "Authorization": ""
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(url, params=params, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+            set_cached(cache_key, data, DEFAULT_TTL)
+            return data
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(
+            status_code=e.response.status_code,
+            detail=f"Error querying HOT OSM API: {e.response.text}",
+        )
+    except httpx.RequestError as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Connection error with HOT OSM API: {str(e)}",
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unexpected error: {str(e)}",
+        )

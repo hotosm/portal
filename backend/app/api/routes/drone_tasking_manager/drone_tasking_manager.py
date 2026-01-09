@@ -12,12 +12,24 @@ from app.core.cache import get_cached, set_cached, DEFAULT_TTL, SHORT_TTL
 
 import os
 import logging
+import json
+import base64
 
 # Setup logging
 logger = logging.getLogger(__name__)
 
 # Production API for public endpoints (centroids, project details)
-DRONE_TM_PRODUCTION_URL = "https://dronetm.org/api"
+# - Production Drone-TM URL: "https://dronetm.org/api"
+# - Test Drone-TM (Hanko-backed) URL: "https://testlogin.dronetm.hotosm.org/api"
+# - Local Drone-TM (Hanko-backed) URL: "https://dronetm.hotosm.test/api"
+DRONE_TM_PRODUCTION_URL = "https://testlogin.dronetm.hotosm.org/api"
+
+# Auth header configuration for private Drone-TM endpoints
+# Some Drone-TM private endpoints changed auth from basic auth to header-based tokens.
+# The portal will forward the Hanko session token (cookie) as an authentication header
+# to the Drone-TM backend. Configure the header name/prefix via env vars if needed.
+DRONE_TM_AUTH_HEADER = os.getenv("DRONE_TM_AUTH_HEADER", "Authorization")
+DRONE_TM_AUTH_PREFIX = os.getenv("DRONE_TM_AUTH_PREFIX", "Bearer")
 
 # Configurable via environment variable
 # For Docker internal: use service name (e.g., "http://dronetm-backend:8000/api")
@@ -30,6 +42,26 @@ HOTOSM_API_BASE_URL = DRONE_TM_BACKEND_URL
 logger.info(f"🚁 Drone-TM Backend URL: {HOTOSM_API_BASE_URL}")
 
 router = APIRouter(prefix="/drone-tasking-manager")
+
+
+def _extract_hanko_user_id_from_token(token: str) -> Optional[str]:
+    """Try to decode a JWT-like token and extract a user id (sub or hanko_user_id).
+
+    This does a unsigned decode (no verification) and is only used to pass an
+    identifier upstream for matching Portal users to DroneTM test instances.
+    """
+    try:
+        parts = token.split('.')
+        if len(parts) < 2:
+            return None
+        payload = parts[1]
+        # Fix padding
+        padding = '=' * (-len(payload) % 4)
+        decoded = base64.urlsafe_b64decode(payload + padding).decode('utf-8')
+        data = json.loads(decoded)
+        return data.get('sub') or data.get('hanko_user_id') or data.get('user_id')
+    except Exception:
+        return None
 
 @router.get("/projects", response_model=DroneTMProjectsResponse)
 async def get_projects(
@@ -79,12 +111,27 @@ async def get_projects(
             detail="Hanko authentication cookie not found. Please log in."
         )
     
-    # Forward the Hanko cookie to DroneTM API
-    # The DroneTM API expects the cookie in the Cookie header
+    # Build headers for private DroneTM endpoints.
+    # Recent DroneTM test instances require header-based token auth (not HTTP Basic)
+    # Forward the raw Hanko session token in the configured auth header
+    # (e.g. `Authorization: Bearer <token>`). Also include an identifier header
+    # with the Hanko user id extracted from the token so DroneTM can match users.
     headers = {
-        "Cookie": f"hanko={hanko_cookie}",
         "Accept": "application/json",
     }
+
+    # Forward token as configured auth header (default: Authorization: Bearer)
+    try:
+        auth_value = f"{DRONE_TM_AUTH_PREFIX} {hanko_cookie}"
+        headers[DRONE_TM_AUTH_HEADER] = auth_value
+    except Exception:
+        # Fallback: do not set auth header if something goes wrong
+        logger.warning("Failed to set DroneTM auth header from Hanko cookie")
+
+    # Add an extra header with the Hanko user id (if we can extract it)
+    hanko_user_id = _extract_hanko_user_id_from_token(hanko_cookie)
+    if hanko_user_id:
+        headers["X-Hanko-User-Id"] = hanko_user_id
     
     # If using HTTPS with self-signed certificates in Docker, disable verification
     # In production with valid certs, set verify=True
@@ -321,11 +368,22 @@ async def get_user_projects(
             detail="Hanko authentication cookie not found. Please log in."
         )
     
-    # Forward the Hanko cookie to DroneTM API
+    # Build headers for private DroneTM endpoints (always filter by owner).
     headers = {
-        "Cookie": f"hanko={hanko_cookie}",
         "Accept": "application/json",
     }
+
+    # Forward token as configured auth header (default: Authorization: Bearer)
+    try:
+        auth_value = f"{DRONE_TM_AUTH_PREFIX} {hanko_cookie}"
+        headers[DRONE_TM_AUTH_HEADER] = auth_value
+    except Exception:
+        logger.warning("Failed to set DroneTM auth header from Hanko cookie")
+
+    # Include extracted Hanko user id to help DroneTM match the Portal user
+    hanko_user_id = _extract_hanko_user_id_from_token(hanko_cookie)
+    if hanko_user_id:
+        headers["X-Hanko-User-Id"] = hanko_user_id
     
     # Always filter by owner for this endpoint
     params = {
