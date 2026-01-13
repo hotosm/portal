@@ -45,7 +45,7 @@ jobs:
       - name: Install backend dependencies (with hotosm-auth from monorepo)
         working-directory: ./backend
         run: |
-          # Install dependencies (hotosm-auth will be resolved from ../frontend/auth-libs/python)
+          # Install dependencies (hotosm-auth from hotosm/login repo)
           uv sync --all-extras
 
       - name: Run backend tests
