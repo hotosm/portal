@@ -13,7 +13,7 @@ dependencies = [
     "pydantic-settings>=2.7.0",
     "geoalchemy2>=0.16.0",
     "python-dotenv>=1.0.1",
-    "hotosm-auth @ git+https://github.com/hotosm/login.git@auth-libs-v0.2.3#subdirectory=auth-libs/python",
+    "hotosm-auth @ git+https://github.com/hotosm/login.git@auth-libs-v0.2.4#subdirectory=auth-libs/python",
     "respx"
 ]
 
