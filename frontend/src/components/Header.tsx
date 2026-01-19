@@ -47,7 +47,7 @@ function Header() {
         </div>
 
         <div className="flex items-center">
-          <hotosm-auth osm-required redirect-after-logout="/" />
+          <hotosm-auth redirect-after-logout="/" />
           <LanguageSwitcher />
 
           <hotosm-shared-menu></hotosm-shared-menu>
