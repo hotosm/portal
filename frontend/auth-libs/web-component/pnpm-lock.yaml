@@ -12,8 +12,8 @@ importers:
         specifier: 3.0.0-beta.1
         version: 3.0.0-beta.1(@floating-ui/utils@0.2.10)
       '@teamhanko/hanko-elements':
-        specifier: ^1.0.0
-        version: 1.5.2
+        specifier: ^2.3.0
+        version: 2.3.0
       lit:
         specifier: ^3.3.1
         version: 3.3.1
@@ -306,11 +306,11 @@ packages:
   '@shoelace-style/localize@3.2.1':
     resolution: {integrity: sha512-r4C9C/5kSfMBIr0D9imvpRdCNXtUNgyYThc4YlS6K5Hchv1UyxNQ9mxwj+BTRH2i1Neits260sR3OjKMnplsFA==}
 
-  '@teamhanko/hanko-elements@1.5.2':
-    resolution: {integrity: sha512-RrOgSoKwHbysDOOffOHn3p8s/zXxY2qvWwZFQdMeEP8Qp/C/RQBwGOzax0Y2gySWflDHM2uu4+tW8dXB+mZfQg==}
+  '@teamhanko/hanko-elements@2.3.0':
+    resolution: {integrity: sha512-hMDecxL4gNNxk8mOwWxqaRvguSNPZ9QPrUVcjFP6kwZN3wHj47iD4A+htWFB+VKLWAqyDiioyx/MAM4HhPMsAQ==}
 
-  '@teamhanko/hanko-frontend-sdk@1.5.2':
-    resolution: {integrity: sha512-sSY2NGsJRndrC4HwxBIdog9gOGUzJ3EGKmEn7p+rzXzJaLik3ywJb25DloegPekMZQ8hwOzliF0uJh7kNxFgTA==}
+  '@teamhanko/hanko-frontend-sdk@2.3.0':
+    resolution: {integrity: sha512-rZkyWddmozkgpsC0mN+1FuxG2L7OCYsD3D040Njp1o73VyZFpvZ1rbBQv7eOI3V7qZc4rtgKc+fPizM1Hp2pCQ==}
 
   '@teamhanko/preact-custom-element@4.2.2':
     resolution: {integrity: sha512-3djCQr25IxQIgpidxD8J0fTQ7/hMuoa5Nmv7delQc6sX4kXgv9e/pE01cywpmGZLi69H1KUH4dmZ4cPPJQrsQQ==}
@@ -591,15 +591,15 @@ snapshots:
 
   '@shoelace-style/localize@3.2.1': {}
 
-  '@teamhanko/hanko-elements@1.5.2':
+  '@teamhanko/hanko-elements@2.3.0':
     dependencies:
       '@denysvuika/preact-translate': 0.5.1(preact@10.27.2)
-      '@teamhanko/hanko-frontend-sdk': 1.5.2
+      '@teamhanko/hanko-frontend-sdk': 2.3.0
       '@teamhanko/preact-custom-element': 4.2.2(preact@10.27.2)
       classnames: 2.5.1
       preact: 10.27.2
 
-  '@teamhanko/hanko-frontend-sdk@1.5.2':
+  '@teamhanko/hanko-frontend-sdk@2.3.0':
     dependencies:
       '@types/js-cookie': 3.0.6
 
