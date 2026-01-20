@@ -6,8 +6,7 @@
   "scripts": {
     "dev": "vite",
     "paraglide": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide",
-    "build": "pnpm build:component && pnpm paraglide && tsc && vite build",
-    "build:component": "cd auth-libs/web-component && pnpm install && pnpm build",
+    "build": "pnpm paraglide && tsc && vite build",
     "preview": "vite preview",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
