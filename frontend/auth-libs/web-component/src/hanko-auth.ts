@@ -68,6 +68,8 @@ export class HankoAuth extends LitElement {
     "";
   // App identifier for onboarding redirect
   @property({ type: String, attribute: "app-id" }) appId = "";
+  // Custom login page URL (for standalone mode - overrides ${hankoUrl}/app)
+  @property({ type: String, attribute: "login-url" }) loginUrl = "";
 
   // Internal state
   @state() private user: UserState | null = null;
@@ -134,6 +136,36 @@ export class HankoAuth extends LitElement {
       font-size: var(--hot-font-size-small);
       color: var(--hot-color-gray-600);
       font-weight: var(--hot-font-weight-semibold);
+    }
+    // TODO replace with WA button
+    button {
+      width: 100%;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #d73f3f;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #c23535;
+    }
+
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+      margin-top: 8px;
+    }
+
+    .btn-secondary:hover {
+      background: #e0e0e0;
     }
 
     .error {
@@ -309,17 +341,6 @@ export class HankoAuth extends LitElement {
     wa-dropdown-item:hover {
       background-color: var(--hot-color-neutral-50);
     }
-
-    /* Mobile: full-width dropdown */
-    @media (max-width: 768px) {
-      wa-dropdown::part(menu) {
-        width: 100vw;
-        max-width: 100vw;
-        left: 0 !important;
-        right: 0 !important;
-        transform: none !important;
-      }
-    }
   `;
 
   // Get computed hankoUrl (priority: attribute > meta tag > window.HANKO_URL > origin)
@@ -357,7 +378,6 @@ export class HankoAuth extends LitElement {
 
     // Inject Hanko styles early, before any Hanko elements render
     this.injectHankoStyles();
-
     // Register this instance
     sharedAuth.instances.add(this);
 
@@ -482,8 +502,10 @@ export class HankoAuth extends LitElement {
       this.log("🔔 External login detected, updating user state...");
       this.user = customEvent.detail.user;
       this._broadcastState();
-      // Also re-check OSM connection
-      this.checkOSMConnection();
+      // Also re-check OSM connection (only if required)
+      if (this.osmRequired) {
+        this.checkOSMConnection();
+      }
     }
   };
 
@@ -610,7 +632,9 @@ export class HankoAuth extends LitElement {
       await this.checkSession();
       // Only check OSM and fetch profile if we have a logged-in user
       if (this.user) {
-        await this.checkOSMConnection();
+        if (this.osmRequired) {
+          await this.checkOSMConnection();
+        }
         await this.fetchProfileDisplayName();
       }
       this.loading = false;
@@ -677,19 +701,29 @@ export class HankoAuth extends LitElement {
               },
             });
 
+            let needsSdkFallback = true;
             if (meResponse.ok) {
               const userData = await meResponse.json();
               this.log("👤 User data retrieved from /me:", userData);
 
-              this.user = {
-                id: userData.user_id,
-                email: userData.email || null,
-                username: userData.username || null,
-                emailVerified: false,
-              };
-            } else {
-              this.log("⚠️ /me endpoint failed, trying SDK fallback");
-              // Fallback to SDK method
+              // Only use /me if it has email (login.hotosm.org has it, Hanko vanilla doesn't)
+              if (userData.email) {
+                this.user = {
+                  id: userData.user_id || userData.id,
+                  email: userData.email,
+                  username: userData.username || null,
+                  emailVerified:
+                    userData.email_verified || userData.verified || false,
+                };
+                needsSdkFallback = false;
+              } else {
+                this.log("⚠️ /me has no email, will use SDK fallback");
+              }
+            }
+
+            if (needsSdkFallback) {
+              this.log("🔄 Using SDK to get user with email");
+              // Fallback to SDK method which has email
               const user = await this._hanko.user.getCurrent();
               this.user = {
                 id: user.id,
@@ -755,7 +789,9 @@ export class HankoAuth extends LitElement {
             );
 
             // Also check if we need to auto-connect to OSM
-            await this.checkOSMConnection();
+            if (this.osmRequired) {
+              await this.checkOSMConnection();
+            }
             // Fetch profile display name
             await this.fetchProfileDisplayName();
             if (this.osmRequired && this.autoConnect && !this.osmConnected) {
@@ -955,9 +991,8 @@ export class HankoAuth extends LitElement {
         this.log("👤 Profile data:", profile);
 
         if (profile.first_name || profile.last_name) {
-          this.profileDisplayName = `${profile.first_name || ""} ${
-            profile.last_name || ""
-          }`.trim();
+          this.profileDisplayName =
+            `${profile.first_name || ""} ${profile.last_name || ""}`.trim();
           this.log("👤 Display name set to:", this.profileDisplayName);
         }
       }
@@ -1025,13 +1060,19 @@ export class HankoAuth extends LitElement {
         const userData = await meResponse.json();
         this.log("👤 User data retrieved from /me:", userData);
 
-        this.user = {
-          id: userData.user_id,
-          email: userData.email || null,
-          username: userData.username || null,
-          emailVerified: false,
-        };
-        userInfoRetrieved = true;
+        // Only use /me if it has email (login.hotosm.org has it, Hanko vanilla doesn't)
+        if (userData.email) {
+          this.user = {
+            id: userData.user_id || userData.id,
+            email: userData.email,
+            username: userData.username || null,
+            emailVerified:
+              userData.email_verified || userData.verified || false,
+          };
+          userInfoRetrieved = true;
+        } else {
+          this.log("⚠️ /me has no email, will try SDK fallback");
+        }
       } else {
         this.log(
           "⚠️ /me endpoint returned non-OK status, will try SDK fallback",
@@ -1110,9 +1151,11 @@ export class HankoAuth extends LitElement {
       }),
     );
 
-    // Check OSM connection before deciding redirect
-    await this.checkOSMConnection();
-    // Fetch profile display name
+    // Check OSM connection only if required
+    if (this.osmRequired) {
+      await this.checkOSMConnection();
+    }
+    // Fetch profile display name (only works with login.hotosm.org backend)
     await this.fetchProfileDisplayName();
 
     // Auto-connect to OSM if required and auto-connect is enabled
@@ -1367,9 +1410,7 @@ export class HankoAuth extends LitElement {
       // Pass return URL so profile can navigate back to the app
       const baseUrl = this.hankoUrl;
       const returnTo = this.redirectAfterLogin || window.location.origin;
-      window.location.href = `${baseUrl}/app/profile?return_to=${encodeURIComponent(
-        returnTo,
-      )}`;
+      window.location.href = `${baseUrl}/app/profile?return_to=${encodeURIComponent(returnTo)}`;
     } else if (selectedValue === "connect-osm") {
       // Smart return_to: if already on a login page, redirect to home instead
       const currentPath = window.location.pathname;
@@ -1512,6 +1553,7 @@ export class HankoAuth extends LitElement {
         return html`
           <wa-dropdown
             placement="bottom-end"
+            distance="4"
             @wa-select=${this.handleDropdownSelect}
           >
             <wa-button
@@ -1541,6 +1583,7 @@ export class HankoAuth extends LitElement {
                   : ""}
             </wa-button>
             <div class="profile-info">
+              <div class="profile-name">${displayName}</div>
               <div class="profile-email">
                 ${this.user.email || this.user.id}
               </div>
@@ -1549,8 +1592,22 @@ export class HankoAuth extends LitElement {
               <wa-icon slot="icon" name="address-card"></wa-icon>
               My HOT Account
             </wa-dropdown-item>
-
-            <wa-dropdown-item value="logout">
+            ${this.osmRequired
+              ? this.osmConnected
+                ? html`
+                    <wa-dropdown-item value="osm-connected" disabled>
+                      <wa-icon slot="icon" name="check"></wa-icon>
+                      Connected to OSM (@${this.osmData?.osm_username})
+                    </wa-dropdown-item>
+                  `
+                : html`
+                    <wa-dropdown-item value="connect-osm">
+                      <wa-icon slot="icon" name="map"></wa-icon>
+                      Connect OSM
+                    </wa-dropdown-item>
+                  `
+              : ""}
+            <wa-dropdown-item value="logout" variant="danger">
               <wa-icon slot="icon" name="right-from-bracket"></wa-icon>
               Sign Out
             </wa-dropdown-item>
@@ -1606,7 +1663,10 @@ export class HankoAuth extends LitElement {
         // Use the getter which handles all fallbacks correctly
         const baseUrl = this.hankoUrl;
         this.log("🔗 Login URL base:", baseUrl);
-        const loginUrl = `${baseUrl}/app?return_to=${encodeURIComponent(
+
+        // Use custom loginUrl if provided (for standalone mode), otherwise use ${hankoUrl}/app
+        const loginBase = this.loginUrl || `${baseUrl}/app`;
+        const loginUrl = `${loginBase}?return_to=${encodeURIComponent(
           returnTo,
         )}${this.osmRequired ? "&osm_required=true" : ""}${autoConnectParam}`;
 
