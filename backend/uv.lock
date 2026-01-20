@@ -370,13 +370,23 @@ wheels = [
 [[package]]
 name = "hotosm-auth"
 version = "0.2.5"
-source = { git = "https://github.com/hotosm/login.git?subdirectory=auth-libs%2Fpython&rev=auth-libs-v0.2.5#5a6eb7d0b8367efbb5ff7547b4f23f0699b9107b" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cryptography" },
     { name = "httpx" },
     { name = "pydantic" },
     { name = "pyjwt", extra = ["crypto"] },
     { name = "python-dateutil" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9e/84/240276baae69b2de4004c12ae0f71fb0c62f5bbfafb19a0ab7c3c553cee8/hotosm_auth-0.2.5.tar.gz", hash = "sha256:39549718d5680eae570b4cb41660fde62377b9d0e266cbd42a581d0775782644", size = 104812, upload-time = "2026-01-20T17:33:38.93Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f7/aa/bdc77438f9ca39257fda8a9aea17b1ea0e9495fddd603eefb5d84343e180/hotosm_auth-0.2.5-py3-none-any.whl", hash = "sha256:e5218acf8ec539616607e878467620c80071cf569d6e7f73e28d083da599162d", size = 46068, upload-time = "2026-01-20T17:33:36.866Z" },
+]
+
+[package.optional-dependencies]
+fastapi = [
+    { name = "fastapi" },
+    { name = "sqlalchemy" },
 ]
 
 [[package]]
@@ -549,7 +559,7 @@ dependencies = [
     { name = "asyncpg" },
     { name = "fastapi" },
     { name = "geoalchemy2" },
-    { name = "hotosm-auth" },
+    { name = "hotosm-auth", extra = ["fastapi"] },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "python-dotenv" },
@@ -575,7 +585,7 @@ requires-dist = [
     { name = "asyncpg", specifier = ">=0.30.0" },
     { name = "fastapi", specifier = ">=0.115.6" },
     { name = "geoalchemy2", specifier = ">=0.16.0" },
-    { name = "hotosm-auth", git = "https://github.com/hotosm/login.git?subdirectory=auth-libs%2Fpython&rev=auth-libs-v0.2.5" },
+    { name = "hotosm-auth", extras = ["fastapi"], specifier = "==0.2.5" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.28.1" },
     { name = "pydantic", specifier = ">=2.10.4" },
     { name = "pydantic-settings", specifier = ">=2.7.0" },

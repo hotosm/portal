@@ -11,6 +11,9 @@ importers:
       '@awesome.me/webawesome':
         specifier: 3.0.0-beta.1
         version: 3.0.0-beta.1(@floating-ui/utils@0.2.10)
+      '@hotosm/hanko-auth':
+        specifier: ^0.3.1
+        version: 0.3.1(@awesome.me/webawesome@3.0.0-beta.1(@floating-ui/utils@0.2.10))
       '@lit/react':
         specifier: ^1.0.8
         version: 1.0.8(@types/react@19.2.2)
@@ -602,6 +605,11 @@ packages:
   '@floating-ui/utils@0.2.10':
     resolution: {integrity: sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ==}
 
+  '@hotosm/hanko-auth@0.3.1':
+    resolution: {integrity: sha512-8hVKcI2PFkvdSTek7ZXNc6EeFYWgDT4f4xN9o2wWbsaIOiJ73qg3cRMvNchUZwLm4YgSBSMqDg976LQLvO4xCA==}
+    peerDependencies:
+      '@awesome.me/webawesome': ^3.0.0-beta.1
+
   '@inlang/detect-json-formatting@1.0.0':
     resolution: {integrity: sha512-o0jeI8U4TgNlsPwI0y92jld8/18Loh2KEgHCYCJ42rCOdxFrA8R60cydlEd2/6jkdHFn5DxKj8rOyiKv3z9uOw==}
     deprecated: no longer used
@@ -1060,8 +1068,14 @@ packages:
     peerDependencies:
       react: ^18 || ^19
 
+  '@teamhanko/hanko-elements@1.5.2':
+    resolution: {integrity: sha512-RrOgSoKwHbysDOOffOHn3p8s/zXxY2qvWwZFQdMeEP8Qp/C/RQBwGOzax0Y2gySWflDHM2uu4+tW8dXB+mZfQg==}
+
   '@teamhanko/hanko-elements@2.2.0':
     resolution: {integrity: sha512-v9LGEsDRssazwqYb6FMPPxCVtxea+NStm8Q41vwUMoVzKVkN4Je4tJY7NkdJH8Cql7HnsTXD/ITftXqTJnH+MQ==}
+
+  '@teamhanko/hanko-frontend-sdk@1.5.2':
+    resolution: {integrity: sha512-sSY2NGsJRndrC4HwxBIdog9gOGUzJ3EGKmEn7p+rzXzJaLik3ywJb25DloegPekMZQ8hwOzliF0uJh7kNxFgTA==}
 
   '@teamhanko/hanko-frontend-sdk@2.2.0':
     resolution: {integrity: sha512-j3xy45yv4rEff54/vGY4SV3A6nktLjcGSJ0w+8rbusC2l+gIM3HlWYu9qz+aZlJVQkESKNhnYOVjHRD2NJ5VXA==}
@@ -3197,6 +3211,12 @@ snapshots:
 
   '@floating-ui/utils@0.2.10': {}
 
+  '@hotosm/hanko-auth@0.3.1(@awesome.me/webawesome@3.0.0-beta.1(@floating-ui/utils@0.2.10))':
+    dependencies:
+      '@awesome.me/webawesome': 3.0.0-beta.1(@floating-ui/utils@0.2.10)
+      '@teamhanko/hanko-elements': 1.5.2
+      lit: 3.3.1
+
   '@inlang/detect-json-formatting@1.0.0':
     dependencies:
       guess-json-indent: 2.0.0
@@ -3800,6 +3820,14 @@ snapshots:
       '@tanstack/query-core': 5.90.5
       react: 19.2.0
 
+  '@teamhanko/hanko-elements@1.5.2':
+    dependencies:
+      '@denysvuika/preact-translate': 0.5.1(preact@10.27.2)
+      '@teamhanko/hanko-frontend-sdk': 1.5.2
+      '@teamhanko/preact-custom-element': 4.2.2(preact@10.27.2)
+      classnames: 2.5.1
+      preact: 10.27.2
+
   '@teamhanko/hanko-elements@2.2.0':
     dependencies:
       '@denysvuika/preact-translate': 0.5.1(preact@10.27.2)
@@ -3807,6 +3835,10 @@ snapshots:
       '@teamhanko/preact-custom-element': 4.2.2(preact@10.27.2)
       classnames: 2.5.1
       preact: 10.27.2
+
+  '@teamhanko/hanko-frontend-sdk@1.5.2':
+    dependencies:
+      '@types/js-cookie': 3.0.6
 
   '@teamhanko/hanko-frontend-sdk@2.2.0':
     dependencies:
