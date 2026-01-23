@@ -44,6 +44,14 @@ declare module "react" {
         },
         HTMLElement
       >;
+
+      // HOTOSM Tool Menu component
+      "hotosm-tool-menu": React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement> & {
+          "show-logos"?: boolean;
+        },
+        HTMLElement
+      >;
     }
   }
 }

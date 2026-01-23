@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import "../../web-components/shared-menu/sharedMenu.component";
+import "../../web-components/tool-menu/tool-menu";
 import hotLogo from "../assets/images/hot-icon.svg";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -47,10 +47,10 @@ function Header() {
         </div>
 
         <div className="flex items-center">
-          <hotosm-auth redirect-after-logout="/" />
+          <hotosm-auth redirect-after-logout="/" osm-required />
           <LanguageSwitcher />
 
-          <hotosm-shared-menu></hotosm-shared-menu>
+          <hotosm-tool-menu />
         </div>
       </div>
     </>

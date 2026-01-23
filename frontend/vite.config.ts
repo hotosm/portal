@@ -21,6 +21,9 @@ export default defineConfig({
       outdir: './src/paraglide',
     }),
   ],
+  optimizeDeps: {
+    exclude: ['@hotosm/hanko-auth'],  // Don't pre-bundle symlinked auth-libs
+  },
   server: {
     host: '0.0.0.0',
     port: 5173,
