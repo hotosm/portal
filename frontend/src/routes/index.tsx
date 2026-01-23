@@ -1,11 +1,8 @@
 import React from "react";
 import { Route, Routes } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import AuthTest from "../pages/AuthTest";
 import HomePage from "../pages/HomePage";
 import ImageryPage from "../portal-imagery/ImageryPage";
-import ProfilePage from "../pages/ProfilePage";
-import DroneTMProjectsPage from "../pages/DroneTMProjectsPage";
 import MappingPage from "../portal-mapping/MappingPage";
 import FieldPage from "../portal-field/FieldPage";
 import DataPage from "../portal-data/DataPage";
@@ -50,7 +47,7 @@ export function AppRoutes() {
 
       {/* Locale-prefixed routes */}
       <Route path="/:locale" element={<HomePage />} />
-      
+
       {/* TODO check if this will remain - Main navigation routes - show different CTAs when not logged in */}
       <Route
         path="/:locale/mapping"
@@ -92,27 +89,6 @@ export function AppRoutes() {
           </MainNavRoute>
         }
       />
-
-      {/* Protected user routes */}
-      <Route
-        path="/:locale/profile"
-        element={
-          <ProtectedRoute>
-            <ProfilePage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/:locale/drone-tm-projects"
-        element={
-          <ProtectedRoute>
-            <DroneTMProjectsPage />
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Testing routes */}
-      <Route path="/:locale/auth-test" element={<AuthTest />} />
 
       {/* Fallback for invalid routes */}
       <Route path="*" element={<NotFoundPage />} />
