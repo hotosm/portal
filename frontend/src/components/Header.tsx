@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import "../../web-components/tool-menu/tool-menu";
+import "../../web-components/tool-menu/dist/tool-menu";
 import hotLogo from "../assets/images/hot-icon.svg";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";

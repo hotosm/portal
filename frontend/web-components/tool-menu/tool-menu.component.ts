@@ -1,16 +1,16 @@
 import { LitElement, html } from "lit";
 import { property, state } from "lit/decorators.js";
 import { styles } from "./tool-menu.styles.js";
-import gridIcon from "./assets/grid-icon.svg";
+import gridIcon from "../assets/grid-icon.svg";
 // Import tools icons. These icons will be added in the near future, and are not being showed as default.
-import droneIcon from "./assets/icon-drone.svg";
-import oamIcon from "./assets/icon-oam.svg";
-import tmIcon from "./assets/icon-tm.svg";
-import fairIcon from "./assets/icon-fair.svg";
-import fieldIcon from "./assets/icon-field.svg";
-import chatmapIcon from "./assets/icon-chatmap.svg";
-import exportIcon from "./assets/icon-export.svg";
-import umapIcon from "./assets/icon-umap.svg";
+import droneIcon from "../assets/icon-drone.svg";
+import oamIcon from "../assets/icon-oam.svg";
+import tmIcon from "../assets/icon-tm.svg";
+import fairIcon from "../assets/icon-fair.svg";
+import fieldIcon from "../assets/icon-field.svg";
+import chatmapIcon from "../assets/icon-chatmap.svg";
+import exportIcon from "../assets/icon-export.svg";
+import umapIcon from "../assets/icon-umap.svg";
 
 interface Tool {
   id: string;

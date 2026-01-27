@@ -1,6 +1,11 @@
-import { css } from "lit";
+import { css, unsafeCSS } from "lit";
+
+// Import HOT design system CSS
+const hotCSS = unsafeCSS(`@import url('https://cdn.jsdelivr.net/npm/hotosm-ui-design@latest/dist/hot.css');`);
 
 export const styles = css`
+  ${hotCSS}
+
   :host {
     display: inline-block;
     position: relative;

@@ -1,0 +1,51 @@
+{
+  "name": "@hotosm/tool-menu",
+  "version": "0.1.0",
+  "description": "A web component for displaying HOTOSM tool navigation menu.",
+  "homepage": "https://github.com/hotosm/portal#readme",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "main": "./dist/tool-menu.js",
+  "module": "./dist/tool-menu.js",
+  "types": "./dist/tool-menu.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/tool-menu.d.ts",
+      "import": "./dist/tool-menu.js"
+    },
+    "./dist/tool-menu.js": "./dist/tool-menu.js",
+    "./dist/tool-menu.component.js": "./dist/tool-menu.component.js",
+    "./dist/tool-menu.styles.js": "./dist/tool-menu.styles.js"
+  },
+  "files": [
+    "dist",
+    "assets"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hotosm/portal.git",
+    "directory": "frontend/web-components/tool-menu"
+  },
+  "keywords": [
+    "web-components",
+    "lit",
+    "hotosm",
+    "navigation",
+    "menu",
+    "dropdown"
+  ],
+  "engines": {
+    "node": ">=14.17.0"
+  },
+  "peerDependencies": {
+    "lit": "^3.0.0"
+  },
+  "devDependencies": {
+    "lit": "^3.3.1",
+    "typescript": "^5.0.0"
+  }
+}
