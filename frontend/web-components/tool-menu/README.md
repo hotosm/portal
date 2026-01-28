@@ -99,7 +99,7 @@ function App() {
   return (
     <div>
       <hotosm-tool-menu
-        show-logos="true"
+        show-logos={false}
         onToolSelected={(e) => {
           console.log("Tool selected:", e.detail.tool);
         }}
