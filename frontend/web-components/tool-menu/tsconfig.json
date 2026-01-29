@@ -8,10 +8,7 @@
       "dom.Iterable",
       "es2020"
     ],
-    "declaration": true,
-    "declarationMap": true,
     "outDir": "./dist",
-    "rootDir": "./",
     "strict": true,
     "strictPropertyInitialization": false,
     "noUnusedLocals": true,
@@ -26,7 +23,7 @@
     "isolatedModules": true
   },
   "include": [
-    "*.ts"
+    "src/**/*.ts"
   ],
   "exclude": [
     "node_modules"

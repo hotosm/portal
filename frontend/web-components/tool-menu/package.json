@@ -1,29 +1,27 @@
 {
   "name": "@hotosm/tool-menu",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "A web component for displaying HOTOSM tool navigation menu.",
   "homepage": "https://github.com/hotosm/portal#readme",
   "license": "AGPL-3.0-only",
   "type": "module",
-  "main": "./dist/tool-menu.js",
-  "module": "./dist/tool-menu.js",
-  "types": "./dist/tool-menu.d.ts",
+  "main": "dist/tool-menu.umd.js",
+  "module": "dist/tool-menu.esm.js",
   "exports": {
     ".": {
-      "types": "./dist/tool-menu.d.ts",
-      "import": "./dist/tool-menu.js"
+      "import": "./dist/tool-menu.esm.js",
+      "require": "./dist/tool-menu.umd.js"
     },
-    "./dist/tool-menu.js": "./dist/tool-menu.js",
-    "./dist/tool-menu.component.js": "./dist/tool-menu.component.js",
-    "./dist/tool-menu.styles.js": "./dist/tool-menu.styles.js"
+    "./dist/*": "./dist/*"
   },
   "files": [
     "dist",
-    "assets"
+    "src"
   ],
   "scripts": {
-    "build": "tsc",
-    "prepublishOnly": "npm run build"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "repository": {
     "type": "git",
@@ -45,7 +43,9 @@
     "lit": "^3.0.0"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "lit": "^3.3.1",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vite": "^6.0.0"
   }
 }

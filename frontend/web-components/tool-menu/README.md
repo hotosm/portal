@@ -81,7 +81,7 @@ Use the component directly in HTML:
   <head>
     <script
       type="module"
-      src="https://cdn.jsdelivr.net/npm/@hotosm/tool-menu@latest/tool-menu.js"
+      src="https://cdn.jsdelivr.net/npm/@hotosm/tool-menu@latest/dist/tool-menu.esm.js"
     ></script>
   </head>
   <body>
