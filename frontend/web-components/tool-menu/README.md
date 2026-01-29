@@ -27,12 +27,12 @@
 
 ## HOTOSM Tool Menu Web Component
 
-A standalone web component built with Lit that provides a dropdown navigation menu for HOTOSM tools. The menu organizes tools into categories (Imagery, Mapping, Field, Data) and supports environment-specific URLs for development and production.
+A standalone web component built with Lit that provides a dropdown navigation menu for HOTOSM tools. The menu organizes tools into categories (Imagery, Mapping, Field, Data).
 
 This component is designed to be:
 
 1. Reusable across all HOT applications
-2. Easy to integrate with any JavaScript framework or vanilla HTML
+2. Easy to integrate
 3. Lightweight and framework-agnostic
 
 ## Features
@@ -41,6 +41,7 @@ This component is designed to be:
 - **Categorized tools** organized by section (Imagery, Mapping, Field, Data)
 - **Environment-aware URLs** - automatically detects `.test` domains for development environments
 - **Optional tool logos** - can show/hide tool icons
+- **Multilanguage support** - Supports en, es, fr, pt. If the language doesn't exist, it uses English
 - **Accessible** - includes proper ARIA attributes
 - **HOT design system integration** - automatically loads HOT design tokens (colors, spacing, typography)
 - **Customizable styling** via CSS custom properties
@@ -68,7 +69,7 @@ Import the component in your JavaScript/TypeScript code:
   import "@hotosm/tool-menu";
 </script>
 
-<hotosm-tool-menu show-logos></hotosm-tool-menu>
+<hotosm-tool-menu show-logos lang="en"></hotosm-tool-menu>
 ```
 
 ### Via CDN
@@ -85,7 +86,7 @@ Use the component directly in HTML:
     ></script>
   </head>
   <body>
-    <hotosm-tool-menu show-logos></hotosm-tool-menu>
+    <hotosm-tool-menu show-logos lang="en"></hotosm-tool-menu>
   </body>
 </html>
 ```
@@ -100,6 +101,7 @@ function App() {
     <div>
       <hotosm-tool-menu
         show-logos={false}
+        lang="en"
         onToolSelected={(e) => {
           console.log("Tool selected:", e.detail.tool);
         }}
@@ -113,9 +115,10 @@ function App() {
 
 ### Properties
 
-| Property     | Attribute    | Type      | Default | Description                                     |
-| ------------ | ------------ | --------- | ------- | ----------------------------------------------- |
-| `show-logos` | `show-logos` | `boolean` | `false` | Whether to display tool logos/icons in the menu |
+| Property     | Attribute    | Type      | Default | Description                                       |
+| ------------ | ------------ | --------- | ------- | ------------------------------------------------- |
+| `show-logos` | `show-logos` | `boolean` | `false` | Whether to display tool logos/icons in the menu   |
+| `lang`       | `lang`       | `string`  | `"en"`  | Language code for section titles (en, es, fr, pt) |
 
 ### Events
 
@@ -147,7 +150,7 @@ The menu includes the following HOTOSM tools:
 **Mapping**
 
 - Tasking Manager
-- fAIr
+- uMap
 
 **Field**
 
@@ -156,8 +159,8 @@ The menu includes the following HOTOSM tools:
 
 **Data**
 
+- fAIr
 - Export Tool
-- Maps (uMap)
 
 ## Styling
 

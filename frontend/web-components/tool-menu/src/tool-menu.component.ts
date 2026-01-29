@@ -1,6 +1,7 @@
 import { LitElement, html } from "lit";
 import { property, state } from "lit/decorators.js";
 import { styles } from "./tool-menu.styles.js";
+import { translations } from "./translations.js";
 import gridIcon from "../assets/grid-icon.svg";
 // Import tools icons. These icons will be added in the near future, and are not being showed as default.
 import droneIcon from "../assets/icon-drone.svg";
@@ -22,15 +23,14 @@ interface Tool {
 
 interface Section {
   id: "imagery" | "mapping" | "field" | "data";
-  title: string;
 }
 
-// Section titles
+// Section IDs (titles will be translated)
 const SECTIONS: Section[] = [
-  { id: "imagery", title: "Imagery" },
-  { id: "mapping", title: "Mapping" },
-  { id: "field", title: "Field" },
-  { id: "data", title: "Data" },
+  { id: "imagery" },
+  { id: "mapping" },
+  { id: "field" },
+  { id: "data" },
 ];
 
 const TOOLS_DATA: Tool[] = [
@@ -98,10 +98,22 @@ export class HotToolMenu extends LitElement {
   @property({ type: Boolean, attribute: "show-logos", reflect: false })
   showLogos = false;
 
+  // Language code (en, es, fr, pt, etc.)
+  @property({ type: String }) lang = "en";
+
   @state()
   private isOpen = false;
 
   private tools: Tool[] = TOOLS_DATA;
+
+  /**
+   * Get translated string for the current language
+   * Falls back to English if translation not found
+   */
+  private t(key: keyof typeof translations.en): string {
+    const langTranslations = translations[this.lang] || translations.en;
+    return langTranslations[key] || translations.en[key] || key;
+  }
 
   private getToolHref(tool: Tool): string {
     const isTestEnvironment = window.location.hostname.endsWith('.test');
@@ -193,7 +205,7 @@ export class HotToolMenu extends LitElement {
               <div
                 class="section-group ${sectionIndex > 0 ? "section-divider" : ""}"
               >
-                <div class="section-label">${section.title}</div>
+                <div class="section-label">${this.t(section.id)}</div>
                 ${tools.map(
                   (tool) => html`
                     <button
