@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import "../../web-components/tool-menu/dist/tool-menu";
+import "@hotosm/tool-menu";
 import hotLogo from "../assets/images/hot-icon.svg";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -47,10 +47,14 @@ function Header() {
         </div>
 
         <div className="flex items-center">
-          <hotosm-auth lang={currentLanguage} />
+          <hotosm-auth
+            lang={currentLanguage}
+            button-variant="plain"
+            button-color="primary"
+          />
           <LanguageSwitcher />
 
-          <hotosm-tool-menu />
+          <hotosm-tool-menu lang={currentLanguage} />
         </div>
       </div>
     </>

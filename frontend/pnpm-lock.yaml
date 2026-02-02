@@ -12,8 +12,11 @@ importers:
         specifier: 3.0.0-beta.1
         version: 3.0.0-beta.1(@floating-ui/utils@0.2.10)
       '@hotosm/hanko-auth':
-        specifier: ^0.3.5
-        version: 0.3.5(@awesome.me/webawesome@3.0.0-beta.1(@floating-ui/utils@0.2.10))
+        specifier: ^0.4.1
+        version: 0.4.1
+      '@hotosm/tool-menu':
+        specifier: 0.2.2
+        version: 0.2.2(lit@3.3.1)
       '@lit/react':
         specifier: ^1.0.8
         version: 1.0.8(@types/react@19.2.2)
@@ -605,10 +608,14 @@ packages:
   '@floating-ui/utils@0.2.10':
     resolution: {integrity: sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ==}
 
-  '@hotosm/hanko-auth@0.3.5':
-    resolution: {integrity: sha512-G0l6W9PVHRnvBjCPlY0Z+yiLk+09rSTFvGCowN4UJnVNS7iK3X8k3bzmhiW/amlpDYZqFrY3cC04Rsxbm3HNWA==}
+  '@hotosm/hanko-auth@0.4.1':
+    resolution: {integrity: sha512-TXsA4Dqiesw7YhEg5oeM+L9my+AwdGanK8G37I9qHLNDG3VZmq/5VEnUGfVMMrn4q5nf9dmlZZzu7QP8TzPX1A==}
+
+  '@hotosm/tool-menu@0.2.2':
+    resolution: {integrity: sha512-5LoqUcvJyQaqDf14bAZu0bYA9UMGsfMtsMI3N3KAMa+7D5tqGM4z06p4ghCkXnuLuj2UYRZ6Tnm08NGgnFPfXQ==}
+    engines: {node: '>=14.17.0'}
     peerDependencies:
-      '@awesome.me/webawesome': ^3.0.0-beta.1
+      lit: ^3.0.0
 
   '@inlang/detect-json-formatting@1.0.0':
     resolution: {integrity: sha512-o0jeI8U4TgNlsPwI0y92jld8/18Loh2KEgHCYCJ42rCOdxFrA8R60cydlEd2/6jkdHFn5DxKj8rOyiKv3z9uOw==}
@@ -3211,10 +3218,13 @@ snapshots:
 
   '@floating-ui/utils@0.2.10': {}
 
-  '@hotosm/hanko-auth@0.3.5(@awesome.me/webawesome@3.0.0-beta.1(@floating-ui/utils@0.2.10))':
+  '@hotosm/hanko-auth@0.4.1':
     dependencies:
-      '@awesome.me/webawesome': 3.0.0-beta.1(@floating-ui/utils@0.2.10)
       '@teamhanko/hanko-elements': 1.5.2
+      lit: 3.3.1
+
+  '@hotosm/tool-menu@0.2.2(lit@3.3.1)':
+    dependencies:
       lit: 3.3.1
 
   '@inlang/detect-json-formatting@1.0.0':
