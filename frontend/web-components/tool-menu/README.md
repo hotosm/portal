@@ -164,7 +164,7 @@ The menu includes the following HOTOSM tools:
 
 ## Styling
 
-The component uses Shadow DOM and includes default styles from the [HOT Design System](https://cdn.jsdelivr.net/npm/hotosm-ui-design@latest/dist/hot.css). The HOT design tokens (colors, spacing, typography) are automatically loaded by the component.
+The component uses Shadow DOM and includes default styles from the [HOT Design System](https://cdn.jsdelivr.net/npm/@hotosm/ui-design@latest/dist/hot.css). The HOT design tokens (colors, spacing, typography) are automatically loaded by the component.
 
 You can customize the appearance by overriding CSS custom properties or by styling the host element.
 

@@ -2,7 +2,7 @@ import { css, unsafeCSS } from "lit";
 
 // Import HOT design system CSS
 const hotCSS = unsafeCSS(
-  `@import url('https://cdn.jsdelivr.net/npm/hotosm-ui-design@latest/dist/hot.css');`,
+  `@import url('https://cdn.jsdelivr.net/npm/@hotosm/ui-design@latest/dist/hot.css');`,
 );
 
 export const styles = css`
