@@ -174,7 +174,7 @@ You can customize the appearance by overriding CSS custom properties or by styli
 | ----------------------- | ------------------------------------- | --------------------------- |
 | `--hover-bg`            | Background color for trigger on hover | `var(--hot-color-gray-50)`  |
 | `--icon-padding`        | Padding around the trigger icon       | `var(--hot-spacing-small)`  |
-| `--icon-margin`         | Margin around the menu icon           | `0`                         |
+| `--icon-size`           | Grid icon width and height.           | `20px`                      |
 | `--icon-color`          | Color of the menu icon                | `var(--hot-color-gray-800)` |
 | `--hover-border-radius` | Border radius of the trigger          | `4px`                       |
 
@@ -184,7 +184,7 @@ You can customize the appearance by overriding CSS custom properties or by styli
 hotosm-tool-menu {
   --hover-bg: #f0f0f0;
   --icon-padding: 8px;
-  --icon-margin: 2px;
+  --icon-size: 2px;
   --icon-color: #333;
   --hover-border-radius: 8px;
 }
