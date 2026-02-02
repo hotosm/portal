@@ -1,6 +1,6 @@
 {
   "name": "@hotosm/tool-menu",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "A web component for displaying HOTOSM tool navigation menu.",
   "homepage": "https://github.com/hotosm/portal#readme",
   "license": "AGPL-3.0-only",
@@ -21,7 +21,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "prepublishOnly": "npm run build"
   },
   "repository": {
     "type": "git",
