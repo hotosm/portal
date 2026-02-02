@@ -1,7 +1,9 @@
 import { css, unsafeCSS } from "lit";
 
 // Import HOT design system CSS
-const hotCSS = unsafeCSS(`@import url('https://cdn.jsdelivr.net/npm/hotosm-ui-design@latest/dist/hot.css');`);
+const hotCSS = unsafeCSS(
+  `@import url('https://cdn.jsdelivr.net/npm/hotosm-ui-design@latest/dist/hot.css');`,
+);
 
 export const styles = css`
   ${hotCSS}
@@ -19,17 +21,17 @@ export const styles = css`
   .dropdown-trigger {
     background: none;
     border: none;
-    padding: var(--hot-spacing-small);
+    padding: var(--icon-padding, var(--hot-spacing-small));
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 4px;
+    border-radius: var(--hover-border-radius, 4px);
     transition: background-color 0.2s ease;
   }
 
   .dropdown-trigger:hover {
-    background-color: var(--hot-color-gray-50);
+    background-color: var(--hover-bg, var(--hot-color-gray-50));
   }
 
   .dropdown-trigger:focus {
@@ -41,9 +43,11 @@ export const styles = css`
   }
 
   .menu-icon {
-    width: 20px;
-    height: 20px;
+    width: var(--icon-size, 20px);
+    height: var(--icon-size, 20px);
     display: block;
+    margin: var(--icon-margin, 0);
+    color: var(--icon-color, --hot-color-gray-800);
   }
 
   .dropdown-content {

@@ -1,8 +1,8 @@
-import { LitElement, html } from "lit";
+import { LitElement, html, svg } from "lit";
 import { property, state } from "lit/decorators.js";
+import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import { styles } from "./tool-menu.styles.js";
 import { translations } from "./translations.js";
-import gridIcon from "../assets/grid-icon.svg";
 // Import tools icons. These icons will be added in the near future, and are not being showed as default.
 import droneIcon from "../assets/icon-drone.svg";
 import oamIcon from "../assets/icon-oam.svg";
@@ -193,7 +193,9 @@ export class HotToolMenu extends LitElement {
           aria-expanded=${this.isOpen}
           aria-haspopup="true"
         >
-          <img src="${gridIcon}" class="menu-icon" alt="Menu" />
+          <svg class="menu-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M1 2a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1zM1 7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1zM1 12a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1z"/>
+          </svg>
         </button>
 
         <div class="dropdown-content ${this.isOpen ? 'open' : ''}">

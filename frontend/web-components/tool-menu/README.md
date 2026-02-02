@@ -168,6 +168,28 @@ The component uses Shadow DOM and includes default styles from the [HOT Design S
 
 You can customize the appearance by overriding CSS custom properties or by styling the host element.
 
+### CSS Custom Properties
+
+| Property                | Description                           | Default                     |
+| ----------------------- | ------------------------------------- | --------------------------- |
+| `--hover-bg`            | Background color for trigger on hover | `var(--hot-color-gray-50)`  |
+| `--icon-padding`        | Padding around the trigger icon       | `var(--hot-spacing-small)`  |
+| `--icon-margin`         | Margin around the menu icon           | `0`                         |
+| `--icon-color`          | Color of the menu icon                | `var(--hot-color-gray-800)` |
+| `--hover-border-radius` | Border radius of the trigger          | `4px`                       |
+
+**Example:**
+
+```css
+hotosm-tool-menu {
+  --hover-bg: #f0f0f0;
+  --icon-padding: 8px;
+  --icon-margin: 2px;
+  --icon-color: #333;
+  --hover-border-radius: 8px;
+}
+```
+
 ## License
 
 HOT Tool Menu is free and open source software! You may use any HOT project under the terms of the GNU Affero General Public License (AGPL) Version 3.

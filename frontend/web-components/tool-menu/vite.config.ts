@@ -14,6 +14,10 @@ export default defineConfig({
       external: ['lit', 'lit/decorators.js'],
       output: {
         inlineDynamicImports: true,
+        globals: {
+          lit: 'Lit',
+          'lit/decorators.js': 'LitDecorators'
+        }
       }
     }
   }
