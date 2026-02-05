@@ -1,0 +1,10 @@
+node_modules/
+.pnpm-store/
+dist/
+.vscode/
+.idea/
+*.md
+LICENSE*
+.DS_Store
+auth-libs/
+web-components/

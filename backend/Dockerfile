@@ -15,10 +15,10 @@ RUN apt-get update && apt-get install -y \
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 # Copy backend dependency files
-COPY backend/pyproject.toml ./
+COPY backend/pyproject.toml backend/uv.lock* ./
 
 # Install dependencies with uv (including dev dependencies)
-RUN uv sync
+RUN uv sync --frozen-lockfile || uv sync
 
 # Copy backend application code
 COPY backend/ .
@@ -44,10 +44,10 @@ RUN apt-get update && apt-get install -y \
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 # Copy backend dependency files
-COPY backend/pyproject.toml ./
+COPY backend/pyproject.toml backend/uv.lock* ./
 
 # Install only production dependencies
-RUN uv sync --no-dev
+RUN uv sync --no-dev --frozen-lockfile || uv sync --no-dev
 
 # Copy backend application code
 COPY backend/app ./app

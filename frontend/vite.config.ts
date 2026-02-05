@@ -1,6 +1,11 @@
+import { existsSync } from "fs";
 import { paraglideVitePlugin } from "@inlang/paraglide-js";
 import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv } from "vite";
+
+// Local auth-libs development: use mounted source if available (Docker dev)
+const localAuthLib = "/auth-libs-src/dist/hanko-auth.esm.js";
+const useLocalAuth = existsSync(localAuthLib);
 
 // Drone-TM frontend URL for CORS configuration (integration testing)
 const DRONE_TM_FRONTEND_URL = process.env.VITE_DRONE_TM_FRONTEND_URL || 'http://127.0.0.1:3040'
@@ -21,6 +26,11 @@ export default defineConfig({
       outdir: './src/paraglide',
     }),
   ],
+  resolve: {
+    alias: {
+      ...(useLocalAuth && { '@hotosm/hanko-auth': localAuthLib }),
+    },
+  },
   optimizeDeps: {
     exclude: ['@hotosm/hanko-auth'],  // Don't pre-bundle symlinked auth-libs
   },
