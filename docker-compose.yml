@@ -42,6 +42,7 @@ services:
       DRONE_TM_BACKEND_URL: ${DRONE_TM_BACKEND_URL:-}
       FAIR_API_BASE_URL: ${FAIR_API_BASE_URL:-}
       FAIR_VERIFY_SSL: ${FAIR_VERIFY_SSL:-true}
+      UMAP_BASE_URL: ${UMAP_BASE_URL:-https://umap.hotosm.org}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:
@@ -76,6 +77,7 @@ services:
       OSM_CLIENT_ID: ${OSM_CLIENT_ID:-}
       OSM_CLIENT_SECRET: ${OSM_CLIENT_SECRET:-}
       OSM_REDIRECT_URI: ${OSM_REDIRECT_URI:-}
+      UMAP_BASE_URL: ${UMAP_BASE_URL:-http://hotosm-umap-app:8000}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:

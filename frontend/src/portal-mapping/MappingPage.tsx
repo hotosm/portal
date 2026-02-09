@@ -4,11 +4,14 @@ import YourProjectsTitle from "../components/shared/YourProjectsTitle";
 import MappingProjectCard from "./components/MappingProjectCard";
 import UMapCard from "./components/UMapCard";
 import { mappingProjectsData } from "./mappingProjectsData";
-import { getUMapProjects } from "./umapProjects";
+import { useUMapData } from "./hooks/useUMapData";
 
 function MappingPage() {
   const projects = mappingProjectsData;
-  const maps = getUMapProjects();
+  const { maps, templates, isLoading, error } = useUMapData();
+
+  // Combine maps and templates for display
+  const allUMapItems = [...maps, ...templates];
 
   return (
     <PageWrapper>
@@ -43,9 +46,14 @@ function MappingPage() {
             <p className="text-lg ">
               Your <strong>maps</strong>
             </p>
+            {isLoading && <p className="text-sm text-gray-500">Loading your uMap maps...</p>}
+            {error && <p className="text-sm text-red-500">Error loading maps</p>}
+            {!isLoading && allUMapItems.length === 0 && (
+              <p className="text-sm text-gray-500">No maps found. Create one in uMap!</p>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-lg">
-              {maps.map((map) => {
-                return <UMapCard project={map} />;
+              {allUMapItems.map((map) => {
+                return <UMapCard key={map.id} project={map} />;
               })}
             </div>
           </div>

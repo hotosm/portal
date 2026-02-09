@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { NormalizedProjectDetails } from "../types/projectsMap";
+import { getFairModelUrl } from "../utils/envConfig";
 
 interface FAIRModelDetailResponse {
   id: number;
@@ -79,7 +80,7 @@ function normalizeFAIRModelDetails(
     productName: "fAIr",
     description: data.description || undefined,
     thumbnail: data.thumbnail_url || undefined,
-    url: `https://fair.hotosm.org/ai-models/${modelId}`,
+    url: getFairModelUrl(modelId),
     metadata: metadata.length > 0 ? metadata : undefined,
   };
 }

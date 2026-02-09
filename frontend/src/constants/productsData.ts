@@ -8,6 +8,7 @@ import fieldIcon from "../assets/images/icon-field.png";
 import chatmapIcon from "../assets/images/icon-chatmap.png";
 import exportIcon from "../assets/images/icon-export.png";
 import umapIcon from "../assets/images/icon-umap.png";
+import { getFairBaseUrl, getUmapBaseUrl, getDroneTmBaseUrl } from "../utils/envConfig";
 
 export interface Product {
   id: string;
@@ -26,7 +27,7 @@ export function getProductsData(): Product[] {
       title: m.products_drone_title({}, { locale }),
       description: m.products_drone_description({}, { locale }),
       iconName: "layer-group",
-      href: "https://dronetm.org/",
+      href: getDroneTmBaseUrl(),
       icon: droneIcon,
       section: "imagery",
     },
@@ -53,7 +54,7 @@ export function getProductsData(): Product[] {
       title: m.products_fair_title({}, { locale }),
       description: m.products_fair_description({}, { locale }),
       iconName: "hexagon-nodes",
-      href: "https://fair.hotosm.org/",
+      href: getFairBaseUrl(),
       icon: fairIcon,
       section: "mapping",
     },
@@ -89,7 +90,7 @@ export function getProductsData(): Product[] {
       title: m.products_umap_title({}, { locale }),
       description: m.products_umap_description({}, { locale }),
       iconName: "pen-to-square",
-      href: "https://umap.hotosm.org/",
+      href: getUmapBaseUrl(),
       icon: umapIcon,
       section: "mapUse",
     },

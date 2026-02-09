@@ -2,8 +2,11 @@ import Card from "../../components/shared/Card";
 import bg from "../../assets/images/bg.png";
 import Divider from "../../components/shared/Divider";
 import LinkListItem from "../../components/shared/LinkListItem";
+import { getFairBaseUrl } from "../../utils/envConfig";
 
 function DataNoProjects() {
+  const fairBaseUrl = getFairBaseUrl();
+
   return (
     <div
       className="p-md md:p-2xl rounded-lg"
@@ -24,14 +27,14 @@ function DataNoProjects() {
                 <LinkListItem
                   label="Explore models"
                   icon="search"
-                  link="https://fair.hotosm.org/ai-models"
+                  link={`${fairBaseUrl}/ai-models`}
                 />
               </li>
               <li>
                 <LinkListItem
                   label="Datasets"
                   icon="database"
-                  link="https://fair.hotosm.org/datasets"
+                  link={`${fairBaseUrl}/datasets`}
                 />
               </li>
             </ul>

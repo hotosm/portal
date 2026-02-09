@@ -7,6 +7,9 @@ import respx
 import httpx
 from httpx import AsyncClient, Response
 
+# Import the URL from the umap module to use in mocks
+from app.api.routes.umap.umap import UMAP_API_BASE_URL
+
 
 # -------------------------------
 # /umap/{location}/{project_id}
@@ -56,7 +59,7 @@ async def test_get_umap_data_success(client: AsyncClient):
     }
 
     respx.get(
-        "https://umap.hotosm.org/en/datalayer/1428/a59b5458-8c8e-48b1-911f-4c6c602fc357/"
+        f"{UMAP_API_BASE_URL}/1428/a59b5458-8c8e-48b1-911f-4c6c602fc357/"
     ).mock(return_value=Response(200, json=mock_response))
 
     response = await client.get("/api/umap/1428/a59b5458-8c8e-48b1-911f-4c6c602fc357")
@@ -92,7 +95,7 @@ async def test_get_umap_data_response_structure(client: AsyncClient):
     }
 
     respx.get(
-        "https://umap.hotosm.org/en/datalayer/test/uuid-test/"
+        f"{UMAP_API_BASE_URL}/test/uuid-test/"
     ).mock(return_value=Response(200, json=mock_response))
 
     response = await client.get("/api/umap/test/uuid-test")
@@ -150,7 +153,7 @@ async def test_get_umap_data_multiple_features(client: AsyncClient):
     }
 
     respx.get(
-        "https://umap.hotosm.org/en/datalayer/1428/multi-test/"
+        f"{UMAP_API_BASE_URL}/1428/multi-test/"
     ).mock(return_value=Response(200, json=mock_response))
 
     response = await client.get("/api/umap/1428/multi-test")
@@ -166,7 +169,7 @@ async def test_get_umap_data_multiple_features(client: AsyncClient):
 async def test_get_umap_data_not_found(client: AsyncClient):
     """Test handling of 404 Not Found error."""
     respx.get(
-        "https://umap.hotosm.org/en/datalayer/9999/invalid-uuid/"
+        f"{UMAP_API_BASE_URL}/9999/invalid-uuid/"
     ).mock(return_value=Response(404, text="Not Found"))
 
     response = await client.get("/api/umap/9999/invalid-uuid")
@@ -182,7 +185,7 @@ async def test_get_umap_data_not_found(client: AsyncClient):
 async def test_get_umap_data_http_error(client: AsyncClient):
     """Test handling of HTTP errors from uMap API."""
     respx.get(
-        "https://umap.hotosm.org/en/datalayer/1428/error-test/"
+        f"{UMAP_API_BASE_URL}/1428/error-test/"
     ).mock(return_value=Response(500, text="Internal Server Error"))
 
     response = await client.get("/api/umap/1428/error-test")
@@ -196,7 +199,7 @@ async def test_get_umap_data_http_error(client: AsyncClient):
 async def test_get_umap_data_connection_error(client: AsyncClient):
     """Test handling of connection errors from uMap API."""
     respx.get(
-        "https://umap.hotosm.org/en/datalayer/1428/connection-error/"
+        f"{UMAP_API_BASE_URL}/1428/connection-error/"
     ).mock(side_effect=httpx.RequestError("Connection timeout"))
 
     response = await client.get("/api/umap/1428/connection-error")
@@ -210,7 +213,7 @@ async def test_get_umap_data_connection_error(client: AsyncClient):
 async def test_get_umap_data_unexpected_error(client: AsyncClient):
     """Test handling of unexpected exceptions."""
     respx.get(
-        "https://umap.hotosm.org/en/datalayer/1428/unexpected/"
+        f"{UMAP_API_BASE_URL}/1428/unexpected/"
     ).mock(side_effect=Exception("Unexpected crash"))
 
     response = await client.get("/api/umap/1428/unexpected")
@@ -249,7 +252,7 @@ async def test_get_umap_data_with_umap_options(client: AsyncClient):
     }
 
     respx.get(
-        "https://umap.hotosm.org/en/datalayer/1428/umap-options-test/"
+        f"{UMAP_API_BASE_URL}/1428/umap-options-test/"
     ).mock(return_value=Response(200, json=mock_response))
 
     response = await client.get("/api/umap/1428/umap-options-test")
@@ -276,7 +279,7 @@ async def test_get_umap_data_empty_features(client: AsyncClient):
     }
 
     respx.get(
-        "https://umap.hotosm.org/en/datalayer/1428/empty/"
+        f"{UMAP_API_BASE_URL}/1428/empty/"
     ).mock(return_value=Response(200, json=mock_response))
 
     response = await client.get("/api/umap/1428/empty")
@@ -293,7 +296,7 @@ async def test_get_umap_data_empty_features(client: AsyncClient):
 async def test_get_umap_data_bad_gateway(client: AsyncClient):
     """Test handling of 502 Bad Gateway error."""
     respx.get(
-        "https://umap.hotosm.org/en/datalayer/1428/bad-gateway/"
+        f"{UMAP_API_BASE_URL}/1428/bad-gateway/"
     ).mock(return_value=Response(502, text="Bad Gateway"))
 
     response = await client.get("/api/umap/1428/bad-gateway")
@@ -323,7 +326,7 @@ async def test_get_umap_data_feature_without_id(client: AsyncClient):
     }
 
     respx.get(
-        "https://umap.hotosm.org/en/datalayer/1428/no-id/"
+        f"{UMAP_API_BASE_URL}/1428/no-id/"
     ).mock(return_value=Response(200, json=mock_response))
 
     response = await client.get("/api/umap/1428/no-id")

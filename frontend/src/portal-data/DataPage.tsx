@@ -5,6 +5,7 @@ import DataCard from "./components/DataCard";
 import ExportCard from "./components/ExportCard";
 import { useMyModels, useMyDatasets } from "./hooks/useFairData";
 import DataNoProjects from "./components/DataNoProjects";
+import { getFairBaseUrl } from "../utils/envConfig";
 
 function DataPage() {
   const { data: models = [], isLoading: modelsLoading } = useMyModels();
@@ -33,7 +34,7 @@ function DataPage() {
     <PageWrapper>
       <div className="space-y-xl">
         <GoToWesiteCTA
-          buttonLink="https://fair.hotosm.org/"
+          buttonLink={getFairBaseUrl()}
           buttonText="fAIr"
           link2={{
             label: "Export Tool",

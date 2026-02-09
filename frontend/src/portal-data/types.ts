@@ -1,5 +1,6 @@
 import { FAIRModel, FAIRDataset } from "../types/projectsMap";
 import placeholderImage from "../assets/images/demo/demo1.png";
+import { getFairModelUrl, getFairDatasetUrl } from "../utils/envConfig";
 
 export interface IDataProject {
   id: number;
@@ -22,7 +23,7 @@ export function mapModelsToDataProjects(models: FAIRModel[]): IDataProject[] {
   return models.map((model) => ({
     id: model.id,
     title: model.name || "Untitled Model",
-    href: `https://fair.hotosm.org/ai-models/${model.id}`,
+    href: getFairModelUrl(model.id),
     status: mapFairStatus(model.status),
     section: "model" as const,
     image: model.thumbnail_url || placeholderImage,
@@ -34,7 +35,7 @@ export function mapDatasetsToDataProjects(datasets: FAIRDataset[]): IDataProject
   return datasets.map((dataset) => ({
     id: dataset.id,
     title: dataset.name || "Untitled Dataset",
-    href: `https://fair.hotosm.org/training-datasets/${dataset.id}`,
+    href: getFairDatasetUrl(dataset.id),
     status: mapFairStatus(dataset.status),
     section: "set" as const,
     image: placeholderImage,

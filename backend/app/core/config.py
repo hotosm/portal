@@ -58,5 +58,11 @@ class Settings(BaseSettings):
     # Production: https://api.imagery.hotosm.org/stac
     oam_stac_api_url: str = "https://openaerialmap.hotosm.test/api"
 
+    # uMap Base URL
+    # Local: https://umap.hotosm.test
+    # Test: https://testlogin.umap.hotosm.org
+    # Production: https://umap.hotosm.org
+    umap_base_url: str = "https://umap.hotosm.test"
+
 
 settings = Settings()
