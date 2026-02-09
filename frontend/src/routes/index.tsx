@@ -7,6 +7,7 @@ import MappingPage from "../portal-mapping/MappingPage";
 import FieldPage from "../portal-field/FieldPage";
 import DataPage from "../portal-data/DataPage";
 import HelpPage from "../pages/HelpPage";
+import TestPage from "../pages/TestPage";
 
 // TODO not found page layout
 function NotFoundPage() {
@@ -78,6 +79,14 @@ export function AppRoutes() {
         element={
           <MainNavRoute>
             <DataPage />
+          </MainNavRoute>
+        }
+      />
+      <Route
+        path="/:locale/test"
+        element={
+          <MainNavRoute>
+            <TestPage />
           </MainNavRoute>
         }
       />

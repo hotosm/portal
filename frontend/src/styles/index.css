@@ -79,6 +79,6 @@ p {
   margin-bottom: 1rem;
 }
 
-hotosm-tool-menu {
-  --icon-color: var(--hot-color-gray-700);
+hotosm-auth {
+  --login-btn-text-color: var(--hot-color-gray-800);
 }

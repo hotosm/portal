@@ -47,11 +47,7 @@ function Header() {
         </div>
 
         <div className="flex items-center">
-          <hotosm-auth
-            lang={currentLanguage}
-            button-variant="plain"
-            button-color="primary"
-          />
+          <hotosm-auth lang={currentLanguage} button-color="primary" />
           <LanguageSwitcher />
 
           <hotosm-tool-menu lang={currentLanguage} />
