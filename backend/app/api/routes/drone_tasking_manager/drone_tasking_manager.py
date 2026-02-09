@@ -18,11 +18,13 @@ import base64
 # Setup logging
 logger = logging.getLogger(__name__)
 
-# Production API for public endpoints (centroids, project details)
-# - Production Drone-TM URL: "https://dronetm.org/api"
-# - Test Drone-TM (Hanko-backed) URL: "https://testlogin.dronetm.hotosm.org/api"
-# - Local Drone-TM (Hanko-backed) URL: "https://dronetm.hotosm.test/api"
-DRONE_TM_PRODUCTION_URL = "https://testlogin.dronetm.hotosm.org/api"
+# Drone-TM API Configuration
+# Configure via DRONE_TM_BACKEND_URL environment variable:
+# - Production: "https://dronetm.org/api"
+# - Test (Hanko-backed): "https://testlogin.dronetm.hotosm.org/api"
+# - Local (Hanko-backed): "https://dronetm.hotosm.test/api"
+DRONE_TM_DEFAULT_URL = "https://dronetm.org/api"
+DRONE_TM_BACKEND_URL = os.getenv("DRONE_TM_BACKEND_URL", DRONE_TM_DEFAULT_URL)
 
 # Auth header configuration for private Drone-TM endpoints
 # Some Drone-TM private endpoints changed auth from basic auth to header-based tokens.
@@ -31,15 +33,7 @@ DRONE_TM_PRODUCTION_URL = "https://testlogin.dronetm.hotosm.org/api"
 DRONE_TM_AUTH_HEADER = os.getenv("DRONE_TM_AUTH_HEADER", "Authorization")
 DRONE_TM_AUTH_PREFIX = os.getenv("DRONE_TM_AUTH_PREFIX", "Bearer")
 
-# Configurable via environment variable
-# For Docker internal: use service name (e.g., "http://dronetm-backend:8000/api")
-# For external access: use public URL (e.g., "https://dronetm.hotosm.test/api")
-# Default to the production URL so Portal will use the public DroneTM instance
-# unless `DRONE_TM_BACKEND_URL` is explicitly set in the environment.
-DRONE_TM_BACKEND_URL = os.getenv("DRONE_TM_BACKEND_URL", DRONE_TM_PRODUCTION_URL)
-HOTOSM_API_BASE_URL = DRONE_TM_BACKEND_URL
-
-logger.info(f"🚁 Drone-TM Backend URL: {HOTOSM_API_BASE_URL}")
+logger.info(f"🚁 Drone-TM Backend URL: {DRONE_TM_BACKEND_URL}")
 
 router = APIRouter(prefix="/drone-tasking-manager")
 
@@ -95,7 +89,7 @@ async def get_projects(
         }
     ```
     """
-    url = f"{HOTOSM_API_BASE_URL}/projects/"
+    url = f"{DRONE_TM_BACKEND_URL}/projects/"
     
     # Extract Hanko cookie from the incoming request
     # The cookie name might be "hanko" or another name depending on your setup
@@ -135,7 +129,7 @@ async def get_projects(
     
     # If using HTTPS with self-signed certificates in Docker, disable verification
     # In production with valid certs, set verify=True
-    verify_ssl = not HOTOSM_API_BASE_URL.startswith("https://") or os.getenv("DRONE_TM_VERIFY_SSL", "false").lower() == "true"
+    verify_ssl = not DRONE_TM_BACKEND_URL.startswith("https://") or os.getenv("DRONE_TM_VERIFY_SSL", "false").lower() == "true"
     
     async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl) as client:
         try:
@@ -263,8 +257,8 @@ async def get_projects_centroids(
     if cached_data is not None:
         return cached_data
 
-    # Use production URL for public centroids endpoint
-    url = f"{DRONE_TM_PRODUCTION_URL}/projects/centroids"
+    # Use configured backend URL for public centroids endpoint
+    url = f"{DRONE_TM_BACKEND_URL}/projects/centroids"
 
     logger.info(f"🌐 [Centroids] Target URL: {url}")
 
@@ -353,7 +347,7 @@ async def get_user_projects(
         }
     ```
     """
-    url = f"{HOTOSM_API_BASE_URL}/projects/"
+    url = f"{DRONE_TM_BACKEND_URL}/projects/"
     
     # Extract Hanko cookie from the incoming request
     hanko_cookie = request.cookies.get("hanko")
@@ -396,7 +390,7 @@ async def get_user_projects(
     if search:
         params["search"] = search
     
-    verify_ssl = not HOTOSM_API_BASE_URL.startswith("https://") or os.getenv("DRONE_TM_VERIFY_SSL", "false").lower() == "true"
+    verify_ssl = not DRONE_TM_BACKEND_URL.startswith("https://") or os.getenv("DRONE_TM_VERIFY_SSL", "false").lower() == "true"
     
     async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl) as client:
         try:
@@ -446,8 +440,8 @@ async def get_project_by_id(
     if cached_data is not None:
         return cached_data
 
-    # Use production URL for public project details endpoint
-    url = f"{DRONE_TM_PRODUCTION_URL}/projects/{project_id}"
+    # Use configured backend URL for public project details endpoint
+    url = f"{DRONE_TM_BACKEND_URL}/projects/{project_id}"
 
     headers = {
         "Accept": "application/json",
