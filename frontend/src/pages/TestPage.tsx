@@ -3,6 +3,7 @@ import { useDroneProjects } from "../portal-imagery/hooks/useDroneProjects";
 import { useOAMImagery } from "../portal-imagery/hooks/useOAMImagery";
 import { useMyModels, useMyDatasets } from "../portal-data/hooks/useFairData";
 import { useUMapData } from "../portal-mapping/hooks/useUMapData";
+import { useExportJobs } from "../portal-data/hooks/useExportToolData";
 
 function TestPage() {
   const { data: projects, isLoading, error } = useDroneProjects();
@@ -10,6 +11,7 @@ function TestPage() {
   const { data: models, isLoading: modelsLoading, error: modelsError } = useMyModels();
   const { data: datasets, isLoading: datasetsLoading, error: datasetsError } = useMyDatasets();
   const { maps: umapMaps, templates: umapTemplates, isLoading: umapLoading, error: umapError } = useUMapData();
+  const { data: exportJobs, isLoading: exportsLoading, error: exportsError } = useExportJobs();
 
   return (
     <PageWrapper>
@@ -179,6 +181,43 @@ function TestPage() {
                     style={{ fontWeight: 600 }}
                   >
                     {dataset.title}
+                  </a>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <h2>Export Tool Jobs</h2>
+
+        {exportsLoading && <p>Loading export jobs...</p>}
+        {exportsError && <p>Error loading export jobs: {exportsError.message}</p>}
+
+        {exportJobs && exportJobs.length === 0 && !exportsLoading && (
+          <p>No export jobs found.</p>
+        )}
+
+        {exportJobs && exportJobs.length > 0 && (
+          <ul style={{ listStyle: "none", padding: 0 }}>
+            {exportJobs.map((job) => (
+              <li
+                key={job.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "1rem",
+                  padding: "1rem",
+                  borderBottom: "1px solid #eee",
+                }}
+              >
+                <div>
+                  <a
+                    href={job.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ fontWeight: 600 }}
+                  >
+                    {job.title}
                   </a>
                 </div>
               </li>

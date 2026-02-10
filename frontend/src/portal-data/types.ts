@@ -1,18 +1,18 @@
-import { FAIRModel, FAIRDataset } from "../types/projectsMap";
+import { FAIRModel, FAIRDataset, ExportJob } from "../types/projectsMap";
 import placeholderImage from "../assets/images/demo/demo1.png";
-import { getFairModelUrl, getFairDatasetUrl } from "../utils/envConfig";
+import { getFairModelUrl, getFairDatasetUrl, getExportToolJobUrl } from "../utils/envConfig";
 
 export interface IDataProject {
-  id: number;
+  id: number | string;
   title: string;
   href: string;
   status: "draft" | "published";
-  section: "model" | "set";
+  section: "model" | "set" | "export";
   image: string;
   accuracy: number | null;
 }
 
-export type { FAIRModel, FAIRDataset };
+export type { FAIRModel, FAIRDataset, ExportJob };
 
 // fAIr status: 0 = published, 1 = draft
 function mapFairStatus(status: number | null): "draft" | "published" {
@@ -38,6 +38,18 @@ export function mapDatasetsToDataProjects(datasets: FAIRDataset[]): IDataProject
     href: getFairDatasetUrl(dataset.id),
     status: mapFairStatus(dataset.status),
     section: "set" as const,
+    image: placeholderImage,
+    accuracy: null,
+  }));
+}
+
+export function mapExportJobsToDataProjects(jobs: ExportJob[]): IDataProject[] {
+  return jobs.map((job) => ({
+    id: job.uid,
+    title: job.name || "Untitled Export",
+    href: getExportToolJobUrl(job.uid),
+    status: job.published ? "published" as const : "draft" as const,
+    section: "export" as const,
     image: placeholderImage,
     accuracy: null,
   }));

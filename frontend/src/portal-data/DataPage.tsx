@@ -4,16 +4,16 @@ import PortalPageSkeleton from "../components/shared/PortalPageSkeleton";
 import DataCard from "./components/DataCard";
 import ExportCard from "./components/ExportCard";
 import { useMyModels, useMyDatasets } from "./hooks/useFairData";
+import { useExportJobs } from "./hooks/useExportToolData";
 import DataNoProjects from "./components/DataNoProjects";
 import { getFairBaseUrl } from "../utils/envConfig";
 
 function DataPage() {
   const { data: models = [], isLoading: modelsLoading } = useMyModels();
   const { data: sets = [], isLoading: datasetsLoading } = useMyDatasets();
+  const { data: exports = [], isLoading: exportsLoading } = useExportJobs();
 
-  const isLoading = modelsLoading || datasetsLoading;
-  // TODO replace with real data
-  const exports = [];
+  const isLoading = modelsLoading || datasetsLoading || exportsLoading;
 
   const hasAnyProjects =
     models.length > 0 || sets.length > 0 || exports.length > 0;
@@ -75,8 +75,8 @@ function DataPage() {
                 Your <strong>exports</strong>
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-lg">
-                {sets.map((project) => {
-                  return <ExportCard project={project} />;
+                {exports.map((project) => {
+                  return <ExportCard key={project.id} project={project} />;
                 })}
               </div>
             </div>

@@ -160,6 +160,35 @@ export interface FAIRModelCentroid {
 }
 
 // ============================================================================
+// EXPORT TOOL TYPES
+// ============================================================================
+
+export interface ExportJobUser {
+  username: string;
+}
+
+export interface ExportJob {
+  id: number;
+  uid: string;
+  user: ExportJobUser | null;
+  name: string;
+  description: string | null;
+  event: string | null;
+  export_formats: string[] | null;
+  published: boolean | null;
+  created_at: string;
+  area: number | null;
+  pinned: boolean | null;
+}
+
+export interface ExportJobsResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: ExportJob[];
+}
+
+// ============================================================================
 // OPEN AERIAL MAP TYPES
 // ============================================================================
 

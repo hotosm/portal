@@ -50,7 +50,7 @@ export function getFairModelUrl(modelId: number): string {
  * Get the full URL for a fAIr dataset.
  */
 export function getFairDatasetUrl(datasetId: number): string {
-  return `${getFairBaseUrl()}/training-datasets/${datasetId}`;
+  return `${getFairBaseUrl()}/datasets/${datasetId}`;
 }
 
 /**
@@ -67,6 +67,23 @@ const UMAP_URLS: Record<Environment, string> = {
  */
 export function getUmapBaseUrl(): string {
   return UMAP_URLS[getEnvironment()];
+}
+
+/**
+ * Export Tool frontend URLs per environment.
+ */
+const EXPORT_TOOL_URLS: Record<Environment, string> = {
+  local: "https://export-tool.hotosm.test",
+  test: "https://export.hotosm.org",
+  production: "https://export.hotosm.org",
+};
+
+export function getExportToolBaseUrl(): string {
+  return EXPORT_TOOL_URLS[getEnvironment()];
+}
+
+export function getExportToolJobUrl(jobUid: string): string {
+  return `${getExportToolBaseUrl()}/v3/exports/${jobUid}`;
 }
 
 /**
