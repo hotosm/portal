@@ -143,10 +143,20 @@ export class HotToolMenu extends LitElement {
 
   private toggleDropdown() {
     this.isOpen = !this.isOpen;
+    if (this.isOpen) {
+      // Defer adding the listener so the current click event finishes bubbling
+      // before we start listening for outside clicks
+      setTimeout(() => {
+        document.addEventListener("click", this.handleOutsideClick);
+      }, 0);
+    } else {
+      document.removeEventListener("click", this.handleOutsideClick);
+    }
   }
 
   private closeDropdown() {
     this.isOpen = false;
+    document.removeEventListener("click", this.handleOutsideClick);
   }
 
   private handleToolClick(tool: Tool) {
@@ -162,7 +172,7 @@ export class HotToolMenu extends LitElement {
     // Open tool page in new tab with environment-specific URL
     const href = this.getToolHref(tool);
     window.open(href, "_blank", "noopener,noreferrer");
-    
+
     // Close dropdown after selection
     this.closeDropdown();
   }
@@ -172,11 +182,6 @@ export class HotToolMenu extends LitElement {
       this.closeDropdown();
     }
   };
-
-  connectedCallback() {
-    super.connectedCallback();
-    document.addEventListener('click', this.handleOutsideClick);
-  }
 
   disconnectedCallback() {
     super.disconnectedCallback();
