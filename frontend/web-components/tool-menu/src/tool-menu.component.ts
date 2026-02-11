@@ -64,7 +64,7 @@ const TOOLS_DATA: Tool[] = [
   },
   {
     id: "field",
-    title: "Field Mapping Tasking Manager",
+    title: "Field Tasking Manager",
     href: "https://fmtm.hotosm.org/",
     icon: fieldIcon,
     section: "field",
