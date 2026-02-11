@@ -60,7 +60,7 @@ const TOOLS_DATA: Tool[] = [
     title: "fAIr",
     href: "https://fair.hotosm.org/",
     icon: fairIcon,
-    section: "data",
+    section: "mapping",
   },
   {
     id: "field",
@@ -88,7 +88,7 @@ const TOOLS_DATA: Tool[] = [
     title: "uMap",
     href: "https://umap.hotosm.org/",
     icon: umapIcon,
-    section: "mapping",
+    section: "data",
   },
 ];
 
