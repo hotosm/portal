@@ -8,30 +8,20 @@ from app.models.drone_tasking_manager import (
     DroneTMProject,
     DroneTMCentroidsResponse,
 )
-from app.core.cache import get_cached, set_cached, DEFAULT_TTL, SHORT_TTL
+from app.core.cache import get_cached, set_cached, DEFAULT_TTL
 
-import os
 import logging
 import json
 import base64
+from app.core.config import settings
 
 # Setup logging
 logger = logging.getLogger(__name__)
 
-# Drone-TM API Configuration
-# Configure via DRONE_TM_BACKEND_URL environment variable:
-# - Production: "https://dronetm.org/api"
-# - Test (Hanko-backed): "https://testlogin.dronetm.hotosm.org/api"
-# - Local (Hanko-backed): "https://dronetm.hotosm.test/api"
-DRONE_TM_DEFAULT_URL = "https://dronetm.org/api"
-DRONE_TM_BACKEND_URL = os.getenv("DRONE_TM_BACKEND_URL", DRONE_TM_DEFAULT_URL)
-
-# Auth header configuration for private Drone-TM endpoints
-# Some Drone-TM private endpoints changed auth from basic auth to header-based tokens.
-# The portal will forward the Hanko session token (cookie) as an authentication header
-# to the Drone-TM backend. Configure the header name/prefix via env vars if needed.
-DRONE_TM_AUTH_HEADER = os.getenv("DRONE_TM_AUTH_HEADER", "Authorization")
-DRONE_TM_AUTH_PREFIX = os.getenv("DRONE_TM_AUTH_PREFIX", "Bearer")
+# Drone-TM API Configuration (from .env / environment variables)
+DRONE_TM_BACKEND_URL = settings.drone_tm_backend_url
+DRONE_TM_AUTH_HEADER = settings.drone_tm_auth_header
+DRONE_TM_AUTH_PREFIX = settings.drone_tm_auth_prefix
 
 logger.info(f"🚁 Drone-TM Backend URL: {DRONE_TM_BACKEND_URL}")
 
@@ -129,7 +119,7 @@ async def get_projects(
     
     # If using HTTPS with self-signed certificates in Docker, disable verification
     # In production with valid certs, set verify=True
-    verify_ssl = not DRONE_TM_BACKEND_URL.startswith("https://") or os.getenv("DRONE_TM_VERIFY_SSL", "false").lower() == "true"
+    verify_ssl = not DRONE_TM_BACKEND_URL.startswith("https://") or settings.drone_tm_verify_ssl
     
     async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl) as client:
         try:
@@ -390,7 +380,7 @@ async def get_user_projects(
     if search:
         params["search"] = search
     
-    verify_ssl = not DRONE_TM_BACKEND_URL.startswith("https://") or os.getenv("DRONE_TM_VERIFY_SSL", "false").lower() == "true"
+    verify_ssl = not DRONE_TM_BACKEND_URL.startswith("https://") or settings.drone_tm_verify_ssl
     
     async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl) as client:
         try:

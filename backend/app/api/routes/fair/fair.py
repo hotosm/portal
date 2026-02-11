@@ -2,25 +2,17 @@
 
 import asyncio
 import logging
-import os
 import httpx
 from fastapi import APIRouter, HTTPException, Query, Request
 from typing import Optional
 from app.models.fair import FAIRProjectsResponse, FAIRCentroidsResponse, FAIRModelDetail
 from hotosm_auth_fastapi import CurrentUser
 from app.core.cache import get_cached, set_cached, delete_cached, DEFAULT_TTL, LONG_TTL
+from app.core.config import settings
 
-# Production API URL
-FAIR_PRODUCTION_URL = "https://api-prod.fair.hotosm.org/api/v1"
-
-# Configurable via environment variable
-# For local dev: use "https://fair.hotosm.test/api/v1"
-# Default to the production URL unless `FAIR_API_BASE_URL` is explicitly set
-FAIR_API_BASE_URL = os.getenv("FAIR_API_BASE_URL", FAIR_PRODUCTION_URL)
-
-# SSL verification - default to false for local dev (self-signed certs)
-# In production with valid certs, set FAIR_VERIFY_SSL=true
-FAIR_VERIFY_SSL = os.getenv("FAIR_VERIFY_SSL", "false").lower() == "true"
+# fAIr API Configuration (from .env / environment variables)
+FAIR_API_BASE_URL = settings.fair_api_base_url
+FAIR_VERIFY_SSL = settings.fair_verify_ssl
 
 router = APIRouter(prefix="/fair")
 logger = logging.getLogger(__name__)

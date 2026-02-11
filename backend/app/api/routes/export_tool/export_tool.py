@@ -1,13 +1,13 @@
 # portal/backend/app/api/routes/export_tool/export_tool.py
 
-import os
 import httpx
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional
 from app.models.export_tool import ExportJobsResponse
 from app.core.cache import get_cached, set_cached, DEFAULT_TTL, SHORT_TTL
+from app.core.config import settings
 
-EXPORT_TOOL_API_BASE_URL = os.getenv("EXPORT_TOOL_API_BASE_URL", "https://export.hotosm.org/api")
+EXPORT_TOOL_API_BASE_URL = settings.export_tool_api_base_url
 
 router = APIRouter(prefix="/export-tool")
 

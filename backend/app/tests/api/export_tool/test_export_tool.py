@@ -9,13 +9,16 @@ from fastapi import FastAPI
 import httpx
 from datetime import datetime
 
-from app.api.routes.export_tool.export_tool import router
+from app.api.routes.export_tool.export_tool import router, EXPORT_TOOL_API_BASE_URL
 from app.models.export_tool import ExportJobsResponse, ExportJob, ExportJobUser
 
 app = FastAPI()
 app.include_router(router)
 
 client = TestClient(app)
+
+# Use the configured URL for mocking (matches whatever .env sets)
+BASE_URL = EXPORT_TOOL_API_BASE_URL
 
 MOCK_EXPORT_JOBS_RESPONSE = {
     "count": 2,
@@ -108,7 +111,7 @@ class TestExportToolEndpoints:
     @respx.mock
     def test_get_export_jobs_success(self):
         """Test successful retrieval of export jobs"""
-        respx.get("https://export.hotosm.org/api/jobs").mock(
+        respx.get(f"{BASE_URL}/jobs").mock(
             return_value=httpx.Response(200, json=MOCK_EXPORT_JOBS_RESPONSE)
         )
 
@@ -124,7 +127,7 @@ class TestExportToolEndpoints:
     @respx.mock
     def test_get_export_jobs_with_filters(self):
         """Test export jobs retrieval with additional filters"""
-        respx.get("https://export.hotosm.org/api/jobs").mock(
+        respx.get(f"{BASE_URL}/jobs").mock(
             return_value=httpx.Response(200, json=MOCK_EXPORT_JOBS_RESPONSE)
         )
 
@@ -139,7 +142,7 @@ class TestExportToolEndpoints:
     @respx.mock
     def test_get_export_jobs_http_error(self):
         """Test handling of HTTP errors from Export Tool API"""
-        respx.get("https://export.hotosm.org/api/jobs").mock(
+        respx.get(f"{BASE_URL}/jobs").mock(
             return_value=httpx.Response(404, text="Not Found")
         )
 
@@ -151,7 +154,7 @@ class TestExportToolEndpoints:
     @respx.mock
     def test_get_export_jobs_generic_error(self):
         """Test handling of generic errors"""
-        respx.get("https://export.hotosm.org/api/jobs").mock(
+        respx.get(f"{BASE_URL}/jobs").mock(
             side_effect=Exception("Connection error")
         )
 
@@ -163,7 +166,7 @@ class TestExportToolEndpoints:
     @respx.mock
     def test_get_export_job_detail_success(self):
         """Test successful retrieval of job detail"""
-        respx.get("https://export.hotosm.org/api/jobs/test-job-123").mock(
+        respx.get(f"{BASE_URL}/jobs/test-job-123").mock(
             return_value=httpx.Response(200, json=MOCK_JOB_DETAIL_RESPONSE)
         )
 
@@ -177,7 +180,7 @@ class TestExportToolEndpoints:
     @respx.mock
     def test_get_export_job_detail_not_found(self):
         """Test job detail retrieval with non-existent job"""
-        respx.get("https://export.hotosm.org/api/jobs/non-existent-job").mock(
+        respx.get(f"{BASE_URL}/jobs/non-existent-job").mock(
             return_value=httpx.Response(404, text="Job not found")
         )
 
@@ -202,7 +205,7 @@ class TestExportToolEndpoints:
     @respx.mock
     def test_export_jobs_response_structure(self):
         """Test that response structure matches expected model"""
-        respx.get("https://export.hotosm.org/api/jobs").mock(
+        respx.get(f"{BASE_URL}/jobs").mock(
             return_value=httpx.Response(200, json=MOCK_EXPORT_JOBS_RESPONSE)
         )
 

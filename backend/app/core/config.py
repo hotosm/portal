@@ -64,5 +64,27 @@ class Settings(BaseSettings):
     # Production: https://umap.hotosm.org
     umap_base_url: str = "https://umap.hotosm.test"
 
+    # Drone-TM Backend URL
+    # Local: https://dronetm.hotosm.test/api
+    # Test: https://testlogin.dronetm.hotosm.org/api
+    # Production: https://dronetm.org/api
+    drone_tm_backend_url: str = "https://dronetm.org/api"
+    drone_tm_auth_header: str = "Authorization"
+    drone_tm_auth_prefix: str = "Bearer"
+    drone_tm_verify_ssl: bool = False
+
+    # Export Tool API
+    # Local: https://export-tool.hotosm.test/api
+    # Test: https://testlogin.export.hotosm.org/api
+    # Production: https://export.hotosm.org/api
+    export_tool_api_base_url: str = "https://export.hotosm.org/api"
+
+    # fAIr API
+    # Local: https://fair.hotosm.test/api/v1
+    # Test: https://testlogin.fair.hotosm.org/api/v1
+    # Production: https://api-prod.fair.hotosm.org/api/v1
+    fair_api_base_url: str = "https://api-prod.fair.hotosm.org/api/v1"
+    fair_verify_ssl: bool = False
+
 
 settings = Settings()
