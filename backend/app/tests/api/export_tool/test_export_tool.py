@@ -4,6 +4,7 @@
 
 import pytest
 import respx
+from unittest.mock import Mock, AsyncMock, patch
 from fastapi.testclient import TestClient
 from fastapi import FastAPI
 import httpx
@@ -226,6 +227,191 @@ class TestExportToolEndpoints:
         assert "created_at" in job
         assert "export_formats" in job
         assert "simplified_geom" in job
+
+
+MOCK_MY_JOBS_RESPONSE = {
+    "count": 1,
+    "next": None,
+    "previous": None,
+    "results": [
+        {
+            "id": 391416,
+            "uid": "ac94424d-7d0e-45d6-a7a8-8f81cb07fb2c",
+            "user": {"username": "testuser"},
+            "name": "test buenos aires",
+            "description": "test description",
+            "event": "test",
+            "export_formats": ["geojson"],
+            "published": True,
+            "feature_selection": "planet_osm_point:\n  types:\n    - points",
+            "buffer_aoi": False,
+            "osma_link": None,
+            "created_at": "2026-02-12T13:56:37.791148Z",
+            "area": 0,
+            "simplified_geom": {
+                "type": "Polygon",
+                "coordinates": [[[-58.38, -34.61], [-58.39, -34.61], [-58.39, -34.61], [-58.38, -34.61]]]
+            },
+            "mbtiles_source": None,
+            "mbtiles_minzoom": None,
+            "mbtiles_maxzoom": None,
+            "pinned": False,
+            "unfiltered": False,
+            "userinfo": False,
+        }
+    ],
+}
+
+
+class TestMyExportJobs:
+    """Tests for GET /export-tool/jobs/me endpoint"""
+
+    @pytest.mark.asyncio
+    async def test_get_my_jobs_success(self):
+        """Test successful retrieval of authenticated user's export jobs"""
+        mock_response = Mock()
+        mock_response.json.return_value = MOCK_MY_JOBS_RESPONSE
+        mock_response.raise_for_status = Mock()
+
+        mock_request = Mock()
+        mock_request.cookies.get.return_value = "test-hanko-jwt"
+
+        mock_user = Mock()
+        mock_user.id = "test-hanko-uuid"
+        mock_user.username = "testuser"
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
+
+            from app.api.routes.export_tool.export_tool import get_my_export_jobs
+
+            result = await get_my_export_jobs(
+                request=mock_request, user=mock_user,
+                limit=20, offset=0,
+            )
+
+            assert result == MOCK_MY_JOBS_RESPONSE
+            assert result["count"] == 1
+            assert result["results"][0]["uid"] == "ac94424d-7d0e-45d6-a7a8-8f81cb07fb2c"
+
+            # Verify the request was made with correct params
+            call_args = mock_client.return_value.__aenter__.return_value.get.call_args
+            assert f"{BASE_URL}/jobs" in call_args[0][0]
+            params = call_args[1]["params"]
+            assert params["all"] == "false"
+            assert params["limit"] == 20
+            assert params["offset"] == 0
+
+            # Verify hanko cookie is forwarded
+            cookies = call_args[1]["cookies"]
+            assert cookies["hanko"] == "test-hanko-jwt"
+
+    @pytest.mark.asyncio
+    async def test_get_my_jobs_with_filters(self):
+        """Test with search and status filters"""
+        mock_response = Mock()
+        mock_response.json.return_value = {"count": 0, "next": None, "previous": None, "results": []}
+        mock_response.raise_for_status = Mock()
+
+        mock_request = Mock()
+        mock_request.cookies.get.return_value = "test-hanko-jwt"
+
+        mock_user = Mock()
+        mock_user.id = "test-hanko-uuid"
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
+
+            from app.api.routes.export_tool.export_tool import get_my_export_jobs
+
+            result = await get_my_export_jobs(
+                request=mock_request,
+                user=mock_user,
+                limit=10,
+                offset=5,
+                search="buenos aires",
+                status="COMPLETED",
+            )
+
+            call_args = mock_client.return_value.__aenter__.return_value.get.call_args
+            params = call_args[1]["params"]
+            assert params["limit"] == 10
+            assert params["offset"] == 5
+            assert params["search"] == "buenos aires"
+            assert params["status"] == "COMPLETED"
+            assert params["all"] == "false"
+
+    @pytest.mark.asyncio
+    async def test_get_my_jobs_no_cookie(self):
+        """Test returns 401 when hanko cookie is missing"""
+        mock_request = Mock()
+        mock_request.cookies.get.return_value = None
+
+        mock_user = Mock()
+        mock_user.id = "test-hanko-uuid"
+
+        from app.api.routes.export_tool.export_tool import get_my_export_jobs
+
+        with pytest.raises(Exception) as exc_info:
+            await get_my_export_jobs(request=mock_request, user=mock_user)
+
+        assert exc_info.value.status_code == 401
+        assert "Hanko auth cookie not found" in exc_info.value.detail
+
+    @pytest.mark.asyncio
+    async def test_get_my_jobs_upstream_error(self):
+        """Test handling of HTTP errors from Export Tool API"""
+        mock_request_obj = Mock()
+        mock_request_obj.cookies.get.return_value = "test-hanko-jwt"
+
+        mock_user = Mock()
+        mock_user.id = "test-hanko-uuid"
+
+        mock_response = Mock()
+        mock_response.status_code = 403
+        mock_response.text = "Forbidden"
+        mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
+            "403 Forbidden", request=Mock(), response=mock_response
+        )
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
+
+            from app.api.routes.export_tool.export_tool import get_my_export_jobs
+
+            with pytest.raises(Exception) as exc_info:
+                await get_my_export_jobs(request=mock_request_obj, user=mock_user)
+
+            assert exc_info.value.status_code == 403
+            assert "Error from HOT Export Tool API" in exc_info.value.detail
+
+    @pytest.mark.asyncio
+    async def test_get_my_jobs_connection_error(self):
+        """Test handling of connection errors"""
+        mock_request = Mock()
+        mock_request.cookies.get.return_value = "test-hanko-jwt"
+
+        mock_user = Mock()
+        mock_user.id = "test-hanko-uuid"
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                side_effect=Exception("Connection refused")
+            )
+
+            from app.api.routes.export_tool.export_tool import get_my_export_jobs
+
+            with pytest.raises(Exception) as exc_info:
+                await get_my_export_jobs(request=mock_request, user=mock_user)
+
+            assert exc_info.value.status_code == 500
+            assert "Connection refused" in exc_info.value.detail
 
 
 if __name__ == "__main__":

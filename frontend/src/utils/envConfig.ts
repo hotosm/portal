@@ -74,7 +74,7 @@ export function getUmapBaseUrl(): string {
  */
 const EXPORT_TOOL_URLS: Record<Environment, string> = {
   local: "https://export-tool.hotosm.test",
-  test: "https://export.hotosm.org",
+  test: "https://testlogin.export.hotosm.org",
   production: "https://export.hotosm.org",
 };
 

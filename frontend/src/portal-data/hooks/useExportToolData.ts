@@ -4,12 +4,12 @@ import { type IDataProject, mapExportJobsToDataProjects } from "../types";
 
 export function useExportJobs() {
   return useQuery({
-    queryKey: ["export-tool", "jobs"],
+    queryKey: ["export-tool", "jobs", "me"],
     queryFn: async (): Promise<IDataProject[]> => {
       try {
-        const response = await fetch(
-          "/api/export-tool/jobs?pinned=true&all=true&limit=20"
-        );
+        const response = await fetch("/api/export-tool/jobs/me?limit=20", {
+          credentials: "include",
+        });
 
         if (!response.ok) {
           if (response.status === 401 || response.status === 403) {
