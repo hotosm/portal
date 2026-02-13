@@ -116,25 +116,42 @@ export class HotToolMenu extends LitElement {
   }
 
   private getToolHref(tool: Tool): string {
-    const isTestEnvironment = window.location.hostname.endsWith('.test');
-    
-    if (!isTestEnvironment) {
-      return tool.href;
+    const hostname = window.location.hostname;
+
+    // Detect environment: local (.test), dev (dev.portal), or production
+    const isLocal = hostname.endsWith('.test');
+    const isDev = hostname.includes('dev.portal');
+
+    if (!isLocal && !isDev) {
+      return tool.href; // Production URLs
     }
 
-    // Map tool IDs to their test environment URLs
-    const testUrls: Record<string, string> = {
+    // Local environment URLs (.hotosm.test)
+    const localUrls: Record<string, string> = {
       'drone': 'https://dronetm.hotosm.test',
       'oam': 'https://openaerialmap.hotosm.test',
-      'tasking-manager': 'https://login.hotosm.test',
+      'tasking-manager': 'https://tasks.hotosm.test',
       'fair': 'https://fair.hotosm.test',
-      'field': 'https://login.hotosm.test',
+      'field': 'https://fmtm.hotosm.test',
       'chat-map': 'https://chatmap.hotosm.test',
-      'export-tool': 'https://login.hotosm.test',
+      'export-tool': 'https://export-tool.hotosm.test',
       'umap': 'https://umap.hotosm.test',
     };
 
-    return testUrls[tool.id] || tool.href;
+    // Dev environment URLs (testlogin.*)
+    const devUrls: Record<string, string> = {
+      'drone': 'https://testlogin.dronetm.hotosm.org',
+      'oam': 'https://openaerialmap.org',
+      'tasking-manager': 'https://tasks.hotosm.org',
+      'fair': 'https://testlogin.fair.hotosm.org',
+      'field': 'https://fmtm.hotosm.org',
+      'chat-map': 'https://chatmap-dev.hotosm.org',
+      'export-tool': 'https://testlogin.export.hotosm.org',
+      'umap': 'https://testlogin.umap.hotosm.org',
+    };
+
+    const urls = isLocal ? localUrls : devUrls;
+    return urls[tool.id] || tool.href;
   }
 
   private getToolsBySection(sectionId: string): Tool[] {
