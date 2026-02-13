@@ -159,7 +159,7 @@ jobs:
           ADMIN_EMAILS=${{ secrets.ADMIN_EMAILS }}
           HANKO_API_URL=https://login.hotosm.org
           DRONE_TM_BACKEND_URL=https://drone.hotosm.org/api
-          FAIR_API_BASE_URL=https://fair.hotosm.org/api/v1
+          FAIR_API_BASE_URL=https://api-prod.fair.hotosm.org/api/v1
           UMAP_BASE_URL=https://umap.hotosm.org
           EXPORT_TOOL_API_BASE_URL=https://export.hotosm.org/api
           DRONE_TM_VERIFY_SSL=true
