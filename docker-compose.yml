@@ -20,7 +20,7 @@ services:
 
   # FastAPI backend
   backend:
-    image: ghcr.io/hotosm/portal-backend:latest
+    image: ghcr.io/hotosm/portal-backend:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: backend/Dockerfile
@@ -91,7 +91,7 @@ services:
 
   # React frontend
   frontend:
-    image: ghcr.io/hotosm/portal-frontend:latest
+    image: ghcr.io/hotosm/portal-frontend:${IMAGE_TAG:-latest}
     build:
       context: ./frontend
       dockerfile: Dockerfile
