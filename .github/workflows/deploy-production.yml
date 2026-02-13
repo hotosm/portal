@@ -141,6 +141,7 @@ jobs:
           OSM_CLIENT_SECRET: ${{ secrets.OSM_CLIENT_SECRET }}
           OSM_REDIRECT_URI: ${{ secrets.OSM_REDIRECT_URI }}
           ADMIN_EMAILS: ${{ secrets.ADMIN_EMAILS }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
         run: |
           ssh $EC2_USER@$EC2_HOST << 'EOF'
             set -e
@@ -156,6 +157,10 @@ jobs:
               cp .env.example .env
               echo "Created .env from .env.example"
             fi
+
+            # Update database secrets
+            sed -i 's|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}|' .env
+            sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql+asyncpg://portal:${{ secrets.POSTGRES_PASSWORD }}@db:5432/portal|' .env
 
             # Update authentication secrets
             sed -i 's|^COOKIE_SECRET=.*|COOKIE_SECRET=${{ secrets.COOKIE_SECRET }}|' .env
