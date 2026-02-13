@@ -143,68 +143,37 @@ jobs:
           OSM_CLIENT_SECRET: ${{ secrets.OSM_CLIENT_SECRET }}
           OSM_REDIRECT_URI: ${{ secrets.OSM_REDIRECT_URI }}
           ADMIN_EMAILS: ${{ secrets.ADMIN_EMAILS }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
         run: |
           # Deploy via SSH (using ssh-agent from webfactory/ssh-agent action)
           ssh $EC2_USER@$EC2_HOST << 'EOF'
             set -e
 
             # Navigate to application directory
-            cd /opt/portal || exit 1
+            cd /opt/portal-test || exit 1
 
             # Pull latest changes (reset to avoid divergent branches)
             git fetch origin develop
             git reset --hard origin/develop
 
-            # Create/update .env file with secrets (if not exists)
-            if [ ! -f .env ]; then
-              cp .env.example .env
-              echo "✓ Created .env from .env.example"
-            fi
-
-            # Update authentication secrets in .env
-            sed -i 's|^COOKIE_SECRET=.*|COOKIE_SECRET=${{ secrets.COOKIE_SECRET }}|' .env
-            sed -i 's|^OSM_CLIENT_ID=.*|OSM_CLIENT_ID=${{ secrets.OSM_CLIENT_ID }}|' .env
-            sed -i 's|^OSM_CLIENT_SECRET=.*|OSM_CLIENT_SECRET=${{ secrets.OSM_CLIENT_SECRET }}|' .env
-            sed -i 's|^OSM_REDIRECT_URI=.*|OSM_REDIRECT_URI=${{ secrets.OSM_REDIRECT_URI }}|' .env
-            sed -i 's|^ADMIN_EMAILS=.*|ADMIN_EMAILS=${{ secrets.ADMIN_EMAILS }}|' .env
-            echo "✓ Updated authentication secrets in .env"
-
-            # Configure Drone-TM backend URL (point to testlogin for SSO testing)
-            if grep -q '^DRONE_TM_BACKEND_URL=' .env; then
-              sed -i 's|^DRONE_TM_BACKEND_URL=.*|DRONE_TM_BACKEND_URL=https://testlogin.dronetm.hotosm.org/api|' .env
-            else
-              echo 'DRONE_TM_BACKEND_URL=https://testlogin.dronetm.hotosm.org/api' >> .env
-            fi
-            echo "✓ Updated Drone-TM backend URL"
-
-            # Configure fAIr API URL (point to testlogin for SSO testing)
-            if grep -q '^FAIR_API_BASE_URL=' .env; then
-              sed -i 's|^FAIR_API_BASE_URL=.*|FAIR_API_BASE_URL=https://testlogin.fair.hotosm.org/api/v1|' .env
-            else
-              echo 'FAIR_API_BASE_URL=https://testlogin.fair.hotosm.org/api/v1' >> .env
-            fi
-            echo "✓ Updated fAIr API URL"
-
-            # Enable SSL verification for production (valid certs)
-            if grep -q '^DRONE_TM_VERIFY_SSL=' .env; then
-              sed -i 's|^DRONE_TM_VERIFY_SSL=.*|DRONE_TM_VERIFY_SSL=true|' .env
-            else
-              echo 'DRONE_TM_VERIFY_SSL=true' >> .env
-            fi
-            if grep -q '^FAIR_VERIFY_SSL=' .env; then
-              sed -i 's|^FAIR_VERIFY_SSL=.*|FAIR_VERIFY_SSL=true|' .env
-            else
-              echo 'FAIR_VERIFY_SSL=true' >> .env
-            fi
-            echo "✓ Enabled SSL verification"
+            # Create/update .env file with secrets
+            cat > .env << 'ENVEOF'
+          POSTGRES_USER=portal
+          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB=portal
+          COOKIE_SECRET=${{ secrets.COOKIE_SECRET }}
+          OSM_CLIENT_ID=${{ secrets.OSM_CLIENT_ID }}
+          OSM_CLIENT_SECRET=${{ secrets.OSM_CLIENT_SECRET }}
+          ADMIN_EMAILS=${{ secrets.ADMIN_EMAILS }}
+          ENVEOF
+            echo "✓ Updated .env"
 
             # Login to GitHub Container Registry
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            # Set image tag and restart services
-            export IMAGE_TAG=latest
-            docker compose --profile prod pull
-            docker compose --profile prod up -d --force-recreate
+            # Pull and restart services using compose.test.yaml
+            docker compose -f compose.test.yaml pull
+            docker compose -f compose.test.yaml up -d --force-recreate
 
             # Clean up old images
             docker image prune -af
