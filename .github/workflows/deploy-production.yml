@@ -136,14 +136,8 @@ jobs:
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USER: ${{ secrets.EC2_USER }}
-          COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
-          OSM_CLIENT_ID: ${{ secrets.OSM_CLIENT_ID }}
-          OSM_CLIENT_SECRET: ${{ secrets.OSM_CLIENT_SECRET }}
-          OSM_REDIRECT_URI: ${{ secrets.OSM_REDIRECT_URI }}
-          ADMIN_EMAILS: ${{ secrets.ADMIN_EMAILS }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
         run: |
-          ssh $EC2_USER@$EC2_HOST << 'EOF'
+          ssh $EC2_USER@$EC2_HOST << 'EOFSH'
             set -e
 
             cd /opt/portal || exit 1
@@ -152,66 +146,26 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
-            # Create/update .env file
-            if [ ! -f .env ]; then
-              cp .env.example .env
-              echo "Created .env from .env.example"
-            fi
-
-            # Update database secrets
-            sed -i 's|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}|' .env
-            sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql+asyncpg://portal:${{ secrets.POSTGRES_PASSWORD }}@db:5432/portal|' .env
-
-            # Update authentication secrets
-            sed -i 's|^COOKIE_SECRET=.*|COOKIE_SECRET=${{ secrets.COOKIE_SECRET }}|' .env
-            sed -i 's|^OSM_CLIENT_ID=.*|OSM_CLIENT_ID=${{ secrets.OSM_CLIENT_ID }}|' .env
-            sed -i 's|^OSM_CLIENT_SECRET=.*|OSM_CLIENT_SECRET=${{ secrets.OSM_CLIENT_SECRET }}|' .env
-            sed -i 's|^OSM_REDIRECT_URI=.*|OSM_REDIRECT_URI=${{ secrets.OSM_REDIRECT_URI }}|' .env
-            sed -i 's|^ADMIN_EMAILS=.*|ADMIN_EMAILS=${{ secrets.ADMIN_EMAILS }}|' .env
-
-            # Configure Hanko API URL for production
-            if grep -q '^HANKO_API_URL=' .env; then
-              sed -i 's|^HANKO_API_URL=.*|HANKO_API_URL=https://login.hotosm.org|' .env
-            else
-              echo 'HANKO_API_URL=https://login.hotosm.org' >> .env
-            fi
-
-            # Configure production service URLs
-            if grep -q '^DRONE_TM_BACKEND_URL=' .env; then
-              sed -i 's|^DRONE_TM_BACKEND_URL=.*|DRONE_TM_BACKEND_URL=https://drone.hotosm.org/api|' .env
-            else
-              echo 'DRONE_TM_BACKEND_URL=https://drone.hotosm.org/api' >> .env
-            fi
-
-            if grep -q '^FAIR_API_BASE_URL=' .env; then
-              sed -i 's|^FAIR_API_BASE_URL=.*|FAIR_API_BASE_URL=https://fair.hotosm.org/api/v1|' .env
-            else
-              echo 'FAIR_API_BASE_URL=https://fair.hotosm.org/api/v1' >> .env
-            fi
-
-            if grep -q '^UMAP_BASE_URL=' .env; then
-              sed -i 's|^UMAP_BASE_URL=.*|UMAP_BASE_URL=https://umap.hotosm.org|' .env
-            else
-              echo 'UMAP_BASE_URL=https://umap.hotosm.org' >> .env
-            fi
-
-            if grep -q '^EXPORT_TOOL_API_BASE_URL=' .env; then
-              sed -i 's|^EXPORT_TOOL_API_BASE_URL=.*|EXPORT_TOOL_API_BASE_URL=https://export.hotosm.org/api|' .env
-            else
-              echo 'EXPORT_TOOL_API_BASE_URL=https://export.hotosm.org/api' >> .env
-            fi
-
-            # Enable SSL verification
-            if grep -q '^DRONE_TM_VERIFY_SSL=' .env; then
-              sed -i 's|^DRONE_TM_VERIFY_SSL=.*|DRONE_TM_VERIFY_SSL=true|' .env
-            else
-              echo 'DRONE_TM_VERIFY_SSL=true' >> .env
-            fi
-            if grep -q '^FAIR_VERIFY_SSL=' .env; then
-              sed -i 's|^FAIR_VERIFY_SSL=.*|FAIR_VERIFY_SSL=true|' .env
-            else
-              echo 'FAIR_VERIFY_SSL=true' >> .env
-            fi
+            # Create .env file with all secrets
+            cat > .env << 'ENVEOF'
+          POSTGRES_USER=portal
+          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB=portal
+          DATABASE_URL=postgresql+asyncpg://portal:${{ secrets.POSTGRES_PASSWORD }}@db:5432/portal
+          COOKIE_SECRET=${{ secrets.COOKIE_SECRET }}
+          OSM_CLIENT_ID=${{ secrets.OSM_CLIENT_ID }}
+          OSM_CLIENT_SECRET=${{ secrets.OSM_CLIENT_SECRET }}
+          OSM_REDIRECT_URI=${{ secrets.OSM_REDIRECT_URI }}
+          ADMIN_EMAILS=${{ secrets.ADMIN_EMAILS }}
+          HANKO_API_URL=https://login.hotosm.org
+          DRONE_TM_BACKEND_URL=https://drone.hotosm.org/api
+          FAIR_API_BASE_URL=https://fair.hotosm.org/api/v1
+          UMAP_BASE_URL=https://umap.hotosm.org
+          EXPORT_TOOL_API_BASE_URL=https://export.hotosm.org/api
+          DRONE_TM_VERIFY_SSL=true
+          FAIR_VERIFY_SSL=true
+          ENVEOF
+            echo "✓ Updated .env"
 
             # Login to GitHub Container Registry
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -224,8 +178,8 @@ jobs:
             # Clean up old images
             docker image prune -af
 
-            echo "Production deployment completed"
-          EOF
+            echo "✓ Production deployment completed"
+          EOFSH
 
       - name: Notify deployment status
         if: always()
