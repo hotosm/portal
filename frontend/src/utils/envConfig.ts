@@ -87,6 +87,19 @@ export function getExportToolJobUrl(jobUid: string): string {
 }
 
 /**
+ * ChatMap frontend URLs per environment.
+ */
+const CHATMAP_URLS: Record<Environment, string> = {
+  local: "https://chatmap.hotosm.test",
+  test: "https://chatmap.hotosm.org",
+  production: "https://chatmap.hotosm.org",
+};
+
+export function getChatMapBaseUrl(): string {
+  return CHATMAP_URLS[getEnvironment()];
+}
+
+/**
  * Drone Tasking Manager frontend URLs per environment.
  */
 const DRONE_TM_URLS: Record<Environment, string> = {

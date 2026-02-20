@@ -23,6 +23,16 @@ def clear_cache_before_test():
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
 
+def _tables_for_test_engine(engine):
+    """Return table list compatible with the active test engine dialect."""
+    if engine.dialect.name != "sqlite":
+        return list(Base.metadata.sorted_tables)
+
+    # Skip PostgreSQL/PostGIS-only tables for sqlite-backed unit tests.
+    excluded_tables = {"oam_images"}
+    return [table for table in Base.metadata.sorted_tables if table.name not in excluded_tables]
+
+
 @pytest.fixture(scope="session")
 def anyio_backend():
     """Use asyncio backend for pytest-asyncio."""
@@ -33,14 +43,15 @@ def anyio_backend():
 async def test_engine():
     """Create test database engine."""
     engine = create_async_engine(TEST_DATABASE_URL, echo=False)
+    tables = _tables_for_test_engine(engine)
 
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(lambda sync_conn: Base.metadata.create_all(sync_conn, tables=tables))
 
     yield engine
 
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(lambda sync_conn: Base.metadata.drop_all(sync_conn, tables=tables))
 
     await engine.dispose()
 

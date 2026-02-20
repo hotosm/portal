@@ -86,5 +86,10 @@ class Settings(BaseSettings):
     fair_api_base_url: str = "https://api-prod.fair.hotosm.org/api/v1"
     fair_verify_ssl: bool = False
 
+    # ChatMap API
+    # Local: http://chatmap-backend:8000/v1
+    # Production: https://chatmap.hotosm.org/api/v1
+    chatmap_api_base_url: str = "https://chatmap.hotosm.org/api/v1"
+
 
 settings = Settings()

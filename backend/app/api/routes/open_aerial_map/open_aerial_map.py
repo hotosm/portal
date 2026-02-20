@@ -1,124 +1,74 @@
 # portal/backend/app/api/routes/open_aerial_map/open_aerial_map.py
 
 import asyncio
-import json
-from datetime import datetime, timezone
-from pathlib import Path as FilePath
 from typing import Optional
 
 import httpx
-from fastapi import APIRouter, HTTPException, Path, Query
-from starlette.responses import FileResponse
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from hotosm_auth_fastapi import CurrentUser
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.cache import DEFAULT_TTL, SHORT_TTL, get_cached, set_cached
+from app.core.database import get_db
 from app.models.open_aerial_map import (
-    ImageryListResponse,
-    ImageryDetailResponse,
     CompactSnapshotResponse,
+    ImageryDetailResponse,
+    ImageryListResponse,
 )
-from app.core.cache import get_cached, set_cached, DEFAULT_TTL, SHORT_TTL
+from app.services import oam_service
 
 OAM_API_BASE_URL = "https://api.openaerialmap.org"
-SNAPSHOT_FILE_PATH = FilePath(__file__).parent.parent.parent.parent / "data" / "oam_snapshot.json"
-SNAPSHOT_UPDATE_INTERVAL = 7 * 24 * 60 * 60  # 1 week in seconds
+SYNC_INTERVAL = 7 * 24 * 60 * 60  # 1 week in seconds
 
 router = APIRouter(prefix="/open-aerial-map")
 
 # Background task control
-_snapshot_task: Optional[asyncio.Task] = None
+_sync_task: Optional[asyncio.Task] = None
 
 
-async def fetch_all_oam_data() -> list[dict]:
-    """Fetch all OAM data with limit=99999."""
-    url = f"{OAM_API_BASE_URL}/meta"
-    params = {"limit": 99999, "sort": "desc"}
-
-    async with httpx.AsyncClient(timeout=120.0) as client:
-        response = await client.get(url, params=params)
-        response.raise_for_status()
-        data = response.json()
-        return data.get("results", [])
+# ── Background sync scheduler ─────────────────────────────────────────────────
 
 
-def convert_to_compact(results: list[dict]) -> list[dict]:
-    """Convert full results to compact format for minimal storage."""
-    compact_results = []
-    for item in results:
-        props = item.get("properties", {}) or {}
-        compact = {
-            "_id": item.get("_id"),
-            "t": item.get("title"),
-            "bbox": item.get("bbox"),
-            "gsd": item.get("gsd"),
-            "acq": item.get("acquisition_end"),
-            "prov": item.get("provider"),
-            "tms": props.get("tms"),
-            "th": props.get("thumbnail"),
-        }
-        # Remove None values to save space
-        compact_results.append({k: v for k, v in compact.items() if v is not None})
-    return compact_results
+async def _db_sync_scheduler() -> None:
+    """Background task: sync OAM data from API into DB every week."""
+    from app.core.database import AsyncSessionLocal
 
-
-async def generate_snapshot() -> CompactSnapshotResponse:
-    """Generate and save OAM snapshot to file."""
-    print("📸 Starting OAM snapshot generation...")
-
-    try:
-        results = await fetch_all_oam_data()
-        compact_results = convert_to_compact(results)
-
-        snapshot_data = {
-            "count": len(compact_results),
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-            "results": compact_results,
-        }
-
-        # Ensure directory exists
-        SNAPSHOT_FILE_PATH.parent.mkdir(parents=True, exist_ok=True)
-
-        # Write with minimal whitespace for size optimization
-        with open(SNAPSHOT_FILE_PATH, "w") as f:
-            json.dump(snapshot_data, f, separators=(",", ":"))
-
-        file_size_mb = SNAPSHOT_FILE_PATH.stat().st_size / (1024 * 1024)
-        print(f"✅ OAM snapshot saved: {len(compact_results)} items, {file_size_mb:.2f} MB")
-
-        return CompactSnapshotResponse(**snapshot_data)
-    except Exception as e:
-        print(f"❌ OAM snapshot generation failed: {e}")
-        raise
-
-
-async def snapshot_scheduler():
-    """Background task that updates snapshot weekly."""
     while True:
         try:
-            await generate_snapshot()
+            async with AsyncSessionLocal() as db:
+                await oam_service.sync_from_oam_api(db)
         except Exception as e:
-            print(f"⚠️ Snapshot scheduler error: {e}")
+            print(f"⚠️ OAM DB sync scheduler error: {e}")
 
-        # Wait one week before next update
-        await asyncio.sleep(SNAPSHOT_UPDATE_INTERVAL)
-
-
-def start_snapshot_scheduler():
-    """Start the background snapshot scheduler."""
-    global _snapshot_task
-    if _snapshot_task is None or _snapshot_task.done():
-        _snapshot_task = asyncio.create_task(snapshot_scheduler())
-        print("🕐 OAM snapshot scheduler started (weekly updates)")
+        await asyncio.sleep(SYNC_INTERVAL)
 
 
-def stop_snapshot_scheduler():
-    """Stop the background snapshot scheduler."""
-    global _snapshot_task
-    if _snapshot_task and not _snapshot_task.done():
-        _snapshot_task.cancel()
-        print("🛑 OAM snapshot scheduler stopped")
+def start_sync_scheduler() -> None:
+    """Start the weekly OAM → DB background sync task."""
+    global _sync_task
+    if _sync_task is None or _sync_task.done():
+        _sync_task = asyncio.create_task(_db_sync_scheduler())
+        print("🕐 OAM DB sync scheduler started (weekly updates)")
+
+
+def stop_sync_scheduler() -> None:
+    """Cancel the background sync task on shutdown."""
+    global _sync_task
+    if _sync_task and not _sync_task.done():
+        _sync_task.cancel()
+        print("🛑 OAM DB sync scheduler stopped")
+
+
+# Keep legacy name so main.py import doesn't break during transition
+start_snapshot_scheduler = start_sync_scheduler
+
+
+# ── Endpoints ─────────────────────────────────────────────────────────────────
+
 
 @router.get("/projects", response_model=ImageryListResponse)
 async def get_imagery_metadata(
+    db: AsyncSession = Depends(get_db),
     limit: int = Query(10, ge=1, le=100, description="Number of results to return"),
     page: int = Query(1, ge=1, description="Page number"),
     sort: str = Query("desc", regex="^(asc|desc)$", description="Sort order"),
@@ -132,131 +82,118 @@ async def get_imagery_metadata(
     acquisition_to: Optional[str] = Query(None, description="Acquisition date to (YYYY-MM-DD)"),
 ) -> dict:
     """
-    Get imagery metadata from OpenAerialMap API.
-    
+    Search OAM imagery from the local PostgreSQL database.
+
+    Results come from the DB, which is synced from the OAM API on startup
+    and refreshed weekly in the background.
+
     Example: GET /api/open-aerial-map/projects?limit=10&sort=desc
     """
-    url = f"{OAM_API_BASE_URL}/meta"
-    
-    params = {
-        "limit": limit,
-        "page": page,
-        "sort": sort,
-    }
-    
-    # Add optional parameters only if present
-    if bbox:
-        params["bbox"] = bbox
-    if has_tiled is not None:
-        params["has_tiled"] = str(has_tiled).lower()
-    if title:
-        params["title"] = title
-    if provider:
-        params["provider"] = provider
-    if gsd_from is not None:
-        params["gsd_from"] = gsd_from
-    if gsd_to is not None:
-        params["gsd_to"] = gsd_to
-    if acquisition_from:
-        params["acquisition_from"] = acquisition_from
-    if acquisition_to:
-        params["acquisition_to"] = acquisition_to
-    
-    # Cache key based on parameters
-    cache_key = f"oam_projects_{limit}_{page}_{sort}_{bbox}_{has_tiled}_{title}_{provider}_{gsd_from}_{gsd_to}_{acquisition_from}_{acquisition_to}"
-    cached_data = get_cached(cache_key)
-    if cached_data is not None:
-        return cached_data
+    cache_key = (
+        f"oam_projects_{limit}_{page}_{sort}_{bbox}_{has_tiled}_"
+        f"{title}_{provider}_{gsd_from}_{gsd_to}_{acquisition_from}_{acquisition_to}"
+    )
+    cached = get_cached(cache_key)
+    if cached is not None:
+        return cached
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        try:
-            response = await client.get(url, params=params)
-            response.raise_for_status()
-            data = response.json()
-            set_cached(cache_key, data, DEFAULT_TTL)
-            return data
-        except httpx.HTTPStatusError as e:
-            raise HTTPException(
-                status_code=e.response.status_code,
-                detail=f"Error from OpenAerialMap API: {e.response.text}"
-            )
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+    try:
+        data = await oam_service.query_images(
+            db,
+            limit=limit,
+            page=page,
+            sort=sort,
+            bbox=bbox,
+            title=title,
+            provider=provider,
+            gsd_from=gsd_from,
+            gsd_to=gsd_to,
+            acquisition_from=acquisition_from,
+            acquisition_to=acquisition_to,
+            has_tiled=has_tiled,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    set_cached(cache_key, data, DEFAULT_TTL)
+    return data
 
 
-@router.get("/projects/all")
-async def get_all_projects():
+@router.get("/projects/all", response_model=CompactSnapshotResponse)
+async def get_all_projects(db: AsyncSession = Depends(get_db)) -> dict:
     """
-    Serve OAM snapshot file directly - instant response.
+    Return all OAM images in compact snapshot format.
 
-    Returns the pre-generated snapshot as a static file stream.
-    No JSON parsing, maximum performance.
+    Equivalent to the old static snapshot file, but served from the DB.
 
     Example: GET /api/open-aerial-map/projects/all
     """
-    if not SNAPSHOT_FILE_PATH.exists():
-        raise HTTPException(
-            status_code=404,
-            detail="Snapshot not found. It will be generated shortly."
-        )
+    cache_key = "oam_projects_all"
+    cached = get_cached(cache_key)
+    if cached is not None:
+        return cached
 
-    return FileResponse(
-        path=SNAPSHOT_FILE_PATH,
-        media_type="application/json",
-        filename="oam_snapshot.json",
-    )
+    try:
+        data = await oam_service.query_all_images(db)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    set_cached(cache_key, data, SHORT_TTL)
+    return data
 
 
 @router.get("/projects/snapshot", response_model=CompactSnapshotResponse)
 async def get_projects_snapshot(
-    refresh: bool = Query(False, description="Force refresh the snapshot"),
+    db: AsyncSession = Depends(get_db),
+    refresh: bool = Query(False, description="Force sync from OAM API (slow, ~2 min)"),
 ) -> dict:
     """
-    Get cached OAM snapshot from local file.
+    Get OAM snapshot stats + all imagery in compact format.
 
-    This endpoint serves a pre-generated compact snapshot of all OAM imagery.
-    The snapshot is automatically updated weekly in the background.
-
-    Use refresh=true to force regenerate the snapshot (slow, ~2 min).
+    Use refresh=true to force a full re-sync from the OAM API.
 
     Example: GET /api/open-aerial-map/projects/snapshot
     """
     if refresh:
-        snapshot = await generate_snapshot()
-        return snapshot.model_dump()
-
-    # Try to read from file
-    if SNAPSHOT_FILE_PATH.exists():
         try:
-            with open(SNAPSHOT_FILE_PATH, "r") as f:
-                return json.load(f)
+            await oam_service.sync_from_oam_api(db)
         except Exception as e:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Error reading snapshot file: {e}"
-            )
+            raise HTTPException(status_code=500, detail=f"Sync failed: {e}")
 
-    # No snapshot exists, generate one
-    snapshot = await generate_snapshot()
-    return snapshot.model_dump()
+    try:
+        data = await oam_service.query_all_images(db)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return data
 
 
 @router.get("/projects/{image_id}", response_model=ImageryDetailResponse)
 async def get_imagery_by_id(
-    image_id: str = Path(..., description="OpenAerialMap image ID")
+    db: AsyncSession = Depends(get_db),
+    image_id: str = Path(..., description="OpenAerialMap image ID"),
 ) -> dict:
     """
     Get metadata for a specific image by ID.
 
+    Looks up in the local DB first; falls back to the OAM API if not found.
+
     Example: GET /api/open-aerial-map/projects/59e62b863d6412ef72209ae1
     """
     cache_key = f"oam_image_{image_id}"
-    cached_data = get_cached(cache_key)
-    if cached_data is not None:
-        return cached_data
+    cached = get_cached(cache_key)
+    if cached is not None:
+        return cached
 
+    # Try local DB first
+    row = await oam_service.get_image_by_id(db, image_id)
+    if row is not None:
+        result = {"meta": None, "results": row}
+        set_cached(cache_key, result, DEFAULT_TTL)
+        return result
+
+    # Fallback: live OAM API
     url = f"{OAM_API_BASE_URL}/meta/{image_id}"
-
     async with httpx.AsyncClient(timeout=30.0) as client:
         try:
             response = await client.get(url)
@@ -267,7 +204,7 @@ async def get_imagery_by_id(
         except httpx.HTTPStatusError as e:
             raise HTTPException(
                 status_code=e.response.status_code,
-                detail=f"Error from OpenAerialMap API: {e.response.text}"
+                detail=f"Error from OpenAerialMap API: {e.response.text}",
             )
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
@@ -300,15 +237,13 @@ async def get_my_imagery(
 
     Example: GET /api/open-aerial-map/user/me?limit=100
     """
-    # Use the user's email to filter imagery by contact
     if not user.email:
         raise HTTPException(
             status_code=400,
-            detail="User email not available. Cannot filter imagery without email."
+            detail="User email not available. Cannot filter imagery without email.",
         )
 
     url = f"{OAM_API_BASE_URL}/meta"
-
     params = {
         "contact": user.email,
         "limit": limit,
@@ -325,7 +260,7 @@ async def get_my_imagery(
         except httpx.HTTPStatusError as e:
             raise HTTPException(
                 status_code=e.response.status_code,
-                detail=f"Error from OpenAerialMap API: {e.response.text}"
+                detail=f"Error from OpenAerialMap API: {e.response.text}",
             )
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
@@ -345,7 +280,6 @@ async def get_imagery_by_user(
     Example: GET /api/open-aerial-map/user/6918b688d06a6f5c0a953e2e?order_by=acquisition_end&sort=desc&limit=10
     """
     url = f"{OAM_API_BASE_URL}/meta"
-
     params = {
         "user": user_id,
         "limit": limit,
@@ -362,7 +296,7 @@ async def get_imagery_by_user(
         except httpx.HTTPStatusError as e:
             raise HTTPException(
                 status_code=e.response.status_code,
-                detail=f"Error from OpenAerialMap API: {e.response.text}"
+                detail=f"Error from OpenAerialMap API: {e.response.text}",
             )
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))

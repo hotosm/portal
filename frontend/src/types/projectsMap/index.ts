@@ -32,7 +32,8 @@ export interface ProjectMapFeature {
       | "drone-tasking-manager"
       | "fair"
       | "field"
-      | "imagery";
+      | "imagery"
+      | "umap";
   };
 }
 

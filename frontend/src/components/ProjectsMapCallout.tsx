@@ -3,6 +3,7 @@ import { useProjectDetails } from "../hooks/useProjectDetails";
 import { useDroneProjectDetails } from "../hooks/useDroneProjectDetails";
 import { useOAMProjectDetails } from "../hooks/useOAMProjectDetails";
 import { useFAIRModelDetails } from "../hooks/useFAIRModelDetails";
+import { useUMapShowcaseDetails } from "../hooks/useUMapShowcaseDetails";
 import { m } from "../paraglide/messages";
 import { shortenText } from "../utils/utils";
 import Button from "./shared/Button";
@@ -89,6 +90,9 @@ function IndividualProjectCallout({
   const fairQuery = useFAIRModelDetails(
     product === "fair" ? Number(projectId) : null
   );
+  const umapQuery = useUMapShowcaseDetails(
+    product === "umap" ? String(projectId) : null
+  );
 
   // Get the active query data
   const projectData =
@@ -100,6 +104,8 @@ function IndividualProjectCallout({
       ? oamQuery.data
       : product === "fair"
       ? fairQuery.data
+      : product === "umap"
+      ? umapQuery.data
       : null;
 
   const isLoading =
@@ -111,6 +117,8 @@ function IndividualProjectCallout({
       ? oamQuery.isLoading
       : product === "fair"
       ? fairQuery.isLoading
+      : product === "umap"
+      ? umapQuery.isLoading
       : false;
 
   if (isLoading) {

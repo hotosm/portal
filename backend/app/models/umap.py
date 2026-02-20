@@ -66,11 +66,37 @@ class LayerUMapOptions(BaseModel):
 
 class UMapFeatureCollection(BaseModel):
     """GeoJSON FeatureCollection with uMap extensions.
-    
+
     This is the main response model for the uMap API endpoint.
     """
     model_config = ConfigDict(extra='allow')
-    
+
     type: str
     features: List[Feature]
     _umap_options: Optional[LayerUMapOptions] = None
+
+
+class ShowcaseMapProperties(BaseModel):
+    """Properties of a map in the uMap showcase."""
+
+    name: str
+    description: Optional[str] = None
+    author: Optional[str] = None
+    map_url: Optional[str] = None
+    map_id: Optional[str] = None
+
+
+class ShowcaseMap(BaseModel):
+    """GeoJSON Feature representing a map in the uMap showcase."""
+
+    type: str
+    geometry: Optional[Geometry] = None
+    properties: ShowcaseMapProperties
+
+
+class ShowcaseResponse(BaseModel):
+    """GeoJSON FeatureCollection returned by the uMap showcase endpoint."""
+
+    type: str
+    features: List[ShowcaseMap]
+    total: int

@@ -264,7 +264,9 @@ async def get_projects_centroids(
     if search:
         params["search"] = search
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    verify_ssl = not DRONE_TM_BACKEND_URL.startswith("https://") or settings.drone_tm_verify_ssl
+
+    async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl) as client:
         try:
             logger.info(f"📡 [Centroids] Making request to {url} with params: {params}")
             response = await client.get(url, headers=headers, params=params)
@@ -437,7 +439,9 @@ async def get_project_by_id(
         "Accept": "application/json",
     }
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    verify_ssl = not DRONE_TM_BACKEND_URL.startswith("https://") or settings.drone_tm_verify_ssl
+
+    async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl) as client:
         try:
             response = await client.get(url, headers=headers)
             response.raise_for_status()

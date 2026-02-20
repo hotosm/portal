@@ -3,6 +3,7 @@ import markerDroneTasking from "../assets/images/marker-drone-tasking-manager.sv
 import markerFair from "../assets/images/marker-fair.svg";
 import markerField from "../assets/images/marker-field.svg";
 import markerImagery from "../assets/images/marker-imagery.svg";
+import markerUmap from "../assets/images/marker-umap.svg";
 import { ProductConfig } from "../types/projectsMap/products";
 
 export function getProductConfig(product?: string): ProductConfig {
@@ -17,6 +18,8 @@ export function getProductConfig(product?: string): ProductConfig {
       return { name: "Field Mapping", icon: markerField };
     case "imagery":
       return { name: "Open Aerial Map", icon: markerImagery };
+    case "umap":
+      return { name: "uMap Showcase", icon: markerUmap };
     default:
       return { name: "Unknown", icon: markerTasking };
   }

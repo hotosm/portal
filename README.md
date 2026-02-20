@@ -547,6 +547,7 @@ The API is self-documented using FastAPI's built-in OpenAPI support:
 - `/api/umap/{locationid}/{projectid}` - ProjectID data of UMap HOTOSM
 - `/api/umap/user/templates` - UMap HOTOSM user templates information
 - `/api/umap/user/maps` - UMap HOTOSM user maps information
+- `/api/umap//showcase` - Umap HOTOSM showcase projects
 - `/api/export-tool/jobs` - Data jobs of Export Tool
 - `/api/export-tool/jobs/{job_uid}` - ID of data jobs of Export Tool
 

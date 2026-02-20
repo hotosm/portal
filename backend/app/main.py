@@ -12,11 +12,13 @@ from app.api.routes import example, test
 from app.api.routes.tasking_manager import tasking_manager
 from app.api.routes.drone_tasking_manager import drone_tasking_manager
 from app.api.routes.open_aerial_map import open_aerial_map
-from app.api.routes.open_aerial_map.open_aerial_map import start_snapshot_scheduler
+from app.api.routes.open_aerial_map.open_aerial_map import start_sync_scheduler
+from app.db.models.oam import OAMImage  # noqa: F401 — registers model with Base.metadata
 from app.api.routes.fair import fair
 from app.api.routes.field_tm import field_tm
 from app.api.routes.umap import umap
 from app.api.routes.export_tool import export_tool
+from app.api.routes.chatmap import chatmap
 from app.core.config import settings
 from app.core.database import check_db_connection
 
@@ -60,28 +62,20 @@ async def preload_cache():
         except Exception as e:
             print(f"⚠️ Drone TM preload failed (non-critical): {e}")
 
-    async def preload_oam():
-        """Preload Open Aerial Map projects."""
+    async def initial_oam_sync():
+        """Sync OAM data into DB on startup if the table is empty."""
+        from app.core.database import AsyncSessionLocal
+        from app.services import oam_service
+
         try:
-            # Cache key: f"oam_projects_{limit}_{page}_{sort}_{bbox}_{has_tiled}_{title}_{provider}_{gsd_from}_{gsd_to}_{acquisition_from}_{acquisition_to}"
-            # Frontend uses: /api/open-aerial-map/projects?limit=100
-            cache_key = "oam_projects_100_1_desc_None_None_None_None_None_None_None_None"
-
-            if get_cached(cache_key):
-                print("✅ OAM already cached")
-                return
-
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.get(
-                    "https://api.openaerialmap.org/meta",
-                    params={"limit": 100, "page": 1, "sort": "desc"}
-                )
-                response.raise_for_status()
-                data = response.json()
-                set_cached(cache_key, data, DEFAULT_TTL)
-                print(f"✅ OAM preload complete: {len(data.get('results', []))} images")
+            async with AsyncSessionLocal() as db:
+                if await oam_service.is_db_empty(db):
+                    print("📸 OAM DB is empty — running initial sync from OAM API...")
+                    await oam_service.sync_from_oam_api(db)
+                else:
+                    print("✅ OAM DB already populated — skipping initial sync")
         except Exception as e:
-            print(f"⚠️ OAM preload failed (non-critical): {e}")
+            print(f"⚠️ OAM initial sync failed (non-critical): {e}")
 
     async def preload_fair():
         """Preload fAIr model centroids and enrich with names."""
@@ -113,11 +107,11 @@ async def preload_cache():
     # Run all preloads in parallel (non-blocking)
     asyncio.create_task(fetch_and_enrich_in_background())  # Tasking Manager
     asyncio.create_task(preload_drone_tm())
-    asyncio.create_task(preload_oam())
+    asyncio.create_task(initial_oam_sync())
     asyncio.create_task(preload_fair())
 
-    # Start OAM snapshot scheduler (weekly background updates)
-    start_snapshot_scheduler()
+    # Start OAM DB sync scheduler (weekly background updates)
+    start_sync_scheduler()
 
 
 @asynccontextmanager
@@ -253,6 +247,12 @@ app.include_router(
     export_tool.router,
     prefix=settings.api_v1_prefix,
     tags=["export tool"],
+)
+
+app.include_router(
+    chatmap.router,
+    prefix=settings.api_v1_prefix,
+    tags=["chatmap"],
 )
 
 # Include authentication routers (OSM OAuth)

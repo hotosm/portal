@@ -94,20 +94,38 @@ async function fetchFAIRModels(): Promise<ProjectsMapResults["features"]> {
 
     // Transform fAIr GeoJSON FeatureCollection to our format
     // The API returns: { type: "FeatureCollection", features: [{ type: "Feature", geometry: {...}, properties: { mid: number, name?: string } }] }
-    return (
-      data.features?.map((feature: FAIRModelCentroid) => ({
-        type: "Feature" as const,
-        geometry: {
-          type: "Point" as const,
-          coordinates: feature.geometry.coordinates,
-        },
-        properties: {
-          projectId: feature.properties.mid,
-          name: feature.properties.name || null, // Name is enriched by backend
-          product: "fair" as ProductType,
-        },
-      })) || []
+    const features = (data.features || []).reduce(
+      (acc: ProjectsMapResults["features"], feature: FAIRModelCentroid) => {
+        const coordinates = feature?.geometry?.coordinates;
+        if (!Array.isArray(coordinates) || coordinates.length !== 2) {
+          return acc;
+        }
+
+        const lon = Number(coordinates[0]);
+        const lat = Number(coordinates[1]);
+        if (!Number.isFinite(lon) || !Number.isFinite(lat)) {
+          return acc;
+        }
+
+        acc.push({
+          type: "Feature",
+          geometry: {
+            type: "Point",
+            coordinates: [lon, lat],
+          },
+          properties: {
+            projectId: feature.properties.mid,
+            name: feature.properties.name || null,
+            product: "fair",
+          },
+        });
+
+        return acc;
+      },
+      []
     );
+
+    return features;
   } catch (error) {
     console.error("Error fetching fAIr models:", error);
     return [];
@@ -161,6 +179,52 @@ async function fetchOpenAerialMapProjects(): Promise<
   }
 }
 
+interface ShowcaseFeature {
+  type: string;
+  geometry: { type: string; coordinates: [number, number] };
+  properties: {
+    name: string;
+    map_id?: string | null;
+  };
+}
+
+async function fetchUMapShowcase(): Promise<ProjectsMapResults["features"]> {
+  try {
+    const response = await fetch("/api/umap/showcase");
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("uMap Showcase response error:", errorText);
+      return [];
+    }
+
+    const data = await response.json();
+
+    return (
+      data.features
+        ?.filter(
+          (f: ShowcaseFeature) =>
+            f.geometry?.coordinates?.length === 2 && f.properties?.map_id
+        )
+        .map((f: ShowcaseFeature) => ({
+          type: "Feature" as const,
+          geometry: {
+            type: "Point" as const,
+            coordinates: f.geometry.coordinates,
+          },
+          properties: {
+            projectId: f.properties.map_id as string,
+            name: f.properties.name || null,
+            product: "umap" as ProductType,
+          },
+        })) || []
+    );
+  } catch (error) {
+    console.error("Error fetching uMap Showcase:", error);
+    return [];
+  }
+}
+
 async function fetchProjects(): Promise<ProjectsMapResults> {
   // Fetch all sources in parallel - use allSettled to be resilient to individual failures
   const results = await Promise.allSettled([
@@ -168,6 +232,7 @@ async function fetchProjects(): Promise<ProjectsMapResults> {
     fetchDroneTaskingManagerProjects(),
     fetchOpenAerialMapProjects(),
     fetchFAIRModels(),
+    fetchUMapShowcase(),
   ]);
 
   // Extract successful results, falling back to empty arrays for failures
@@ -177,25 +242,31 @@ async function fetchProjects(): Promise<ProjectsMapResults> {
     results[1].status === "fulfilled" ? results[1].value : [];
   const oamFeatures = results[2].status === "fulfilled" ? results[2].value : [];
   const fairFeatures = results[3].status === "fulfilled" ? results[3].value : [];
+  const umapFeatures = results[4].status === "fulfilled" ? results[4].value : [];
 
   // Log any failures
   results.forEach((result, index) => {
     if (result.status === "rejected") {
-      const source = ["Tasking Manager", "Drone TM", "Open Aerial Map", "fAIr"][index];
+      const source = ["Tasking Manager", "Drone TM", "Open Aerial Map", "fAIr", "uMap Showcase"][index];
       console.error(`Failed to fetch ${source} projects:`, result.reason);
     }
   });
 
-  // Combine all features
+  // Combine all features — fAIr and DroneTM before OAM so they win
+  // MapLibre's symbol collision detection (icon-allow-overlap defaults to false).
+  // fAIr model centroids overlap geographically with OAM imagery centroids because
+  // fAIr models are trained on OAM data from the same areas; placing fAIr first
+  // ensures those markers are not hidden by the 20k OAM icons.
   const allFeatures = [
     ...taskingManagerFeatures,
     ...droneFeatures,
-    ...oamFeatures,
     ...fairFeatures,
+    ...umapFeatures,
+    ...oamFeatures,
   ];
 
   console.log(
-    `Loaded ${taskingManagerFeatures.length} Tasking Manager, ${droneFeatures.length} Drone TM, ${oamFeatures.length} OAM, ${fairFeatures.length} fAIr projects`
+    `Loaded ${taskingManagerFeatures.length} Tasking Manager, ${droneFeatures.length} Drone TM, ${oamFeatures.length} OAM, ${fairFeatures.length} fAIr, ${umapFeatures.length} uMap Showcase projects`
   );
 
   return {
@@ -206,7 +277,7 @@ async function fetchProjects(): Promise<ProjectsMapResults> {
 
 export function useProjects() {
   return useQuery({
-    queryKey: ["projects"],
+    queryKey: ["projects", "v2"],
     queryFn: fetchProjects,
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
     gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes

@@ -7,7 +7,7 @@ import re
 import logging
 import httpx
 from fastapi import APIRouter, HTTPException, Path, Request
-from app.models.umap import UMapFeatureCollection
+from app.models.umap import UMapFeatureCollection, ShowcaseResponse
 from app.core.cache import get_cached, set_cached, DEFAULT_TTL
 from app.core.config import settings
 
@@ -19,6 +19,7 @@ router = APIRouter(prefix="/umap")
 # uMap HOT OSM URLs derived from settings
 UMAP_BASE_URL = settings.umap_base_url
 UMAP_API_BASE_URL = f"{UMAP_BASE_URL}/en/datalayer"
+UMAP_SHOWCASE_URL = f"{UMAP_BASE_URL}/en/showcase/"
 
 # SSL verification: disabled by default for .test domains (self-signed certs)
 # Set UMAP_VERIFY_SSL=true in production with valid certificates
@@ -198,6 +199,88 @@ async def get_user_maps(request: Request) -> dict:
         logger.error(f"❌ Unexpected error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
+
+
+@router.get("/showcase", response_model=ShowcaseResponse)
+async def get_showcase() -> ShowcaseResponse:
+    """Fetch the list of featured maps from the uMap showcase page.
+
+    Returns a GeoJSON FeatureCollection where each feature represents a map,
+    with author and map URL parsed from the description field.
+    """
+    cache_key = "umap_showcase"
+    cached_data = get_cached(cache_key)
+    if cached_data is not None:
+        return cached_data
+
+    try:
+        async with httpx.AsyncClient(
+            timeout=30.0,
+            verify=UMAP_VERIFY_SSL,
+            follow_redirects=True,
+        ) as client:
+            response = await client.get(UMAP_SHOWCASE_URL)
+            response.raise_for_status()
+            data = response.json()
+
+        features = []
+        for feature in data.get("features", []):
+            props = feature.get("properties", {})
+            description = props.get("description", "")
+
+            # Extract author from [[/en/user/NAME/|NAME]]
+            author_match = re.search(r"\[\[/en/user/([^/|]+)/?[|][^\]]+\]\]", description)
+            author = author_match.group(1) if author_match else None
+
+            # Extract map path from [[/en/map/slug_id|...]]
+            map_match = re.search(r"\[\[(/en/map/[^|]+)\|[^\]]+\]\]", description)
+            map_path = map_match.group(1) if map_match else None
+            map_url = f"{UMAP_BASE_URL}{map_path}" if map_path else None
+
+            # Extract map_id from the trailing _<digits> in slug
+            map_id = None
+            if map_path:
+                parts = map_path.rsplit("_", 1)
+                if len(parts) > 1 and parts[-1].isdigit():
+                    map_id = parts[-1]
+
+            features.append({
+                "type": feature.get("type", "Feature"),
+                "geometry": feature.get("geometry"),
+                "properties": {
+                    "name": props.get("name", ""),
+                    "description": description,
+                    "author": author,
+                    "map_url": map_url,
+                    "map_id": map_id,
+                },
+            })
+
+        result = {
+            "type": data.get("type", "FeatureCollection"),
+            "features": features,
+            "total": len(features),
+        }
+        set_cached(cache_key, result, DEFAULT_TTL)
+        return result
+    except httpx.HTTPStatusError as e:
+        logger.error(f"❌ [Showcase] HTTP Error: {e.response.status_code}")
+        raise HTTPException(
+            status_code=e.response.status_code,
+            detail=f"Error fetching uMap showcase: {e.response.text}",
+        )
+    except httpx.RequestError as e:
+        logger.error(f"❌ [Showcase] Request Error: {str(e)}")
+        raise HTTPException(
+            status_code=503,
+            detail=f"Connection error to uMap showcase: {str(e)}",
+        )
+    except Exception as e:
+        logger.error(f"❌ [Showcase] Unexpected error: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unexpected error: {str(e)}",
+        )
 
 
 @router.get("/{location}/{project_id}", response_model=UMapFeatureCollection)

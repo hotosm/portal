@@ -3,7 +3,8 @@ export type ProductType =
   | "drone-tasking-manager"
   | "fair"
   | "field"
-  | "imagery";
+  | "imagery"
+  | "umap";
 
 export interface ProductConfig {
   name: string;

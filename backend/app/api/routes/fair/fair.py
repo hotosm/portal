@@ -90,16 +90,17 @@ async def enrich_fair_centroids_in_background():
         # Fetch all model names
         model_names = await fetch_all_fair_model_names()
 
-        # Enrich centroids with names
-        if base_data.get("features"):
-            for feature in base_data["features"]:
-                mid = feature.get("properties", {}).get("mid")
-                if mid and mid in model_names:
-                    feature["properties"]["name"] = model_names[mid]
+        # Filter out features with null geometry and enrich with names
+        features = base_data.get("features") or []
+        base_data["features"] = [f for f in features if f.get("geometry") is not None]
+        for feature in base_data["features"]:
+            mid = feature.get("properties", {}).get("mid")
+            if mid and mid in model_names:
+                feature["properties"]["name"] = model_names[mid]
 
         # Update cache with enriched data
         set_cached(cache_key, base_data, DEFAULT_TTL)
-        logger.info(f"✅ fAIr enrichment complete. Enriched {len(model_names)} model names.")
+        logger.info(f"✅ fAIr enrichment complete. {len(base_data['features'])} models with geometry, {len(model_names)} names enriched.")
 
     except Exception as e:
         logger.error(f"❌ fAIr background enrichment failed: {e}")
@@ -216,7 +217,7 @@ async def get_fair_models_centroids() -> dict:
     if cached_data is not None:
         return cached_data
 
-    url = f"{FAIR_API_BASE_URL}/models/centroid/"
+    url = f"https://api-prod.fair.hotosm.org/api/v1/models/centroid/"
 
     headers = {
         "accept": "application/json",
@@ -232,14 +233,17 @@ async def get_fair_models_centroids() -> dict:
             logger.info("🔄 Fetching fAIr model names for enrichment...")
             model_names = await fetch_all_fair_model_names()
 
-            # Enrich centroids with names
-            if data.get("features"):
-                for feature in data["features"]:
-                    mid = feature.get("properties", {}).get("mid")
-                    if mid and mid in model_names:
-                        feature["properties"]["name"] = model_names[mid]
+            # Filter out features with null geometry (can't be plotted on map)
+            features = data.get("features") or []
+            data["features"] = [f for f in features if f.get("geometry") is not None]
 
-            logger.info(f"✅ Enriched {len(model_names)} fAIr model names")
+            # Enrich centroids with names
+            for feature in data["features"]:
+                mid = feature.get("properties", {}).get("mid")
+                if mid and mid in model_names:
+                    feature["properties"]["name"] = model_names[mid]
+
+            logger.info(f"✅ Enriched {len(model_names)} fAIr model names ({len(data['features'])} with geometry)")
 
             # Cache the enriched data
             set_cached(cache_key, data, DEFAULT_TTL)

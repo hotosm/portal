@@ -8,6 +8,7 @@ import markerDroneTasking from "../assets/images/marker-drone-tasking-manager.sv
 import markerFair from "../assets/images/marker-fair.svg";
 import markerField from "../assets/images/marker-field.svg";
 import markerImagery from "../assets/images/marker-imagery.svg";
+import markerUmap from "../assets/images/marker-umap.svg";
 import { ProjectsMapSearchBox } from "./ProjectsMapSearchBox";
 import { ProjectsMapCallout } from "./ProjectsMapCallout";
 import {
@@ -140,9 +141,12 @@ const addMapLayers = (
         "marker-field",
         "imagery",
         "marker-imagery",
+        "umap",
+        "marker-umap",
         "mapMarker", // fallback
       ],
       "icon-size": 1,
+      "icon-allow-overlap": true,
       "text-font": ["Open Sans Semibold"],
       "text-offset": [0, 0.6],
       "text-anchor": "top",
@@ -299,32 +303,27 @@ export function ProjectsMap({
       if (!map.current) return;
 
       try {
-        const [
-          defaultIcon,
-          taskingIcon,
-          droneIcon,
-          fairIcon,
-          fieldIcon,
-          imageryIcon,
-        ] = await Promise.all([
-          loadImage(mapMarkerSvg),
-          loadImage(markerTasking),
-          loadImage(markerDroneTasking),
-          loadImage(markerFair),
-          loadImage(markerField),
-          loadImage(markerImagery),
-        ]);
+        const iconsToLoad = [
+          ["mapMarker", mapMarkerSvg],
+          ["marker-tasking-manager", markerTasking],
+          ["marker-drone-tasking-manager", markerDroneTasking],
+          ["marker-fair", markerFair],
+          ["marker-field", markerField],
+          ["marker-imagery", markerImagery],
+          ["marker-umap", markerUmap],
+        ] as const;
 
-        map.current.addImage("mapMarker", defaultIcon, { pixelRatio: 2 });
-        map.current.addImage("marker-tasking-manager", taskingIcon, {
-          pixelRatio: 2,
-        });
-        map.current.addImage("marker-drone-tasking-manager", droneIcon, {
-          pixelRatio: 2,
-        });
-        map.current.addImage("marker-fair", fairIcon, { pixelRatio: 2 });
-        map.current.addImage("marker-field", fieldIcon, { pixelRatio: 2 });
-        map.current.addImage("marker-imagery", imageryIcon, { pixelRatio: 2 });
+        await Promise.all(
+          iconsToLoad.map(async ([name, src]) => {
+            try {
+              const icon = await loadImage(src);
+              if (!map.current || map.current.hasImage(name)) return;
+              map.current.addImage(name, icon, { pixelRatio: 2 });
+            } catch (iconError) {
+              console.error(`Failed to load marker icon ${name}:`, iconError);
+            }
+          })
+        );
       } catch (error) {
         console.error("Failed to load marker icons:", error);
       }

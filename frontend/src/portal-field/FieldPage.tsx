@@ -3,9 +3,11 @@ import PageWrapper from "../components/shared/PageWrapper";
 import YourProjectsTitle from "../components/shared/YourProjectsTitle";
 import ImageryCard from "./components/FieldCard";
 import { getFieldProjects } from "./fieldProjects";
+import { useChatMapData } from "./hooks/useChatMapData";
 
 function FieldPage() {
   const projects = getFieldProjects();
+  const { data: chatmap, isLoading: chatmapLoading } = useChatMapData();
 
   return (
     <PageWrapper>
@@ -30,6 +32,29 @@ function FieldPage() {
             })}
           </div>
         </div>
+
+        {chatmapLoading && (
+          <p className="text-hot-gray-500">Loading ChatMap data...</p>
+        )}
+
+        {chatmap && (
+          <div className="bg-hot-gray-50 p-md md:p-lg rounded-lg space-y-lg">
+            <h3>Your ChatMap</h3>
+            <a
+              href={chatmap.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block group no-underline hover:no-underline"
+            >
+              <div className="w-full bg-white rounded-lg p-md flex flex-col gap-sm shadow-sm transition-all duration-200 group-hover:shadow-lg group-hover:scale-[1.01]">
+                <h4>{chatmap.title}</h4>
+                <span className="text-hot-gray-500">
+                  {chatmap.sharing === "public" ? "Public" : "Private"}
+                </span>
+              </div>
+            </a>
+          </div>
+        )}
       </div>
     </PageWrapper>
   );

@@ -7,8 +7,8 @@ import respx
 import httpx
 from httpx import AsyncClient, Response
 
-# Import the URL from the umap module to use in mocks
-from app.api.routes.umap.umap import UMAP_API_BASE_URL
+# Import the URLs from the umap module to use in mocks
+from app.api.routes.umap.umap import UMAP_API_BASE_URL, UMAP_SHOWCASE_URL
 
 
 # -------------------------------
@@ -336,3 +336,144 @@ async def test_get_umap_data_feature_without_id(client: AsyncClient):
     # ID is optional, so we check it can be None or not present
     feature = data["features"][0]
     assert "id" not in feature or feature.get("id") is None
+
+
+# -------------------------------
+# /umap/showcase
+# -------------------------------
+
+def _showcase_feature(name: str, slug: str, author: str) -> dict:
+    """Helper to build a showcase GeoJSON feature with wiki-style description."""
+    return {
+        "type": "Feature",
+        "geometry": {"type": "Point", "coordinates": [16.7, 1.15]},
+        "properties": {
+            "name": name,
+            "description": (
+                f"Some description.\n\n"
+                f"by [[/en/user/{author}/|{author}]]\n"
+                f"[[/en/map/{slug}|View the map]]"
+            ),
+        },
+    }
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_get_showcase_success(client: AsyncClient):
+    """Test that get_showcase returns 200 with parsed map list."""
+    mock_response = {
+        "type": "FeatureCollection",
+        "features": [
+            _showcase_feature("Waste Hotspots", "waste-hotspots_2234", "alice"),
+            _showcase_feature("Flood Risk", "flood-risk_1780", "bob"),
+        ],
+    }
+
+    respx.get(UMAP_SHOWCASE_URL).mock(return_value=Response(200, json=mock_response))
+
+    response = await client.get("/api/umap/showcase")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["type"] == "FeatureCollection"
+    assert data["total"] == 2
+    assert len(data["features"]) == 2
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_get_showcase_parses_author_and_map_url(client: AsyncClient):
+    """Test that author and map_url are extracted from the description."""
+    mock_response = {
+        "type": "FeatureCollection",
+        "features": [_showcase_feature("Test Map", "test-map_999", "mapper42")],
+    }
+
+    respx.get(UMAP_SHOWCASE_URL).mock(return_value=Response(200, json=mock_response))
+
+    response = await client.get("/api/umap/showcase")
+
+    assert response.status_code == 200
+    props = response.json()["features"][0]["properties"]
+    assert props["author"] == "mapper42"
+    assert props["map_id"] == "999"
+    assert "/en/map/test-map_999" in props["map_url"]
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_get_showcase_empty_features(client: AsyncClient):
+    """Test that an empty showcase is handled correctly."""
+    mock_response = {"type": "FeatureCollection", "features": []}
+
+    respx.get(UMAP_SHOWCASE_URL).mock(return_value=Response(200, json=mock_response))
+
+    response = await client.get("/api/umap/showcase")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 0
+    assert data["features"] == []
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_get_showcase_missing_description_fields(client: AsyncClient):
+    """Test features without author/map links in description return None values."""
+    mock_response = {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "geometry": {"type": "Point", "coordinates": [0.0, 0.0]},
+                "properties": {"name": "No Links Map", "description": "Just plain text."},
+            }
+        ],
+    }
+
+    respx.get(UMAP_SHOWCASE_URL).mock(return_value=Response(200, json=mock_response))
+
+    response = await client.get("/api/umap/showcase")
+
+    assert response.status_code == 200
+    props = response.json()["features"][0]["properties"]
+    assert props["author"] is None
+    assert props["map_url"] is None
+    assert props["map_id"] is None
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_get_showcase_http_error(client: AsyncClient):
+    """Test that HTTP errors from uMap are propagated correctly."""
+    respx.get(UMAP_SHOWCASE_URL).mock(return_value=Response(503, text="Service Unavailable"))
+
+    response = await client.get("/api/umap/showcase")
+
+    assert response.status_code == 503
+    assert "Error fetching uMap showcase" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_get_showcase_connection_error(client: AsyncClient):
+    """Test that connection errors to uMap return 503."""
+    respx.get(UMAP_SHOWCASE_URL).mock(side_effect=httpx.RequestError("Timeout"))
+
+    response = await client.get("/api/umap/showcase")
+
+    assert response.status_code == 503
+    assert "Connection error to uMap showcase" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_get_showcase_unexpected_error(client: AsyncClient):
+    """Test that unexpected exceptions return 500."""
+    respx.get(UMAP_SHOWCASE_URL).mock(side_effect=Exception("Boom"))
+
+    response = await client.get("/api/umap/showcase")
+
+    assert response.status_code == 500
+    assert "Unexpected error" in response.json()["detail"]

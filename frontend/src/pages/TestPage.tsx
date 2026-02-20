@@ -4,6 +4,7 @@ import { useOAMImagery } from "../portal-imagery/hooks/useOAMImagery";
 import { useMyModels, useMyDatasets } from "../portal-data/hooks/useFairData";
 import { useUMapData } from "../portal-mapping/hooks/useUMapData";
 import { useExportJobs } from "../portal-data/hooks/useExportToolData";
+import { useChatMapData } from "../portal-field/hooks/useChatMapData";
 
 function TestPage() {
   const { data: projects, isLoading, error } = useDroneProjects();
@@ -12,6 +13,7 @@ function TestPage() {
   const { data: datasets, isLoading: datasetsLoading, error: datasetsError } = useMyDatasets();
   const { maps: umapMaps, templates: umapTemplates, isLoading: umapLoading, error: umapError } = useUMapData();
   const { data: exportJobs, isLoading: exportsLoading, error: exportsError } = useExportJobs();
+  const { data: chatmap, isLoading: chatmapLoading, error: chatmapError } = useChatMapData();
 
   return (
     <PageWrapper>
@@ -301,6 +303,43 @@ function TestPage() {
                 </div>
               </li>
             ))}
+          </ul>
+        )}
+
+        <h2>ChatMap</h2>
+
+        {chatmapLoading && <p>Loading chatmap...</p>}
+        {chatmapError && <p>Error loading chatmap: {chatmapError.message}</p>}
+
+        {!chatmap && !chatmapLoading && !chatmapError && (
+          <p>No chatmap data found.</p>
+        )}
+
+        {chatmap && (
+          <ul style={{ listStyle: "none", padding: 0 }}>
+            <li
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "1rem",
+                padding: "1rem",
+                borderBottom: "1px solid #eee",
+              }}
+            >
+              <div>
+                <a
+                  href={chatmap.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontWeight: 600 }}
+                >
+                  {chatmap.title}
+                </a>
+                <span style={{ marginLeft: "0.5rem", color: "#666" }}>
+                  ({chatmap.sharing})
+                </span>
+              </div>
+            </li>
           </ul>
         )}
       </div>
