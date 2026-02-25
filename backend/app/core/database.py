@@ -4,9 +4,9 @@ from collections.abc import AsyncGenerator
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import declarative_base
 
 from app.core.config import settings
+from app.core.base import Base  # noqa: F401 - re-exported for backwards compatibility
 
 # Create async engine
 engine = create_async_engine(
@@ -23,9 +23,6 @@ AsyncSessionLocal = async_sessionmaker(
     autocommit=False,
     autoflush=False,
 )
-
-# Base class for models
-Base = declarative_base()
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:

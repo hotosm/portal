@@ -6,7 +6,7 @@ from geoalchemy2 import Geometry
 from sqlalchemy import Column, DateTime, Float, Index, String
 from sqlalchemy.dialects.postgresql import ARRAY
 
-from app.core.database import Base
+from app.core.base import Base
 
 
 class OAMImage(Base):

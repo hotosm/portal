@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 
-from app.core.database import Base
+from app.core.base import Base
 from app.db.models.oam import OAMImage  # noqa: F401 — registers model with Base.metadata
 
 # Get database URL directly from environment (avoids loading full app settings)
