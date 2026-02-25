@@ -1,4 +1,5 @@
 import asyncio
+import os
 from logging.config import fileConfig
 
 from sqlalchemy import pool
@@ -7,9 +8,11 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 
-from app.core.config import settings
 from app.core.database import Base
 from app.db.models.oam import OAMImage  # noqa: F401 — registers model with Base.metadata
+
+# Get database URL directly from environment (avoids loading full app settings)
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql+asyncpg://portal:portal@db:5432/portal")
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -42,7 +45,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = str(settings.database_url)
+    url = DATABASE_URL
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -68,7 +71,7 @@ async def run_async_migrations() -> None:
     """
 
     configuration = config.get_section(config.config_ini_section, {})
-    configuration["sqlalchemy.url"] = str(settings.database_url)
+    configuration["sqlalchemy.url"] = DATABASE_URL
     connectable = async_engine_from_config(
         configuration,
         prefix="sqlalchemy.",
