@@ -2,7 +2,7 @@ services:
   # Run database migrations
   migrate:
     image: ghcr.io/hotosm/portal-backend:${IMAGE_TAG:-latest}
-    command: alembic upgrade head
+    command: ["uv", "run", "alembic", "upgrade", "head"]
     depends_on:
       db:
         condition: service_healthy

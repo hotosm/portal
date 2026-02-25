@@ -52,6 +52,10 @@ RUN uv sync --no-dev --frozen-lockfile || uv sync --no-dev
 # Copy backend application code
 COPY backend/app ./app
 
+# Copy alembic for migrations
+COPY backend/alembic.ini ./
+COPY backend/alembic ./alembic
+
 # Create non-root user
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
