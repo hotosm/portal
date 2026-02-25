@@ -1,4 +1,17 @@
 services:
+  # Run database migrations
+  migrate:
+    image: ghcr.io/hotosm/portal-backend:${IMAGE_TAG:-latest}
+    command: alembic upgrade head
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-portal}:${POSTGRES_PASSWORD:-portal}@db:5432/${POSTGRES_DB:-portal}
+    restart: "no"
+    profiles:
+      - prod
+
   # PostgreSQL with PostGIS extension
   db:
     image: postgis/postgis:16-3.4
@@ -48,6 +61,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
