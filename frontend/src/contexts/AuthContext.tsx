@@ -11,6 +11,7 @@ interface HankoUser {
   email: string | null;
   username: string | null;
   emailVerified: boolean;
+  avatarUrl?: string;
 }
 
 interface OSMConnection {
@@ -31,8 +32,17 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+const AUTH_CACHE_KEY = "hotosm-auth-user";
+
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<HankoUser | null>(null);
+  const [user, setUser] = useState<HankoUser | null>(() => {
+    try {
+      const cached = localStorage.getItem(AUTH_CACHE_KEY);
+      return cached ? (JSON.parse(cached) as HankoUser) : null;
+    } catch {
+      return null;
+    }
+  });
   const [osmConnection, setOsmConnection] = useState<OSMConnection | null>(
     null
   );
@@ -68,6 +78,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const customEvent = event as CustomEvent;
       console.log("AuthContext: hanko-login event received", customEvent.detail);
       setUser(customEvent.detail.user);
+      try {
+        localStorage.setItem(AUTH_CACHE_KEY, JSON.stringify(customEvent.detail.user));
+      } catch {}
       // Re-check OSM status after login
       checkOsmStatus();
     };
@@ -77,6 +90,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.log("AuthContext: logout event received");
       setUser(null);
       setOsmConnection(null);
+      try {
+        localStorage.removeItem(AUTH_CACHE_KEY);
+      } catch {}
     };
 
     // Listen to osm-connected event from web component
