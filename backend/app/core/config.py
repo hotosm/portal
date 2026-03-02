@@ -84,7 +84,14 @@ class Settings(BaseSettings):
     # Test: https://testlogin.fair.hotosm.org/api/v1
     # Production: https://api-prod.fair.hotosm.org/api/v1
     fair_api_base_url: str = "https://api-prod.fair.hotosm.org/api/v1"
+    # Backward compatibility for older .env files
+    fair_backend_url: str | None = None
     fair_verify_ssl: bool = False
+
+    @property
+    def effective_fair_api_base_url(self) -> str:
+        """Return active fAIr API URL, supporting legacy env key FAIR_BACKEND_URL."""
+        return self.fair_backend_url or self.fair_api_base_url
 
     # ChatMap API
     # Local: http://chatmap-backend:8000/v1

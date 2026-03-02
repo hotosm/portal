@@ -1,5 +1,7 @@
 import asyncio
 import os
+import re
+from pathlib import Path
 from logging.config import fileConfig
 
 from sqlalchemy import pool
@@ -10,9 +12,44 @@ from alembic import context
 
 from app.core.base import Base
 from app.db.models.oam import OAMImage  # noqa: F401 — registers model with Base.metadata
+from app.db.models.map_project import MapProject  # noqa: F401 — registers model with Base.metadata
 
-# Get database URL directly from environment (avoids loading full app settings)
-DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql+asyncpg://portal:portal@db:5432/portal")
+
+def _load_database_url_from_dotenv() -> str | None:
+    """Load DATABASE_URL from backend/.env when not provided in process env."""
+    candidate_paths = [
+        Path(__file__).resolve().parent.parent / ".env",  # backend/.env
+        Path(__file__).resolve().parent.parent.parent / ".env",  # portal/.env
+    ]
+
+    for env_path in candidate_paths:
+        if not env_path.exists():
+            continue
+        for line in env_path.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#") or "=" not in stripped:
+                continue
+            key, value = stripped.split("=", 1)
+            if key.strip() == "DATABASE_URL":
+                return value.strip().strip('"').strip("'")
+    return None
+
+
+def _normalize_database_url(url: str) -> str:
+    """Use localhost outside Docker when URL points to docker-internal host `db`."""
+    running_in_docker = Path("/.dockerenv").exists()
+    if running_in_docker:
+        return url
+
+    # Convert postgresql+asyncpg://...@db:5432/... -> ...@localhost:5432/...
+    return re.sub(r"@db(?=[:/])", "@localhost", url)
+
+
+# Get database URL directly from environment, then backend/.env, then fallback
+DATABASE_URL = os.environ.get("DATABASE_URL") or _load_database_url_from_dotenv()
+DATABASE_URL = _normalize_database_url(
+    DATABASE_URL or "postgresql+asyncpg://portal:portal@localhost:5432/portal"
+)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

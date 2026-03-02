@@ -12,8 +12,10 @@ from app.api.routes import example, test
 from app.api.routes.tasking_manager import tasking_manager
 from app.api.routes.drone_tasking_manager import drone_tasking_manager
 from app.api.routes.open_aerial_map import open_aerial_map
+from app.api.routes.homepage_map import homepage_map
 from app.api.routes.open_aerial_map.open_aerial_map import start_sync_scheduler
 from app.db.models.oam import OAMImage  # noqa: F401 — registers model with Base.metadata
+from app.db.models.map_project import MapProject  # noqa: F401 — registers model with Base.metadata
 from app.api.routes.fair import fair
 from app.api.routes.field_tm import field_tm
 from app.api.routes.umap import umap
@@ -21,6 +23,8 @@ from app.api.routes.export_tool import export_tool
 from app.api.routes.chatmap import chatmap
 from app.core.config import settings
 from app.core.database import check_db_connection
+
+HOMEPAGE_MAP_SYNC_INTERVAL_SECONDS = 6 * 60 * 60
 
 
 async def preload_cache():
@@ -30,7 +34,7 @@ async def preload_cache():
     from app.api.routes.fair.fair import enrich_fair_centroids_in_background
     from app.core.cache import get_cached, set_cached, DEFAULT_TTL
 
-    print("🚀 Preloading cache in background...")
+    print("Preloading cache in background...")
 
     async def preload_drone_tm():
         """Preload Drone TM centroids from production API."""
@@ -42,7 +46,7 @@ async def preload_cache():
             cache_key = "dronetm_centroids_False_None_1_1000"
 
             if get_cached(cache_key):
-                print("✅ Drone TM already cached")
+                print("Drone TM already cached")
                 return
 
             async with httpx.AsyncClient(timeout=60.0) as client:
@@ -58,9 +62,9 @@ async def preload_cache():
                     result = data
                 set_cached(cache_key, result, DEFAULT_TTL)
                 results_count = len(result.get("results", [])) if isinstance(result, dict) else "N/A"
-                print(f"✅ Drone TM preload complete: {results_count} projects")
+                print(f"Drone TM preload complete: {results_count} projects")
         except Exception as e:
-            print(f"⚠️ Drone TM preload failed (non-critical): {e}")
+            print(f"Drone TM preload failed (non-critical): {e}")
 
     async def initial_oam_sync():
         """Sync OAM data into DB on startup if the table is empty."""
@@ -70,12 +74,27 @@ async def preload_cache():
         try:
             async with AsyncSessionLocal() as db:
                 if await oam_service.is_db_empty(db):
-                    print("📸 OAM DB is empty — running initial sync from OAM API...")
+                    print("OAM DB is empty - running initial sync from OAM API...")
                     await oam_service.sync_from_oam_api(db)
                 else:
-                    print("✅ OAM DB already populated — skipping initial sync")
+                    print("OAM DB already populated - skipping initial sync")
         except Exception as e:
-            print(f"⚠️ OAM initial sync failed (non-critical): {e}")
+            print(f"OAM initial sync failed (non-critical): {e}")
+
+    async def scheduled_homepage_map_sync():
+        """Continuously sync homepage map projects into DB every ~6 hours."""
+        from app.core.database import AsyncSessionLocal
+        from app.services import map_projects_service
+
+        while True:
+            try:
+                async with AsyncSessionLocal() as db:
+                    counts = await map_projects_service.sync_from_sources(db)
+                    print(f"Homepage map scheduled sync complete (new rows): {counts}")
+            except Exception as e:
+                print(f"Homepage map scheduled sync failed (non-critical): {e}")
+
+            await asyncio.sleep(HOMEPAGE_MAP_SYNC_INTERVAL_SECONDS)
 
     async def preload_fair():
         """Preload fAIr model centroids and enrich with names."""
@@ -83,7 +102,7 @@ async def preload_cache():
             cache_key = "fair_models_centroids"
 
             if get_cached(cache_key):
-                print("✅ fAIr already cached")
+                print("fAIr already cached")
                 # Still run enrichment in case names aren't populated yet
                 asyncio.create_task(enrich_fair_centroids_in_background())
                 return
@@ -97,18 +116,19 @@ async def preload_cache():
                 data = response.json()
                 set_cached(cache_key, data, DEFAULT_TTL)
                 features = data.get("features", []) if isinstance(data, dict) else []
-                print(f"✅ fAIr preload complete: {len(features)} models")
+                print(f"fAIr preload complete: {len(features)} models")
 
                 # Enrich with model names in background
                 asyncio.create_task(enrich_fair_centroids_in_background())
         except Exception as e:
-            print(f"⚠️ fAIr preload failed (non-critical): {e}")
+            print(f"fAIr preload failed (non-critical): {e}")
 
     # Run all preloads in parallel (non-blocking)
     asyncio.create_task(fetch_and_enrich_in_background())  # Tasking Manager
     asyncio.create_task(preload_drone_tm())
     asyncio.create_task(initial_oam_sync())
     asyncio.create_task(preload_fair())
+    asyncio.create_task(scheduled_homepage_map_sync())
 
     # Start OAM DB sync scheduler (weekly background updates)
     start_sync_scheduler()
@@ -126,9 +146,9 @@ async def lifespan(app: FastAPI):
 
     # Initialize authentication from environment variables
     # This automatically configures JWT issuer validation
-    print("🔧 Loading AuthConfig from environment...")
+    print("Loading AuthConfig from environment...")
     auth_config = AuthConfig.from_env()
-    print(f"🔧 AuthConfig loaded: hanko_api_url={auth_config.hanko_api_url}, jwt_issuer={auth_config.jwt_issuer}")
+    print(f"AuthConfig loaded: hanko_api_url={auth_config.hanko_api_url}, jwt_issuer={auth_config.jwt_issuer}")
     init_auth(auth_config)
     print("Authentication initialized")
 
@@ -223,6 +243,12 @@ app.include_router(
     open_aerial_map.router,
     prefix=settings.api_v1_prefix,
     tags=["open aerial map"],
+)
+
+app.include_router(
+    homepage_map.router,
+    prefix=settings.api_v1_prefix,
+    tags=["homepage map"],
 )
 
 app.include_router(

@@ -38,7 +38,7 @@ async def _db_sync_scheduler() -> None:
             async with AsyncSessionLocal() as db:
                 await oam_service.sync_from_oam_api(db)
         except Exception as e:
-            print(f"⚠️ OAM DB sync scheduler error: {e}")
+            print(f"OAM DB sync scheduler error: {e}")
 
         await asyncio.sleep(SYNC_INTERVAL)
 
@@ -48,7 +48,7 @@ def start_sync_scheduler() -> None:
     global _sync_task
     if _sync_task is None or _sync_task.done():
         _sync_task = asyncio.create_task(_db_sync_scheduler())
-        print("🕐 OAM DB sync scheduler started (weekly updates)")
+        print("OAM DB sync scheduler started (weekly updates)")
 
 
 def stop_sync_scheduler() -> None:
@@ -56,7 +56,7 @@ def stop_sync_scheduler() -> None:
     global _sync_task
     if _sync_task and not _sync_task.done():
         _sync_task.cancel()
-        print("🛑 OAM DB sync scheduler stopped")
+        print("OAM DB sync scheduler stopped")
 
 
 # Keep legacy name so main.py import doesn't break during transition

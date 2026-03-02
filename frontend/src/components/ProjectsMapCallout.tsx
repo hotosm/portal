@@ -1,15 +1,12 @@
 import ReactMarkdown from "react-markdown";
-import { useProjectDetails } from "../hooks/useProjectDetails";
-import { useDroneProjectDetails } from "../hooks/useDroneProjectDetails";
-import { useOAMProjectDetails } from "../hooks/useOAMProjectDetails";
-import { useFAIRModelDetails } from "../hooks/useFAIRModelDetails";
-import { useUMapShowcaseDetails } from "../hooks/useUMapShowcaseDetails";
+import { useMapProjectDetails } from "../hooks/useMapProjectDetails";
 import { m } from "../paraglide/messages";
 import { shortenText } from "../utils/utils";
 import Button from "./shared/Button";
 import Icon from "./shared/Icon";
 import { ProjectMapFeature } from "../types/projectsMap";
 import { ProjectMapListCallout } from "./ProjectsMapListCallout";
+import type { ProductType } from "../types/projectsMap/products";
 
 interface ProjectsMapCalloutProps {
   // For individual project details
@@ -77,49 +74,13 @@ function IndividualProjectCallout({
   product: string;
   onClose: () => void;
 }) {
-  // Use appropriate hook based on product type
-  const taskingManagerQuery = useProjectDetails(
-    product === "tasking-manager" ? Number(projectId) : null
-  );
-  const droneTaskingManagerQuery = useDroneProjectDetails(
-    product === "drone-tasking-manager" ? String(projectId) : null
-  );
-  const oamQuery = useOAMProjectDetails(
-    product === "imagery" ? String(projectId) : null
-  );
-  const fairQuery = useFAIRModelDetails(
-    product === "fair" ? Number(projectId) : null
-  );
-  const umapQuery = useUMapShowcaseDetails(
-    product === "umap" ? String(projectId) : null
+  const detailsQuery = useMapProjectDetails(
+    product as ProductType,
+    projectId
   );
 
-  // Get the active query data
-  const projectData =
-    product === "tasking-manager"
-      ? taskingManagerQuery.data
-      : product === "drone-tasking-manager"
-      ? droneTaskingManagerQuery.data
-      : product === "imagery"
-      ? oamQuery.data
-      : product === "fair"
-      ? fairQuery.data
-      : product === "umap"
-      ? umapQuery.data
-      : null;
-
-  const isLoading =
-    product === "tasking-manager"
-      ? taskingManagerQuery.isLoading
-      : product === "drone-tasking-manager"
-      ? droneTaskingManagerQuery.isLoading
-      : product === "imagery"
-      ? oamQuery.isLoading
-      : product === "fair"
-      ? fairQuery.isLoading
-      : product === "umap"
-      ? umapQuery.isLoading
-      : false;
+  const projectData = detailsQuery.data;
+  const isLoading = detailsQuery.isLoading;
 
   if (isLoading) {
     return (

@@ -23,7 +23,7 @@ DRONE_TM_BACKEND_URL = settings.drone_tm_backend_url
 DRONE_TM_AUTH_HEADER = settings.drone_tm_auth_header
 DRONE_TM_AUTH_PREFIX = settings.drone_tm_auth_prefix
 
-logger.info(f"🚁 Drone-TM Backend URL: {DRONE_TM_BACKEND_URL}")
+logger.info(f"Drone-TM Backend URL: {DRONE_TM_BACKEND_URL}")
 
 router = APIRouter(prefix="/drone-tasking-manager")
 
@@ -85,11 +85,11 @@ async def get_projects(
     # The cookie name might be "hanko" or another name depending on your setup
     hanko_cookie = request.cookies.get("hanko")
     
-    logger.info(f"🍪 Hanko cookie present: {bool(hanko_cookie)}")
-    logger.info(f"🌐 Target URL: {url}")
+    logger.info(f"Hanko cookie present: {bool(hanko_cookie)}")
+    logger.info(f"Target URL: {url}")
     
     if not hanko_cookie:
-        logger.warning("❌ No Hanko cookie found in request")
+        logger.warning("No Hanko cookie found in request")
         raise HTTPException(
             status_code=401,
             detail="Hanko authentication cookie not found. Please log in."
@@ -134,9 +134,9 @@ async def get_projects(
                 if search:
                     params["search"] = search
                 
-                logger.info(f"📡 Making request to {url} with params: {params}")
+                logger.info(f"Making request to {url} with params: {params}")
                 response = await client.get(url, headers=headers, params=params)
-                logger.info(f"✅ Response status: {response.status_code}")
+                logger.info(f"Response status: {response.status_code}")
                 response.raise_for_status()
                 return response.json()
             
@@ -182,19 +182,19 @@ async def get_projects(
                 }
                 
         except httpx.HTTPStatusError as e:
-            logger.error(f"❌ HTTP Error: {e.response.status_code} - {e.response.text}")
+            logger.error(f"HTTP Error: {e.response.status_code} - {e.response.text}")
             raise HTTPException(
                 status_code=e.response.status_code,
                 detail=f"Error from DroneTM API: {e.response.text}"
             )
         except httpx.TimeoutException:
-            logger.error("❌ Request timeout")
+            logger.error("Request timeout")
             raise HTTPException(
                 status_code=504,
                 detail="Request to DroneTM API timed out"
             )
         except Exception as e:
-            logger.error(f"❌ Unexpected error: {str(e)}", exc_info=True)
+            logger.error(f"Unexpected error: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -250,7 +250,7 @@ async def get_projects_centroids(
     # Use configured backend URL for public centroids endpoint
     url = f"{DRONE_TM_BACKEND_URL}/projects/centroids"
 
-    logger.info(f"🌐 [Centroids] Target URL: {url}")
+    logger.info(f"[Centroids] Target URL: {url}")
 
     headers = {
         "Accept": "application/json",
@@ -268,9 +268,9 @@ async def get_projects_centroids(
 
     async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl) as client:
         try:
-            logger.info(f"📡 [Centroids] Making request to {url} with params: {params}")
+            logger.info(f"[Centroids] Making request to {url} with params: {params}")
             response = await client.get(url, headers=headers, params=params)
-            logger.info(f"✅ [Centroids] Response status: {response.status_code}")
+            logger.info(f"[Centroids] Response status: {response.status_code}")
             response.raise_for_status()
 
             # The API returns an array, wrap it in our response format
@@ -293,19 +293,19 @@ async def get_projects_centroids(
             return result
 
         except httpx.HTTPStatusError as e:
-            logger.error(f"❌ HTTP Error: {e.response.status_code} - {e.response.text}")
+            logger.error(f"HTTP Error: {e.response.status_code} - {e.response.text}")
             raise HTTPException(
                 status_code=e.response.status_code,
                 detail=f"Error from DroneTM API: {e.response.text}"
             )
         except httpx.TimeoutException:
-            logger.error("❌ Request timeout")
+            logger.error("Request timeout")
             raise HTTPException(
                 status_code=504,
                 detail="Request to DroneTM API timed out"
             )
         except Exception as e:
-            logger.error(f"❌ Unexpected error: {str(e)}", exc_info=True)
+            logger.error(f"Unexpected error: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -344,11 +344,11 @@ async def get_user_projects(
     # Extract Hanko cookie from the incoming request
     hanko_cookie = request.cookies.get("hanko")
     
-    logger.info(f"🍪 [User Projects] Hanko cookie present: {bool(hanko_cookie)}")
-    logger.info(f"🌐 [User Projects] Target URL: {url}")
+    logger.info(f"[User Projects] Hanko cookie present: {bool(hanko_cookie)}")
+    logger.info(f"[User Projects] Target URL: {url}")
     
     if not hanko_cookie:
-        logger.warning("❌ No Hanko cookie found in request")
+        logger.warning("No Hanko cookie found in request")
         raise HTTPException(
             status_code=401,
             detail="Hanko authentication cookie not found. Please log in."
@@ -386,25 +386,25 @@ async def get_user_projects(
     
     async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl) as client:
         try:
-            logger.info(f"📡 [User Projects] Making request to {url} with params: {params}")
+            logger.info(f"[User Projects] Making request to {url} with params: {params}")
             response = await client.get(url, headers=headers, params=params)
-            logger.info(f"✅ [User Projects] Response status: {response.status_code}")
+            logger.info(f"[User Projects] Response status: {response.status_code}")
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:
-            logger.error(f"❌ HTTP Error: {e.response.status_code} - {e.response.text}")
+            logger.error(f"HTTP Error: {e.response.status_code} - {e.response.text}")
             raise HTTPException(
                 status_code=e.response.status_code,
                 detail=f"Error from DroneTM API: {e.response.text}"
             )
         except httpx.TimeoutException:
-            logger.error("❌ Request timeout")
+            logger.error("Request timeout")
             raise HTTPException(
                 status_code=504,
                 detail="Request to DroneTM API timed out"
             )
         except Exception as e:
-            logger.error(f"❌ Unexpected error: {str(e)}", exc_info=True)
+            logger.error(f"Unexpected error: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
 
 

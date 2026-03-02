@@ -85,7 +85,7 @@ async def fetch_and_enrich_in_background():
     enriched_cache_key = "tasking_manager_projects_enriched"
 
     try:
-        logger.info("🔄 Starting background enrichment of Tasking Manager projects...")
+        logger.info("Starting background enrichment of Tasking Manager projects...")
 
         async with httpx.AsyncClient(timeout=120.0) as client:
             # Get base data from cache or fetch it
@@ -113,10 +113,10 @@ async def fetch_and_enrich_in_background():
             set_cached(cache_key, enriched_data, DEFAULT_TTL)
             set_cached(enriched_cache_key, True, DEFAULT_TTL)  # Flag that enrichment is done
 
-            logger.info(f"✅ Background enrichment complete. Enriched {len(project_names)} project names.")
+            logger.info(f"Background enrichment complete. Enriched {len(project_names)} project names.")
 
     except Exception as e:
-        logger.error(f"❌ Background enrichment failed: {e}")
+        logger.error(f"Background enrichment failed: {e}")
     finally:
         _enrichment_in_progress = False
 

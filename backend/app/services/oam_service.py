@@ -92,7 +92,7 @@ async def sync_from_oam_api(db: AsyncSession) -> int:
     Fetch all public imagery from OAM API and upsert into DB.
     Returns total number of images upserted.
     """
-    print("📸 Starting OAM sync from API...")
+    print("Starting OAM sync from API...")
     url = f"{OAM_API_BASE_URL}/meta"
     params = {"limit": 99999, "sort": "desc"}
 
@@ -103,7 +103,7 @@ async def sync_from_oam_api(db: AsyncSession) -> int:
 
     results = data.get("results", [])
     if not results:
-        print("⚠️ OAM API returned 0 results")
+        print("OAM API returned 0 results")
         return 0
 
     # Upsert in batches of 500 to avoid huge transactions
@@ -114,7 +114,7 @@ async def sync_from_oam_api(db: AsyncSession) -> int:
         count = await upsert_images(db, batch)
         total += count
 
-    print(f"✅ OAM sync complete: {total} images upserted")
+    print(f"OAM sync complete: {total} images upserted")
     return total
 
 

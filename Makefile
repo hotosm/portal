@@ -86,50 +86,50 @@ db-reset: ## Reset database (WARNING: deletes all data)
 # Database Migrations
 migrate: ## Run database migrations
 	@echo "Running migrations..."
-	@if docker compose ps backend-dev 2>/dev/null | grep -q "running"; then \
+	@if docker compose ps backend-dev 2>/dev/null | grep -Eiq "running|up"; then \
 		echo "Using Docker dev container..."; \
 		docker compose exec backend-dev uv run alembic upgrade head; \
-	elif docker compose ps backend 2>/dev/null | grep -q "running"; then \
+	elif docker compose ps backend 2>/dev/null | grep -Eiq "running|up"; then \
 		echo "Using Docker prod container..."; \
 		docker compose exec backend uv run alembic upgrade head; \
 	else \
 		echo "Using local uv..."; \
-		cd backend && uv run alembic upgrade head; \
+		cd backend && env -u DATABASE_URL uv run alembic upgrade head; \
 	fi
 
 migrate-create: ## Create a new migration (usage: make migrate-create MSG="description")
 	@echo "Creating migration: $(MSG)"
-	@if docker compose ps backend-dev 2>/dev/null | grep -q "running"; then \
+	@if docker compose ps backend-dev 2>/dev/null | grep -Eiq "running|up"; then \
 		echo "Using Docker dev container..."; \
 		docker compose exec backend-dev uv run alembic revision --autogenerate -m "$(MSG)"; \
-	elif docker compose ps backend 2>/dev/null | grep -q "running"; then \
+	elif docker compose ps backend 2>/dev/null | grep -Eiq "running|up"; then \
 		echo "Using Docker prod container..."; \
 		docker compose exec backend uv run alembic revision --autogenerate -m "$(MSG)"; \
 	else \
 		echo "Using local uv..."; \
-		cd backend && uv run alembic revision --autogenerate -m "$(MSG)"; \
+		cd backend && env -u DATABASE_URL uv run alembic revision --autogenerate -m "$(MSG)"; \
 	fi
 
 migrate-rollback: ## Rollback last migration
 	@echo "Rolling back last migration..."
-	@if docker compose ps backend-dev 2>/dev/null | grep -q "running"; then \
+	@if docker compose ps backend-dev 2>/dev/null | grep -Eiq "running|up"; then \
 		echo "Using Docker dev container..."; \
 		docker compose exec backend-dev uv run alembic downgrade -1; \
-	elif docker compose ps backend 2>/dev/null | grep -q "running"; then \
+	elif docker compose ps backend 2>/dev/null | grep -Eiq "running|up"; then \
 		echo "Using Docker prod container..."; \
 		docker compose exec backend uv run alembic downgrade -1; \
 	else \
 		echo "Using local uv..."; \
-		cd backend && uv run alembic downgrade -1; \
+		cd backend && env -u DATABASE_URL uv run alembic downgrade -1; \
 	fi
 
 migrate-history: ## Show migration history
-	@if docker compose ps backend-dev 2>/dev/null | grep -q "running"; then \
+	@if docker compose ps backend-dev 2>/dev/null | grep -Eiq "running|up"; then \
 		docker compose exec backend-dev uv run alembic history; \
-	elif docker compose ps backend 2>/dev/null | grep -q "running"; then \
+	elif docker compose ps backend 2>/dev/null | grep -Eiq "running|up"; then \
 		docker compose exec backend uv run alembic history; \
 	else \
-		cd backend && uv run alembic history; \
+		cd backend && env -u DATABASE_URL uv run alembic history; \
 	fi
 
 # Cleanup
