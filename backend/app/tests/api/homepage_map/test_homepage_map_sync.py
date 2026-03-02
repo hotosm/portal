@@ -401,3 +401,46 @@ async def test_refresh_sync_fetches_all_dronetm_pages(client: AsyncClient, test_
         )
     ).scalars().all()
     assert set(drone_ids) == {"dr-page-1", "dr-page-2"}
+
+
+@pytest.mark.asyncio
+async def test_refresh_sync_uses_source_specific_ssl_verification(client: AsyncClient, monkeypatch):
+    """fAIr SSL setting should not affect TLS verification for TM/DroneTM/uMap sync calls."""
+
+    created_verify_values: list[bool] = []
+
+    class _FakeAsyncClient:
+        def __init__(self, *args, **kwargs):
+            self.verify = kwargs.get("verify", True)
+            created_verify_values.append(self.verify)
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+    tm_fetch = AsyncMock(return_value=[])
+    drone_fetch = AsyncMock(return_value=[])
+    fair_fetch = AsyncMock(return_value=[])
+    umap_fetch = AsyncMock(return_value=[])
+
+    monkeypatch.setattr("app.services.map_projects_service.httpx.AsyncClient", _FakeAsyncClient)
+    monkeypatch.setattr("app.services.map_projects_service._fetch_tasking_manager_rows", tm_fetch)
+    monkeypatch.setattr("app.services.map_projects_service._fetch_dronetm_rows", drone_fetch)
+    monkeypatch.setattr("app.services.map_projects_service._fetch_fair_rows", fair_fetch)
+    monkeypatch.setattr("app.services.map_projects_service._fetch_umap_rows", umap_fetch)
+    monkeypatch.setattr(
+        "app.services.map_projects_service._fetch_oam_rows_from_db",
+        AsyncMock(return_value=[]),
+    )
+    monkeypatch.setattr("app.services.map_projects_service.settings.fair_verify_ssl", False)
+
+    response = await client.get("/api/homepage-map/projects/snapshot?refresh=true")
+    assert response.status_code == 200
+
+    assert created_verify_values == [True, False]
+    assert tm_fetch.await_args.args[0].verify is True
+    assert drone_fetch.await_args.args[0].verify is True
+    assert umap_fetch.await_args.args[0].verify is True
+    assert fair_fetch.await_args.args[0].verify is False

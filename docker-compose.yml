@@ -100,7 +100,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    command: sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir app --reload-exclude '.venv/*' --reload-exclude 'app/tests/*' --reload-exclude '.pytest_cache/*'"
     profiles:
       - dev
 
