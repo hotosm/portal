@@ -86,7 +86,10 @@ class Settings(BaseSettings):
     fair_api_base_url: str = "https://api-prod.fair.hotosm.org/api/v1"
     # Backward compatibility for older .env files
     fair_backend_url: str | None = None
-    fair_verify_ssl: bool = False
+    fair_verify_ssl: bool = True
+
+    # Homepage map sync scheduler (FastAPI background task)
+    homepage_map_sync_interval_hours: int = 7
 
     @property
     def effective_fair_api_base_url(self) -> str:

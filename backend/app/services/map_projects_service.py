@@ -199,34 +199,60 @@ async def _fetch_tasking_manager_rows(client: httpx.AsyncClient) -> list[dict]:
 
 
 async def _fetch_dronetm_rows(client: httpx.AsyncClient) -> list[dict]:
-    response = await client.get(
-        f"{settings.drone_tm_backend_url}/projects/centroids",
-        params={"filter_by_owner": "false", "page": 1, "results_per_page": 1000},
-    )
-    response.raise_for_status()
-    data = response.json()
-    results = data if isinstance(data, list) else data.get("results", [])
-
+    page = 1
+    per_page = 1000
     rows: list[dict] = []
-    for item in results:
-        project_id = item.get("id")
-        centroid = item.get("centroid") or {}
-        coords = _extract_point_coordinates(centroid)
-        if project_id is None or not coords:
-            continue
-        rows.append(
-            _build_row(
-                product="drone-tasking-manager",
-                project_id=str(project_id),
-                lon=coords[0],
-                lat=coords[1],
-                name=item.get("name"),
-                metadata_json={
-                    "source_uuid": str(project_id),
-                    "created_at": _to_iso_datetime(item.get("created") or item.get("created_at")),
-                },
-            )
+
+    while True:
+        response = await client.get(
+            f"{settings.drone_tm_backend_url}/projects/centroids",
+            params={"filter_by_owner": "false", "page": page, "results_per_page": per_page},
         )
+        response.raise_for_status()
+        data = response.json()
+        results = data if isinstance(data, list) else data.get("results", [])
+
+        for item in results:
+            project_id = item.get("id")
+            centroid = item.get("centroid") or {}
+            coords = _extract_point_coordinates(centroid)
+            if project_id is None or not coords:
+                continue
+            rows.append(
+                _build_row(
+                    product="drone-tasking-manager",
+                    project_id=str(project_id),
+                    lon=coords[0],
+                    lat=coords[1],
+                    name=item.get("name"),
+                    metadata_json={
+                        "source_uuid": str(project_id),
+                        "created_at": _to_iso_datetime(item.get("created") or item.get("created_at")),
+                    },
+                )
+            )
+
+        if isinstance(data, list):
+            break
+
+        pagination = data.get("pagination") if isinstance(data, dict) else None
+        if isinstance(pagination, dict):
+            total = pagination.get("total")
+            current_page = pagination.get("page") or page
+            current_per_page = pagination.get("per_page") or per_page
+
+            if isinstance(total, int) and isinstance(current_page, int) and isinstance(current_per_page, int):
+                if current_page * current_per_page >= total:
+                    break
+            elif len(results) < per_page:
+                break
+        elif len(results) < per_page:
+            break
+
+        if not results:
+            break
+
+        page += 1
 
     return rows
 
@@ -386,20 +412,27 @@ async def _fetch_oam_rows_from_db(db: AsyncSession) -> list[dict]:
     return output
 
 
-async def _insert_new_product_rows(db: AsyncSession, rows: list[dict]) -> int:
+async def _upsert_product_rows(db: AsyncSession, rows: list[dict]) -> int:
     if not rows:
         return 0
 
-    inserted_total = 0
+    affected_total = 0
     for start in range(0, len(rows), UPSERT_CHUNK_SIZE):
         chunk = rows[start : start + UPSERT_CHUNK_SIZE]
-        stmt = insert(MapProject).values(chunk).on_conflict_do_nothing(
+        stmt = insert(MapProject).values(chunk).on_conflict_do_update(
             index_elements=["id"],
+            set_={
+                "name": insert(MapProject).excluded.name,
+                "longitude": insert(MapProject).excluded.longitude,
+                "latitude": insert(MapProject).excluded.latitude,
+                "metadata_json": insert(MapProject).excluded.metadata_json,
+                "synced_at": insert(MapProject).excluded.synced_at,
+            },
         )
         result = await db.execute(stmt)
-        inserted_total += max(result.rowcount or 0, 0)
+        affected_total += max(result.rowcount or 0, 0)
 
-    return inserted_total
+    return affected_total
 
 
 async def _get_sync_states(db: AsyncSession) -> dict[str, MapProjectSyncState]:
@@ -488,12 +521,15 @@ async def sync_from_sources(db: AsyncSession) -> dict[str, int]:
         "imagery": 0,
     }
 
-    async with httpx.AsyncClient(timeout=90.0, verify=settings.fair_verify_ssl) as client:
+    async with (
+        httpx.AsyncClient(timeout=90.0, verify=True) as default_client,
+        httpx.AsyncClient(timeout=90.0, verify=settings.fair_verify_ssl) as fair_client,
+    ):
         tm_result, drone_result, fair_result, umap_result = await asyncio.gather(
-            _fetch_tasking_manager_rows(client),
-            _fetch_dronetm_rows(client),
-            _fetch_fair_rows(client),
-            _fetch_umap_rows(client),
+            _fetch_tasking_manager_rows(default_client),
+            _fetch_dronetm_rows(default_client),
+            _fetch_fair_rows(fair_client),
+            _fetch_umap_rows(default_client),
             return_exceptions=True,
         )
 
@@ -506,20 +542,17 @@ async def sync_from_sources(db: AsyncSession) -> dict[str, int]:
 
     states = await _get_sync_states(db)
 
-    tm_rows_to_insert = _filter_rows_since_cursor(tm_rows, states.get("tasking-manager"))
-    drone_rows_to_insert = _filter_rows_since_cursor(
-        drone_rows,
-        states.get("drone-tasking-manager"),
-    )
-    fair_rows_to_insert = _filter_rows_since_cursor(fair_rows, states.get("fair"))
-    umap_rows_to_insert = _filter_rows_since_cursor(umap_rows, states.get("umap"))
-    oam_rows_to_insert = _filter_rows_since_cursor(oam_rows, states.get("imagery"))
+    tm_rows_to_upsert = tm_rows
+    drone_rows_to_upsert = drone_rows
+    fair_rows_to_upsert = fair_rows
+    umap_rows_to_upsert = umap_rows
+    oam_rows_to_upsert = _filter_rows_since_cursor(oam_rows, states.get("imagery"))
 
-    counts["tasking-manager"] = await _insert_new_product_rows(db, tm_rows_to_insert)
-    counts["drone-tasking-manager"] = await _insert_new_product_rows(db, drone_rows_to_insert)
-    counts["fair"] = await _insert_new_product_rows(db, fair_rows_to_insert)
-    counts["umap"] = await _insert_new_product_rows(db, umap_rows_to_insert)
-    counts["imagery"] = await _insert_new_product_rows(db, oam_rows_to_insert)
+    counts["tasking-manager"] = await _upsert_product_rows(db, tm_rows_to_upsert)
+    counts["drone-tasking-manager"] = await _upsert_product_rows(db, drone_rows_to_upsert)
+    counts["fair"] = await _upsert_product_rows(db, fair_rows_to_upsert)
+    counts["umap"] = await _upsert_product_rows(db, umap_rows_to_upsert)
+    counts["imagery"] = await _upsert_product_rows(db, oam_rows_to_upsert)
 
     await _upsert_sync_state(db, "tasking-manager", tm_rows, states)
     await _upsert_sync_state(db, "drone-tasking-manager", drone_rows, states)

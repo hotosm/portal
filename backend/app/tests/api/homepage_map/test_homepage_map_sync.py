@@ -52,6 +52,16 @@ def _drone_payload(project_ids: list[str]) -> dict:
     }
 
 
+def _drone_payload_with_pagination(project_ids: list[str], page: int, per_page: int, total: int) -> dict:
+    payload = _drone_payload(project_ids)
+    payload["pagination"] = {
+        "page": page,
+        "per_page": per_page,
+        "total": total,
+    }
+    return payload
+
+
 def _fair_payload(model_ids: list[int]) -> dict:
     return {
         "type": "FeatureCollection",
@@ -296,3 +306,98 @@ async def test_refresh_sync_tracks_cursor_and_inserts_only_newer_rows(client: As
     }
     assert state_by_product["tasking-manager"].last_identity == "11"
     assert state_by_product["tasking-manager"].last_created_at is not None
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_refresh_sync_updates_existing_record_when_name_changes(client: AsyncClient, test_db_session):
+    """Existing map project rows are updated when source data changes (e.g. name)."""
+    respx.get(TM_URL).mock(
+        side_effect=[
+            Response(200, json=_tm_payload([42])),
+            Response(
+                200,
+                json={
+                    "mapResults": {
+                        "features": [
+                            {
+                                "type": "Feature",
+                                "geometry": {"type": "Point", "coordinates": [10, -10]},
+                                "properties": {
+                                    "projectId": 42,
+                                    "name": "TM 42 renamed",
+                                    "created": "2025-01-01T00:00:00Z",
+                                },
+                            }
+                        ]
+                    }
+                },
+            ),
+        ]
+    )
+    respx.get(DRONE_URL).mock(return_value=Response(200, json=_drone_payload(["dr-update"])))
+    respx.get(FAIR_URL).mock(return_value=Response(200, json=_fair_payload([321])))
+    respx.get(UMAP_SHOWCASE_URL).mock(
+        return_value=Response(200, json=_umap_showcase_payload(["5200"]))
+    )
+
+    with patch(
+        "app.services.map_projects_service._fetch_oam_rows_from_db",
+        new=AsyncMock(return_value=_oam_rows(["img-update"])),
+    ):
+        first = await client.get("/api/homepage-map/projects/snapshot?refresh=true")
+        second = await client.get("/api/homepage-map/projects/snapshot?refresh=true")
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+
+    tm_row = (
+        await test_db_session.execute(
+            select(MapProject).where(MapProject.id == "tasking-manager:42")
+        )
+    ).scalar_one()
+    assert tm_row.name == "TM 42 renamed"
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_refresh_sync_fetches_all_dronetm_pages(client: AsyncClient, test_db_session):
+    """DroneTM sync should paginate beyond first page and persist all projects."""
+    respx.get(TM_URL).mock(return_value=Response(200, json=_tm_payload([9001])))
+    respx.get(FAIR_URL).mock(return_value=Response(200, json=_fair_payload([901])))
+    respx.get(UMAP_SHOWCASE_URL).mock(
+        return_value=Response(200, json=_umap_showcase_payload(["9020"]))
+    )
+
+    drone_route = respx.get(DRONE_URL).mock(
+        side_effect=[
+            Response(
+                200,
+                json=_drone_payload_with_pagination(
+                    ["dr-page-1"], page=1, per_page=1, total=2
+                ),
+            ),
+            Response(
+                200,
+                json=_drone_payload_with_pagination(
+                    ["dr-page-2"], page=2, per_page=1, total=2
+                ),
+            ),
+        ]
+    )
+
+    with patch(
+        "app.services.map_projects_service._fetch_oam_rows_from_db",
+        new=AsyncMock(return_value=_oam_rows(["img-pages"])),
+    ):
+        response = await client.get("/api/homepage-map/projects/snapshot?refresh=true")
+
+    assert response.status_code == 200
+    assert drone_route.call_count == 2
+
+    drone_ids = (
+        await test_db_session.execute(
+            select(MapProject.project_id).where(MapProject.product == "drone-tasking-manager")
+        )
+    ).scalars().all()
+    assert set(drone_ids) == {"dr-page-1", "dr-page-2"}

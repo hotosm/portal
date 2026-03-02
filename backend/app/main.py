@@ -22,9 +22,28 @@ from app.api.routes.umap import umap
 from app.api.routes.export_tool import export_tool
 from app.api.routes.chatmap import chatmap
 from app.core.config import settings
-from app.core.database import check_db_connection
+from app.core.database import AsyncSessionLocal, check_db_connection
 
-HOMEPAGE_MAP_SYNC_INTERVAL_SECONDS = 6 * 60 * 60
+def get_homepage_map_sync_interval_seconds() -> int:
+    return settings.homepage_map_sync_interval_hours * 60 * 60
+
+
+async def homepage_map_sync_loop() -> None:
+    """Continuously sync homepage map projects into DB every configured interval."""
+    from app.services import map_projects_service
+
+    while True:
+        try:
+            async with AsyncSessionLocal() as db:
+                counts = await map_projects_service.sync_from_sources(db)
+                print(f"Homepage map scheduled sync complete (upserted rows): {counts}")
+        except asyncio.CancelledError:
+            print("Homepage map scheduled sync cancelled")
+            raise
+        except Exception as e:
+            print(f"Homepage map scheduled sync failed (non-critical): {e}")
+
+        await asyncio.sleep(get_homepage_map_sync_interval_seconds())
 
 
 async def preload_cache():
@@ -81,21 +100,6 @@ async def preload_cache():
         except Exception as e:
             print(f"OAM initial sync failed (non-critical): {e}")
 
-    async def scheduled_homepage_map_sync():
-        """Continuously sync homepage map projects into DB every ~6 hours."""
-        from app.core.database import AsyncSessionLocal
-        from app.services import map_projects_service
-
-        while True:
-            try:
-                async with AsyncSessionLocal() as db:
-                    counts = await map_projects_service.sync_from_sources(db)
-                    print(f"Homepage map scheduled sync complete (new rows): {counts}")
-            except Exception as e:
-                print(f"Homepage map scheduled sync failed (non-critical): {e}")
-
-            await asyncio.sleep(HOMEPAGE_MAP_SYNC_INTERVAL_SECONDS)
-
     async def preload_fair():
         """Preload fAIr model centroids and enrich with names."""
         try:
@@ -128,7 +132,6 @@ async def preload_cache():
     asyncio.create_task(preload_drone_tm())
     asyncio.create_task(initial_oam_sync())
     asyncio.create_task(preload_fair())
-    asyncio.create_task(scheduled_homepage_map_sync())
 
     # Start OAM DB sync scheduler (weekly background updates)
     start_sync_scheduler()
@@ -155,7 +158,19 @@ async def lifespan(app: FastAPI):
     # Preload cache in background (non-blocking)
     await preload_cache()
 
+    # Start homepage map sync scheduler as managed FastAPI app task
+    app.state.homepage_map_sync_task = asyncio.create_task(homepage_map_sync_loop())
+
     yield
+
+    homepage_map_sync_task = getattr(app.state, "homepage_map_sync_task", None)
+    if homepage_map_sync_task is not None:
+        homepage_map_sync_task.cancel()
+        try:
+            await homepage_map_sync_task
+        except asyncio.CancelledError:
+            pass
+
     # Shutdown
     print("Shutting down...")
 
