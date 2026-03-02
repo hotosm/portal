@@ -299,6 +299,7 @@ export function ProjectsMap({
     //   console.warn("MapboxLanguage control not compatible with MapLibre", e);
     // }
 
+    
     map.current.on("load", async () => {
       if (!map.current) return;
 
