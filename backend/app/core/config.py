@@ -102,4 +102,5 @@ class Settings(BaseSettings):
     chatmap_api_base_url: str = "https://chatmap.hotosm.org/api/v1"
 
 
+
 settings = Settings()
