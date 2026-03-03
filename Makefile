@@ -1,5 +1,8 @@
 .PHONY: help install dev dev-docker stop test test-backend test-frontend lint lint-fix clean build deploy-test
 
+UV_LOCAL_ENV ?= .venv-local
+UV_LOCAL = UV_PROJECT_ENVIRONMENT=$(UV_LOCAL_ENV) uv
+
 help: ## Show this help message
 	@echo 'Usage: make [target]'
 	@echo ''
@@ -11,13 +14,13 @@ install: ## Install all dependencies
 	@echo "Installing frontend dependencies..."
 	cd frontend && pnpm install
 	@echo "Installing backend dependencies..."
-	cd backend && uv sync --all-extras
+	cd backend && $(UV_LOCAL) sync --all-extras
 	@echo "✓ Dependencies installed"
 
 # Development (Local)
 dev-backend: ## Run backend locally (without Docker)
 	@echo "Starting backend..."
-	cd backend && uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+	cd backend && $(UV_LOCAL) run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 dev-frontend: ## Run frontend locally (without Docker)
 	@echo "Starting frontend..."
@@ -50,11 +53,11 @@ test: test-backend test-frontend ## Run all tests
 
 test-backend: ## Run backend tests
 	@echo "Running backend tests..."
-	cd backend && uv run pytest
+	cd backend && $(UV_LOCAL) run --extra dev pytest
 
 test-backend-cov: ## Run backend tests with coverage report
 	@echo "Running backend tests with coverage..."
-	cd backend && uv run pytest --cov-report=html
+	cd backend && $(UV_LOCAL) run --extra dev pytest --cov-report=html
 
 test-frontend: ## Run frontend tests
 	@echo "Running frontend tests..."
@@ -63,14 +66,14 @@ test-frontend: ## Run frontend tests
 # Linting and formatting
 lint: ## Run linters for both frontend and backend
 	@echo "Linting backend..."
-	cd backend && uv run ruff check .
+	cd backend && $(UV_LOCAL) run --extra dev ruff check .
 	@echo "Linting frontend..."
 	cd frontend && pnpm lint
 
 lint-fix: ## Fix linting issues
 	@echo "Fixing backend linting issues..."
-	cd backend && uv run ruff check --fix .
-	cd backend && uv run ruff format .
+	cd backend && $(UV_LOCAL) run --extra dev ruff check --fix .
+	cd backend && $(UV_LOCAL) run --extra dev ruff format .
 	@echo "Fixing frontend linting issues..."
 	cd frontend && pnpm lint:fix
 
@@ -94,7 +97,7 @@ migrate: ## Run database migrations
 		docker compose exec backend uv run alembic upgrade head; \
 	else \
 		echo "Using local uv..."; \
-		cd backend && env -u DATABASE_URL uv run alembic upgrade head; \
+		cd backend && env -u DATABASE_URL UV_PROJECT_ENVIRONMENT=$(UV_LOCAL_ENV) uv run alembic upgrade head; \
 	fi
 
 migrate-create: ## Create a new migration (usage: make migrate-create MSG="description")
@@ -107,7 +110,7 @@ migrate-create: ## Create a new migration (usage: make migrate-create MSG="descr
 		docker compose exec backend uv run alembic revision --autogenerate -m "$(MSG)"; \
 	else \
 		echo "Using local uv..."; \
-		cd backend && env -u DATABASE_URL uv run alembic revision --autogenerate -m "$(MSG)"; \
+		cd backend && env -u DATABASE_URL UV_PROJECT_ENVIRONMENT=$(UV_LOCAL_ENV) uv run alembic revision --autogenerate -m "$(MSG)"; \
 	fi
 
 migrate-rollback: ## Rollback last migration
@@ -120,7 +123,7 @@ migrate-rollback: ## Rollback last migration
 		docker compose exec backend uv run alembic downgrade -1; \
 	else \
 		echo "Using local uv..."; \
-		cd backend && env -u DATABASE_URL uv run alembic downgrade -1; \
+		cd backend && env -u DATABASE_URL UV_PROJECT_ENVIRONMENT=$(UV_LOCAL_ENV) uv run alembic downgrade -1; \
 	fi
 
 migrate-history: ## Show migration history
@@ -129,7 +132,7 @@ migrate-history: ## Show migration history
 	elif docker compose ps backend 2>/dev/null | grep -Eiq "running|up"; then \
 		docker compose exec backend uv run alembic history; \
 	else \
-		cd backend && env -u DATABASE_URL uv run alembic history; \
+		cd backend && env -u DATABASE_URL UV_PROJECT_ENVIRONMENT=$(UV_LOCAL_ENV) uv run alembic history; \
 	fi
 
 # Cleanup

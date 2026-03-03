@@ -86,19 +86,6 @@ def _is_newer_cursor(
     return _identity_sort_key(candidate_identity) > _identity_sort_key(current_identity)
 
 
-async def ensure_table_exists(db: AsyncSession) -> None:
-    """Create map_projects table if migration has not been applied yet."""
-    bind = db.bind
-    if bind is None:
-        return
-
-    async with bind.begin() as conn:
-        await conn.run_sync(lambda sync_conn: MapProject.__table__.create(sync_conn, checkfirst=True))
-        await conn.run_sync(
-            lambda sync_conn: MapProjectSyncState.__table__.create(sync_conn, checkfirst=True)
-        )
-
-
 def _build_row(
     product: str,
     project_id: str,
@@ -511,8 +498,6 @@ async def _upsert_sync_state(
 
 async def sync_from_sources(db: AsyncSession) -> dict[str, int]:
     """Fetch and persist map centroids from all product sources."""
-    await ensure_table_exists(db)
-
     counts: dict[str, int] = {
         "tasking-manager": 0,
         "drone-tasking-manager": 0,
@@ -567,8 +552,6 @@ async def sync_from_sources(db: AsyncSession) -> dict[str, int]:
 
 async def query_map_projects(db: AsyncSession) -> dict:
     """Return all stored map projects as a GeoJSON FeatureCollection."""
-    await ensure_table_exists(db)
-
     rows = (
         await db.execute(
             select(MapProject).order_by(
@@ -606,7 +589,5 @@ async def query_map_projects(db: AsyncSession) -> dict:
 
 
 async def is_db_empty(db: AsyncSession) -> bool:
-    await ensure_table_exists(db)
-
     result = await db.execute(select(func.count(MapProject.id)))
     return (result.scalar() or 0) == 0

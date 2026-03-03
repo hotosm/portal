@@ -16,7 +16,7 @@ from httpx import AsyncClient, Response
 @respx.mock
 async def test_get_fmtm_projects_success(client: AsyncClient):
     """Test that get_fmtm_projects returns 200 and a valid dict response."""
-    # El mock debe devolver un objeto con "results" y "pagination"
+    # The mock should return an object with "results" and "pagination"
     mock_response = {
         "results": [
             {"id": 1, "name": "Water Mapping"},
@@ -40,7 +40,7 @@ async def test_get_fmtm_projects_success(client: AsyncClient):
     assert response.status_code == 200
     data = response.json()
 
-    # Validar que sea dict y tenga la clave 'projects'
+    # Validate that it is a dict and contains the 'projects' key
     assert isinstance(data, dict)
     assert "projects" in data
     assert isinstance(data["projects"], dict)
@@ -102,7 +102,7 @@ async def test_get_fmtm_projects_unexpected_error(client: AsyncClient):
 @respx.mock
 async def test_get_fmtm_project_by_id_success(client: AsyncClient):
     """Test that get_fmtm_project_by_id returns 200 and valid project data."""
-    # El modelo FMTMProjectSummary no tiene 'description', tiene 'short_description'
+    # The FMTMProjectSummary model has no 'description'; it has 'short_description'
     mock_response = {
         "id": 123,
         "name": "Flood Mapping",

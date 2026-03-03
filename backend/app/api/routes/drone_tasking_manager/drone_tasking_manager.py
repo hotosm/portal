@@ -28,6 +28,16 @@ logger.info(f"Drone-TM Backend URL: {DRONE_TM_BACKEND_URL}")
 router = APIRouter(prefix="/drone-tasking-manager")
 
 
+def build_dronetm_cache_key(
+    filter_by_owner: bool,
+    search: str | None,
+    page: int,
+    results_per_page: int,
+) -> str:
+    """Build the cache key for DroneTM centroids. Single source of truth."""
+    return f"dronetm_centroids_{filter_by_owner}_{search}_{page}_{results_per_page}"
+
+
 def _extract_hanko_user_id_from_token(token: str) -> Optional[str]:
     """Try to decode a JWT-like token and extract a user id (sub or hanko_user_id).
 
@@ -241,8 +251,7 @@ async def get_projects_centroids(
         }
     ```
     """
-    # Cache key based on parameters
-    cache_key = f"dronetm_centroids_{filter_by_owner}_{search}_{page}_{results_per_page}"
+    cache_key = build_dronetm_cache_key(filter_by_owner, search, page, results_per_page)
     cached_data = get_cached(cache_key)
     if cached_data is not None:
         return cached_data

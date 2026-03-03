@@ -67,8 +67,8 @@ export function useOAMImagery() {
             console.warn("User email not available for OAM lookup");
             return [];
           }
-          console.error("Error fetching OAM imagery:", await response.text());
-          return [];
+          const errorText = await response.text();
+          throw new Error(`[${response.status}] Failed to fetch OAM imagery: ${errorText}`);
         }
 
         const data: OAMApiResponse = await response.json();
@@ -82,8 +82,7 @@ export function useOAMImagery() {
           image: item.properties?.thumbnail || "",
         }));
       } catch (error) {
-        console.error("Error fetching OAM imagery:", error);
-        return [];
+        throw error;
       }
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -112,15 +111,14 @@ export function useOAMImageryRaw() {
           if (response.status === 400) {
             return [];
           }
-          console.error("Error fetching raw OAM imagery:", await response.text());
-          return [];
+          const errorText = await response.text();
+          throw new Error(`[${response.status}] Failed to fetch OAM imagery: ${errorText}`);
         }
 
         const data: OAMApiResponse = await response.json();
         return data.results || [];
       } catch (error) {
-        console.error("Error fetching raw OAM imagery:", error);
-        return [];
+        throw error;
       }
     },
     staleTime: 5 * 60 * 1000,

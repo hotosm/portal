@@ -41,19 +41,17 @@ export function useMyMaps() {
 
         if (!response.ok) {
           if (response.status === 401 || response.status === 403) {
-            // User not authenticated - return empty array
             return [];
           }
-          console.error("Error fetching uMap maps:", await response.text());
-          return [];
+          const errorText = await response.text();
+          throw new Error(`[${response.status}] Failed to fetch uMap maps: ${errorText}`);
         }
 
         const data: UMapMapsResponse = await response.json();
         const maps = data.maps || [];
         return maps.map((m) => mapToUMapProject(m, false));
       } catch (error) {
-        console.error("Error fetching uMap maps:", error);
-        return [];
+        throw error;
       }
     },
   });
@@ -68,19 +66,17 @@ export function useMyTemplates() {
 
         if (!response.ok) {
           if (response.status === 401 || response.status === 403) {
-            // User not authenticated - return empty array
             return [];
           }
-          console.error("Error fetching uMap templates:", await response.text());
-          return [];
+          const errorText = await response.text();
+          throw new Error(`[${response.status}] Failed to fetch uMap templates: ${errorText}`);
         }
 
         const data: UMapTemplatesResponse = await response.json();
         const templates = data.templates || [];
         return templates.map((t) => mapToUMapProject(t, true));
       } catch (error) {
-        console.error("Error fetching uMap templates:", error);
-        return [];
+        throw error;
       }
     },
   });

@@ -19,16 +19,15 @@ export function useMyModels() {
           if (response.status === 401 || response.status === 403) {
             return [];
           }
-          console.error("Error fetching models:", await response.text());
-          return [];
+          const errorText = await response.text();
+          throw new Error(`[${response.status}] Failed to fetch fAIr models: ${errorText}`);
         }
 
         const data: FAIRResponse<FAIRModel> = await response.json();
         const models = data.results || [];
         return mapModelsToDataProjects(models);
       } catch (error) {
-        console.error("Error fetching models:", error);
-        return [];
+        throw error;
       }
     },
   });
@@ -45,16 +44,15 @@ export function useMyDatasets() {
           if (response.status === 401 || response.status === 403) {
             return [];
           }
-          console.error("Error fetching datasets:", await response.text());
-          return [];
+          const errorText = await response.text();
+          throw new Error(`[${response.status}] Failed to fetch fAIr datasets: ${errorText}`);
         }
 
         const data: FAIRResponse<FAIRDataset> = await response.json();
         const datasets = data.results || [];
         return mapDatasetsToDataProjects(datasets);
       } catch (error) {
-        console.error("Error fetching datasets:", error);
-        return [];
+        throw error;
       }
     },
   });

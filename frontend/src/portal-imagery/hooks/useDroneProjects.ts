@@ -68,8 +68,8 @@ export function useDroneProjects() {
             if (response.status === 401 || response.status === 403) {
               return [];
             }
-            console.error("Error fetching drone projects:", await response.text());
-            return [];
+            const errorText = await response.text();
+            throw new Error(`[${response.status}] Failed to fetch drone projects: ${errorText}`);
           }
 
           const data: DroneApiResponse = await response.json();
@@ -89,8 +89,7 @@ export function useDroneProjects() {
 
         return allProjects;
       } catch (error) {
-        console.error("Error fetching drone projects:", error);
-        return [];
+        throw error;
       }
     },
     staleTime: 5 * 60 * 1000, // 5 minutes - data considered fresh
@@ -122,8 +121,8 @@ export function useDroneProjectsRaw() {
             if (response.status === 401 || response.status === 403) {
               return [];
             }
-            console.error("Error fetching drone raw projects:", await response.text());
-            return [];
+            const errorText = await response.text();
+            throw new Error(`[${response.status}] Failed to fetch drone projects: ${errorText}`);
           }
 
           const data: DroneApiResponse = await response.json();
@@ -134,8 +133,7 @@ export function useDroneProjectsRaw() {
 
         return allProjects;
       } catch (error) {
-        console.error("Error fetching drone raw projects:", error);
-        return [];
+        throw error;
       }
     },
     staleTime: 5 * 60 * 1000,

@@ -9,6 +9,7 @@ from hotosm_auth import AuthConfig
 from hotosm_auth_fastapi import init_auth
 
 from app.api.routes import example, test
+from app.api.routes.drone_tasking_manager.drone_tasking_manager import build_dronetm_cache_key
 from app.api.routes.tasking_manager import tasking_manager
 from app.api.routes.drone_tasking_manager import drone_tasking_manager
 from app.api.routes.open_aerial_map import open_aerial_map
@@ -58,11 +59,10 @@ async def preload_cache():
     async def preload_drone_tm():
         """Preload Drone TM centroids from production API."""
         try:
-            # Use production URL directly (same as the endpoint)
             drone_tm_production_url = "https://dronetm.org/api"
-            # Cache key must match: f"dronetm_centroids_{filter_by_owner}_{search}_{page}_{results_per_page}"
-            # Frontend uses: /api/drone-tasking-manager/projects/centroids?results_per_page=1000
-            cache_key = "dronetm_centroids_False_None_1_1000"
+            cache_key = build_dronetm_cache_key(
+                filter_by_owner=False, search=None, page=1, results_per_page=1000
+            )
 
             if get_cached(cache_key):
                 print("Drone TM already cached")
