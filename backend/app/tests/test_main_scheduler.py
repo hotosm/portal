@@ -2,7 +2,7 @@
 
 import asyncio
 from contextlib import asynccontextmanager
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -67,6 +67,8 @@ async def test_lifespan_starts_and_cancels_homepage_sync_task(monkeypatch):
 
     monkeypatch.setattr("app.main.preload_cache", _fake_preload_cache)
     monkeypatch.setattr("app.main.homepage_map_sync_loop", _waiting_loop)
+    monkeypatch.setattr("app.main.AuthConfig.from_env", lambda: MagicMock())
+    monkeypatch.setattr("app.main.init_auth", lambda x: None)
 
     async with lifespan(fastapi_app):
         task = getattr(fastapi_app.state, "homepage_map_sync_task", None)
