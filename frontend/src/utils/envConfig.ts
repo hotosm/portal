@@ -8,6 +8,9 @@ type Environment = "local" | "test" | "production";
 
 /**
  * Detect the current environment based on the hostname.
+ * - local:      *.hotosm.test, localhost, 127.0.0.1
+ * - test:       dev.* (e.g. dev.portal.hotosm.org) or testlogin.*
+ * - production: everything else
  */
 export function getEnvironment(): Environment {
   const hostname = window.location.hostname;
@@ -16,7 +19,7 @@ export function getEnvironment(): Environment {
     return "local";
   }
 
-  if (hostname.includes("testlogin.") || hostname.includes("test.")) {
+  if (hostname.startsWith("dev.") || hostname.includes("testlogin.")) {
     return "test";
   }
 
@@ -58,7 +61,7 @@ export function getFairDatasetUrl(datasetId: number): string {
  */
 const UMAP_URLS: Record<Environment, string> = {
   local: "https://umap.hotosm.test",
-  test: "https://testlogin.umap.hotosm.org",
+  test: "https://umap-dev.hotosm.org",
   production: "https://umap.hotosm.org",
 };
 

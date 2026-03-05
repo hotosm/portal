@@ -5,6 +5,7 @@ import MappingProjectCard from "./components/MappingProjectCard";
 import UMapCard from "./components/UMapCard";
 import { mappingProjectsData } from "./mappingProjectsData";
 import { useUMapData } from "./hooks/useUMapData";
+import { getUmapBaseUrl } from "../utils/envConfig";
 
 function MappingPage() {
   const projects = mappingProjectsData;
@@ -21,7 +22,7 @@ function MappingPage() {
           buttonText="Tasking Manager"
           link2={{
             label: "uMap",
-            url: "https://umap.hotosm.org/",
+            url: getUmapBaseUrl(),
           }}
         >
           <strong>Tasking Manager</strong> and <strong>uMap</strong>
