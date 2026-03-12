@@ -1,7 +1,7 @@
 import { LitElement, html, svg } from "lit";
 import { property, state } from "lit/decorators.js";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
-import { styles } from "./tool-menu.styles.js";
+import { styles, HOT_DESIGN_SYSTEM_URL } from "./tool-menu.styles.js";
 import { translations } from "./translations.js";
 // Import tools icons. These icons will be added in the near future, and are not being showed as default.
 import droneIcon from "../assets/icon-drone.svg";
@@ -199,6 +199,15 @@ export class HotToolMenu extends LitElement {
       this.closeDropdown();
     }
   };
+
+  override createRenderRoot() {
+    const root = super.createRenderRoot() as ShadowRoot;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = HOT_DESIGN_SYSTEM_URL;
+    root.appendChild(link);
+    return root;
+  }
 
   disconnectedCallback() {
     super.disconnectedCallback();
