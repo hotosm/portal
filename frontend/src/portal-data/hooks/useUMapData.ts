@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { IUMapProject } from "../umapProjects";
+import type { IUMapProject } from "../types";
 
 // API response types
 interface UMapMapResponse {
@@ -20,11 +20,12 @@ interface UMapTemplatesResponse {
 // Convert API response to IUMapProject format
 function mapToUMapProject(
   item: UMapMapResponse,
-  isTemplate: boolean = false
+  isTemplate: boolean = false,
 ): IUMapProject {
   return {
     id: parseInt(item.id, 10) || 0,
-    title: item.slug.replace(/_\d+$/, "").replace(/-/g, " ") || `Map ${item.id}`,
+    title:
+      item.slug.replace(/_\d+$/, "").replace(/-/g, " ") || `Map ${item.id}`,
     href: item.url,
     status: isTemplate ? "published" : "draft",
     image: "", // uMap doesn't provide thumbnails via API
@@ -44,7 +45,9 @@ export function useMyMaps() {
             return [];
           }
           const errorText = await response.text();
-          throw new Error(`[${response.status}] Failed to fetch uMap maps: ${errorText}`);
+          throw new Error(
+            `[${response.status}] Failed to fetch uMap maps: ${errorText}`,
+          );
         }
 
         const data: UMapMapsResponse = await response.json();
@@ -69,7 +72,9 @@ export function useMyTemplates() {
             return [];
           }
           const errorText = await response.text();
-          throw new Error(`[${response.status}] Failed to fetch uMap templates: ${errorText}`);
+          throw new Error(
+            `[${response.status}] Failed to fetch uMap templates: ${errorText}`,
+          );
         }
 
         const data: UMapTemplatesResponse = await response.json();

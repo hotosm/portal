@@ -1,18 +1,24 @@
 import GoToWesiteCTA from "../components/shared/GoToWesiteCTA";
 import PageWrapper from "../components/shared/PageWrapper";
+import PortalPageSkeleton from "../components/shared/PortalPageSkeleton";
 import YourProjectsTitle from "../components/shared/YourProjectsTitle";
+import DataCard from "../portal-data/components/DataCard";
+import { getFairBaseUrl } from "../utils/envConfig";
 import MappingProjectCard from "./components/MappingProjectCard";
-import UMapCard from "./components/UMapCard";
+import { useMyDatasets, useMyModels } from "./hooks";
 import { mappingProjectsData } from "./mappingProjectsData";
-import { useUMapData } from "./hooks/useUMapData";
-import { getUmapBaseUrl } from "../utils/envConfig";
 
 function MappingPage() {
   const projects = mappingProjectsData;
-  const { maps, templates, isLoading, error } = useUMapData();
 
-  // Combine maps and templates for display
-  const allUMapItems = [...maps, ...templates];
+  const { data: models = [], isLoading: modelsLoading } = useMyModels();
+  const { data: sets = [], isLoading: datasetsLoading } = useMyDatasets();
+
+  const isLoading = modelsLoading || datasetsLoading;
+
+  if (isLoading) {
+    return <PortalPageSkeleton />;
+  }
 
   return (
     <PageWrapper>
@@ -21,11 +27,11 @@ function MappingPage() {
           buttonLink="https://tasks.hotosm.org/"
           buttonText="Tasking Manager"
           link2={{
-            label: "uMap",
-            url: getUmapBaseUrl(),
+            label: "fAIr",
+            url: getFairBaseUrl(),
           }}
         >
-          <strong>Tasking Manager</strong> and <strong>uMap</strong>
+          <strong>Tasking Manager</strong> and <strong>fAIr</strong>
         </GoToWesiteCTA>
         <div className="bg-hot-gray-50 p-md md:p-lg rounded-lg space-y-lg">
           <YourProjectsTitle projects={projects} />
@@ -43,20 +49,39 @@ function MappingPage() {
               );
             })}
           </div>
+
+          {/* fair */}
+
           <div>
             <p className="text-lg ">
-              Your <strong>maps</strong>
+              AI-assisted mapping <br />
+              Powered by fAIr
             </p>
-            {isLoading && <p className="text-sm text-gray-500">Loading your uMap maps...</p>}
-            {error && <p className="text-sm text-red-500">Error loading maps</p>}
-            {!isLoading && allUMapItems.length === 0 && (
-              <p className="text-sm text-gray-500">No maps found. Create one in uMap!</p>
+            {models.length > 0 && (
+              <div>
+                <p className="text-lg ">
+                  Your <strong>models</strong>
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-lg">
+                  {models.map((project) => {
+                    return <DataCard project={project} />;
+                  })}
+                </div>
+              </div>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-lg">
-              {allUMapItems.map((map) => {
-                return <UMapCard key={map.id} project={map} />;
-              })}
-            </div>
+
+            {sets.length > 0 && (
+              <div>
+                <p className="text-lg ">
+                  Your <strong>datasets</strong>
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-lg">
+                  {sets.map((project) => {
+                    return <DataCard project={project} />;
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -1,19 +1,47 @@
 import PageWrapper from "../components/shared/PageWrapper";
 import { useDroneProjects } from "../portal-imagery/hooks/useDroneProjects";
 import { useOAMImagery } from "../portal-imagery/hooks/useOAMImagery";
-import { useMyModels, useMyDatasets } from "../portal-data/hooks/useFairData";
-import { useUMapData } from "../portal-mapping/hooks/useUMapData";
+import {
+  useMyModels,
+  useMyDatasets,
+} from "../portal-mapping/hooks/useFairData";
+import { useUMapData } from "../portal-data/hooks/useUMapData";
 import { useExportJobs } from "../portal-data/hooks/useExportToolData";
 import { useChatMapData } from "../portal-field/hooks/useChatMapData";
 
 function TestPage() {
   const { data: projects, isLoading, error } = useDroneProjects();
-  const { data: oamImagery, isLoading: oamLoading, error: oamError } = useOAMImagery();
-  const { data: models, isLoading: modelsLoading, error: modelsError } = useMyModels();
-  const { data: datasets, isLoading: datasetsLoading, error: datasetsError } = useMyDatasets();
-  const { maps: umapMaps, templates: umapTemplates, isLoading: umapLoading, error: umapError } = useUMapData();
-  const { data: exportJobs, isLoading: exportsLoading, error: exportsError } = useExportJobs();
-  const { data: chatmap, isLoading: chatmapLoading, error: chatmapError } = useChatMapData();
+  const {
+    data: oamImagery,
+    isLoading: oamLoading,
+    error: oamError,
+  } = useOAMImagery();
+  const {
+    data: models,
+    isLoading: modelsLoading,
+    error: modelsError,
+  } = useMyModels();
+  const {
+    data: datasets,
+    isLoading: datasetsLoading,
+    error: datasetsError,
+  } = useMyDatasets();
+  const {
+    maps: umapMaps,
+    templates: umapTemplates,
+    isLoading: umapLoading,
+    error: umapError,
+  } = useUMapData();
+  const {
+    data: exportJobs,
+    isLoading: exportsLoading,
+    error: exportsError,
+  } = useExportJobs();
+  const {
+    data: chatmap,
+    isLoading: chatmapLoading,
+    error: chatmapError,
+  } = useChatMapData();
 
   return (
     <PageWrapper>
@@ -156,7 +184,9 @@ function TestPage() {
         <h2>FAIR Datasets</h2>
 
         {datasetsLoading && <p>Loading FAIR datasets...</p>}
-        {datasetsError && <p>Error loading datasets: {datasetsError.message}</p>}
+        {datasetsError && (
+          <p>Error loading datasets: {datasetsError.message}</p>
+        )}
 
         {datasets && datasets.length === 0 && !datasetsLoading && (
           <p>No FAIR datasets found.</p>
@@ -193,7 +223,9 @@ function TestPage() {
         <h2>Export Tool Jobs</h2>
 
         {exportsLoading && <p>Loading export jobs...</p>}
-        {exportsError && <p>Error loading export jobs: {exportsError.message}</p>}
+        {exportsError && (
+          <p>Error loading export jobs: {exportsError.message}</p>
+        )}
 
         {exportJobs && exportJobs.length === 0 && !exportsLoading && (
           <p>No export jobs found.</p>

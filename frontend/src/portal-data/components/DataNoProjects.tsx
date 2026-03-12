@@ -2,11 +2,8 @@ import Card from "../../components/shared/Card";
 import bg from "../../assets/images/bg.png";
 import Divider from "../../components/shared/Divider";
 import LinkListItem from "../../components/shared/LinkListItem";
-import { getFairBaseUrl } from "../../utils/envConfig";
 
 function DataNoProjects() {
-  const fairBaseUrl = getFairBaseUrl();
-
   return (
     <div
       className="p-md md:p-2xl rounded-lg"
@@ -18,26 +15,10 @@ function DataNoProjects() {
         <div className="flex flex-col lg:flex-row gap-2xl p-0 md:p-xl">
           <div className="flex-1">
             <h3>
-              <strong>fAIr</strong>
+              <strong>uMap</strong>
               <br />
             </h3>
             <Divider />
-            <ul>
-              <li>
-                <LinkListItem
-                  label="Explore models"
-                  icon="search"
-                  link={`${fairBaseUrl}/ai-models`}
-                />
-              </li>
-              <li>
-                <LinkListItem
-                  label="Datasets"
-                  icon="database"
-                  link={`${fairBaseUrl}/datasets`}
-                />
-              </li>
-            </ul>
           </div>
 
           <div className="flex-1">
