@@ -1,4 +1,6 @@
-const FieldCard = ({ project }: any) => {
+import type { FieldProduct } from "../fieldProjects";
+
+const FieldCard = ({ project }: { project: FieldProduct }) => {
   return (
     <a
       href={project.href}

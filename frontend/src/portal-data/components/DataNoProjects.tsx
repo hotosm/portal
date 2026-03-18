@@ -29,7 +29,6 @@ function DataNoProjects() {
             <Divider />
             <ul>
               <li>
-                {/* TODO check links */}
                 <LinkListItem
                   label="Start exporting"
                   icon="file-export"

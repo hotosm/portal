@@ -1,4 +1,6 @@
-const ExportCard = ({ project }: any) => {
+import type { IDataProject } from "../../portal-mapping/types";
+
+const ExportCard = ({ project }: { project: IDataProject }) => {
   return (
     <a
       href={project.href}

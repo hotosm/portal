@@ -9,8 +9,7 @@ import { m } from "../paraglide/messages";
 import CallToAction from "../components/shared/CallToAction";
 
 function HomePage() {
-  const { currentLanguage: _currentLanguage } = useLanguage(); // suscribe to force re-render on language change
-  // TODO relocate when adding other APIs
+  const { currentLanguage: _currentLanguage } = useLanguage(); // subscribe to force re-render on language change
   const { data: projectsData, isLoading, error } = useProjects();
   const {
     selectedProjectId,
@@ -40,7 +39,6 @@ function HomePage() {
               <p>{m.loading_projects()}...</p>
             </div>
           )}
-          {/* TODO customize error message */}
           {error && (
             <div className="absolute inset-0 flex items-center justify-center bg-white/80">
               <p>{m.loading_projects_error()}</p>
@@ -49,52 +47,6 @@ function HomePage() {
         </section>
 
         <section className="text-center relative py-lg md:py-2xl flex-shrink-0 space-y-sm md:space-y-lg">
-          {/* TODO replace with HOT resources */}
-          {/* <svg
-            className="absolute bottom-0 inset-0 w-full h-full -z-10"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <defs>
-              <pattern
-                id="dot-pattern"
-                x="0"
-                y="0"
-                width="20"
-                height="20"
-                patternUnits="userSpaceOnUse"
-              >
-                <circle cx="6" cy="6" r="4" fill="#f1f0f0c3" />
-                <circle cx="18" cy="18" r="4" fill="#f1f0f0c3" />
-              </pattern>
-              <linearGradient
-                id="fade-gradient"
-                x1="100%"
-                y1="100%"
-                x2="0%"
-                y2="0%"
-              >
-                <stop offset="0%" stopColor="white" stopOpacity="1" />
-                <stop offset="100%" stopColor="white" stopOpacity="0" />
-              </linearGradient>
-              <mask id="fade-mask">
-                <rect
-                  x="0"
-                  y="0"
-                  width="100%"
-                  height="100%"
-                  fill="url(#fade-gradient)"
-                />
-              </mask>
-            </defs>
-            <rect
-              x="0"
-              y="0"
-              width="100%"
-              height="100%"
-              fill="url(#dot-pattern)"
-              mask="url(#fade-mask)"
-            />
-          </svg> */}
           <div className="container text-xl md:text-2xl leading-tight ">
             {m.home_workflow_header()}{" "}
             <strong>{m.home_workflow_header_strong()}</strong>
@@ -153,7 +105,7 @@ function HomePage() {
         </Carousel>
       </section>
 
-      {/* Call to action TODO change button appearence */}
+      {/* Call to action */}
       <section className="container py-xl md:py-2xl">
         <CallToAction
           title="Start mapping, today"

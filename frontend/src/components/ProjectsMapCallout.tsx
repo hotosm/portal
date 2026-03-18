@@ -17,6 +17,9 @@ interface ProjectsMapCalloutProps {
   locationName?: string; // For geographic searches
   onClose: () => void;
   onProjectClick?: (projectId: number | string, product?: string) => void;
+  // Application filter (shared with map layer visibility)
+  enabledFilters?: Set<string>;
+  onToggleFilter?: (type: string) => void;
 }
 
 export function ProjectsMapCallout({
@@ -26,6 +29,8 @@ export function ProjectsMapCallout({
   locationName,
   onClose,
   onProjectClick,
+  enabledFilters,
+  onToggleFilter,
 }: ProjectsMapCalloutProps) {
   // If we have a single project ID, show individual project details
   if (projectId) {
@@ -46,6 +51,8 @@ export function ProjectsMapCallout({
         locationName={locationName}
         onClose={onClose}
         onProjectClick={onProjectClick}
+        enabledFilters={enabledFilters}
+        onToggleFilter={onToggleFilter}
       />
     );
   }
@@ -55,7 +62,7 @@ export function ProjectsMapCallout({
     <>
       <div className="flex justify-between items-start text-sm">
         <span></span>
-        <Icon name="close" onClick={onClose} className="cursor-pointer" />
+        <Icon name="close" onClick={onClose} className="cursor-pointer" style={{ color: "white", background: "black", padding: "5px 6px", borderRadius: "100px" }} />
       </div>
       <div className="flex items-center justify-center h-[200px]">
         <p className="text-hot-gray-600">No projects found in this area.</p>
@@ -87,7 +94,7 @@ function IndividualProjectCallout({
       <>
         <div className="flex justify-between items-start">
           <span></span>
-          <Icon name="close" onClick={onClose} className="cursor-pointer" />
+          <Icon name="close" onClick={onClose} className="cursor-pointer" style={{ color: "white", background: "black", padding: "5px 6px", borderRadius: "100px" }} />
         </div>
         <p className="text-xl leading-tight">Loading...</p>
         <div className="flex items-center justify-center h-[400px]">
@@ -104,7 +111,7 @@ function IndividualProjectCallout({
           <span>
             <strong>Project ID:</strong> {projectId}
           </span>
-          <Icon name="close" onClick={onClose} className="cursor-pointer" />
+          <Icon name="close" onClick={onClose} className="cursor-pointer" style={{ color: "white", background: "black", padding: "5px 6px", borderRadius: "100px" }} />
         </div>
         <p className="text-xl leading-tight">Project #{projectId}</p>
         <p className="text-sm text-hot-gray-600">
@@ -119,7 +126,7 @@ function IndividualProjectCallout({
     <>
       <div className="flex justify-between items-start text-sm mb-2">
         <span className="text-hot-gray-500">{projectData.productName}</span>
-        <Icon name="close" onClick={onClose} className="cursor-pointer" />
+        <Icon name="close" onClick={onClose} className="cursor-pointer" style={{ color: "white", background: "black", padding: "5px 6px", borderRadius: "100px" }} />
       </div>
 
       <p className="text-xl leading-tight font-semibold mb-3">

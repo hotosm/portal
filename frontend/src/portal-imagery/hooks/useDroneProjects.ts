@@ -53,44 +53,40 @@ export function useDroneProjects() {
   return useQuery({
     queryKey: droneProjectsQueryKeys.user(),
     queryFn: async (): Promise<IImageryProject[]> => {
-      try {
-        const allProjects: IImageryProject[] = [];
-        let page = 1;
-        let hasNext = true;
+      const allProjects: IImageryProject[] = [];
+      let page = 1;
+      let hasNext = true;
 
-        while (hasNext) {
-          const response = await fetch(
-            `/api/drone-tasking-manager/projects/user?page=${page}`,
-            { credentials: "include" }
-          );
+      while (hasNext) {
+        const response = await fetch(
+          `/api/drone-tasking-manager/projects/user?page=${page}`,
+          { credentials: "include" }
+        );
 
-          if (!response.ok) {
-            if (response.status === 401 || response.status === 403) {
-              return [];
-            }
-            const errorText = await response.text();
-            throw new Error(`[${response.status}] Failed to fetch drone projects: ${errorText}`);
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            return [];
           }
-
-          const data: DroneApiResponse = await response.json();
-
-          const projects = data.results.map((project) => ({
-            id: `drone-${project.id}`,
-            title: project.name,
-            href: `${DRONE_TM_URL}/projects/${project.id}`,
-            section: "drone" as const,
-            image: project.image_url,
-          }));
-
-          allProjects.push(...projects);
-          hasNext = data.pagination.has_next;
-          page++;
+          const errorText = await response.text();
+          throw new Error(`[${response.status}] Failed to fetch drone projects: ${errorText}`);
         }
 
-        return allProjects;
-      } catch (error) {
-        throw error;
+        const data: DroneApiResponse = await response.json();
+
+        const projects = data.results.map((project) => ({
+          id: `drone-${project.id}`,
+          title: project.name,
+          href: `${DRONE_TM_URL}/projects/${project.id}`,
+          section: "drone" as const,
+          image: project.image_url,
+        }));
+
+        allProjects.push(...projects);
+        hasNext = data.pagination.has_next;
+        page++;
       }
+
+      return allProjects;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes - data considered fresh
     gcTime: 30 * 60 * 1000, // 30 minutes - keep in cache (formerly cacheTime)
@@ -106,35 +102,31 @@ export function useDroneProjectsRaw() {
   return useQuery({
     queryKey: [...droneProjectsQueryKeys.user(), "raw"],
     queryFn: async (): Promise<DroneProject[]> => {
-      try {
-        const allProjects: DroneProject[] = [];
-        let page = 1;
-        let hasNext = true;
+      const allProjects: DroneProject[] = [];
+      let page = 1;
+      let hasNext = true;
 
-        while (hasNext) {
-          const response = await fetch(
-            `/api/drone-tasking-manager/projects/user?page=${page}`,
-            { credentials: "include" }
-          );
+      while (hasNext) {
+        const response = await fetch(
+          `/api/drone-tasking-manager/projects/user?page=${page}`,
+          { credentials: "include" }
+        );
 
-          if (!response.ok) {
-            if (response.status === 401 || response.status === 403) {
-              return [];
-            }
-            const errorText = await response.text();
-            throw new Error(`[${response.status}] Failed to fetch drone projects: ${errorText}`);
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            return [];
           }
-
-          const data: DroneApiResponse = await response.json();
-          allProjects.push(...data.results);
-          hasNext = data.pagination.has_next;
-          page++;
+          const errorText = await response.text();
+          throw new Error(`[${response.status}] Failed to fetch drone projects: ${errorText}`);
         }
 
-        return allProjects;
-      } catch (error) {
-        throw error;
+        const data: DroneApiResponse = await response.json();
+        allProjects.push(...data.results);
+        hasNext = data.pagination.has_next;
+        page++;
       }
+
+      return allProjects;
     },
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,

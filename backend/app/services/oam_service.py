@@ -1,9 +1,12 @@
 """Service layer for OAM imagery DB operations."""
 
+import logging
 from datetime import datetime, timezone
 from typing import Optional
 
 import httpx
+
+logger = logging.getLogger(__name__)
 from geoalchemy2.functions import ST_GeomFromText, ST_Intersects, ST_MakeEnvelope
 from sqlalchemy import asc, desc, func, select, text
 from sqlalchemy.dialects.postgresql import insert
@@ -92,7 +95,7 @@ async def sync_from_oam_api(db: AsyncSession) -> int:
     Fetch all public imagery from OAM API and upsert into DB.
     Returns total number of images upserted.
     """
-    print("Starting OAM sync from API...")
+    logger.info("Starting OAM sync from API...")
     url = f"{OAM_API_BASE_URL}/meta"
     params = {"limit": 99999, "sort": "desc"}
 
@@ -103,7 +106,7 @@ async def sync_from_oam_api(db: AsyncSession) -> int:
 
     results = data.get("results", [])
     if not results:
-        print("OAM API returned 0 results")
+        logger.info("OAM API returned 0 results")
         return 0
 
     # Upsert in batches of 500 to avoid huge transactions
@@ -114,7 +117,7 @@ async def sync_from_oam_api(db: AsyncSession) -> int:
         count = await upsert_images(db, batch)
         total += count
 
-    print(f"OAM sync complete: {total} images upserted")
+    logger.info("OAM sync complete: %s images upserted", total)
     return total
 
 

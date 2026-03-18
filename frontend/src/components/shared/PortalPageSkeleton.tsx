@@ -32,7 +32,6 @@ function GoToWesiteCTASkeleton() {
   );
 }
 
-// TODO adapt for each page by adding props / this is only for Data at the moment
 function PortalPageSkeleton() {
   return (
     <PageWrapper>

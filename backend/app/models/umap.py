@@ -100,3 +100,33 @@ class ShowcaseResponse(BaseModel):
     type: str
     features: List[ShowcaseMap]
     total: int
+
+
+class UserMap(BaseModel):
+    """A single map entry from the user's maps page."""
+
+    id: str
+    slug: str
+    href: str
+    url: str
+
+
+class UserMapsResponse(BaseModel):
+    """Response for the /umap/user/maps endpoint."""
+
+    maps: List[UserMap]
+
+
+class UserTemplate(BaseModel):
+    """A single template entry from the user's templates page."""
+
+    id: str
+    slug: str
+    href: str
+    url: str
+
+
+class UserTemplatesResponse(BaseModel):
+    """Response for the /umap/user/templates endpoint."""
+
+    templates: List[UserTemplate]

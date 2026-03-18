@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-// import MapboxLanguage from "@mapbox/mapbox-gl-language";
 import mapMarkerSvg from "../assets/images/map-marker.svg";
 import markerTasking from "../assets/images/marker-tasking-manager.svg";
 import markerDroneTasking from "../assets/images/marker-drone-tasking-manager.svg";
@@ -16,6 +15,17 @@ import {
   ProjectMapFeature,
 } from "../types/projectsMap";
 import type { ProjectListData } from "../types/projectsMap/mapCallout";
+
+const ALL_FILTER_TYPES = new Set([
+  "drone-tasking-manager",
+  "imagery",
+  "tasking-manager",
+  "fair",
+  "field",
+  "chatmap",
+  "export",
+  "umap",
+]);
 
 interface ProjectsMapProps {
   mapResults?: ProjectsMapResults;
@@ -227,6 +237,19 @@ export function ProjectsMap({
   const map = useRef<maplibregl.Map | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
 
+  const [enabledFilters, setEnabledFilters] = useState<Set<string>>(
+    () => new Set(ALL_FILTER_TYPES)
+  );
+
+  const handleToggleFilter = useCallback((type: string) => {
+    setEnabledFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
+      return next;
+    });
+  }, []);
+
   // Initialize map
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
@@ -292,14 +315,6 @@ export function ProjectsMap({
 
     map.current.addControl(new maplibregl.NavigationControl(), "bottom-right");
 
-    // TODO: Add language control compatible with MapLibre
-    // try {
-    //   map.current.addControl(new MapboxLanguage({ defaultLanguage: "en" }));
-    // } catch (e) {
-    //   console.warn("MapboxLanguage control not compatible with MapLibre", e);
-    // }
-
-    
     map.current.on("load", async () => {
       if (!map.current) return;
 
@@ -348,22 +363,28 @@ export function ProjectsMap({
     [onProjectClick]
   );
 
-  // Update map data
+  // Update map data (re-runs when mapResults OR enabledFilters changes)
   useEffect(() => {
     if (!map.current || !mapLoaded) return;
 
-    const source = map.current.getSource(
-      "projects"
-    ) as maplibregl.GeoJSONSource;
+    const raw = mapResults || { type: "FeatureCollection" as const, features: [] };
+    const filteredData = {
+      ...raw,
+      features: raw.features.filter((f) => {
+        const product: string = (f as any).properties?.product ?? "";
+        // Unknown product types always show; known ones respect the filter
+        if (!ALL_FILTER_TYPES.has(product)) return true;
+        return enabledFilters.has(product);
+      }),
+    };
 
+    const source = map.current.getSource("projects") as maplibregl.GeoJSONSource;
     if (source) {
-      // Update existing source
-      source.setData(mapResults || { type: "FeatureCollection", features: [] });
+      source.setData(filteredData);
     } else {
-      // Add layers for the first time
-      addMapLayers(map.current, mapResults, onProjectClick);
+      addMapLayers(map.current, filteredData, onProjectClick);
     }
-  }, [mapResults, mapLoaded, onProjectClick]);
+  }, [mapResults, mapLoaded, onProjectClick, enabledFilters, ALL_FILTER_TYPES]);
 
   // Add zoom event listener for zoom-based project display
   useEffect(() => {
@@ -424,14 +445,16 @@ export function ProjectsMap({
 
   return (
     <div className="relative w-full h-full">
-      <ProjectsMapSearchBox
-        map={map.current}
-        onShowProjects={handleShowProjects}
-      />
+      {!selectedProjectId && !(selectedProjects && selectedProjects.length > 0) && (
+        <ProjectsMapSearchBox
+          map={map.current}
+          onShowProjects={handleShowProjects}
+        />
+      )}
       <div ref={mapContainer} className="w-full h-full overflow-hidden" />
       {(selectedProjectId ||
         (selectedProjects && selectedProjects.length > 0)) && (
-        <div className="absolute top-0 right-0 h-full bg-white p-lg border border-hot-gray-100 z-10 animate-in w-[250px] sm:w-[340px] slide-in-from-right duration-300 overflow-y-auto">
+        <div className="absolute top-0 right-0 h-full bg-white p-lg border border-hot-gray-100 z-10 animate-in w-[250px] sm:w-[340px] slide-in-from-right duration-300 overflow-y-auto" style={{ margin: "20px", borderRadius: "20px", height: "calc(100% - 40px)" }}>
           <ProjectsMapCallout
             projectId={selectedProjectId || undefined}
             product={selectedProduct}
@@ -439,6 +462,8 @@ export function ProjectsMap({
             locationName={locationName}
             onProjectClick={onProjectClick}
             onClose={onCloseDetails || (() => {})}
+            enabledFilters={enabledFilters}
+            onToggleFilter={handleToggleFilter}
           />
         </div>
       )}

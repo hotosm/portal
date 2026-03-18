@@ -63,6 +63,8 @@ class Settings(BaseSettings):
     # Test: https://testlogin.umap.hotosm.org
     # Production: https://umap.hotosm.org
     umap_base_url: str = "https://umap.hotosm.test"
+    # uMap locale for user-facing HTML pages (e.g. /es/me, /en/me)
+    umap_locale: str = "es"
 
     # Drone-TM Backend URL
     # Local: https://dronetm.hotosm.test/api

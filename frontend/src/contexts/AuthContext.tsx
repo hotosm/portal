@@ -57,7 +57,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (response.ok) {
           const data = await response.json();
           if (data.connected) {
-            console.log("AuthContext: Initial OSM status - connected", data);
             setOsmConnection({
               osm_username: data.osm_username,
               osm_user_id: data.osm_user_id,
@@ -76,7 +75,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Listen to hanko-login event from web component
     const handleLogin = (event: Event) => {
       const customEvent = event as CustomEvent;
-      console.log("AuthContext: hanko-login event received", customEvent.detail);
       setUser(customEvent.detail.user);
       try {
         localStorage.setItem(AUTH_CACHE_KEY, JSON.stringify(customEvent.detail.user));
@@ -87,7 +85,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     // Listen to logout event from web component
     const handleLogout = () => {
-      console.log("AuthContext: logout event received");
       setUser(null);
       setOsmConnection(null);
       try {
@@ -98,10 +95,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Listen to osm-connected event from web component
     const handleOsmConnected = (event: Event) => {
       const customEvent = event as CustomEvent;
-      console.log(
-        "AuthContext: osm-connected event received",
-        customEvent.detail
-      );
       setOsmConnection(customEvent.detail.osmData);
     };
 

@@ -1,7 +1,7 @@
 import Tag from "../../components/shared/Tag";
+import type { IUMapProject } from "../../portal-data/types";
 
-// TODO check cards can be shared in different domains
-const UMapCard = ({ project }: any) => {
+const UMapCard = ({ project }: { project: IUMapProject }) => {
   return (
     <a
       href={project.href}
@@ -13,7 +13,7 @@ const UMapCard = ({ project }: any) => {
         <div className="relative">
           <img
             src={project.image}
-            alt={project.name}
+            alt={project.title}
             className="w-full h-auto"
           />
           <Tag

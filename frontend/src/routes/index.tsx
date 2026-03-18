@@ -9,7 +9,6 @@ import DataPage from "../portal-data/DataPage";
 import HelpPage from "../pages/HelpPage";
 import TestPage from "../pages/TestPage";
 
-// TODO not found page layout
 function NotFoundPage() {
   return <div>Page not found</div>;
 }
@@ -18,9 +17,6 @@ function NotFoundPage() {
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isLogin } = useAuth();
 
-  // TODO check layout if necessary
-  // menuItemId is accepted for pages that want to indicate the active main navigation item.
-  // It's currently unused here but kept for typing compatibility.
   if (!isLogin) {
     return (
       <div className="text-center py-16">
@@ -49,7 +45,6 @@ export function AppRoutes() {
       {/* Locale-prefixed routes */}
       <Route path="/:locale" element={<HomePage />} />
 
-      {/* TODO check if this will remain - Main navigation routes - show different CTAs when not logged in */}
       <Route
         path="/:locale/mapping"
         element={

@@ -24,7 +24,6 @@ registerIconLibrary('bootstrap', {
 
 // Set Hanko URL for authentication (fallback to .test for local dev)
 window.HANKO_URL = import.meta.env.VITE_HANKO_URL || 'https://login.hotosm.test'
-console.log('🔧 Hanko URL configured:', window.HANKO_URL)
 
 // Ensure all WebAwesome components are loaded before rendering
 await allDefined()

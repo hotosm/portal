@@ -1,7 +1,10 @@
 """Main FastAPI application."""
 
 import asyncio
+import logging
 from contextlib import asynccontextmanager
+
+logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,12 +40,12 @@ async def homepage_map_sync_loop() -> None:
         try:
             async with AsyncSessionLocal() as db:
                 counts = await map_projects_service.sync_from_sources(db)
-                print(f"Homepage map scheduled sync complete (upserted rows): {counts}")
+                logger.info("Homepage map scheduled sync complete (upserted rows): %s", counts)
         except asyncio.CancelledError:
-            print("Homepage map scheduled sync cancelled")
+            logger.info("Homepage map scheduled sync cancelled")
             raise
         except Exception as e:
-            print(f"Homepage map scheduled sync failed (non-critical): {e}")
+            logger.warning("Homepage map scheduled sync failed (non-critical): %s", e)
 
         await asyncio.sleep(get_homepage_map_sync_interval_seconds())
 
@@ -54,7 +57,7 @@ async def preload_cache():
     from app.api.routes.fair.fair import enrich_fair_centroids_in_background
     from app.core.cache import get_cached, set_cached, DEFAULT_TTL
 
-    print("Preloading cache in background...")
+    logger.info("Preloading cache in background...")
 
     async def preload_drone_tm():
         """Preload Drone TM centroids from production API."""
@@ -65,7 +68,7 @@ async def preload_cache():
             )
 
             if get_cached(cache_key):
-                print("Drone TM already cached")
+                logger.info("Drone TM already cached")
                 return
 
             async with httpx.AsyncClient(timeout=60.0) as client:
@@ -81,9 +84,9 @@ async def preload_cache():
                     result = data
                 set_cached(cache_key, result, DEFAULT_TTL)
                 results_count = len(result.get("results", [])) if isinstance(result, dict) else "N/A"
-                print(f"Drone TM preload complete: {results_count} projects")
+                logger.info("Drone TM preload complete: %s projects", results_count)
         except Exception as e:
-            print(f"Drone TM preload failed (non-critical): {e}")
+            logger.warning("Drone TM preload failed (non-critical): %s", e)
 
     async def initial_oam_sync():
         """Sync OAM data into DB on startup if the table is empty."""
@@ -93,12 +96,12 @@ async def preload_cache():
         try:
             async with AsyncSessionLocal() as db:
                 if await oam_service.is_db_empty(db):
-                    print("OAM DB is empty - running initial sync from OAM API...")
+                    logger.info("OAM DB is empty - running initial sync from OAM API...")
                     await oam_service.sync_from_oam_api(db)
                 else:
-                    print("OAM DB already populated - skipping initial sync")
+                    logger.info("OAM DB already populated - skipping initial sync")
         except Exception as e:
-            print(f"OAM initial sync failed (non-critical): {e}")
+            logger.warning("OAM initial sync failed (non-critical): %s", e)
 
     async def preload_fair():
         """Preload fAIr model centroids and enrich with names."""
@@ -106,7 +109,7 @@ async def preload_cache():
             cache_key = "fair_models_centroids"
 
             if get_cached(cache_key):
-                print("fAIr already cached")
+                logger.info("fAIr already cached")
                 # Still run enrichment in case names aren't populated yet
                 asyncio.create_task(enrich_fair_centroids_in_background())
                 return
@@ -120,12 +123,11 @@ async def preload_cache():
                 data = response.json()
                 set_cached(cache_key, data, DEFAULT_TTL)
                 features = data.get("features", []) if isinstance(data, dict) else []
-                print(f"fAIr preload complete: {len(features)} models")
+                logger.info("fAIr preload complete: %s models", len(features))
 
-                # Enrich with model names in background
                 asyncio.create_task(enrich_fair_centroids_in_background())
         except Exception as e:
-            print(f"fAIr preload failed (non-critical): {e}")
+            logger.warning("fAIr preload failed (non-critical): %s", e)
 
     # Run all preloads in parallel (non-blocking)
     asyncio.create_task(fetch_and_enrich_in_background())  # Tasking Manager
@@ -144,16 +146,12 @@ async def lifespan(app: FastAPI):
 
     Handles startup and shutdown events.
     """
-    # Startup
-    print("Starting up...")
+    logger.info("Starting up...")
 
-    # Initialize authentication from environment variables
-    # This automatically configures JWT issuer validation
-    print("Loading AuthConfig from environment...")
     auth_config = AuthConfig.from_env()
-    print(f"AuthConfig loaded: hanko_api_url={auth_config.hanko_api_url}, jwt_issuer={auth_config.jwt_issuer}")
+    logger.info("AuthConfig loaded: hanko_api_url=%s, jwt_issuer=%s", auth_config.hanko_api_url, auth_config.jwt_issuer)
     init_auth(auth_config)
-    print("Authentication initialized")
+    logger.info("Authentication initialized")
 
     # Preload cache in background (non-blocking)
     await preload_cache()
@@ -171,8 +169,7 @@ async def lifespan(app: FastAPI):
         except asyncio.CancelledError:
             pass
 
-    # Shutdown
-    print("Shutting down...")
+    logger.info("Shutting down...")
 
 
 # Create FastAPI application
