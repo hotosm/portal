@@ -123,45 +123,47 @@ function IndividualProjectCallout({
 
   // Unified render using normalized data
   return (
-    <>
-      <div className="flex justify-between items-start text-sm mb-2">
+    <div className="flex flex-col h-full">
+      <div className="flex justify-between items-start text-sm mb-2 flex-shrink-0">
         <span className="text-hot-gray-500">{projectData.productName}</span>
         <Icon name="close" onClick={onClose} className="cursor-pointer" style={{ color: "white", background: "black", padding: "5px 6px", borderRadius: "100px" }} />
       </div>
 
-      <p className="text-xl leading-tight font-semibold mb-3">
-        {projectData.name}
-      </p>
+      <div className="flex-1 overflow-y-auto min-h-0">
+        <p className="text-xl leading-tight font-semibold mb-3">
+          {projectData.name}
+        </p>
 
-      {projectData.thumbnail && (
-        <div className="mb-3">
-          <img
-            src={projectData.thumbnail}
-            alt={projectData.name}
-            className="w-full h-32 object-cover rounded"
-          />
-        </div>
-      )}
+        {projectData.thumbnail && (
+          <div className="mb-3">
+            <img
+              src={projectData.thumbnail}
+              alt={projectData.name}
+              className="w-full h-32 object-cover rounded"
+            />
+          </div>
+        )}
 
-      {projectData.description && (
-        <div className="text-sm text-hot-gray-600 mb-3">
-          <ReactMarkdown>{shortenText(projectData.description)}</ReactMarkdown>
-        </div>
-      )}
+        {projectData.description && (
+          <div className="text-sm text-hot-gray-600 mb-3">
+            <ReactMarkdown>{shortenText(projectData.description)}</ReactMarkdown>
+          </div>
+        )}
 
-      {projectData.metadata && projectData.metadata.length > 0 && (
-        <div className="text-sm text-hot-gray-600 mb-3 space-y-1">
-          {projectData.metadata.map((item, index) => (
-            <div key={index}>
-              <strong>{item.label}:</strong> {item.value}
-            </div>
-          ))}
-        </div>
-      )}
+        {projectData.metadata && projectData.metadata.length > 0 && (
+          <div className="text-sm text-hot-gray-600 mb-3 space-y-1">
+            {projectData.metadata.map((item, index) => (
+              <div key={index}>
+                <strong>{item.label}:</strong> {item.value}
+              </div>
+            ))}
+          </div>
+        )}
 
-      <Button href={projectData.url} target="_blank">
-        {m.view_project_detail()}
-      </Button>
-    </>
+        <Button href={projectData.url} target="_blank">
+          {m.view_project_detail()}
+        </Button>
+      </div>
+    </div>
   );
 }

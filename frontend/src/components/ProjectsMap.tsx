@@ -236,10 +236,31 @@ export function ProjectsMap({
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
 
   const [enabledFilters, setEnabledFilters] = useState<Set<string>>(
     () => new Set(ALL_FILTER_TYPES)
   );
+
+  // Reset closing state when panel opens
+  useEffect(() => {
+    if (selectedProjectId || (selectedProjects && selectedProjects.length > 0)) {
+      setIsClosing(false);
+    }
+  }, [selectedProjectId, selectedProjects]);
+
+  const handleClose = useCallback(() => {
+    // If individual project has a backing list, go back instantly (no slide-out)
+    if (selectedProjectId && selectedProjects && selectedProjects.length > 0) {
+      onCloseDetails?.();
+      return;
+    }
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      onCloseDetails?.();
+    }, 300);
+  }, [onCloseDetails, selectedProjectId, selectedProjects]);
 
   const handleToggleFilter = useCallback((type: string) => {
     setEnabledFilters((prev) => {
@@ -453,15 +474,19 @@ export function ProjectsMap({
       )}
       <div ref={mapContainer} className="w-full h-full overflow-hidden" />
       {(selectedProjectId ||
-        (selectedProjects && selectedProjects.length > 0)) && (
-        <div className="absolute top-0 right-0 h-full bg-white p-lg border border-hot-gray-100 z-10 animate-in w-[250px] sm:w-[340px] slide-in-from-right duration-300 overflow-y-auto" style={{ margin: "20px", borderRadius: "20px", height: "calc(100% - 40px)" }}>
+        (selectedProjects && selectedProjects.length > 0) ||
+        isClosing) && (
+        <div
+          className={`absolute top-0 right-0 h-full bg-white p-lg border border-hot-gray-100 z-10 w-[250px] sm:w-[340px] duration-300 overflow-hidden flex flex-col ${isClosing ? "animate-out slide-out-to-right" : "animate-in slide-in-from-right"}`}
+          style={{ margin: "20px", borderRadius: "20px", height: "calc(100% - 40px)" }}
+        >
           <ProjectsMapCallout
             projectId={selectedProjectId || undefined}
             product={selectedProduct}
             projects={selectedProjects}
             locationName={locationName}
             onProjectClick={onProjectClick}
-            onClose={onCloseDetails || (() => {})}
+            onClose={handleClose}
             enabledFilters={enabledFilters}
             onToggleFilter={handleToggleFilter}
           />

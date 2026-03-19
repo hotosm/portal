@@ -7,7 +7,7 @@ import type {
   ProjectDetails,
 } from "../types/projectsMap";
 import type { ProductType } from "../types/projectsMap/products";
-import { getFairModelUrl } from "../utils/envConfig";
+import { getFairModelUrl, getDroneTmBaseUrl, getUmapBaseUrl } from "../utils/envConfig";
 
 interface FAIRModelDetailResponse {
   id: number;
@@ -49,21 +49,19 @@ interface UMapShowcaseResponse {
   total: number;
 }
 
-const UMAP_PRODUCTION_BASE_URL = "https://umap.hotosm.org";
-
-function getUmapProductionUrl(mapUrl: string | null | undefined, mapId: string): string {
+function getUmapUrl(mapUrl: string | null | undefined, mapId: string): string {
+  const base = getUmapBaseUrl();
   if (mapUrl) {
     try {
       const parsed = new URL(mapUrl);
-      return `${UMAP_PRODUCTION_BASE_URL}${parsed.pathname}${parsed.search}${parsed.hash}`;
+      return `${base}${parsed.pathname}${parsed.search}${parsed.hash}`;
     } catch {
       if (mapUrl.startsWith("/")) {
-        return `${UMAP_PRODUCTION_BASE_URL}${mapUrl}`;
+        return `${base}${mapUrl}`;
       }
     }
   }
-
-  return `${UMAP_PRODUCTION_BASE_URL}/en/map/${mapId}`;
+  return `${base}/en/map/${mapId}`;
 }
 
 function normalizeTaskingManager(data: ProjectDetails, projectId: number): NormalizedProjectDetails {
@@ -112,7 +110,7 @@ function normalizeDrone(data: DroneProjectDetails, projectId: string): Normalize
     name: data.name || `Drone Project #${projectId}`,
     productName: "Drone Tasking Manager",
     description: data.description,
-    url: `https://dronetm.org/projects/${projectId}`,
+    url: `${getDroneTmBaseUrl()}/projects/${projectId}`,
     metadata: metadata.length > 0 ? metadata : undefined,
   };
 }
@@ -222,15 +220,10 @@ function normalizeFAIR(data: FAIRModelDetailResponse, modelId: number): Normaliz
 
 function normalizeUMap(data: UMapShowcaseResponse, mapId: string): NormalizedProjectDetails {
   const feature = data.features.find((f) => f.properties.map_id === mapId);
-  if (!feature) {
-    throw new Error(`uMap showcase map ${mapId} not found`);
-  }
 
-  const { name, description, author, map_url } = feature.properties;
-  const metadata = [];
-  if (author) {
-    metadata.push({ label: "Author", value: author });
-  }
+  const { name, description, author, map_url } = feature?.properties ?? {};
+  const url = getUmapUrl(map_url, mapId);
+  const metadata = author ? [{ label: "Author", value: author }] : [];
 
   return {
     id: mapId,
@@ -239,7 +232,7 @@ function normalizeUMap(data: UMapShowcaseResponse, mapId: string): NormalizedPro
     description: description
       ? description.replace(/\[\[[^\]|]+\|([^\]]+)\]\]/g, "$1").trim()
       : undefined,
-    url: getUmapProductionUrl(map_url, mapId),
+    url,
     metadata: metadata.length > 0 ? metadata : undefined,
   };
 }

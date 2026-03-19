@@ -92,7 +92,7 @@ export function ProjectMapListCallout({
   };
 
   return (
-    <>
+    <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex justify-between items-start text-sm mb-3">
         <strong className="leading-tight pr-2">
@@ -114,8 +114,7 @@ export function ProjectMapListCallout({
 
       {/* Project list */}
       <div
-        className="space-y-2 overflow-y-auto mb-2 transition-all duration-300 ease-in-out"
-        style={{ maxHeight: filtersExpanded ? "80px" : "160px" }}
+        className="flex-1 space-y-2 overflow-y-auto mb-2 min-h-0"
       >
         {filteredProjects.length === 0 && (
           <p className="text-sm text-hot-gray-500 py-2 text-center">
@@ -209,6 +208,6 @@ export function ProjectMapListCallout({
           <span>{counts.maps}</span>
         </span>
       </div>
-    </>
+    </div>
   );
 }

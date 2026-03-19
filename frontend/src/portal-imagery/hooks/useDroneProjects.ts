@@ -1,11 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { IImageryProject } from "../imageryProjects";
-
-// Get Drone TM URL from environment
-const DRONE_TM_URL =
-  import.meta.env.VITE_DRONE_TM_URL ||
-  import.meta.env.VITE_DRONE_TM_FRONTEND_URL ||
-  "https://dronetm.org";
+import { getDroneTmBaseUrl } from "../../utils/envConfig";
 
 // Drone TM API types
 export interface DroneProject {
@@ -76,7 +71,7 @@ export function useDroneProjects() {
         const projects = data.results.map((project) => ({
           id: `drone-${project.id}`,
           title: project.name,
-          href: `${DRONE_TM_URL}/projects/${project.id}`,
+          href: `${getDroneTmBaseUrl()}/projects/${project.id}`,
           section: "drone" as const,
           image: project.image_url,
         }));
