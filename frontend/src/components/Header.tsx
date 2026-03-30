@@ -6,6 +6,7 @@ import { useLanguage } from "../contexts/LanguageContext";
 import DrawerMenu from "./DrawerMenu";
 import LanguageSwitcher from "./LanguageSwitcher";
 import NavigationMain from "./NavigationMain";
+import { m } from "../paraglide/messages";
 
 function Header() {
   const { isLogin } = useAuth();
@@ -27,27 +28,31 @@ function Header() {
             <img src={hotLogo} alt="HOT Logo" className="w-14 h-14" />
 
             <span
-              className="uppercase text-[22px] text-hot-gray-950 leading-tight hover:no-underline"
-              style={{ fontFamily: "Barlow" }}
+              className="text-[20px] font-bold text-hot-gray-950 leading-tight"
+              style={{ fontFamily: "Barlow, sans-serif" }}
             >
               Portal
             </span>
           </Link>
 
-          {/* desktop navigation with tagline
-          <div className="hidden lg:block">
-            {isLogin ? <NavigationMain />
+          <div className="hidden lg:flex items-center gap-xl">
+            <span className="w-px h-5 bg-hot-gray-300" aria-hidden="true" />
+            {isLogin ? (
+              <NavigationMain />
             ) : (
-              <span className="hidden lg:block text-lg leading-none xl:text-xl uppercase">
+              <span className="text-base leading-none text-hot-gray-950">
                 {m.header_tagline()}
               </span>
             )}
-          </div> */}
-          <div className="hidden lg:block">{isLogin && <NavigationMain />}</div>
+          </div>
         </div>
 
-        <div className="flex items-center">
-          <hotosm-auth lang={currentLanguage} button-color="primary" />
+        <div className="flex items-center gap-xs">
+          <hotosm-auth
+            lang={currentLanguage}
+            button-color="primary"
+            button-variant="filled"
+          />
           <LanguageSwitcher />
 
           <hotosm-tool-menu lang={currentLanguage} />
