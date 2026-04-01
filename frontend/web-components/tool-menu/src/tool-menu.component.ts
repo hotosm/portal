@@ -1,5 +1,6 @@
 import { LitElement, html, svg } from "lit";
 import { property, state } from "lit/decorators.js";
+import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import { styles, HOT_DESIGN_SYSTEM_URL } from "./tool-menu.styles.js";
 import { translations } from "./translations.js";
 // Import tools icons. These icons will be added in the near future, and are not being showed as default.
@@ -36,7 +37,7 @@ const TOOLS_DATA: Tool[] = [
   {
     id: "drone",
     title: "Drone Tasking Manager",
-    href: "https://drone.hotosm.org/",
+    href: "https://dronetm.org/",
     icon: droneIcon,
     section: "imagery",
   },
@@ -117,7 +118,11 @@ export class HotToolMenu extends LitElement {
   private getToolHref(tool: Tool): string {
     const hostname = window.location.hostname;
 
-    if (!hostname.endsWith('.test')) {
+    // Detect environment: local (.test), dev (dev.portal), or production
+    const isLocal = hostname.endsWith('.test');
+    const isDev = hostname.includes('dev.portal');
+
+    if (!isLocal && !isDev) {
       return tool.href; // Production URLs
     }
 
@@ -133,7 +138,20 @@ export class HotToolMenu extends LitElement {
       'umap': 'https://umap.hotosm.test',
     };
 
-    return localUrls[tool.id] || tool.href;
+    // Dev environment URLs (testlogin.*)
+    const devUrls: Record<string, string> = {
+      'drone': 'https://dronetm.testlogin.hotosm.org',
+      'oam': 'https://openaerialmap.org',
+      'tasking-manager': 'https://tasks.hotosm.org',
+      'fair': 'https://fair.testlogin.hotosm.org',
+      'field': 'https://fmtm.hotosm.org',
+      'chat-map': 'https://chatmap-dev.hotosm.org',
+      'export-tool': 'https://export.testlogin.hotosm.org',
+      'umap': 'https://umap.testlogin.hotosm.org',
+    };
+
+    const urls = isLocal ? localUrls : devUrls;
+    return urls[tool.id] || tool.href;
   }
 
   private getToolsBySection(sectionId: string): Tool[] {

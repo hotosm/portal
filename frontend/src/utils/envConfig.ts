@@ -31,7 +31,7 @@ export function getEnvironment(): Environment {
  */
 const FAIR_URLS: Record<Environment, string> = {
   local: "https://fair.hotosm.test",
-  test: "https://testlogin.fair.hotosm.org",
+  test: "https://fair.testlogin.hotosm.org",
   production: "https://fair.hotosm.org",
 };
 
@@ -77,7 +77,7 @@ export function getUmapBaseUrl(): string {
  */
 const EXPORT_TOOL_URLS: Record<Environment, string> = {
   local: "https://export-tool.hotosm.test",
-  test: "https://testlogin.export.hotosm.org",
+  test: "https://export.testlogin.hotosm.org",
   production: "https://export.hotosm.org",
 };
 
@@ -107,7 +107,7 @@ export function getChatMapBaseUrl(): string {
  */
 const DRONE_TM_URLS: Record<Environment, string> = {
   local: "https://dronetm.hotosm.test",
-  test: "https://testlogin.dronetm.hotosm.org",
+  test: "https://dronetm.testlogin.hotosm.org",
   production: "https://dronetm.org",
 };
 
