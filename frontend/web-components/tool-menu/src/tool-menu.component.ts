@@ -200,13 +200,19 @@ export class HotToolMenu extends LitElement {
     }
   };
 
-  override createRenderRoot() {
-    const root = super.createRenderRoot() as ShadowRoot;
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = HOT_DESIGN_SYSTEM_URL;
-    root.appendChild(link);
-    return root;
+  private injectHotStyles() {
+    if (!document.getElementById('hot-design-system')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = HOT_DESIGN_SYSTEM_URL;
+      link.id = 'hot-design-system';
+      document.head.appendChild(link);
+    }
+  }
+
+  override connectedCallback() {
+    super.connectedCallback();
+    this.injectHotStyles();
   }
 
   disconnectedCallback() {
