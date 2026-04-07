@@ -19,10 +19,10 @@ A centralized web workspace that simplifies access to the HOT (Humanitarian Open
 |✅| Menu for accessing HOT Tools
 |✅| Language menu
 |✅| Sections for Imagery, Mapping, Field and Data, for showing tools and user's data on each
-|⚙️| Public integration with all tools
+|✅| Public integration with all tools
 |⚙️| User data integration with all tools
+|⚙️| Design and UI/UX improvements
 | | Filtering options for map
-| | Design and UI/UX improvements
 | | Links and content to/from Learn & Connect
 | | Public profiles
 
