@@ -6,204 +6,56 @@ import os
 import re
 import logging
 import httpx
-from bs4 import BeautifulSoup
 from fastapi import APIRouter, HTTPException, Path, Request
 from app.models.umap import (
     UMapFeatureCollection,
     ShowcaseResponse,
     UserMapsResponse,
-    UserTemplatesResponse,
 )
 from app.core.cache import get_cached, set_cached, DEFAULT_TTL
 from app.core.config import settings
 
-# Setup logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/umap")
 
-# uMap HOT OSM URLs derived from settings
 UMAP_BASE_URL = settings.umap_base_url
-UMAP_LOCALE = settings.umap_locale
 UMAP_API_BASE_URL = f"{UMAP_BASE_URL}/en/datalayer"
 UMAP_SHOWCASE_URL = f"{UMAP_BASE_URL}/en/showcase/"
-
-# SSL verification: disabled by default for .test domains (self-signed certs)
-# Set UMAP_VERIFY_SSL=true in production with valid certificates
 UMAP_VERIFY_SSL = os.getenv("UMAP_VERIFY_SSL", "false").lower() == "true"
 
-# Matches /es/map/slug_123 or /map/slug_123 (any locale prefix or none)
-_MAP_HREF_RE = re.compile(r"^/(?:[a-z]{2}/)?map/(.+)$")
 
-logger.info(f"uMap Base URL: {UMAP_BASE_URL}")
-logger.info(f"uMap Locale: {UMAP_LOCALE}")
-logger.info(f"uMap SSL Verification: {UMAP_VERIFY_SSL}")
+def _umap_client() -> httpx.AsyncClient:
+    return httpx.AsyncClient(timeout=30.0, verify=UMAP_VERIFY_SSL, follow_redirects=True)
 
 
-def _parse_map_links(html: str) -> list[dict]:
-    """Extract unique map entries from an HTML page using BeautifulSoup.
+def _require_hanko(request: Request) -> str:
+    cookie = request.cookies.get("hanko")
+    if not cookie:
+        raise HTTPException(status_code=401, detail="Hanko authentication cookie not found.")
+    return cookie
 
-    Returns a list of dicts with keys: id, slug, href, url.
-    Skips ?share / ?edit variants and deduplicates by map ID.
-    """
-    soup = BeautifulSoup(html, "html.parser")
-    results = []
-    seen: set[str] = set()
-
-    for a in soup.find_all("a", href=True):
-        href: str = a["href"]
-        if "?share" in href or "?edit" in href:
-            continue
-        match = _MAP_HREF_RE.match(href)
-        if not match:
-            continue
-        slug = match.group(1)
-        parts = slug.rsplit("_", 1)
-        map_id = parts[-1] if len(parts) > 1 and parts[-1].isdigit() else slug
-        if map_id in seen:
-            continue
-        seen.add(map_id)
-        results.append(
-            {"id": map_id, "slug": slug, "href": href, "url": f"{UMAP_BASE_URL}{href}"}
-        )
-
-    return results
-
-
-def _check_login_redirect(response: httpx.Response, html: str) -> bool:
-    """Return True if uMap redirected to the login page (auth failed)."""
-    return "/login" in str(response.url) or "Iniciar sesión" in html
-
-
-@router.get("/user/templates", response_model=UserTemplatesResponse)
-async def get_user_templates(request: Request) -> dict:
-    """Fetch the user's templates page from uMap and return a JSON list.
-
-    Uses Hanko authentication cookie to authenticate with the uMap instance.
-    Returns JSON with an array under `templates` containing objects with
-    `id`, `href`, `url` and `slug` keys.
-    """
-    hanko_cookie = request.cookies.get("hanko")
-    logger.info(f"[Templates] Hanko cookie present: {bool(hanko_cookie)}")
-
-    if not hanko_cookie:
-        logger.warning("No Hanko cookie found in request")
-        raise HTTPException(
-            status_code=401,
-            detail="Hanko authentication cookie not found. Please log in.",
-        )
-
-    url = f"{UMAP_BASE_URL}/{UMAP_LOCALE}/me/templates"
-    logger.info(f"[Templates] Target URL: {url}")
-
-    try:
-        async with httpx.AsyncClient(
-            timeout=30.0,
-            verify=UMAP_VERIFY_SSL,
-            follow_redirects=True,
-        ) as client:
-            response = await client.get(
-                url,
-                headers={"User-Agent": "portal-umap-client/1.0"},
-                cookies={"hanko": hanko_cookie},
-            )
-            response.raise_for_status()
-            html = response.text
-
-            logger.info(f"[Templates] Final URL: {response.url}")
-            logger.info(f"[Templates] Response length: {len(html)} chars")
-            logger.debug(f"[Templates] HTML preview: {html[:500]}")
-
-            if _check_login_redirect(response, html):
-                logger.warning("[Templates] Auth failed - redirected to login page")
-                raise HTTPException(
-                    status_code=401,
-                    detail="uMap authentication failed. Your session may have expired.",
-                )
-
-            templates = _parse_map_links(html)
-            logger.info(f"[Templates] Found {len(templates)} templates")
-            return {"templates": templates}
-
-    except httpx.HTTPStatusError as e:
-        logger.error(f"HTTP Error: {e.response.status_code} - {e.response.text}")
-        raise HTTPException(
-            status_code=e.response.status_code,
-            detail=f"Error fetching uMap templates: {e.response.text}",
-        )
-    except httpx.RequestError as e:
-        logger.error(f"Request Error: {str(e)}")
-        raise HTTPException(status_code=503, detail=f"Connection error to uMap: {str(e)}")
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 
 @router.get("/user/maps", response_model=UserMapsResponse)
 async def get_user_maps(request: Request) -> dict:
-    """Fetch the user's maps page from uMap and return a JSON list.
-
-    Uses Hanko authentication cookie to authenticate with the uMap instance.
-    Returns JSON with an array under `maps` containing objects with
-    `id`, `slug`, `href` and `url` keys.
-    """
-    hanko_cookie = request.cookies.get("hanko")
-    logger.info(f"[Maps] Hanko cookie present: {bool(hanko_cookie)}")
-
-    if not hanko_cookie:
-        logger.warning("No Hanko cookie found in request")
-        raise HTTPException(
-            status_code=401,
-            detail="Hanko authentication cookie not found. Please log in.",
-        )
-
-    url = f"{UMAP_BASE_URL}/{UMAP_LOCALE}/me"
-    logger.info(f"[Maps] Target URL: {url}")
+    """Fetch the authenticated user's maps from uMap."""
+    hanko_cookie = _require_hanko(request)
+    url = f"{UMAP_BASE_URL}/api/v1/maps/?source=mine"
 
     try:
-        async with httpx.AsyncClient(
-            timeout=30.0,
-            verify=UMAP_VERIFY_SSL,
-            follow_redirects=True,
-        ) as client:
-            response = await client.get(
-                url,
-                headers={"User-Agent": "portal-umap-client/1.0"},
-                cookies={"hanko": hanko_cookie},
-            )
+        async with _umap_client() as client:
+            response = await client.get(url, cookies={"hanko": hanko_cookie})
+            if response.status_code == 401:
+                raise HTTPException(status_code=401, detail="uMap authentication failed.")
             response.raise_for_status()
-            html = response.text
-
-            logger.info(f"[Maps] Final URL: {response.url}")
-            logger.info(f"[Maps] Response length: {len(html)} chars")
-
-            if _check_login_redirect(response, html):
-                logger.warning("[Maps] Auth failed - redirected to login page")
-                raise HTTPException(
-                    status_code=401,
-                    detail="uMap authentication failed. Your session may have expired.",
-                )
-
-            maps = _parse_map_links(html)
-            logger.info(f"[Maps] Found {len(maps)} maps")
-            return {"maps": maps}
-
+            data = response.json()
+            logger.info(f"[Maps] Found {len(data.get('maps', []))} maps")
+            return data
     except httpx.HTTPStatusError as e:
-        logger.error(f"HTTP Error: {e.response.status_code} - {e.response.text}")
-        raise HTTPException(
-            status_code=e.response.status_code,
-            detail=f"Error fetching uMap maps: {e.response.text}",
-        )
+        raise HTTPException(status_code=e.response.status_code, detail=f"uMap error: {e.response.text}")
     except httpx.RequestError as e:
-        logger.error(f"Request Error: {str(e)}")
         raise HTTPException(status_code=503, detail=f"Connection error to uMap: {str(e)}")
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 
 @router.get("/showcase", response_model=ShowcaseResponse)

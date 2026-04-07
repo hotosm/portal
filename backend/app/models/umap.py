@@ -103,12 +103,14 @@ class ShowcaseResponse(BaseModel):
 
 
 class UserMap(BaseModel):
-    """A single map entry from the user's maps page."""
+    """A single map entry from the user's maps."""
 
-    id: str
+    id: int
+    name: str
+    description: Optional[str] = None
     slug: str
-    href: str
     url: str
+    modified_at: str
 
 
 class UserMapsResponse(BaseModel):
@@ -117,16 +119,3 @@ class UserMapsResponse(BaseModel):
     maps: List[UserMap]
 
 
-class UserTemplate(BaseModel):
-    """A single template entry from the user's templates page."""
-
-    id: str
-    slug: str
-    href: str
-    url: str
-
-
-class UserTemplatesResponse(BaseModel):
-    """Response for the /umap/user/templates endpoint."""
-
-    templates: List[UserTemplate]
