@@ -60,7 +60,7 @@ class Settings(BaseSettings):
 
     # uMap Base URL
     # Local: https://umap.hotosm.test
-    # Test: https://testlogin.umap.hotosm.org
+    # Test: https://umap.testlogin.hotosm.org
     # Production: https://umap.hotosm.org
     umap_base_url: str = "https://umap.hotosm.test"
     # uMap locale for user-facing HTML pages (e.g. /es/me, /en/me)
@@ -68,7 +68,7 @@ class Settings(BaseSettings):
 
     # Drone-TM Backend URL
     # Local: https://dronetm.hotosm.test/api
-    # Test: https://testlogin.dronetm.hotosm.org/api
+    # Test: https://dronetm.testlogin.hotosm.org/api
     # Production: https://dronetm.org/api
     drone_tm_backend_url: str = "https://dronetm.org/api"
     drone_tm_auth_header: str = "Authorization"
@@ -77,13 +77,13 @@ class Settings(BaseSettings):
 
     # Export Tool API
     # Local: https://export-tool.hotosm.test/api
-    # Test: https://testlogin.export.hotosm.org/api
+    # Test: https://export.testlogin.hotosm.org/api
     # Production: https://export.hotosm.org/api
     export_tool_api_base_url: str = "https://export.hotosm.org/api"
 
     # fAIr API
     # Local: https://fair.hotosm.test/api/v1
-    # Test: https://testlogin.fair.hotosm.org/api/v1
+    # Test: https://fair.testlogin.hotosm.org/api/v1
     # Production: https://api-prod.fair.hotosm.org/api/v1
     fair_api_base_url: str = "https://api-prod.fair.hotosm.org/api/v1"
     # Backward compatibility for older .env files

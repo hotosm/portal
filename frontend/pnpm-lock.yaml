@@ -15,8 +15,8 @@ importers:
         specifier: ^0.5.2
         version: 0.5.2
       '@hotosm/tool-menu':
-        specifier: 0.2.6
-        version: 0.2.6
+        specifier: 0.2.7
+        version: 0.2.7
       '@lit/react':
         specifier: ^1.0.8
         version: 1.0.8(@types/react@19.2.2)
@@ -616,8 +616,8 @@ packages:
   '@hotosm/hanko-auth@0.5.2':
     resolution: {integrity: sha512-dCCrNRyH2C2bS3TBDLJrX45rmHPgMzZHp8Il+LvEeh9mHzBB/iXro1bJZj5Fpmdhfy3HVN+v5PE2WhMK3ymznw==}
 
-  '@hotosm/tool-menu@0.2.6':
-    resolution: {integrity: sha512-CbDTuQ6NoyS5Kmye3r1ud2DjoqqgG9h6LIMrd6pi+P6O8kHKnW6akUtT2l0FIjaAZXu1azE7Fj6TePzXIy0dtA==}
+  '@hotosm/tool-menu@0.2.7':
+    resolution: {integrity: sha512-idPmbJtBfAfmug+vVSKd5QN+ECzvZY+3XQTnO8Mt2tqhNSXFWeYdZg9HVieET2EndW35niwrtpMBQ6IxAaf+4w==}
     engines: {node: '>=14.17.0'}
 
   '@inlang/detect-json-formatting@1.0.0':
@@ -3235,7 +3235,7 @@ snapshots:
       '@teamhanko/hanko-elements': 2.5.0
       lit: 3.3.1
 
-  '@hotosm/tool-menu@0.2.6':
+  '@hotosm/tool-menu@0.2.7':
     dependencies:
       lit: 3.3.1
 
