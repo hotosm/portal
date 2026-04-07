@@ -1,6 +1,5 @@
 import imageryImage from "../assets/images/imagery-portal.png";
 import mappingImage from "../assets/images/mapping-portal.png";
-import mapuseImage from "../assets/images/mapuse-portal.jpg";
 
 export interface CarouselItem {
   title: string;

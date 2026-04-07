@@ -5,7 +5,7 @@ import {
   useMyModels,
   useMyDatasets,
 } from "../portal-mapping/hooks/useFairData";
-import { useUMapData } from "../portal-data/hooks/useUMapData";
+import { useMyMaps } from "../portal-data/hooks/useUMapData";
 import { useExportJobs } from "../portal-data/hooks/useExportToolData";
 import { useChatMapData } from "../portal-field/hooks/useChatMapData";
 
@@ -27,11 +27,10 @@ function TestPage() {
     error: datasetsError,
   } = useMyDatasets();
   const {
-    maps: umapMaps,
-    templates: umapTemplates,
+    data: umapMaps,
     isLoading: umapLoading,
     error: umapError,
-  } = useUMapData();
+  } = useMyMaps();
   const {
     data: exportJobs,
     isLoading: exportsLoading,
@@ -292,45 +291,6 @@ function TestPage() {
                   </a>
                   <span style={{ marginLeft: "0.5rem", color: "#666" }}>
                     ({map.status})
-                  </span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <h2>uMap Templates</h2>
-
-        {umapLoading && <p>Loading uMap templates...</p>}
-
-        {umapTemplates && umapTemplates.length === 0 && !umapLoading && (
-          <p>No uMap templates found.</p>
-        )}
-
-        {umapTemplates && umapTemplates.length > 0 && (
-          <ul style={{ listStyle: "none", padding: 0 }}>
-            {umapTemplates.map((template) => (
-              <li
-                key={template.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "1rem",
-                  padding: "1rem",
-                  borderBottom: "1px solid #eee",
-                }}
-              >
-                <div>
-                  <a
-                    href={template.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ fontWeight: 600 }}
-                  >
-                    {template.title}
-                  </a>
-                  <span style={{ marginLeft: "0.5rem", color: "#666" }}>
-                    (template)
                   </span>
                 </div>
               </li>

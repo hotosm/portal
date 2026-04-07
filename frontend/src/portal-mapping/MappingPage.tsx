@@ -1,5 +1,7 @@
+import { useState } from "react";
 import GoToWesiteCTA from "../components/shared/GoToWesiteCTA";
 import PageWrapper from "../components/shared/PageWrapper";
+import Pagination from "../components/shared/Pagination";
 import PortalPageSkeleton from "../components/shared/PortalPageSkeleton";
 import YourProjectsTitle from "../components/shared/YourProjectsTitle";
 import DataCard from "../portal-data/components/DataCard";
@@ -8,8 +10,13 @@ import MappingProjectCard from "./components/MappingProjectCard";
 import { useMyDatasets, useMyModels } from "./hooks";
 import { mappingProjectsData } from "./mappingProjectsData";
 
+const PAGE_SIZE = 8;
+
 function MappingPage() {
-  const projects = mappingProjectsData;
+  const allProjects = mappingProjectsData;
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.ceil(allProjects.length / PAGE_SIZE);
+  const projects = allProjects.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const { data: models = [], isLoading: modelsLoading } = useMyModels();
   const { data: sets = [], isLoading: datasetsLoading } = useMyDatasets();
@@ -39,6 +46,7 @@ function MappingPage() {
             {projects.map((project) => {
               return (
                 <MappingProjectCard
+                  key={project.id}
                   title={project.title}
                   contributors={project.contributors}
                   id={project.id}
@@ -49,6 +57,13 @@ function MappingPage() {
               );
             })}
           </div>
+          {totalPages > 1 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          )}
 
           {/* fair */}
 

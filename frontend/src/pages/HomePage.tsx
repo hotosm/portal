@@ -51,7 +51,7 @@ function HomePage() {
           )}
         </section>
 
-        <section className="container px-md md:px-xl py-3xl  bg-white  flex flex-col gap-xl md:gap-3xl justify-center items-center rounded-xl mb-3xl text-center">
+        <section className="container overflow-hidden px-md md:px-xl py-3xl  bg-white  flex flex-col gap-xl md:gap-3xl justify-center items-center rounded-xl mb-3xl text-center">
           <div className="flex flex-col gap-md md:gap-xl py-3xl">
             <span className="text-2xl md:text-3xl leading-tight">
               {m.home_workflow_header()}{" "}
@@ -81,7 +81,7 @@ function HomePage() {
             autoplay
             autoplayInterval={5000}
             mouseDragging
-            className="md:container hero-carousel"
+            className="w-full hero-carousel"
           >
             {carouselItems.map((item, index) => (
               <CarouselItem key={index}>
@@ -124,10 +124,7 @@ function HomePage() {
               <strong>field</strong> for easy mapping, <strong>free</strong> and
               open for everyone!
             </div>
-            <Button
-              className="dark-filled-button"
-              onClick={() => (window.location.href = "#")}
-            >
+            <Button size="large" onClick={() => (window.location.href = "#")}>
               Start a project
             </Button>
             <Button appearance="plain" className="accent-link-button">

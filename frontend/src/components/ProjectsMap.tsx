@@ -10,10 +10,7 @@ import markerImagery from "../assets/images/marker-imagery.svg";
 import markerUmap from "../assets/images/marker-umap.svg";
 import { ProjectsMapSearchBox } from "./ProjectsMapSearchBox";
 import { ProjectsMapCallout } from "./ProjectsMapCallout";
-import {
-  ProjectsMapResults,
-  ProjectMapFeature,
-} from "../types/projectsMap";
+import { ProjectsMapResults, ProjectMapFeature } from "../types/projectsMap";
 import type { ProjectListData } from "../types/projectsMap/mapCallout";
 
 const ALL_FILTER_TYPES = new Set([
@@ -29,7 +26,10 @@ const ALL_FILTER_TYPES = new Set([
 
 interface ProjectsMapProps {
   mapResults?: ProjectsMapResults;
-  onProjectClick?: (projectId: number | string, data?: ProjectListData | string) => void;
+  onProjectClick?: (
+    projectId: number | string,
+    data?: ProjectListData | string,
+  ) => void;
   selectedProjectId?: number | string | null;
   selectedProduct?: string;
   selectedProjects?: ProjectMapFeature[];
@@ -69,7 +69,7 @@ const DEFAULT_MAP_STYLE = import.meta.env.VITE_MAP_STYLE || {
 const loadImage = async (
   src: string,
   width = 50,
-  height = 50
+  height = 50,
 ): Promise<HTMLImageElement> => {
   return new Promise((resolve, reject) => {
     const img = new Image(width, height);
@@ -82,7 +82,7 @@ const loadImage = async (
 const addMapLayers = (
   map: maplibregl.Map,
   mapResults: ProjectsMapProps["mapResults"],
-  onProjectClick?: (projectId: number | string, product: string) => void
+  onProjectClick?: (projectId: number | string, product: string) => void,
 ) => {
   // Add GeoJSON source with clustering
   map.addSource("projects", {
@@ -239,12 +239,15 @@ export function ProjectsMap({
   const [isClosing, setIsClosing] = useState(false);
 
   const [enabledFilters, setEnabledFilters] = useState<Set<string>>(
-    () => new Set(ALL_FILTER_TYPES)
+    () => new Set(ALL_FILTER_TYPES),
   );
 
   // Reset closing state when panel opens
   useEffect(() => {
-    if (selectedProjectId || (selectedProjects && selectedProjects.length > 0)) {
+    if (
+      selectedProjectId ||
+      (selectedProjects && selectedProjects.length > 0)
+    ) {
       setIsClosing(false);
     }
   }, [selectedProjectId, selectedProjects]);
@@ -299,7 +302,8 @@ export function ProjectsMap({
     let lastPos = { x: 0, y: 0 };
 
     canvas.addEventListener("mousedown", (e) => {
-      if (e.button === 2) { // Right mouse button
+      if (e.button === 2) {
+        // Right mouse button
         isRightDragging = true;
         lastPos = { x: e.clientX, y: e.clientY };
         canvas.style.cursor = "grabbing";
@@ -331,7 +335,7 @@ export function ProjectsMap({
     });
 
     map.current.addControl(
-      new maplibregl.AttributionControl({ compact: false })
+      new maplibregl.AttributionControl({ compact: false }),
     );
 
     map.current.addControl(new maplibregl.NavigationControl(), "bottom-right");
@@ -359,7 +363,7 @@ export function ProjectsMap({
             } catch (iconError) {
               console.error(`Failed to load marker icon ${name}:`, iconError);
             }
-          })
+          }),
         );
       } catch (error) {
         console.error("Failed to load marker icons:", error);
@@ -381,14 +385,17 @@ export function ProjectsMap({
         onProjectClick("projects-list", { projects, locationName });
       }
     },
-    [onProjectClick]
+    [onProjectClick],
   );
 
   // Update map data (re-runs when mapResults OR enabledFilters changes)
   useEffect(() => {
     if (!map.current || !mapLoaded) return;
 
-    const raw = mapResults || { type: "FeatureCollection" as const, features: [] };
+    const raw = mapResults || {
+      type: "FeatureCollection" as const,
+      features: [],
+    };
     const filteredData = {
       ...raw,
       features: raw.features.filter((f) => {
@@ -399,7 +406,9 @@ export function ProjectsMap({
       }),
     };
 
-    const source = map.current.getSource("projects") as maplibregl.GeoJSONSource;
+    const source = map.current.getSource(
+      "projects",
+    ) as maplibregl.GeoJSONSource;
     if (source) {
       source.setData(filteredData);
     } else {
@@ -417,7 +426,7 @@ export function ProjectsMap({
       try {
         const bounds = map.current.getBounds();
         const source = map.current.getSource(
-          "projects"
+          "projects",
         ) as maplibregl.GeoJSONSource;
         if (!source || !source._data) return [];
 
@@ -448,7 +457,7 @@ export function ProjectsMap({
           const center = map.current.getCenter();
           // Create a more user-friendly location name
           const locationName = `this area (${center.lat.toFixed(
-            2
+            2,
           )}°, ${center.lng.toFixed(2)}°)`;
           handleShowProjects(projectsInView, locationName);
         }
@@ -465,20 +474,25 @@ export function ProjectsMap({
   }, [mapLoaded, handleShowProjects]);
 
   return (
-    <div className="relative w-full h-full">
-      {!selectedProjectId && !(selectedProjects && selectedProjects.length > 0) && (
-        <ProjectsMapSearchBox
-          map={map.current}
-          onShowProjects={handleShowProjects}
-        />
-      )}
+    <div className="relative w-full h-full rounded-xl overflow-hidden">
+      {!selectedProjectId &&
+        !(selectedProjects && selectedProjects.length > 0) && (
+          <ProjectsMapSearchBox
+            map={map.current}
+            onShowProjects={handleShowProjects}
+          />
+        )}
       <div ref={mapContainer} className="w-full h-full overflow-hidden" />
       {(selectedProjectId ||
         (selectedProjects && selectedProjects.length > 0) ||
         isClosing) && (
         <div
           className={`absolute top-0 right-0 h-full bg-white p-lg border border-hot-gray-100 z-10 w-[250px] sm:w-[340px] duration-300 overflow-hidden flex flex-col ${isClosing ? "animate-out slide-out-to-right" : "animate-in slide-in-from-right"}`}
-          style={{ margin: "20px", borderRadius: "20px", height: "calc(100% - 40px)" }}
+          style={{
+            margin: "20px",
+            borderRadius: "20px",
+            height: "calc(100% - 40px)",
+          }}
         >
           <ProjectsMapCallout
             projectId={selectedProjectId || undefined}
