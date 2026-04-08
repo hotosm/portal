@@ -1,7 +1,7 @@
 import Tag from "../../components/shared/Tag";
-import type { IUMapProject } from "../../portal-data/types";
+import { ChatMapProject } from "../types";
 
-const UMapCard = ({ project }: { project: IUMapProject }) => {
+const ChatMapCard = ({ project }: { project: ChatMapProject }) => {
   return (
     <div
       className="w-full h-full bg-white rounded-xl p-md flex flex-col gap-lg"
@@ -32,4 +32,4 @@ const UMapCard = ({ project }: { project: IUMapProject }) => {
   );
 };
 
-export default UMapCard;
+export default ChatMapCard;

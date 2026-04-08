@@ -7,7 +7,7 @@
 @import "./hot-font-face.css";
 
 /* 3. Then our WebAwesome overrides */
-@import "./hot-wa.css";
+@import url("https://cdn.jsdelivr.net/npm/@hotosm/ui-design@latest/dist/hot-wa.css");
 @import "./hot-wa-portal.css";
 
 @tailwind base;
@@ -79,10 +79,54 @@ p {
   margin-bottom: 1rem;
 }
 
-hotosm-auth {
+/* hotosm-auth {
   --login-btn-text-color: var(--hot-color-gray-800);
-}
+} */
 
 hotosm-tool-menu {
   --icon-color: var(--hot-color-gray-800);
+}
+
+.nav-main-link {
+  letter-spacing: 0.04em;
+}
+
+.nav-main-link:hover,
+.nav-main-link.font-bold {
+  letter-spacing: 0;
+  font-weight: var(--hot-font-weight-bold);
+}
+
+/* TODO: move to hot-wa.css in @hotosm/ui-design once the HOT WA theme supports it */
+wa-button[appearance="filled"]::part(base) {
+  background: var(--hot-color-gray-950);
+  border-color: var(--hot-color-gray-950);
+  color: #ffffff;
+  border-radius: 0px;
+}
+
+wa-button[appearance="filled"]::part(base):hover {
+  background: var(--hot-color-gray-800);
+  border-color: var(--hot-color-gray-800);
+}
+
+.accent-link-button::part(base) {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  font-family: "Archivo", sans-serif;
+  font-weight: var(--hot-font-weight-bold);
+  font-size: var(--hot-font-size-x-large);
+  color: var(--hot-color-gray-950);
+  padding: 0;
+}
+
+.accent-link-button::part(label) {
+  border-bottom: 2px solid var(--hot-color-red-600);
+  padding-bottom: var(--hot-spacing-3x-small);
+}
+
+.accent-link-button::part(base):hover {
+  background: transparent;
+  opacity: 0.8;
 }

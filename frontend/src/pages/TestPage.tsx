@@ -5,7 +5,7 @@ import {
   useMyModels,
   useMyDatasets,
 } from "../portal-mapping/hooks/useFairData";
-import { useUMapData } from "../portal-data/hooks/useUMapData";
+import { useMyMaps } from "../portal-data/hooks/useUMapData";
 import { useExportJobs } from "../portal-data/hooks/useExportToolData";
 import { useChatMapData } from "../portal-field/hooks/useChatMapData";
 
@@ -27,11 +27,10 @@ function TestPage() {
     error: datasetsError,
   } = useMyDatasets();
   const {
-    maps: umapMaps,
-    templates: umapTemplates,
+    data: umapMaps,
     isLoading: umapLoading,
     error: umapError,
-  } = useUMapData();
+  } = useMyMaps();
   const {
     data: exportJobs,
     isLoading: exportsLoading,
@@ -299,19 +298,20 @@ function TestPage() {
           </ul>
         )}
 
-        <h2>uMap Templates</h2>
+        <h2>ChatMap</h2>
 
-        {umapLoading && <p>Loading uMap templates...</p>}
+        {chatmapLoading && <p>Loading chatmap...</p>}
+        {chatmapError && <p>Error loading chatmap: {chatmapError.message}</p>}
 
-        {umapTemplates && umapTemplates.length === 0 && !umapLoading && (
-          <p>No uMap templates found.</p>
+        {chatmap && chatmap.length === 0 && !chatmapLoading && (
+          <p>No chatmap data found.</p>
         )}
 
-        {umapTemplates && umapTemplates.length > 0 && (
+        {chatmap && chatmap.length > 0 && (
           <ul style={{ listStyle: "none", padding: 0 }}>
-            {umapTemplates.map((template) => (
+            {chatmap.map((item) => (
               <li
-                key={template.id}
+                key={item.id}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -322,56 +322,19 @@ function TestPage() {
               >
                 <div>
                   <a
-                    href={template.href}
+                    href={item.href}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{ fontWeight: 600 }}
                   >
-                    {template.title}
+                    {item.title}
                   </a>
                   <span style={{ marginLeft: "0.5rem", color: "#666" }}>
-                    (template)
+                    ({item.status})
                   </span>
                 </div>
               </li>
             ))}
-          </ul>
-        )}
-
-        <h2>ChatMap</h2>
-
-        {chatmapLoading && <p>Loading chatmap...</p>}
-        {chatmapError && <p>Error loading chatmap: {chatmapError.message}</p>}
-
-        {!chatmap && !chatmapLoading && !chatmapError && (
-          <p>No chatmap data found.</p>
-        )}
-
-        {chatmap && (
-          <ul style={{ listStyle: "none", padding: 0 }}>
-            <li
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "1rem",
-                padding: "1rem",
-                borderBottom: "1px solid #eee",
-              }}
-            >
-              <div>
-                <a
-                  href={chatmap.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ fontWeight: 600 }}
-                >
-                  {chatmap.title}
-                </a>
-                <span style={{ marginLeft: "0.5rem", color: "#666" }}>
-                  ({chatmap.sharing})
-                </span>
-              </div>
-            </li>
           </ul>
         )}
       </div>

@@ -1,62 +1,96 @@
-import GoToWesiteCTA from "../components/shared/GoToWesiteCTA";
+import CardAddNew from "../components/shared/CardAddNew";
+import CardTakeCourse from "../components/shared/CardTakeCourse";
+import Divider from "../components/shared/Divider";
 import PageWrapper from "../components/shared/PageWrapper";
-import YourProjectsTitle from "../components/shared/YourProjectsTitle";
-import ImageryCard from "./components/FieldCard";
-import { getFieldProjects } from "./fieldProjects";
+import SectionHeader from "../components/shared/SectionHeader";
+import ChatMapCard from "./components/ChatMapCard";
+import FieldTMCard from "./components/FieldTMCard";
 import { useChatMapData } from "./hooks/useChatMapData";
+import { useFieldTMProjects } from "./hooks/useFieldTMProjects";
+
+const CARD_CLASS =
+  "w-full md:w-[calc(33.333%_-_var(--hot-spacing-large)*0.667)] lg:w-[calc(25%_-_var(--hot-spacing-large)*0.75)] shrink-0";
 
 function FieldPage() {
-  const projects = getFieldProjects();
-  const { data: chatmap, isLoading: chatmapLoading } = useChatMapData();
+  const { data: fieldProjects = [], isLoading: fieldLoading } = useFieldTMProjects();
+  const { data: chatMaps = [], isLoading: chatmapLoading } = useChatMapData();
+
+  if (fieldLoading || chatmapLoading) {
+    return <p className="flex justify-center items-center pt-10">Loading...</p>;
+  }
 
   return (
-    <PageWrapper>
-      <div className="space-y-xl">
-        <GoToWesiteCTA
-          buttonLink="https://fmtm.hotosm.org/"
-          buttonText="Field TM"
-          link2={{
-            label: "ChatMap",
-            url: "https://www.hotosm.org/tech-suite/chatmap/",
-          }}
-        >
-          <strong>Field</strong> Tasking Manager and <strong>ChatMap</strong>
-        </GoToWesiteCTA>
+    <>
+      <SectionHeader>
+        <strong>Local knowledge</strong> from the field
+      </SectionHeader>
+      <PageWrapper>
+        <div className="space-y-xl">
 
-        <div className="bg-hot-gray-50 p-md md:p-lg rounded-lg space-y-lg">
-          <YourProjectsTitle projects={projects} />
-
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-lg">
-            {projects.map((project) => {
-              return <ImageryCard project={project} />;
-            })}
-          </div>
-        </div>
-
-        {chatmapLoading && (
-          <p className="text-hot-gray-500">Loading ChatMap data...</p>
-        )}
-
-        {chatmap && (
-          <div className="bg-hot-gray-50 p-md md:p-lg rounded-lg space-y-lg">
-            <h3>Your ChatMap</h3>
-            <a
-              href={chatmap.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block group no-underline hover:no-underline"
-            >
-              <div className="w-full bg-white rounded-lg p-md flex flex-col gap-sm shadow-sm transition-all duration-200 group-hover:shadow-lg group-hover:scale-[1.01]">
-                <h4>{chatmap.title}</h4>
-                <span className="text-hot-gray-500">
-                  {chatmap.sharing === "public" ? "Public" : "Private"}
-                </span>
+          {/* Organize field projects */}
+          <div className="flex flex-col gap-sm py-lg">
+            <div>
+              <p className="font-semibold text-xl">
+                <strong>Organize</strong> field projects
+              </p>
+              <p className="text-base">
+                Powered by <strong>Field Tasking Manager</strong>
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-lg">
+              <div className={CARD_CLASS}>
+                <CardAddNew
+                  title="Create"
+                  description="a field mapping project"
+                  buttonLabel="Create a project"
+                />
               </div>
-            </a>
+              {fieldProjects.map((project) => (
+                <div key={project.id} className={CARD_CLASS}>
+                  <FieldTMCard project={project} />
+                </div>
+              ))}
+            </div>
           </div>
-        )}
-      </div>
-    </PageWrapper>
+
+          <Divider />
+
+          {/* Map with social apps */}
+          <div className="flex flex-col gap-sm py-lg">
+            <div>
+              <p className="font-semibold text-xl">
+                <strong>Map</strong> with social apps
+              </p>
+              <p className="text-base">
+                Powered by <strong>ChatMap</strong>
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-lg">
+              <div className={CARD_CLASS}>
+                <CardAddNew
+                  title="Map"
+                  description="with chats"
+                  buttonLabel="Create a map"
+                />
+              </div>
+              {chatMaps.map((map) => (
+                <div key={map.id} className={CARD_CLASS}>
+                  <ChatMapCard project={map} />
+                </div>
+              ))}
+              <div className={CARD_CLASS}>
+                <CardTakeCourse
+                  title="Take the course"
+                  subtitle="& get your certification"
+                  href="#"
+                />
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </PageWrapper>
+    </>
   );
 }
 

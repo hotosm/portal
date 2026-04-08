@@ -1,5 +1,5 @@
-import dronetmImage from "../assets/images/drontm-portal.jpg";
-import mapuseImage from "../assets/images/mapuse-portal.jpg";
+import imageryImage from "../assets/images/imagery-portal.png";
+import mappingImage from "../assets/images/mapping-portal.png";
 
 export interface CarouselItem {
   title: string;
@@ -14,27 +14,27 @@ export const carouselItems: CarouselItem[] = [
     description:
       "Local residents use accessible drones and generate consistent, high-quality imagery.",
     link: "#",
-    image: dronetmImage,
+    image: imageryImage,
   },
   {
     title: "Mapping",
     description:
       "Local residents use accessible drones and generate consistent, high-quality imagery.",
     link: "#",
-    image: mapuseImage,
+    image: mappingImage,
   },
   {
     title: "Field",
     description:
       "Local residents use accessible drones and generate consistent, high-quality imagery.",
     link: "#",
-    image: dronetmImage,
+    image: imageryImage,
   },
   {
     title: "Data",
     description:
       "Local residents use accessible drones and generate consistent, high-quality imagery.",
     link: "#",
-    image: dronetmImage,
+    image: imageryImage,
   },
 ];

@@ -1,34 +1,24 @@
 import { useQuery } from "@tanstack/react-query";
 import type { IUMapProject } from "../types";
+import { getUmapBaseUrl } from "../../utils/envConfig";
+import placeholderImage from "../../assets/images/demo/demo1.png";
 
-// API response types
-interface UMapMapResponse {
-  id: string;
+interface UMapMap {
+  id: number;
+  name: string;
+  description: string | null;
   slug: string;
-  href: string;
   url: string;
+  modified_at: string;
 }
 
-interface UMapMapsResponse {
-  maps: UMapMapResponse[];
-}
-
-interface UMapTemplatesResponse {
-  templates: UMapMapResponse[];
-}
-
-// Convert API response to IUMapProject format
-function mapToUMapProject(
-  item: UMapMapResponse,
-  isTemplate: boolean = false,
-): IUMapProject {
+function mapToProject(item: UMapMap): IUMapProject {
   return {
-    id: parseInt(item.id, 10) || 0,
-    title:
-      item.slug.replace(/_\d+$/, "").replace(/-/g, " ") || `Map ${item.id}`,
-    href: item.url,
-    status: isTemplate ? "published" : "draft",
-    image: "", // uMap doesn't provide thumbnails via API
+    id: item.id,
+    title: item.name,
+    href: `${getUmapBaseUrl()}${item.url}`,
+    status: "published",
+    image: placeholderImage,
     accuracy: 0,
   };
 }
@@ -37,67 +27,21 @@ export function useMyMaps() {
   return useQuery({
     queryKey: ["umap", "my-maps"],
     queryFn: async (): Promise<IUMapProject[]> => {
-      try {
-        const response = await fetch("/api/umap/user/maps");
+      const response = await fetch("/api/umap/user/maps", {
+        credentials: "include",
+      });
 
-        if (!response.ok) {
-          if (response.status === 401 || response.status === 403) {
-            return [];
-          }
-          const errorText = await response.text();
-          throw new Error(
-            `[${response.status}] Failed to fetch uMap maps: ${errorText}`,
-          );
-        }
-
-        const data: UMapMapsResponse = await response.json();
-        const maps = data.maps || [];
-        return maps.map((m) => mapToUMapProject(m, false));
-      } catch (error) {
-        throw error;
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) return [];
+        throw new Error(`[${response.status}] Failed to fetch uMap maps`);
       }
+
+      const data: { maps: UMapMap[] } = await response.json();
+      return (data.maps ?? []).map(mapToProject);
     },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: true,
+    retry: 2,
   });
-}
-
-export function useMyTemplates() {
-  return useQuery({
-    queryKey: ["umap", "my-templates"],
-    queryFn: async (): Promise<IUMapProject[]> => {
-      try {
-        const response = await fetch("/api/umap/user/templates");
-
-        if (!response.ok) {
-          if (response.status === 401 || response.status === 403) {
-            return [];
-          }
-          const errorText = await response.text();
-          throw new Error(
-            `[${response.status}] Failed to fetch uMap templates: ${errorText}`,
-          );
-        }
-
-        const data: UMapTemplatesResponse = await response.json();
-        const templates = data.templates || [];
-        return templates.map((t) => mapToUMapProject(t, true));
-      } catch (error) {
-        throw error;
-      }
-    },
-  });
-}
-
-// Combined hook that returns both maps and templates
-export function useUMapData() {
-  const mapsQuery = useMyMaps();
-  const templatesQuery = useMyTemplates();
-
-  return {
-    maps: mapsQuery.data || [],
-    templates: templatesQuery.data || [],
-    isLoading: mapsQuery.isLoading || templatesQuery.isLoading,
-    error: mapsQuery.error || templatesQuery.error,
-    mapsQuery,
-    templatesQuery,
-  };
 }

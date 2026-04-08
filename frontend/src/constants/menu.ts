@@ -6,6 +6,7 @@ export interface MenuItem {
   description?: string;
   external?: boolean;
   requiresAuth?: boolean;
+  icon?: string;
 }
 
 export const MAIN_MENU_ITEMS: MenuItem[] = [
@@ -34,23 +35,17 @@ export const MAIN_MENU_ITEMS: MenuItem[] = [
     requiresAuth: false,
   },
   {
-    id: "help",
-    label: "Help",
-    href: "/help",
+    id: "learn",
+    label: "Learn",
+    href: "/learn",
     requiresAuth: false,
+    icon: "patch-check",
   },
-  /* {
-    id: "drone-tm",
-    label: "DTM",
-    href: "/drone-tm-projects",
-    requiresAuth: true,
-    description: "My drone mapping projects",
-  }, */
 ];
 
 export const getVisibleMenuItems = (
   items: MenuItem[],
-  isAuthenticated = false
+  isAuthenticated = false,
 ): MenuItem[] => {
   return items.filter((item) => {
     if (item.requiresAuth && !isAuthenticated) return false;
