@@ -303,35 +303,38 @@ function TestPage() {
         {chatmapLoading && <p>Loading chatmap...</p>}
         {chatmapError && <p>Error loading chatmap: {chatmapError.message}</p>}
 
-        {!chatmap && !chatmapLoading && !chatmapError && (
+        {chatmap && chatmap.length === 0 && !chatmapLoading && (
           <p>No chatmap data found.</p>
         )}
 
-        {chatmap && (
+        {chatmap && chatmap.length > 0 && (
           <ul style={{ listStyle: "none", padding: 0 }}>
-            <li
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "1rem",
-                padding: "1rem",
-                borderBottom: "1px solid #eee",
-              }}
-            >
-              <div>
-                <a
-                  href={chatmap.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ fontWeight: 600 }}
-                >
-                  {chatmap.title}
-                </a>
-                <span style={{ marginLeft: "0.5rem", color: "#666" }}>
-                  ({chatmap.sharing})
-                </span>
-              </div>
-            </li>
+            {chatmap.map((item) => (
+              <li
+                key={item.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "1rem",
+                  padding: "1rem",
+                  borderBottom: "1px solid #eee",
+                }}
+              >
+                <div>
+                  <a
+                    href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ fontWeight: 600 }}
+                  >
+                    {item.title}
+                  </a>
+                  <span style={{ marginLeft: "0.5rem", color: "#666" }}>
+                    ({item.status})
+                  </span>
+                </div>
+              </li>
+            ))}
           </ul>
         )}
       </div>

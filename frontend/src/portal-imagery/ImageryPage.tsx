@@ -1,71 +1,88 @@
-import GoToWesiteCTA from "../components/shared/GoToWesiteCTA";
+import CardAddNew from "../components/shared/CardAddNew";
+import CardDataNotAvailable from "../components/shared/CardDataNotAvailable";
+import CardTakeCourse from "../components/shared/CardTakeCourse";
+import Divider from "../components/shared/Divider";
 import PageWrapper from "../components/shared/PageWrapper";
-import YourProjectsTitle from "../components/shared/YourProjectsTitle";
-import { m } from "../paraglide/messages";
+import SectionHeader from "../components/shared/SectionHeader";
 import ImageryCard from "./components/ImageryCard";
-import ImageryNoProjects from "./components/ImageryNoProjects";
-import { useAllImageryData } from "./hooks/useImageryData";
+import { useDroneProjects } from "./hooks";
+
+const CARD_CLASS =
+  "w-full md:w-[calc(33.333%_-_var(--hot-spacing-large)*0.667)] lg:w-[calc(25%_-_var(--hot-spacing-large)*0.75)] shrink-0";
 
 function ImageryPage() {
-  const {
-    allProjects,
-    droneProjects,
-    oamProjects,
-    isLoading,
-    isError,
-    error,
-  } = useAllImageryData();
+  const { data: droneProjects = [], isLoading } = useDroneProjects();
+
+  if (isLoading) {
+    return <p className="flex justify-center items-center pt-10">Loading...</p>;
+  }
 
   return (
-    <PageWrapper>
-      <div className="space-y-xl">
-        <GoToWesiteCTA
-          buttonLink="https://dronetm.org"
-          buttonText="Drone TM"
-          link2={{
-            label: "OpenAerialMap",
-            url: "https://openaerialmap.org",
-          }}
-        >
-          <strong>Drone</strong> Tasking Manager and{" "}
-          <strong>OpenAerialMap</strong>
-        </GoToWesiteCTA>
-
-        {isLoading ? (
-          <div className="flex justify-center items-center py-xl">
-            <div className="text-lg">Loading projects...</div>
+    <>
+      <SectionHeader>
+        <strong>Drone Tasking Manager</strong> and <strong>OpenAerialMap</strong>
+      </SectionHeader>
+      <PageWrapper>
+        {/* Drone image capturing section */}
+        <div className="flex flex-col gap-sm py-lg">
+          <div>
+            <p className="font-semibold text-xl">
+              <strong>Drone image</strong> capturing
+            </p>
+            <p className="text-base">
+              Powered by <strong>Drone Tasking Manager</strong>
+            </p>
           </div>
-        ) : isError ? (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-md">
-            <p className="text-red-800">{error?.message || "Failed to load projects"}</p>
-          </div>
-        ) : allProjects.length === 0 ? (
-          <ImageryNoProjects />
-        ) : (
-          <div className="bg-hot-gray-50 p-md md:p-lg rounded-lg space-y-lg">
-            <YourProjectsTitle projects={droneProjects} />
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-lg">
-              {droneProjects.map((project) => {
-                return <ImageryCard key={project.id} project={project} />;
-              })}
+          <div className="flex flex-wrap gap-lg">
+            <div className={CARD_CLASS}>
+              <CardAddNew
+                title="Create"
+                description="a drone capture plan"
+                buttonLabel="Create new plan"
+              />
             </div>
-
-            {oamProjects.length > 0 && (
-              <div>
-                <p className="text-lg ">
-                  {m.your_plural()} <strong>{m.imagery()}</strong>
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-lg">
-                  {oamProjects.map((project) => {
-                    return <ImageryCard key={project.id} project={project} />;
-                  })}
-                </div>
+            {droneProjects.map((project) => (
+              <div key={project.id} className={CARD_CLASS}>
+                <ImageryCard project={project} />
               </div>
-            )}
+            ))}
           </div>
-        )}
-      </div>
-    </PageWrapper>
+        </div>
+
+        <Divider />
+
+        {/* Image publishing section */}
+        <div className="flex flex-col gap-sm py-lg">
+          <div>
+            <p className="font-semibold text-xl">
+              <strong>Image</strong> publishing
+            </p>
+            <p className="text-base">
+              Powered by <strong>OpenAerialMap</strong>
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-lg">
+            <div className={CARD_CLASS}>
+              <CardAddNew
+                title="Upload"
+                description="new imagery"
+                buttonLabel="Upload imagery"
+              />
+            </div>
+            <div className={CARD_CLASS}>
+              <CardDataNotAvailable />
+            </div>
+            <div className={CARD_CLASS}>
+              <CardTakeCourse
+                title="Take the course"
+                subtitle="& get your certification"
+                href="#"
+              />
+            </div>
+          </div>
+        </div>
+      </PageWrapper>
+    </>
   );
 }
 

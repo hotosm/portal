@@ -2,7 +2,6 @@ import CardAddNew from "../components/shared/CardAddNew";
 import CardTakeCourse from "../components/shared/CardTakeCourse";
 import Divider from "../components/shared/Divider";
 import PageWrapper from "../components/shared/PageWrapper";
-import PortalPageSkeleton from "../components/shared/PortalPageSkeleton";
 import SectionHeader from "../components/shared/SectionHeader";
 import UMapCard from "../portal-mapping/components/UMapCard";
 import DataNoProjects from "./components/DataNoProjects";
@@ -21,7 +20,7 @@ function DataPage() {
   const hasAnyProjects = maps.length > 0 || exports.length > 0;
 
   if (isLoading) {
-    return <PortalPageSkeleton />;
+    return <p className="flex justify-center items-center pt-10">Loading...</p>;
   }
 
   if (!hasAnyProjects) {
