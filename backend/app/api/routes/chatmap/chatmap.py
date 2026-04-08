@@ -21,11 +21,15 @@ async def get_user_chatmaps(
 
     Calls ChatMap API using the Hanko user ID and returns the list of maps.
     """
+    hanko_cookie = request.cookies.get("hanko")
+    if not hanko_cookie:
+        raise HTTPException(status_code=401, detail="Hanko authentication cookie not found.")
+
     url = f"{CHATMAP_API_BASE_URL}/user/{user.id}/map"
 
     async with httpx.AsyncClient(timeout=30.0, verify=False) as client:
         try:
-            response = await client.get(url)
+            response = await client.get(url, cookies={"hanko": hanko_cookie})
             response.raise_for_status()
             maps = response.json()
             logger.info("[ChatMap] Found %d maps for user %s", len(maps), user.id)
