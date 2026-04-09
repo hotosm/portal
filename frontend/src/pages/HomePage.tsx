@@ -51,8 +51,8 @@ function HomePage() {
           )}
         </section>
 
-        <section className="container overflow-hidden px-md md:px-xl py-3xl  bg-white  flex flex-col gap-xl md:gap-3xl justify-center items-center rounded-xl mb-3xl text-center">
-          <div className="flex flex-col gap-md md:gap-xl py-3xl">
+        <section className="container overflow-hidden px-md md:px-xl py-3xl  bg-white  flex flex-col gap-xl md:gap-3xl justify-center items-center rounded-xl text-center">
+          <div className="flex flex-col gap-md md:gap-xl">
             <span className="text-2xl md:text-3xl leading-tight">
               {m.home_workflow_header()}{" "}
               <strong>{m.home_workflow_header_strong()}</strong>
@@ -76,44 +76,26 @@ function HomePage() {
           </div>
 
           <Carousel
-            pagination
             loop
             autoplay
-            autoplayInterval={5000}
+            autoplayInterval={4000}
             mouseDragging
-            className="w-full hero-carousel"
+            className="w-full max-w-4xl hero-carousel"
           >
             {carouselItems.map((item, index) => (
               <CarouselItem key={index}>
-                <div
-                  className="relative overflow-x-hidden h-[400px] md:h-[340px] lg:h-[480px] w-full bg-cover bg-center rounded-xl"
-                  style={{ backgroundImage: `url(${item.image})` }}
-                >
-                  {/* desktop block */}
-                  <div className="hidden md:block md:absolute left-md bottom-md bg-hot-gray-800 p-lg max-w-md text-center">
-                    <h3 className="text-white uppercase font-bold text-xl mb-sm">
-                      {item.title}
-                    </h3>
-                    <p className="text-white text-md md:text-lg leading-tight mb-0">
-                      {item.description}
-                    </p>
-                  </div>
-                  <div></div>
-                </div>
-                {/* mobile block */}
-                <div className="md:hidden bg-hot-gray-800 p-lg w-full text-center h-[150px]">
-                  <h3 className="text-white uppercase font-bold text-xl">
-                    {item.title}
-                  </h3>
-                  <p className="text-white text-lg leading-tight mb-0 line-clamp-3">
-                    {item.description}
-                  </p>
-                </div>
+                <img
+                  src={item.image}
+                  srcSet={`${item.imageSm} 800w, ${item.image} 1674w`}
+                  sizes="(max-width: 896px) 100vw, 896px"
+                  alt={item.title}
+                  className="w-full aspect-[1200/774] md:aspect-[1674/774] object-cover rounded-xl"
+                />
               </CarouselItem>
             ))}
           </Carousel>
 
-          <div className="flex flex-col justify-center items-center text-center gap-md md:gap-xl py-3xl">
+          <div className="flex flex-col justify-center items-center text-center gap-md md:gap-xl">
             <div className="text-2xl md:text-3xl leading-tight">
               Create & share geospatial data
             </div>
