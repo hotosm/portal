@@ -11,7 +11,7 @@ from app.core.cache import get_cached, set_cached, delete_cached, DEFAULT_TTL, L
 from app.core.config import settings
 
 # fAIr API Configuration (from .env / environment variables)
-FAIR_API_BASE_URL = settings.effective_fair_api_base_url
+FAIR_API_BASE_URL = settings.fair_api_url
 FAIR_VERIFY_SSL = settings.fair_verify_ssl
 
 router = APIRouter(prefix="/fair")
@@ -217,7 +217,7 @@ async def get_fair_models_centroids() -> dict:
     if cached_data is not None:
         return cached_data
 
-    url = f"https://api-prod.fair.hotosm.org/api/v1/models/centroid/"
+    url = f"{FAIR_API_BASE_URL}/models/centroid/"
 
     headers = {
         "accept": "application/json",

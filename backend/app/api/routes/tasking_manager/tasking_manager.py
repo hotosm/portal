@@ -8,13 +8,13 @@ import httpx
 from fastapi import APIRouter, HTTPException, Path, BackgroundTasks
 from app.models.tasking_manager import ProjectsResponse, Project, CountriesResponse
 from app.core.cache import get_cached, set_cached, LONG_TTL, DEFAULT_TTL
+from app.core.config import settings
 
 
 router = APIRouter(prefix="/tasking-manager")
 logger = logging.getLogger(__name__)
 
-# HOT OSM Tasking Manager API base URL
-HOTOSM_API_BASE_URL = "https://tasking-manager-production-api.hotosm.org/api/v2"
+HOTOSM_API_BASE_URL = settings.tasking_manager_api_url
 
 # Flag to track if background enrichment is running
 _enrichment_in_progress = False

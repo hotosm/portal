@@ -10,7 +10,6 @@ from fastapi import APIRouter, HTTPException, Path, Request
 from app.models.umap import (
     UMapFeatureCollection,
     ShowcaseResponse,
-    UserMapsResponse,
 )
 from app.core.cache import get_cached, set_cached, DEFAULT_TTL
 from app.core.config import settings
@@ -20,9 +19,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/umap")
 
 UMAP_BASE_URL = settings.umap_base_url
-UMAP_API_BASE_URL = f"{UMAP_BASE_URL}/en/datalayer"
-UMAP_SHOWCASE_URL = f"{UMAP_BASE_URL}/en/showcase/"
+UMAP_LOCALE = "en"
+UMAP_API_BASE_URL = f"{UMAP_BASE_URL}/{UMAP_LOCALE}/datalayer"
+UMAP_SHOWCASE_URL = f"{UMAP_BASE_URL}/{UMAP_LOCALE}/showcase/"
 UMAP_VERIFY_SSL = os.getenv("UMAP_VERIFY_SSL", "false").lower() == "true"
+
+_MAP_HREF_RE = re.compile(r'href="([^"]*)"', re.IGNORECASE)
+_MAP_PATH_RE = re.compile(r"^/(?:[^/]+/)?map/([^/?#]+_(\d+))$")
 
 
 def _umap_client() -> httpx.AsyncClient:
@@ -36,26 +39,79 @@ def _require_hanko(request: Request) -> str:
     return cookie
 
 
+def _parse_map_links(html: str) -> list[dict]:
+    """Extract unique map entries from a uMap HTML page.
 
-@router.get("/user/maps", response_model=UserMapsResponse)
+    Returns a list of dicts with 'id' (str) and 'slug' (str).
+    Skips external URLs, query-string variants, and duplicates.
+    """
+    seen_ids: set[str] = set()
+    results: list[dict] = []
+
+    for href in _MAP_HREF_RE.findall(html):
+        m = _MAP_PATH_RE.match(href)
+        if m:
+            slug = m.group(1)
+            map_id = m.group(2)
+            if map_id not in seen_ids:
+                seen_ids.add(map_id)
+                results.append({"id": map_id, "slug": slug})
+
+    return results
+
+
+@router.get("/user/maps")
 async def get_user_maps(request: Request) -> dict:
     """Fetch the authenticated user's maps from uMap."""
     hanko_cookie = _require_hanko(request)
-    url = f"{UMAP_BASE_URL}/api/v1/maps/?source=mine"
+    url = f"{UMAP_BASE_URL}/{UMAP_LOCALE}/me"
 
     try:
         async with _umap_client() as client:
             response = await client.get(url, cookies={"hanko": hanko_cookie})
-            if response.status_code == 401:
-                raise HTTPException(status_code=401, detail="uMap authentication failed.")
             response.raise_for_status()
-            data = response.json()
-            logger.info(f"[Maps] Found {len(data.get('maps', []))} maps")
-            return data
     except httpx.HTTPStatusError as e:
-        raise HTTPException(status_code=e.response.status_code, detail=f"uMap error: {e.response.text}")
+        raise HTTPException(
+            status_code=e.response.status_code,
+            detail=f"Error fetching uMap maps: {e.response.text}",
+        )
     except httpx.RequestError as e:
         raise HTTPException(status_code=503, detail=f"Connection error to uMap: {str(e)}")
+
+    html = response.text
+    if "sesión" in html:
+        raise HTTPException(status_code=401, detail="uMap authentication failed.")
+
+    maps = _parse_map_links(html)
+    logger.info("[uMap] Found %d maps", len(maps))
+    return {"maps": maps}
+
+
+@router.get("/user/templates")
+async def get_user_templates(request: Request) -> dict:
+    """Fetch the authenticated user's map templates from uMap."""
+    hanko_cookie = _require_hanko(request)
+    url = f"{UMAP_BASE_URL}/{UMAP_LOCALE}/me/templates"
+
+    try:
+        async with _umap_client() as client:
+            response = await client.get(url, cookies={"hanko": hanko_cookie})
+            response.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(
+            status_code=e.response.status_code,
+            detail=f"Error fetching uMap templates: {e.response.text}",
+        )
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=503, detail=f"Connection error to uMap: {str(e)}")
+
+    html = response.text
+    if "sesión" in html:
+        raise HTTPException(status_code=401, detail="uMap authentication failed.")
+
+    templates = _parse_map_links(html)
+    logger.info("[uMap] Found %d templates", len(templates))
+    return {"templates": templates}
 
 
 @router.get("/showcase", response_model=ShowcaseResponse)

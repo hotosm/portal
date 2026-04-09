@@ -15,8 +15,8 @@ from app.db.models.map_project_sync_state import MapProjectSyncState
 from app.db.models.oam import OAMImage
 from app.services import oam_service
 
-TASKING_MANAGER_API_BASE_URL = "https://tasking-manager-production-api.hotosm.org/api/v2"
-FAIR_PRODUCTION_CENTROIDS_URL = "https://api-prod.fair.hotosm.org/api/v1/models/centroid/"
+TASKING_MANAGER_API_BASE_URL = settings.tasking_manager_api_url
+FAIR_CENTROIDS_URL = f"{settings.fair_api_url}/models/centroid/"
 UPSERT_CHUNK_SIZE = 2000
 
 
@@ -276,17 +276,7 @@ async def _fetch_fair_rows(client: httpx.AsyncClient) -> list[dict]:
             )
         return rows
 
-    primary_url = f"{settings.effective_fair_api_base_url}/models/centroid/"
-    primary_rows = await fetch_rows_from_url(primary_url)
-
-    if primary_url.rstrip("/") == FAIR_PRODUCTION_CENTROIDS_URL.rstrip("/"):
-        return primary_rows
-
-    try:
-        fallback_rows = await fetch_rows_from_url(FAIR_PRODUCTION_CENTROIDS_URL)
-        return fallback_rows if len(fallback_rows) > len(primary_rows) else primary_rows
-    except Exception:
-        return primary_rows
+    return await fetch_rows_from_url(FAIR_CENTROIDS_URL)
 
 
 async def _fetch_umap_rows(client: httpx.AsyncClient) -> list[dict]:

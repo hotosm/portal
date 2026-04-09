@@ -12,9 +12,10 @@ from sqlalchemy import asc, desc, func, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.db.models.oam import OAMImage
 
-OAM_API_BASE_URL = "https://api.openaerialmap.org"
+OAM_API_BASE_URL = settings.oam_api_url
 
 
 def _bbox_to_wkt(bbox: list[float]) -> str:

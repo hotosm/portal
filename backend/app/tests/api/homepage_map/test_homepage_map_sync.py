@@ -13,9 +13,9 @@ from app.db.models.map_project import MapProject
 from app.db.models.map_project_sync_state import MapProjectSyncState
 
 
-TM_URL = "https://tasking-manager-production-api.hotosm.org/api/v2/projects/"
-DRONE_URL = f"{settings.drone_tm_backend_url}/projects/centroids"
-FAIR_URL = f"{settings.effective_fair_api_base_url}/models/centroid/"
+TM_URL = f"{settings.tasking_manager_api_url}/projects/"
+DRONE_URL = f"{settings.drone_tm_api_url}/projects/centroids"
+FAIR_URL = f"{settings.fair_api_url}/models/centroid/"
 UMAP_SHOWCASE_URL = f"{settings.umap_base_url}/en/showcase/"
 
 

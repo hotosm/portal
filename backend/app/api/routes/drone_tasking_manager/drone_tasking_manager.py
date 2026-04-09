@@ -19,7 +19,7 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 # Drone-TM API Configuration (from .env / environment variables)
-DRONE_TM_BACKEND_URL = settings.drone_tm_backend_url
+DRONE_TM_BACKEND_URL = settings.drone_tm_api_url
 DRONE_TM_AUTH_HEADER = settings.drone_tm_auth_header
 DRONE_TM_AUTH_PREFIX = settings.drone_tm_auth_prefix
 
