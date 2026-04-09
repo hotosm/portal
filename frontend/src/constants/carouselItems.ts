@@ -1,40 +1,42 @@
-import imageryImage from "../assets/images/imagery-portal.png";
-import mappingImage from "../assets/images/mapping-portal.png";
+import imageryImage from "../assets/images/carousel/imagery.webp";
+import imageryImageSm from "../assets/images/carousel/imagery-sm.webp";
+import mappingImage from "../assets/images/carousel/mapping.webp";
+import mappingImageSm from "../assets/images/carousel/mapping-sm.webp";
+import fieldImage from "../assets/images/carousel/field.webp";
+import fieldImageSm from "../assets/images/carousel/field-sm.webp";
+import dataImage from "../assets/images/carousel/data.webp";
+import dataImageSm from "../assets/images/carousel/data-sm.webp";
 
 export interface CarouselItem {
   title: string;
-  description: string;
   link: string;
   image: string;
+  imageSm: string;
 }
 
 export const carouselItems: CarouselItem[] = [
   {
     title: "Imagery",
-    description:
-      "Local residents use accessible drones and generate consistent, high-quality imagery.",
     link: "#",
     image: imageryImage,
+    imageSm: imageryImageSm,
   },
   {
     title: "Mapping",
-    description:
-      "Local residents use accessible drones and generate consistent, high-quality imagery.",
     link: "#",
     image: mappingImage,
+    imageSm: mappingImageSm,
   },
   {
     title: "Field",
-    description:
-      "Local residents use accessible drones and generate consistent, high-quality imagery.",
     link: "#",
-    image: imageryImage,
+    image: fieldImage,
+    imageSm: fieldImageSm,
   },
   {
     title: "Data",
-    description:
-      "Local residents use accessible drones and generate consistent, high-quality imagery.",
     link: "#",
-    image: imageryImage,
+    image: dataImage,
+    imageSm: dataImageSm,
   },
 ];
