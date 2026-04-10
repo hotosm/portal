@@ -625,103 +625,18 @@ async def test_get_user_maps_uses_locale_in_url(client: AsyncClient):
 
 
 # -------------------------------
-# /umap/user/templates
+# parse_map_links (unit)
 # -------------------------------
 
-UMAP_TEMPLATES_URL = f"{UMAP_BASE_URL}/{UMAP_LOCALE}/me/templates"
-
-
-@pytest.mark.asyncio
-@respx.mock
-async def test_get_user_templates_success(client: AsyncClient):
-    """Test that get_user_templates returns 200 with parsed template list."""
-    html = _maps_html(
-        (f"/{UMAP_LOCALE}/map/template-a_501", "Template A"),
-        (f"/{UMAP_LOCALE}/map/template-b_502", "Template B"),
-    )
-    respx.get(UMAP_TEMPLATES_URL).mock(return_value=Response(200, text=html))
-
-    response = await client.get("/api/umap/user/templates", cookies={"hanko": "tok123"})
-
-    assert response.status_code == 200
-    data = response.json()
-    assert "templates" in data
-    assert len(data["templates"]) == 2
-    assert data["templates"][0]["id"] == "501"
-    assert data["templates"][1]["id"] == "502"
-
-
-@pytest.mark.asyncio
-async def test_get_user_templates_no_cookie(client: AsyncClient):
-    """Test that missing Hanko cookie returns 401."""
-    response = await client.get("/api/umap/user/templates")
-
-    assert response.status_code == 401
-    assert "cookie" in response.json()["detail"].lower()
-
-
-@pytest.mark.asyncio
-@respx.mock
-async def test_get_user_templates_auth_redirect(client: AsyncClient):
-    """Test that a login-page redirect returns 401."""
-    html = "<html><body>Iniciar sesión</body></html>"
-    respx.get(UMAP_TEMPLATES_URL).mock(return_value=Response(200, text=html))
-
-    response = await client.get("/api/umap/user/templates", cookies={"hanko": "expired"})
-
-    assert response.status_code == 401
-
-
-@pytest.mark.asyncio
-@respx.mock
-async def test_get_user_templates_empty_page(client: AsyncClient):
-    """Test that a page with no template links returns an empty list."""
-    html = "<html><body><p>No templates yet.</p></body></html>"
-    respx.get(UMAP_TEMPLATES_URL).mock(return_value=Response(200, text=html))
-
-    response = await client.get("/api/umap/user/templates", cookies={"hanko": "tok"})
-
-    assert response.status_code == 200
-    assert response.json()["templates"] == []
-
-
-@pytest.mark.asyncio
-@respx.mock
-async def test_get_user_templates_http_error(client: AsyncClient):
-    """Test that an upstream HTTP error is propagated."""
-    respx.get(UMAP_TEMPLATES_URL).mock(return_value=Response(500, text="Server Error"))
-
-    response = await client.get("/api/umap/user/templates", cookies={"hanko": "tok"})
-
-    assert response.status_code == 500
-    assert "Error fetching uMap templates" in response.json()["detail"]
-
-
-@pytest.mark.asyncio
-@respx.mock
-async def test_get_user_templates_connection_error(client: AsyncClient):
-    """Test that a connection error returns 503."""
-    respx.get(UMAP_TEMPLATES_URL).mock(side_effect=httpx.RequestError("Timeout"))
-
-    response = await client.get("/api/umap/user/templates", cookies={"hanko": "tok"})
-
-    assert response.status_code == 503
-    assert "Connection error to uMap" in response.json()["detail"]
-
-
-# -------------------------------
-# _parse_map_links (unit)
-# -------------------------------
-
-def test_parse_map_links_extracts_id_and_slug():
+def testparse_map_links_extracts_id_and_slug():
     """Unit test for the HTML parser helper."""
-    from app.api.routes.umap.umap import _parse_map_links
+    from app.api.routes.umap.umap import parse_map_links
 
     html = _maps_html(
         ("/es/map/sierra-leone_2001", "SL"),
         ("/map/no-locale_99", "No locale"),
     )
-    result = _parse_map_links(html)
+    result = parse_map_links(html)
 
     assert len(result) == 2
     assert result[0]["id"] == "2001"
@@ -729,9 +644,9 @@ def test_parse_map_links_extracts_id_and_slug():
     assert result[1]["id"] == "99"
 
 
-def test_parse_map_links_ignores_non_map_hrefs():
+def testparse_map_links_ignores_non_map_hrefs():
     """Non-map hrefs must not appear in the result."""
-    from app.api.routes.umap.umap import _parse_map_links
+    from app.api.routes.umap.umap import parse_map_links
 
     html = """<html><body>
         <a href="/es/map/valid_10">Valid</a>
@@ -739,7 +654,7 @@ def test_parse_map_links_ignores_non_map_hrefs():
         <a href="https://external.example.com/map/foo_1">External</a>
         <a href="/es/map/share_only?share">Share</a>
     </body></html>"""
-    result = _parse_map_links(html)
+    result = parse_map_links(html)
 
     assert len(result) == 1
     assert result[0]["id"] == "10"

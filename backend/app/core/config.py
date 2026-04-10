@@ -133,7 +133,7 @@ class Settings(BaseSettings):
     )
 
     @model_validator(mode="after")
-    def _detect_env_and_fill_defaults(self) -> "Settings":
+    def detect_env_and_fill_defaults(self) -> "Settings":
         url = self.portal_base_url.lower()
         if ".test" in url:
             self.detected_environment = Environment.LOCAL
