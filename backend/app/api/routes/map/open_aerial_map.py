@@ -6,7 +6,6 @@ logger = logging.getLogger(__name__)
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
-from hotosm_auth_fastapi import CurrentUser
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.cache import DEFAULT_TTL, SHORT_TTL, get_cached, set_cached
@@ -28,7 +27,7 @@ router = APIRouter(prefix="/open-aerial-map")
 _sync_task: Optional[asyncio.Task] = None
 
 
-# ── Background sync scheduler ─────────────────────────────────────────────────
+# -- Background sync scheduler ------------------------------------------------
 
 
 async def _db_sync_scheduler() -> None:
@@ -46,7 +45,7 @@ async def _db_sync_scheduler() -> None:
 
 
 def start_sync_scheduler() -> None:
-    """Start the weekly OAM → DB background sync task."""
+    """Start the weekly OAM -> DB background sync task."""
     global _sync_task
     if _sync_task is None or _sync_task.done():
         _sync_task = asyncio.create_task(_db_sync_scheduler())
@@ -61,11 +60,7 @@ def stop_sync_scheduler() -> None:
         logger.info("OAM DB sync scheduler stopped")
 
 
-# Keep legacy name so main.py import doesn't break during transition
-start_snapshot_scheduler = start_sync_scheduler
-
-
-# ── Endpoints ─────────────────────────────────────────────────────────────────
+# -- Endpoints ----------------------------------------------------------------
 
 
 @router.get("/projects", response_model=ImageryListResponse)
@@ -203,62 +198,6 @@ async def get_imagery_by_id(
             data = response.json()
             set_cached(cache_key, data, DEFAULT_TTL)
             return data
-        except httpx.HTTPStatusError as e:
-            raise HTTPException(
-                status_code=e.response.status_code,
-                detail=f"Error from OpenAerialMap API: {e.response.text}",
-            )
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/user/me", response_model=ImageryListResponse)
-async def get_my_imagery(
-    user: CurrentUser,
-    limit: int = Query(100, ge=1, le=1000, description="Number of results to return"),
-    page: int = Query(1, ge=1, description="Page number"),
-    order_by: str = Query("acquisition_end", description="Field to order by"),
-    sort: str = Query("desc", regex="^(asc|desc)$", description="Sort order"),
-) -> dict:
-    """
-    Get imagery metadata for the authenticated user from OpenAerialMap.
-
-    Queries the OAM API filtering by the user's email address (contact field).
-
-    **Authentication**:
-    - Requires valid Hanko session (JWT in cookie or Bearer token)
-
-    **How it works**:
-    - Uses the authenticated user's email to filter imagery
-    - Searches in the OAM production API by contact field
-
-    **Returns**:
-    - 200: User's imagery from OpenAerialMap
-    - 401: Not authenticated
-    - 500: Error from OAM API
-
-    Example: GET /api/open-aerial-map/user/me?limit=100
-    """
-    if not user.email:
-        raise HTTPException(
-            status_code=400,
-            detail="User email not available. Cannot filter imagery without email.",
-        )
-
-    url = f"{OAM_API_BASE_URL}/meta"
-    params = {
-        "contact": user.email,
-        "limit": limit,
-        "page": page,
-        "order_by": order_by,
-        "sort": sort,
-    }
-
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        try:
-            response = await client.get(url, params=params)
-            response.raise_for_status()
-            return response.json()
         except httpx.HTTPStatusError as e:
             raise HTTPException(
                 status_code=e.response.status_code,

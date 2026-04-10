@@ -9,8 +9,8 @@ from httpx import AsyncClient, Response
 from sqlalchemy import select
 
 from app.core.config import settings
-from app.db.models.map_project import MapProject
-from app.db.models.map_project_sync_state import MapProjectSyncState
+from app.api.routes.map.db.models.map_project import MapProject
+from app.api.routes.map.db.models.map_project_sync_state import MapProjectSyncState
 
 
 TM_URL = f"{settings.tasking_manager_api_url}/projects/"

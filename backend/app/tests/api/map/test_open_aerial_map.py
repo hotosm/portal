@@ -531,7 +531,7 @@ class TestGetMyImagery:
                 return_value=mock_response
             )
 
-            from app.api.routes.open_aerial_map.open_aerial_map import get_my_imagery
+            from app.api.routes.user.open_aerial_map import get_my_imagery
 
             result = await get_my_imagery(user=mock_user)
 
@@ -569,7 +569,7 @@ class TestGetMyImagery:
                 return_value=mock_response
             )
 
-            from app.api.routes.open_aerial_map.open_aerial_map import get_my_imagery
+            from app.api.routes.user.open_aerial_map import get_my_imagery
 
             result = await get_my_imagery(
                 user=mock_user,
@@ -599,7 +599,7 @@ class TestGetMyImagery:
         mock_user.id = "test-hanko-uuid"
         mock_user.email = None
 
-        from app.api.routes.open_aerial_map.open_aerial_map import get_my_imagery
+        from app.api.routes.user.open_aerial_map import get_my_imagery
 
         with pytest.raises(HTTPException) as exc_info:
             await get_my_imagery(user=mock_user)
@@ -629,7 +629,7 @@ class TestGetMyImagery:
                 return_value=mock_response
             )
 
-            from app.api.routes.open_aerial_map.open_aerial_map import get_my_imagery
+            from app.api.routes.user.open_aerial_map import get_my_imagery
 
             with pytest.raises(HTTPException) as exc_info:
                 await get_my_imagery(user=mock_user)
@@ -651,7 +651,7 @@ class TestGetMyImagery:
                 side_effect=Exception("Connection failed")
             )
 
-            from app.api.routes.open_aerial_map.open_aerial_map import get_my_imagery
+            from app.api.routes.user.open_aerial_map import get_my_imagery
 
             with pytest.raises(HTTPException) as exc_info:
                 await get_my_imagery(user=mock_user)
@@ -682,7 +682,7 @@ class TestGetMyImagery:
                 return_value=mock_response
             )
 
-            from app.api.routes.open_aerial_map.open_aerial_map import get_my_imagery
+            from app.api.routes.user.open_aerial_map import get_my_imagery
 
             result = await get_my_imagery(user=mock_user)
 

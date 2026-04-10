@@ -11,9 +11,9 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
 from app.core.base import Base
-from app.db.models.oam import OAMImage  # noqa: F401 — registers model with Base.metadata
-from app.db.models.map_project import MapProject  # noqa: F401 — registers model with Base.metadata
-from app.db.models.map_project_sync_state import MapProjectSyncState  # noqa: F401 — registers model with Base.metadata
+from app.api.routes.map.db.models.oam import OAMImage  # noqa: F401 — registers model with Base.metadata
+from app.api.routes.map.db.models.map_project import MapProject  # noqa: F401 — registers model with Base.metadata
+from app.api.routes.map.db.models.map_project_sync_state import MapProjectSyncState  # noqa: F401 — registers model with Base.metadata
 
 
 def _load_database_url_from_dotenv() -> str | None:

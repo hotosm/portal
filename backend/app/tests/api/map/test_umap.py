@@ -8,7 +8,7 @@ import httpx
 from httpx import AsyncClient, Response
 
 # Import the URLs from the umap module to use in mocks
-from app.api.routes.umap.umap import UMAP_API_BASE_URL, UMAP_BASE_URL, UMAP_LOCALE, UMAP_SHOWCASE_URL
+from app.api.routes.shared.umap_helpers import UMAP_API_BASE_URL, UMAP_BASE_URL, UMAP_LOCALE, UMAP_SHOWCASE_URL
 
 
 # -------------------------------
@@ -715,7 +715,7 @@ async def test_get_user_templates_connection_error(client: AsyncClient):
 
 def test_parse_map_links_extracts_id_and_slug():
     """Unit test for the HTML parser helper."""
-    from app.api.routes.umap.umap import _parse_map_links
+    from app.api.routes.shared.umap_helpers import _parse_map_links
 
     html = _maps_html(
         ("/es/map/sierra-leone_2001", "SL"),
@@ -731,7 +731,7 @@ def test_parse_map_links_extracts_id_and_slug():
 
 def test_parse_map_links_ignores_non_map_hrefs():
     """Non-map hrefs must not appear in the result."""
-    from app.api.routes.umap.umap import _parse_map_links
+    from app.api.routes.shared.umap_helpers import _parse_map_links
 
     html = """<html><body>
         <a href="/es/map/valid_10">Valid</a>

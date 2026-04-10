@@ -10,9 +10,9 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.db.models.map_project import MapProject
-from app.db.models.map_project_sync_state import MapProjectSyncState
-from app.db.models.oam import OAMImage
+from app.api.routes.map.db.models.map_project import MapProject
+from app.api.routes.map.db.models.map_project_sync_state import MapProjectSyncState
+from app.api.routes.map.db.models.oam import OAMImage
 from app.services import oam_service
 
 TASKING_MANAGER_API_BASE_URL = settings.tasking_manager_api_url

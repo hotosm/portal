@@ -6,7 +6,7 @@ import pytest
 from unittest.mock import Mock, AsyncMock, patch
 import httpx
 
-from app.api.routes.chatmap.chatmap import get_my_chatmap, CHATMAP_API_BASE_URL
+from app.api.routes.user.chatmap import get_my_chatmap, CHATMAP_API_BASE_URL
 
 BASE_URL = CHATMAP_API_BASE_URL
 

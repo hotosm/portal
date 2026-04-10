@@ -103,7 +103,7 @@ def mock_db_failure():
         ```
     """
     with patch(
-        "app.api.routes.example.check_database_health",
+        "app.api.routes.map.example.check_database_health",
         return_value=AsyncMock(connected=False, response_time_ms=None),
     ):
         yield

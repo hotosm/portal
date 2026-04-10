@@ -1,4 +1,4 @@
-# portal/backend/app/api/routes/field_tm/field_tm.py
+# portal/backend/app/api/routes/map/field_tm.py
 
 """FMTM API endpoints."""
 

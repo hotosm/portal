@@ -29,7 +29,7 @@ class TestGetFairProjects:
                 return_value=mock_response
             )
 
-            from app.api.routes.fair.fair import router
+            from app.api.routes.map.fair import router
             endpoint = router.routes[0].endpoint
 
             result = await endpoint()
@@ -70,7 +70,7 @@ class TestGetFairProjects:
                 return_value=mock_response
             )
 
-            from app.api.routes.fair.fair import router
+            from app.api.routes.map.fair import router
             endpoint = router.routes[0].endpoint
 
             result = await endpoint(
@@ -110,7 +110,7 @@ class TestGetFairProjects:
                 return_value=mock_response
             )
 
-            from app.api.routes.fair.fair import router
+            from app.api.routes.map.fair import router
             endpoint = router.routes[0].endpoint
 
             await endpoint(status=0, search="AI")
@@ -140,7 +140,7 @@ class TestGetFairProjects:
         mock_response.status_code = 404
         mock_response.text = "Not Found"
 
-        with patch("app.api.routes.fair.fair.httpx.AsyncClient") as mock_client:
+        with patch("app.api.routes.map.fair.httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 side_effect=httpx.HTTPStatusError(
                     "Error from fAIr API",
@@ -149,7 +149,7 @@ class TestGetFairProjects:
                 )
             )
 
-            from app.api.routes.fair.fair import router
+            from app.api.routes.map.fair import router
             endpoint = router.routes[0].endpoint
 
             with pytest.raises(HTTPException) as exc_info:
@@ -162,12 +162,12 @@ class TestGetFairProjects:
     @pytest.mark.asyncio
     async def test_get_fair_projects_generic_exception(self):
         """Test handling of generic exceptions"""
-        with patch("app.api.routes.fair.fair.httpx.AsyncClient") as mock_client:
+        with patch("app.api.routes.map.fair.httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 side_effect=Exception("Connection failed")
             )
 
-            from app.api.routes.fair.fair import router
+            from app.api.routes.map.fair import router
             endpoint = router.routes[0].endpoint
 
             with pytest.raises(HTTPException) as exc_info:
@@ -196,7 +196,7 @@ class TestGetFairModelsByUser:
                 return_value=mock_response
             )
 
-            from app.api.routes.fair.fair import get_fair_models_by_user
+            from app.api.routes.map.fair import get_fair_models_by_user
 
             result = await get_fair_models_by_user(user_id=23470445)
 
@@ -235,7 +235,7 @@ class TestGetFairModelsByUser:
                 return_value=mock_response
             )
 
-            from app.api.routes.fair.fair import get_fair_models_by_user
+            from app.api.routes.map.fair import get_fair_models_by_user
 
             result = await get_fair_models_by_user(
                 user_id=23470445,
@@ -274,7 +274,7 @@ class TestGetFairModelsByUser:
                 )
             )
 
-            from app.api.routes.fair.fair import get_fair_models_by_user
+            from app.api.routes.map.fair import get_fair_models_by_user
 
             with pytest.raises(HTTPException) as exc_info:
                 await get_fair_models_by_user(user_id=99999)
@@ -303,7 +303,7 @@ class TestGetFairDatasetsByUser:
                 return_value=mock_response
             )
 
-            from app.api.routes.fair.fair import get_fair_datasets_by_user
+            from app.api.routes.map.fair import get_fair_datasets_by_user
 
             result = await get_fair_datasets_by_user(user_id=23470445)
 
@@ -342,7 +342,7 @@ class TestGetFairDatasetsByUser:
                 return_value=mock_response
             )
 
-            from app.api.routes.fair.fair import get_fair_datasets_by_user
+            from app.api.routes.map.fair import get_fair_datasets_by_user
 
             result = await get_fair_datasets_by_user(
                 user_id=23470445,
@@ -370,7 +370,7 @@ class TestGetFairDatasetsByUser:
         mock_response.status_code = 500
         mock_response.text = "Internal server error"
 
-        with patch("app.api.routes.fair.fair.httpx.AsyncClient") as mock_client:
+        with patch("app.api.routes.map.fair.httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 side_effect=httpx.HTTPStatusError(
                     "Error from fAIr API",
@@ -379,7 +379,7 @@ class TestGetFairDatasetsByUser:
                 )
             )
 
-            from app.api.routes.fair.fair import get_fair_datasets_by_user
+            from app.api.routes.map.fair import get_fair_datasets_by_user
 
             with pytest.raises(HTTPException) as exc_info:
                 await get_fair_datasets_by_user(user_id=23470445)
@@ -390,12 +390,12 @@ class TestGetFairDatasetsByUser:
     @pytest.mark.asyncio
     async def test_get_datasets_by_user_generic_exception(self):
         """Test handling of generic exceptions"""
-        with patch("app.api.routes.fair.fair.httpx.AsyncClient") as mock_client:
+        with patch("app.api.routes.map.fair.httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 side_effect=Exception("Network error")
             )
 
-            from app.api.routes.fair.fair import get_fair_datasets_by_user
+            from app.api.routes.map.fair import get_fair_datasets_by_user
 
             with pytest.raises(HTTPException) as exc_info:
                 await get_fair_datasets_by_user(user_id=23470445)
@@ -432,7 +432,7 @@ class TestGetMyFairModels:
                 return_value=mock_response
             )
 
-            from app.api.routes.fair.fair import get_my_fair_models
+            from app.api.routes.user.fair import get_my_fair_models
 
             result = await get_my_fair_models(request=mock_request, user=mock_user)
 
@@ -471,7 +471,7 @@ class TestGetMyFairModels:
                 return_value=mock_response
             )
 
-            from app.api.routes.fair.fair import get_my_fair_models
+            from app.api.routes.user.fair import get_my_fair_models
 
             result = await get_my_fair_models(
                 request=mock_request,
@@ -522,7 +522,7 @@ class TestGetMyFairDatasets:
                 return_value=mock_response
             )
 
-            from app.api.routes.fair.fair import get_my_fair_datasets
+            from app.api.routes.user.fair import get_my_fair_datasets
 
             result = await get_my_fair_datasets(request=mock_request, user=mock_user)
 
@@ -561,7 +561,7 @@ class TestGetMyFairDatasets:
                 return_value=mock_response
             )
 
-            from app.api.routes.fair.fair import get_my_fair_datasets
+            from app.api.routes.user.fair import get_my_fair_datasets
 
             result = await get_my_fair_datasets(
                 request=mock_request,
@@ -605,7 +605,7 @@ class TestGetMyFairDatasets:
                 )
             )
 
-            from app.api.routes.fair.fair import get_my_fair_datasets
+            from app.api.routes.user.fair import get_my_fair_datasets
 
             with pytest.raises(HTTPException) as exc_info:
                 await get_my_fair_datasets(request=mock_request, user=mock_user)
@@ -669,7 +669,7 @@ class TestGetFairModelsCentroids:
         with patch("httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(side_effect=mock_get)
 
-            from app.api.routes.fair.fair import get_fair_models_centroids
+            from app.api.routes.map.fair import get_fair_models_centroids
 
             result = await get_fair_models_centroids()
 
@@ -693,12 +693,12 @@ class TestGetFairModelsCentroids:
         mock_response.json.return_value = mock_response_data
         mock_response.raise_for_status = Mock()
 
-        with patch("app.api.routes.fair.fair.httpx.AsyncClient") as mock_client:
+        with patch("app.api.routes.map.fair.httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 return_value=mock_response
             )
 
-            from app.api.routes.fair.fair import get_fair_models_centroids
+            from app.api.routes.map.fair import get_fair_models_centroids
 
             result = await get_fair_models_centroids()
 
@@ -712,7 +712,7 @@ class TestGetFairModelsCentroids:
         mock_response.status_code = 500
         mock_response.text = "Internal server error"
 
-        with patch("app.api.routes.fair.fair.httpx.AsyncClient") as mock_client:
+        with patch("app.api.routes.map.fair.httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 side_effect=httpx.HTTPStatusError(
                     "Error from fAIr API",
@@ -721,7 +721,7 @@ class TestGetFairModelsCentroids:
                 )
             )
 
-            from app.api.routes.fair.fair import get_fair_models_centroids
+            from app.api.routes.map.fair import get_fair_models_centroids
 
             with pytest.raises(HTTPException) as exc_info:
                 await get_fair_models_centroids()
@@ -732,12 +732,12 @@ class TestGetFairModelsCentroids:
     @pytest.mark.asyncio
     async def test_get_centroids_generic_exception(self):
         """Test handling of generic exceptions"""
-        with patch("app.api.routes.fair.fair.httpx.AsyncClient") as mock_client:
+        with patch("app.api.routes.map.fair.httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 side_effect=Exception("Connection timeout")
             )
 
-            from app.api.routes.fair.fair import get_fair_models_centroids
+            from app.api.routes.map.fair import get_fair_models_centroids
 
             with pytest.raises(HTTPException) as exc_info:
                 await get_fair_models_centroids()
@@ -776,7 +776,7 @@ class TestGetFairModelDetail:
                 return_value=mock_response
             )
 
-            from app.api.routes.fair.fair import get_fair_model_detail
+            from app.api.routes.map.fair import get_fair_model_detail
 
             result = await get_fair_model_detail(mid=3)
 
@@ -819,7 +819,7 @@ class TestGetFairModelDetail:
                 return_value=mock_response
             )
 
-            from app.api.routes.fair.fair import get_fair_model_detail
+            from app.api.routes.map.fair import get_fair_model_detail
 
             result = await get_fair_model_detail(mid=5)
 
@@ -844,7 +844,7 @@ class TestGetFairModelDetail:
                 )
             )
 
-            from app.api.routes.fair.fair import get_fair_model_detail
+            from app.api.routes.map.fair import get_fair_model_detail
 
             with pytest.raises(HTTPException) as exc_info:
                 await get_fair_model_detail(mid=99999)
@@ -859,7 +859,7 @@ class TestGetFairModelDetail:
         mock_response.status_code = 503
         mock_response.text = "Service unavailable"
 
-        with patch("app.api.routes.fair.fair.httpx.AsyncClient") as mock_client:
+        with patch("app.api.routes.map.fair.httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 side_effect=httpx.HTTPStatusError(
                     "Error from fAIr API",
@@ -868,7 +868,7 @@ class TestGetFairModelDetail:
                 )
             )
 
-            from app.api.routes.fair.fair import get_fair_model_detail
+            from app.api.routes.map.fair import get_fair_model_detail
 
             with pytest.raises(HTTPException) as exc_info:
                 await get_fair_model_detail(mid=3)
@@ -879,12 +879,12 @@ class TestGetFairModelDetail:
     @pytest.mark.asyncio
     async def test_get_model_detail_generic_exception(self):
         """Test handling of generic exceptions"""
-        with patch("app.api.routes.fair.fair.httpx.AsyncClient") as mock_client:
+        with patch("app.api.routes.map.fair.httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 side_effect=Exception("Network error")
             )
 
-            from app.api.routes.fair.fair import get_fair_model_detail
+            from app.api.routes.map.fair import get_fair_model_detail
 
             with pytest.raises(HTTPException) as exc_info:
                 await get_fair_model_detail(mid=3)

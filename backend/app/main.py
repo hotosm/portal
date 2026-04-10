@@ -11,20 +11,34 @@ from fastapi.middleware.cors import CORSMiddleware
 from hotosm_auth import AuthConfig
 from hotosm_auth_fastapi import init_auth
 
-from app.api.routes import example, test
-from app.api.routes.drone_tasking_manager.drone_tasking_manager import build_dronetm_cache_key
-from app.api.routes.tasking_manager import tasking_manager
-from app.api.routes.drone_tasking_manager import drone_tasking_manager
-from app.api.routes.open_aerial_map import open_aerial_map
-from app.api.routes.homepage_map import homepage_map
-from app.api.routes.open_aerial_map.open_aerial_map import start_sync_scheduler
-from app.db.models.oam import OAMImage  # noqa: F401 — registers model with Base.metadata
-from app.db.models.map_project import MapProject  # noqa: F401 — registers model with Base.metadata
-from app.api.routes.fair import fair
-from app.api.routes.field_tm import field_tm
-from app.api.routes.umap import umap
-from app.api.routes.export_tool import export_tool
-from app.api.routes.chatmap import chatmap
+# Map (public) routes
+from app.api.routes.map import example as map_example
+from app.api.routes.map import homepage_map as map_homepage_map
+from app.api.routes.map import tasking_manager as map_tasking_manager
+from app.api.routes.map import drone_tasking_manager as map_drone_tm
+from app.api.routes.map import open_aerial_map as map_oam
+from app.api.routes.map import fair as map_fair
+from app.api.routes.map import field_tm as map_field_tm
+from app.api.routes.map import umap as map_umap
+from app.api.routes.map import export_tool as map_export_tool
+
+# User (authenticated) routes
+from app.api.routes.user import test as user_test
+from app.api.routes.user import chatmap as user_chatmap
+from app.api.routes.user import open_aerial_map as user_oam
+from app.api.routes.user import drone_tasking_manager as user_drone_tm
+from app.api.routes.user import fair as user_fair
+from app.api.routes.user import umap as user_umap
+from app.api.routes.user import export_tool as user_export_tool
+
+# Shared helpers
+from app.api.routes.shared.drone_tm_helpers import build_dronetm_cache_key
+from app.api.routes.map.open_aerial_map import start_sync_scheduler
+
+# DB models (register with Base.metadata)
+from app.api.routes.map.db.models.oam import OAMImage  # noqa: F401
+from app.api.routes.map.db.models.map_project import MapProject  # noqa: F401
+
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal, check_db_connection
 
@@ -53,8 +67,8 @@ async def homepage_map_sync_loop() -> None:
 async def preload_cache():
     """Preload cache with frequently accessed data on startup."""
     import httpx
-    from app.api.routes.tasking_manager.tasking_manager import fetch_and_enrich_in_background
-    from app.api.routes.fair.fair import enrich_fair_centroids_in_background
+    from app.api.routes.map.tasking_manager import fetch_and_enrich_in_background
+    from app.api.routes.shared.fair_helpers import enrich_fair_centroids_in_background
     from app.core.cache import get_cached, set_cached, DEFAULT_TTL
 
     logger.info("Preloading cache in background...")
@@ -226,71 +240,106 @@ async def ready() -> dict[str, str | bool]:
     }
 
 
-# Include API routers
-app.include_router(
-    example.router,
-    prefix=settings.api_v1_prefix,
-    tags=["example"],
-)
+# ── User (authenticated) routers ─────────────────────────────────────────────
+# Registered first so specific paths (e.g. /umap/user/maps) match before
+# catch-all path parameters (e.g. /umap/{location}/{project_id}).
 
 app.include_router(
-    test.router,
+    user_test.router,
     prefix=f"{settings.api_v1_prefix}/test",
     tags=["test"],
 )
 
 app.include_router(
-    tasking_manager.router,
+    user_chatmap.router,
     prefix=settings.api_v1_prefix,
-    tags=["tasking manager"],
+    tags=["chatmap"],
 )
 
 app.include_router(
-    drone_tasking_manager.router,
-    prefix=settings.api_v1_prefix,
-    tags=["drone tasking manager"],
-)
-
-app.include_router(
-    open_aerial_map.router,
+    user_oam.router,
     prefix=settings.api_v1_prefix,
     tags=["open aerial map"],
 )
 
 app.include_router(
-    homepage_map.router,
+    user_drone_tm.router,
     prefix=settings.api_v1_prefix,
-    tags=["homepage map"],
+    tags=["drone tasking manager"],
 )
 
 app.include_router(
-    fair.router,
+    user_fair.router,
     prefix=settings.api_v1_prefix,
     tags=["fair"],
 )
 
 app.include_router(
-    field_tm.router,
-    prefix=settings.api_v1_prefix,
-    tags=["field tasking manager"],
-)
-
-app.include_router(
-    umap.router,
+    user_umap.router,
     prefix=settings.api_v1_prefix,
     tags=["umap"],
 )
 
 app.include_router(
-    export_tool.router,
+    user_export_tool.router,
     prefix=settings.api_v1_prefix,
     tags=["export tool"],
 )
 
+# ── Map (public) routers ─────────────────────────────────────────────────────
+
 app.include_router(
-    chatmap.router,
+    map_example.router,
     prefix=settings.api_v1_prefix,
-    tags=["chatmap"],
+    tags=["example"],
+)
+
+app.include_router(
+    map_homepage_map.router,
+    prefix=settings.api_v1_prefix,
+    tags=["homepage map"],
+)
+
+app.include_router(
+    map_tasking_manager.router,
+    prefix=settings.api_v1_prefix,
+    tags=["tasking manager"],
+)
+
+app.include_router(
+    map_drone_tm.router,
+    prefix=settings.api_v1_prefix,
+    tags=["drone tasking manager"],
+)
+
+app.include_router(
+    map_oam.router,
+    prefix=settings.api_v1_prefix,
+    tags=["open aerial map"],
+)
+
+app.include_router(
+    map_fair.router,
+    prefix=settings.api_v1_prefix,
+    tags=["fair"],
+)
+
+app.include_router(
+    map_field_tm.router,
+    prefix=settings.api_v1_prefix,
+    tags=["field tasking manager"],
+)
+
+app.include_router(
+    map_umap.router,
+    prefix=settings.api_v1_prefix,
+    tags=["umap"],
+)
+
+app.include_router(
+    map_export_tool.router,
+    prefix=settings.api_v1_prefix,
+    tags=["export tool"],
 )
 
 # Include authentication routers (OSM OAuth)

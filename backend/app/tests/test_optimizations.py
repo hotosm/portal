@@ -10,7 +10,7 @@ import inspect
 import pytest
 
 import app.services.map_projects_service as map_projects_service
-from app.api.routes.drone_tasking_manager.drone_tasking_manager import (
+from app.api.routes.shared.drone_tm_helpers import (
     build_dronetm_cache_key,
 )
 

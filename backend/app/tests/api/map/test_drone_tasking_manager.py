@@ -7,10 +7,13 @@ import httpx
 from unittest.mock import AsyncMock, Mock, patch
 from fastapi import HTTPException, Request
 
+from app.api.routes.user.drone_tasking_manager import get_projects, get_user_projects
+from app.api.routes.map.drone_tasking_manager import get_project_by_id, get_projects_centroids
+
 
 class TestGetProjects:
     """Test suite for get_projects function"""
-    
+
     def create_mock_request(self, has_cookie: bool = True):
         """Helper to create a mock request with or without Hanko cookie"""
         mock_request = Mock(spec=Request)
@@ -19,7 +22,7 @@ class TestGetProjects:
         else:
             mock_request.cookies = {}
         return mock_request
-    
+
     @pytest.mark.asyncio
     async def test_get_projects_success_default_params(self):
         """Test with default parameters and successful response"""
@@ -27,73 +30,64 @@ class TestGetProjects:
             "results": [{"id": "1", "name": "Project 1"}],
             "pagination": {"page": 1, "total": 1}
         }
-        
+
         mock_response = Mock()
         mock_response.json.return_value = mock_response_data
         mock_response.raise_for_status = Mock()
         mock_response.status_code = 200
-        
+
         with patch("httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 return_value=mock_response
             )
-            
-            from app.api.routes.drone_tasking_manager.drone_tasking_manager import router
-            endpoint = router.routes[0].endpoint
-            
+
             mock_request = self.create_mock_request(has_cookie=True)
-            result = await endpoint(mock_request)
-            
+            result = await get_projects(mock_request)
+
             assert result == mock_response_data
             mock_client.return_value.__aenter__.return_value.get.assert_called_once()
             call_args = mock_client.return_value.__aenter__.return_value.get.call_args
-            
+
             # Verify URL
             assert "projects/" in call_args[0][0]
-            
+
             # Verify headers contain Authorization with Hanko token
             assert "Authorization" in call_args[1]["headers"]
             assert "Bearer mock-hanko-token-12345" in call_args[1]["headers"]["Authorization"]
-            
+
             # Verify params
             assert call_args[1]["params"]["filter_by_owner"] == "false"
             assert call_args[1]["params"]["page"] == 1
             assert call_args[1]["params"]["results_per_page"] == 20
-    
+
     @pytest.mark.asyncio
     async def test_get_projects_no_hanko_cookie(self):
         """Test when Hanko cookie is missing"""
-        from app.api.routes.drone_tasking_manager.drone_tasking_manager import router
-        endpoint = router.routes[0].endpoint
-        
         mock_request = self.create_mock_request(has_cookie=False)
-        
+
         with pytest.raises(HTTPException) as exc_info:
-            await endpoint(mock_request)
-        
+            await get_projects(mock_request)
+
         assert exc_info.value.status_code == 401
         assert "Hanko authentication cookie not found" in exc_info.value.detail
-    
+
     @pytest.mark.asyncio
     async def test_get_projects_with_all_params(self):
         """Test with all optional parameters"""
         mock_response_data = {"results": [], "pagination": {"total": 0}}
-        
+
         mock_response = Mock()
         mock_response.json.return_value = mock_response_data
         mock_response.raise_for_status = Mock()
         mock_response.status_code = 200
-        
+
         with patch("httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 return_value=mock_response
             )
-            
-            from app.api.routes.drone_tasking_manager.drone_tasking_manager import router
-            endpoint = router.routes[0].endpoint
-            
+
             mock_request = self.create_mock_request(has_cookie=True)
-            result = await endpoint(
+            result = await get_projects(
                 mock_request,
                 filter_by_owner=True,
                 status="active",
@@ -101,24 +95,24 @@ class TestGetProjects:
                 page=2,
                 results_per_page=50
             )
-            
+
             assert result == mock_response_data
             call_args = mock_client.return_value.__aenter__.return_value.get.call_args
             params = call_args[1]["params"]
-            
+
             assert params["filter_by_owner"] == "true"
             assert params["status"] == "active"
             assert params["search"] == "drone"
             assert params["page"] == 2
             assert params["results_per_page"] == 50
-    
+
     @pytest.mark.asyncio
     async def test_get_projects_http_status_error(self):
         """Test HTTP error handling"""
         mock_response = Mock()
         mock_response.status_code = 404
         mock_response.text = "Not found"
-        
+
         with patch("httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 side_effect=httpx.HTTPStatusError(
@@ -127,18 +121,15 @@ class TestGetProjects:
                     response=mock_response
                 )
             )
-            
-            from app.api.routes.drone_tasking_manager.drone_tasking_manager import router
-            endpoint = router.routes[0].endpoint
-            
+
             mock_request = self.create_mock_request(has_cookie=True)
-            
+
             with pytest.raises(HTTPException) as exc_info:
-                await endpoint(mock_request)
-            
+                await get_projects(mock_request)
+
             assert exc_info.value.status_code == 404
             assert "Error from DroneTM API" in exc_info.value.detail
-    
+
     @pytest.mark.asyncio
     async def test_get_projects_fetch_all(self):
         """Test fetch_all parameter pagination"""
@@ -150,28 +141,25 @@ class TestGetProjects:
             "results": [{"id": "2", "name": "Project 2"}],
             "pagination": {"page": 2, "total_pages": 2}
         }
-        
+
         mock_response1 = Mock()
         mock_response1.json.return_value = page1_data
         mock_response1.raise_for_status = Mock()
         mock_response1.status_code = 200
-        
+
         mock_response2 = Mock()
         mock_response2.json.return_value = page2_data
         mock_response2.raise_for_status = Mock()
         mock_response2.status_code = 200
-        
+
         with patch("httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 side_effect=[mock_response1, mock_response2]
             )
-            
-            from app.api.routes.drone_tasking_manager.drone_tasking_manager import router
-            endpoint = router.routes[0].endpoint
-            
+
             mock_request = self.create_mock_request(has_cookie=True)
-            result = await endpoint(mock_request, fetch_all=True)
-            
+            result = await get_projects(mock_request, fetch_all=True)
+
             # Should have combined results from both pages
             assert len(result["results"]) == 2
             assert result["results"][0]["id"] == "1"
@@ -181,7 +169,7 @@ class TestGetProjects:
 
 class TestGetUserProjects:
     """Test suite for get_user_projects function"""
-    
+
     def create_mock_request(self, has_cookie: bool = True):
         """Helper to create a mock request with or without Hanko cookie"""
         mock_request = Mock(spec=Request)
@@ -190,7 +178,7 @@ class TestGetUserProjects:
         else:
             mock_request.cookies = {}
         return mock_request
-    
+
     @pytest.mark.asyncio
     async def test_get_user_projects_success_default_params(self):
         """Test with default parameters and successful response"""
@@ -201,54 +189,47 @@ class TestGetUserProjects:
             ],
             "pagination": {"page": 1, "total": 2}
         }
-        
+
         mock_response = Mock()
         mock_response.json.return_value = mock_response_data
         mock_response.raise_for_status = Mock()
         mock_response.status_code = 200
-        
+
         with patch("httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 return_value=mock_response
             )
-            
-            from app.api.routes.drone_tasking_manager.drone_tasking_manager import router
-            # /projects/user is now the third route (index 2) after /projects/centroids
-            endpoint = router.routes[2].endpoint
-            
+
             mock_request = self.create_mock_request(has_cookie=True)
-            result = await endpoint(mock_request)
-            
+            result = await get_user_projects(mock_request)
+
             assert result == mock_response_data
             mock_client.return_value.__aenter__.return_value.get.assert_called_once()
             call_args = mock_client.return_value.__aenter__.return_value.get.call_args
-            
+
             # Verify URL
             assert "projects/" in call_args[0][0]
-            
+
             # Verify headers contain Authorization with Hanko token
             assert "Authorization" in call_args[1]["headers"]
             assert "Bearer mock-hanko-token-12345" in call_args[1]["headers"]["Authorization"]
-            
+
             # Verify params - filter_by_owner should always be true
             assert call_args[1]["params"]["filter_by_owner"] == "true"
             assert call_args[1]["params"]["page"] == 1
             assert call_args[1]["params"]["results_per_page"] == 12  # Default is 12
-    
+
     @pytest.mark.asyncio
     async def test_get_user_projects_no_hanko_cookie(self):
         """Test when Hanko cookie is missing"""
-        from app.api.routes.drone_tasking_manager.drone_tasking_manager import router
-        endpoint = router.routes[2].endpoint
-        
         mock_request = self.create_mock_request(has_cookie=False)
-        
+
         with pytest.raises(HTTPException) as exc_info:
-            await endpoint(mock_request)
-        
+            await get_user_projects(mock_request)
+
         assert exc_info.value.status_code == 401
         assert "Hanko authentication cookie not found" in exc_info.value.detail
-    
+
     @pytest.mark.asyncio
     async def test_get_user_projects_with_search(self):
         """Test with search parameter"""
@@ -256,27 +237,24 @@ class TestGetUserProjects:
             "results": [{"id": "1", "name": "Searched Project"}],
             "pagination": {"page": 1, "total": 1}
         }
-        
+
         mock_response = Mock()
         mock_response.json.return_value = mock_response_data
         mock_response.raise_for_status = Mock()
         mock_response.status_code = 200
-        
+
         with patch("httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 return_value=mock_response
             )
-            
-            from app.api.routes.drone_tasking_manager.drone_tasking_manager import router
-            endpoint = router.routes[2].endpoint
 
             mock_request = self.create_mock_request(has_cookie=True)
-            result = await endpoint(mock_request, search="test search")
-            
+            result = await get_user_projects(mock_request, search="test search")
+
             assert result == mock_response_data
             call_args = mock_client.return_value.__aenter__.return_value.get.call_args
             params = call_args[1]["params"]
-            
+
             assert params["filter_by_owner"] == "true"
             assert params["search"] == "test search"
 
@@ -304,12 +282,8 @@ class TestGetProjectById:
                 return_value=mock_response
             )
 
-            from app.api.routes.drone_tasking_manager.drone_tasking_manager import router
-            # /projects/{project_id} is the fourth route (index 3)
-            endpoint = router.routes[3].endpoint
-
             # No request needed - public endpoint
-            result = await endpoint(project_id)
+            result = await get_project_by_id(project_id)
 
             assert result == mock_response_data
             mock_client.return_value.__aenter__.return_value.get.assert_called_once()
@@ -336,11 +310,8 @@ class TestGetProjectById:
                 )
             )
 
-            from app.api.routes.drone_tasking_manager.drone_tasking_manager import router
-            endpoint = router.routes[3].endpoint
-
             with pytest.raises(HTTPException) as exc_info:
-                await endpoint(project_id)
+                await get_project_by_id(project_id)
 
             assert exc_info.value.status_code == 404
             assert "not found" in exc_info.value.detail.lower()
@@ -391,12 +362,8 @@ class TestGetProjectsCentroids:
                 return_value=mock_response
             )
 
-            from app.api.routes.drone_tasking_manager.drone_tasking_manager import router
-            # /projects/centroids is index 1
-            endpoint = router.routes[1].endpoint
-
             # No request needed - public endpoint
-            result = await endpoint()
+            result = await get_projects_centroids()
 
             # Should wrap array in results/pagination format
             assert "results" in result
@@ -449,10 +416,7 @@ class TestGetProjectsCentroids:
                 return_value=mock_response
             )
 
-            from app.api.routes.drone_tasking_manager.drone_tasking_manager import router
-            endpoint = router.routes[1].endpoint
-
-            result = await endpoint(search="searched")
+            result = await get_projects_centroids(search="searched")
 
             assert len(result["results"]) == 1
             assert result["results"][0]["name"] == "Searched Project"
@@ -476,10 +440,7 @@ class TestGetProjectsCentroids:
                 return_value=mock_response
             )
 
-            from app.api.routes.drone_tasking_manager.drone_tasking_manager import router
-            endpoint = router.routes[1].endpoint
-
-            result = await endpoint(filter_by_owner=True)
+            result = await get_projects_centroids(filter_by_owner=True)
 
             assert result["results"] == []
             assert result["pagination"]["total"] == 0
@@ -514,10 +475,7 @@ class TestGetProjectsCentroids:
                 return_value=mock_response
             )
 
-            from app.api.routes.drone_tasking_manager.drone_tasking_manager import router
-            endpoint = router.routes[1].endpoint
-
-            result = await endpoint(page=2, results_per_page=5)
+            result = await get_projects_centroids(page=2, results_per_page=5)
 
             assert result["pagination"]["page"] == 2
             assert result["pagination"]["per_page"] == 5
@@ -534,7 +492,7 @@ class TestGetProjectsCentroids:
         mock_response.status_code = 500
         mock_response.text = "Internal Server Error"
 
-        with patch("app.api.routes.drone_tasking_manager.drone_tasking_manager.httpx.AsyncClient") as mock_client:
+        with patch("app.api.routes.map.drone_tasking_manager.httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 side_effect=httpx.HTTPStatusError(
                     "Error",
@@ -543,11 +501,8 @@ class TestGetProjectsCentroids:
                 )
             )
 
-            from app.api.routes.drone_tasking_manager.drone_tasking_manager import router
-            endpoint = router.routes[1].endpoint
-
             with pytest.raises(HTTPException) as exc_info:
-                await endpoint()
+                await get_projects_centroids()
 
             assert exc_info.value.status_code == 500
             assert "Error from DroneTM API" in exc_info.value.detail
@@ -555,16 +510,13 @@ class TestGetProjectsCentroids:
     @pytest.mark.asyncio
     async def test_get_projects_centroids_timeout(self):
         """Test timeout handling"""
-        with patch("app.api.routes.drone_tasking_manager.drone_tasking_manager.httpx.AsyncClient") as mock_client:
+        with patch("app.api.routes.map.drone_tasking_manager.httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
                 side_effect=httpx.TimeoutException("Connection timed out")
             )
 
-            from app.api.routes.drone_tasking_manager.drone_tasking_manager import router
-            endpoint = router.routes[1].endpoint
-
             with pytest.raises(HTTPException) as exc_info:
-                await endpoint()
+                await get_projects_centroids()
 
             assert exc_info.value.status_code == 504
             assert "timed out" in exc_info.value.detail

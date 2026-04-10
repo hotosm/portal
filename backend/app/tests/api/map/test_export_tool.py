@@ -10,7 +10,9 @@ from fastapi import FastAPI
 import httpx
 from datetime import datetime
 
-from app.api.routes.export_tool.export_tool import router, EXPORT_TOOL_API_BASE_URL
+from app.api.routes.map.export_tool import router
+from app.core.config import settings
+EXPORT_TOOL_API_BASE_URL = settings.export_tool_api_url
 from app.models.export_tool import ExportJobsResponse, ExportJob, ExportJobUser
 
 app = FastAPI()
@@ -285,7 +287,7 @@ class TestMyExportJobs:
                 return_value=mock_response
             )
 
-            from app.api.routes.export_tool.export_tool import get_my_export_jobs
+            from app.api.routes.user.export_tool import get_my_export_jobs
 
             result = await get_my_export_jobs(
                 request=mock_request, user=mock_user,
@@ -326,7 +328,7 @@ class TestMyExportJobs:
                 return_value=mock_response
             )
 
-            from app.api.routes.export_tool.export_tool import get_my_export_jobs
+            from app.api.routes.user.export_tool import get_my_export_jobs
 
             result = await get_my_export_jobs(
                 request=mock_request,
@@ -354,7 +356,7 @@ class TestMyExportJobs:
         mock_user = Mock()
         mock_user.id = "test-hanko-uuid"
 
-        from app.api.routes.export_tool.export_tool import get_my_export_jobs
+        from app.api.routes.user.export_tool import get_my_export_jobs
 
         with pytest.raises(Exception) as exc_info:
             await get_my_export_jobs(request=mock_request, user=mock_user)
@@ -383,7 +385,7 @@ class TestMyExportJobs:
                 return_value=mock_response
             )
 
-            from app.api.routes.export_tool.export_tool import get_my_export_jobs
+            from app.api.routes.user.export_tool import get_my_export_jobs
 
             with pytest.raises(Exception) as exc_info:
                 await get_my_export_jobs(request=mock_request_obj, user=mock_user)
@@ -405,7 +407,7 @@ class TestMyExportJobs:
                 side_effect=Exception("Connection refused")
             )
 
-            from app.api.routes.export_tool.export_tool import get_my_export_jobs
+            from app.api.routes.user.export_tool import get_my_export_jobs
 
             with pytest.raises(Exception) as exc_info:
                 await get_my_export_jobs(request=mock_request, user=mock_user)
