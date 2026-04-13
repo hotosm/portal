@@ -148,19 +148,23 @@ class Settings(BaseSettings):
             if getattr(self, field_name) is None:
                 setattr(self, field_name, default_value)
 
-        # Legacy env vars override the new base URL fields
-        if self.drone_tm_backend_url and self.drone_tm_base_url == defaults.get("drone_tm_base_url"):
-            self.drone_tm_base_url = self.drone_tm_backend_url.rstrip("/").removesuffix("/api")
-        if self.fair_backend_url and self.fair_base_url == defaults.get("fair_base_url"):
-            self.fair_base_url = self.fair_backend_url.rstrip("/").removesuffix("/api/v1").removesuffix("/api")
-        if self.fair_api_base_url and self.fair_base_url == defaults.get("fair_base_url"):
-            self.fair_base_url = self.fair_api_base_url.rstrip("/").removesuffix("/api/v1").removesuffix("/api")
-        if self.export_tool_api_base_url and self.export_tool_base_url == defaults.get("export_tool_base_url"):
-            self.export_tool_base_url = self.export_tool_api_base_url.rstrip("/").removesuffix("/api")
-        if self.chatmap_api_base_url and self.chatmap_base_url == defaults.get("chatmap_base_url"):
-            self.chatmap_base_url = self.chatmap_api_base_url.rstrip("/").removesuffix("/api/v1").removesuffix("/api")
-        if self.oam_stac_api_url and self.oam_api_url == defaults.get("oam_api_url"):
-            self.oam_api_url = self.oam_stac_api_url
+        # Legacy env vars override the new base URL fields.
+        # Each tuple: (legacy_attr, base_attr, suffixes_to_strip_in_order)
+        legacy_overrides = [
+            ("drone_tm_backend_url", "drone_tm_base_url", ["/api"]),
+            ("fair_backend_url",     "fair_base_url",     ["/api/v1", "/api"]),
+            ("fair_api_base_url",    "fair_base_url",     ["/api/v1", "/api"]),
+            ("export_tool_api_base_url", "export_tool_base_url", ["/api"]),
+            ("chatmap_api_base_url", "chatmap_base_url",  ["/api/v1", "/api"]),
+            ("oam_stac_api_url",     "oam_api_url",       []),
+        ]
+        for legacy_attr, base_attr, suffixes in legacy_overrides:
+            legacy_val = getattr(self, legacy_attr, None)
+            if legacy_val and getattr(self, base_attr) == defaults.get(base_attr):
+                base = legacy_val.rstrip("/")
+                for suffix in suffixes:
+                    base = base.removesuffix(suffix)
+                setattr(self, base_attr, base)
 
         return self
 
