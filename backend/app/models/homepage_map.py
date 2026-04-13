@@ -14,6 +14,7 @@ class HomePageMapFeatureProperties(BaseModel):
         "fair",
         "imagery",
         "umap",
+        "chatmap",
     ]
 
 

@@ -2,9 +2,12 @@
 
 import asyncio
 from datetime import datetime, timezone
+import logging
 import re
 
 import httpx
+
+logger = logging.getLogger(__name__)
 from sqlalchemy import and_, case, delete, func, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,6 +20,7 @@ from app.services import oam_service
 
 TASKING_MANAGER_API_BASE_URL = settings.tasking_manager_api_url
 FAIR_CENTROIDS_URL = f"{settings.fair_api_url}/models/centroid/"
+CHATMAP_PUBLIC_MAP_URL = f"{settings.chatmap_api_url}/map"
 UPSERT_CHUNK_SIZE = 2000
 
 
@@ -330,6 +334,38 @@ async def _fetch_umap_rows(client: httpx.AsyncClient) -> list[dict]:
     return rows
 
 
+async def _fetch_chatmap_rows(client: httpx.AsyncClient) -> list[dict]:
+    response = await client.get(
+        CHATMAP_PUBLIC_MAP_URL,
+        headers={"accept": "application/json"},
+    )
+    response.raise_for_status()
+    data = response.json()
+
+    rows: list[dict] = []
+    for item in data if isinstance(data, list) else []:
+        map_id = item.get("id")
+        centroid = item.get("centroid")
+        if not map_id or not isinstance(centroid, list) or len(centroid) < 2:
+            continue
+        # chatmap returns [lat, lon]; GeoJSON needs [lon, lat]
+        lat, lon = float(centroid[0]), float(centroid[1])
+        rows.append(
+            _build_row(
+                product="chatmap",
+                project_id=str(map_id),
+                lon=lon,
+                lat=lat,
+                name=item.get("name"),
+                metadata_json={
+                    "updated_at": _to_iso_datetime(item.get("updated_at")),
+                },
+            )
+        )
+
+    return rows
+
+
 async def _fetch_oam_rows_from_db(db: AsyncSession) -> list[dict]:
     state = await db.get(MapProjectSyncState, "imagery")
     last_created_at = state.last_created_at if state else None
@@ -498,6 +534,7 @@ async def sync_from_sources(db: AsyncSession) -> dict[str, int]:
         "drone-tasking-manager": 0,
         "fair": 0,
         "umap": 0,
+        "chatmap": 0,
         "imagery": 0,
     }
 
@@ -506,11 +543,12 @@ async def sync_from_sources(db: AsyncSession) -> dict[str, int]:
         httpx.AsyncClient(timeout=90.0, verify=settings.drone_tm_verify_ssl) as drone_client,
         httpx.AsyncClient(timeout=90.0, verify=settings.fair_verify_ssl) as fair_client,
     ):
-        tm_result, drone_result, fair_result, umap_result = await asyncio.gather(
+        tm_result, drone_result, fair_result, umap_result, chatmap_result = await asyncio.gather(
             _fetch_tasking_manager_rows(default_client),
             _fetch_dronetm_rows(drone_client),
             _fetch_fair_rows(fair_client),
             _fetch_umap_rows(default_client),
+            _fetch_chatmap_rows(default_client),
             return_exceptions=True,
         )
 
@@ -518,6 +556,10 @@ async def sync_from_sources(db: AsyncSession) -> dict[str, int]:
     drone_rows = [] if isinstance(drone_result, Exception) else drone_result
     fair_rows = [] if isinstance(fair_result, Exception) else fair_result
     umap_rows = [] if isinstance(umap_result, Exception) else umap_result
+    chatmap_rows = [] if isinstance(chatmap_result, Exception) else chatmap_result
+
+    if isinstance(chatmap_result, Exception):
+        logger.warning("ChatMap sync failed (non-critical): %s", chatmap_result)
 
     oam_rows = await _fetch_oam_rows_from_db(db)
 
@@ -533,6 +575,8 @@ async def sync_from_sources(db: AsyncSession) -> dict[str, int]:
         await delete_product_rows(db, "fair")
     if not isinstance(umap_result, Exception):
         await delete_product_rows(db, "umap")
+    if not isinstance(chatmap_result, Exception):
+        await delete_product_rows(db, "chatmap")
 
     oam_rows_to_upsert = _filter_rows_since_cursor(oam_rows, states.get("imagery"))
 
@@ -540,12 +584,14 @@ async def sync_from_sources(db: AsyncSession) -> dict[str, int]:
     counts["drone-tasking-manager"] = await _upsert_product_rows(db, drone_rows)
     counts["fair"] = await _upsert_product_rows(db, fair_rows)
     counts["umap"] = await _upsert_product_rows(db, umap_rows)
+    counts["chatmap"] = await _upsert_product_rows(db, chatmap_rows)
     counts["imagery"] = await _upsert_product_rows(db, oam_rows_to_upsert)
 
     await _upsert_sync_state(db, "tasking-manager", tm_rows, states)
     await _upsert_sync_state(db, "drone-tasking-manager", drone_rows, states)
     await _upsert_sync_state(db, "fair", fair_rows, states)
     await _upsert_sync_state(db, "umap", umap_rows, states)
+    await _upsert_sync_state(db, "chatmap", chatmap_rows, states)
     await _upsert_sync_state(db, "imagery", oam_rows, states)
 
     await db.commit()
