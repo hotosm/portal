@@ -72,28 +72,63 @@ def parse_map_links(html: str) -> list[dict]:
 
 @router.get("/user/maps")
 async def get_user_maps(request: Request) -> dict:
-    """Fetch the authenticated user's maps from uMap."""
+    """Fetch the authenticated user's maps from uMap.
+
+    Tries the uMap REST API first (/api/v1/maps/?source=mine), which works when
+    the Hanko cookie is valid on the uMap instance (production).
+    Falls back to HTML scraping of /{locale}/me for local/test environments
+    where the cookie is not recognized by the uMap instance.
+    """
     hanko_cookie = require_hanko(request)
-    url = f"{UMAP_BASE_URL}/{UMAP_LOCALE}/me"
 
-    try:
-        async with umap_client() as client:
-            response = await client.get(url, cookies={"hanko": hanko_cookie})
-            response.raise_for_status()
-    except httpx.HTTPStatusError as e:
-        raise HTTPException(
-            status_code=e.response.status_code,
-            detail=f"Error fetching uMap maps: {e.response.text}",
-        )
-    except httpx.RequestError as e:
-        raise HTTPException(status_code=503, detail=f"Connection error to uMap: {str(e)}")
+    async with umap_client() as client:
+        try:
+            api_response = await client.get(
+                f"{UMAP_BASE_URL}/api/v1/maps/",
+                params={"source": "mine"},
+                cookies={"hanko": hanko_cookie},
+                headers={"accept": "application/json"},
+            )
+            if api_response.status_code == 200:
+                data = api_response.json()
+                results = data.get("results", data) if isinstance(data, dict) else data
+                maps = [
+                    {
+                        "id": m.get("id"),
+                        "name": m.get("name") or m.get("title"),
+                        "description": m.get("description"),
+                        "slug": m.get("slug"),
+                        "url": f"/en/map/{m.get('slug', '')}" if m.get("slug") else None,
+                        "modified_at": m.get("modified_at") or m.get("modified") or "",
+                    }
+                    for m in (results if isinstance(results, list) else [])
+                    if m.get("id")
+                ]
+                logger.info("[uMap] API: found %d maps", len(maps))
+                return {"maps": maps}
+        except Exception as e:
+            logger.debug("[uMap] API fallback triggered: %s", e)
 
-    html = response.text
+        try:
+            html_response = await client.get(
+                f"{UMAP_BASE_URL}/{UMAP_LOCALE}/me",
+                cookies={"hanko": hanko_cookie},
+            )
+            html_response.raise_for_status()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(
+                status_code=e.response.status_code,
+                detail=f"Error fetching uMap maps: {e.response.text}",
+            )
+        except httpx.RequestError as e:
+            raise HTTPException(status_code=503, detail=f"Connection error to uMap: {str(e)}")
+
+    html = html_response.text
     if "sesión" in html:
         raise HTTPException(status_code=401, detail="uMap authentication failed.")
 
     maps = parse_map_links(html)
-    logger.info("[uMap] Found %d maps", len(maps))
+    logger.info("[uMap] Scraping: found %d maps", len(maps))
     return {"maps": maps}
 
 
