@@ -114,7 +114,7 @@ async def preload_cache():
                 asyncio.create_task(enrich_fair_centroids_in_background())
                 return
 
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=30.0, verify=settings.fair_verify_ssl) as client:
                 response = await client.get(
                     f"{settings.fair_api_url}/models/centroid/",
                     headers={"accept": "application/json"}

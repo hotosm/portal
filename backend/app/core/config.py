@@ -24,15 +24,15 @@ class Environment(str, Enum):
     PRODUCTION = "production"
 
 
-_ENV_DEFAULTS: dict[Environment, dict[str, str]] = {
+ENV_DEFAULTS: dict[Environment, dict[str, str]] = {
     Environment.LOCAL: {
         "hanko_api_url": "https://login.hotosm.test",
-        "drone_tm_base_url": "https://dronetm.hotosm.test",
-        "fair_base_url": "https://fair.hotosm.test",
+        "drone_tm_base_url": "https://drone.hotosm.org",
+        "fair_base_url": "https://api-prod.fair.hotosm.org",
         "oam_api_url": "https://openaerialmap.hotosm.test/api",
-        "umap_base_url": "https://umap.hotosm.test",
-        "chatmap_base_url": "https://chatmap.hotosm.test",
-        "tasking_manager_api_url": "https://tm.hotosm.test/api/v2",
+        "umap_base_url": "https://umap.hotosm.org",
+        "chatmap_base_url": "https://chatmap.hotosm.org",
+        "tasking_manager_api_url": "https://tasking-manager-production-api.hotosm.org/api/v2",
         "export_tool_base_url": "https://export-tool.hotosm.test",
         "field_tm_base_url": "https://field.hotosm.test",
     },
@@ -42,7 +42,7 @@ _ENV_DEFAULTS: dict[Environment, dict[str, str]] = {
         "fair_base_url": "https://dev.fair.hotosm.org",
         "oam_api_url": "https://api.openaerialmap.org",
         "umap_base_url": "https://umap.hotosm.org",
-        "chatmap_base_url": "https://chatmap-dev.hotosm.org",
+        "chatmap_base_url": "https://chatmap.hotosm.org",
         "tasking_manager_api_url": "https://tasking-manager-production-api.hotosm.org/api/v2",
         "export_tool_base_url": "https://export.hotosm.org",
         "field_tm_base_url": "https://field.hotosm.org",
@@ -50,7 +50,7 @@ _ENV_DEFAULTS: dict[Environment, dict[str, str]] = {
     Environment.PRODUCTION: {
         "hanko_api_url": "https://login.hotosm.org",
         "drone_tm_base_url": "https://drone.hotosm.org",
-        "fair_base_url": "https://fair.hotosm.org",
+        "fair_base_url": "https://api-prod.fair.hotosm.org",
         "oam_api_url": "https://api.openaerialmap.org",
         "umap_base_url": "https://umap.hotosm.org",
         "chatmap_base_url": "https://chatmap.hotosm.org",
@@ -142,7 +142,7 @@ class Settings(BaseSettings):
         else:
             self.detected_environment = Environment.PRODUCTION
 
-        defaults = _ENV_DEFAULTS[self.detected_environment]
+        defaults = ENV_DEFAULTS[self.detected_environment]
 
         for field_name, default_value in defaults.items():
             if getattr(self, field_name) is None:

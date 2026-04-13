@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import re
 
 import httpx
-from sqlalchemy import and_, case, func, or_, select
+from sqlalchemy import and_, case, delete, func, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -192,7 +192,7 @@ async def _fetch_dronetm_rows(client: httpx.AsyncClient) -> list[dict]:
 
     while True:
         response = await client.get(
-            f"{settings.drone_tm_backend_url}/projects/centroids",
+            f"{settings.drone_tm_api_url}/projects/centroids",
             params={"filter_by_owner": "false", "page": page, "results_per_page": per_page},
         )
         response.raise_for_status()
@@ -389,6 +389,11 @@ async def _fetch_oam_rows_from_db(db: AsyncSession) -> list[dict]:
     return output
 
 
+async def delete_product_rows(db: AsyncSession, product: str) -> None:
+    """Delete all map_projects rows for a given product before a full re-sync."""
+    await db.execute(delete(MapProject).where(MapProject.product == product))
+
+
 async def _upsert_product_rows(db: AsyncSession, rows: list[dict]) -> int:
     if not rows:
         return 0
@@ -498,11 +503,12 @@ async def sync_from_sources(db: AsyncSession) -> dict[str, int]:
 
     async with (
         httpx.AsyncClient(timeout=90.0, verify=True) as default_client,
+        httpx.AsyncClient(timeout=90.0, verify=settings.drone_tm_verify_ssl) as drone_client,
         httpx.AsyncClient(timeout=90.0, verify=settings.fair_verify_ssl) as fair_client,
     ):
         tm_result, drone_result, fair_result, umap_result = await asyncio.gather(
             _fetch_tasking_manager_rows(default_client),
-            _fetch_dronetm_rows(default_client),
+            _fetch_dronetm_rows(drone_client),
             _fetch_fair_rows(fair_client),
             _fetch_umap_rows(default_client),
             return_exceptions=True,
@@ -517,16 +523,23 @@ async def sync_from_sources(db: AsyncSession) -> dict[str, int]:
 
     states = await _get_sync_states(db)
 
-    tm_rows_to_upsert = tm_rows
-    drone_rows_to_upsert = drone_rows
-    fair_rows_to_upsert = fair_rows
-    umap_rows_to_upsert = umap_rows
+    # For full-refresh products, delete stale rows before re-inserting.
+    # Only delete when the fetch succeeded to avoid wiping data on API failures.
+    if not isinstance(tm_result, Exception):
+        await delete_product_rows(db, "tasking-manager")
+    if not isinstance(drone_result, Exception):
+        await delete_product_rows(db, "drone-tasking-manager")
+    if not isinstance(fair_result, Exception):
+        await delete_product_rows(db, "fair")
+    if not isinstance(umap_result, Exception):
+        await delete_product_rows(db, "umap")
+
     oam_rows_to_upsert = _filter_rows_since_cursor(oam_rows, states.get("imagery"))
 
-    counts["tasking-manager"] = await _upsert_product_rows(db, tm_rows_to_upsert)
-    counts["drone-tasking-manager"] = await _upsert_product_rows(db, drone_rows_to_upsert)
-    counts["fair"] = await _upsert_product_rows(db, fair_rows_to_upsert)
-    counts["umap"] = await _upsert_product_rows(db, umap_rows_to_upsert)
+    counts["tasking-manager"] = await _upsert_product_rows(db, tm_rows)
+    counts["drone-tasking-manager"] = await _upsert_product_rows(db, drone_rows)
+    counts["fair"] = await _upsert_product_rows(db, fair_rows)
+    counts["umap"] = await _upsert_product_rows(db, umap_rows)
     counts["imagery"] = await _upsert_product_rows(db, oam_rows_to_upsert)
 
     await _upsert_sync_state(db, "tasking-manager", tm_rows, states)

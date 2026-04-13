@@ -24,8 +24,10 @@ UMAP_API_BASE_URL = f"{UMAP_BASE_URL}/{UMAP_LOCALE}/datalayer"
 UMAP_SHOWCASE_URL = f"{UMAP_BASE_URL}/{UMAP_LOCALE}/showcase/"
 UMAP_VERIFY_SSL = os.getenv("UMAP_VERIFY_SSL", "false").lower() == "true"
 
-MAP_HREF_RE = re.compile(r'href="([^"]*)"', re.IGNORECASE)
-MAP_PATH_RE = re.compile(r"^/(?:[^/]+/)?map/([^/?#]+_(\d+))$")
+MAP_LINK_RE = re.compile(
+    r'<a\s[^>]*href="(/(?:[a-z]{2}/)?map/([^/?#"]+_(\d+)))"[^>]*>\s*([^<]+?)\s*</a>',
+    re.IGNORECASE | re.DOTALL,
+)
 
 
 def umap_client() -> httpx.AsyncClient:
@@ -42,20 +44,28 @@ def require_hanko(request: Request) -> str:
 def parse_map_links(html: str) -> list[dict]:
     """Extract unique map entries from a uMap HTML page.
 
-    Returns a list of dicts with 'id' (str) and 'slug' (str).
-    Skips external URLs, query-string variants, and duplicates.
+    Returns dicts matching the UMapMap frontend interface:
+    {id, name, description, slug, url, modified_at}.
+    Skips duplicates.
     """
     seen_ids: set[str] = set()
     results: list[dict] = []
 
-    for href in MAP_HREF_RE.findall(html):
-        m = MAP_PATH_RE.match(href)
-        if m:
-            slug = m.group(1)
-            map_id = m.group(2)
-            if map_id not in seen_ids:
-                seen_ids.add(map_id)
-                results.append({"id": map_id, "slug": slug})
+    for m in MAP_LINK_RE.finditer(html):
+        url = m.group(1)
+        slug = m.group(2)
+        map_id = m.group(3)
+        name = m.group(4).strip()
+        if map_id not in seen_ids:
+            seen_ids.add(map_id)
+            results.append({
+                "id": int(map_id),
+                "name": name,
+                "description": None,
+                "slug": slug,
+                "url": url,
+                "modified_at": "",
+            })
 
     return results
 
@@ -64,7 +74,7 @@ def parse_map_links(html: str) -> list[dict]:
 async def get_user_maps(request: Request) -> dict:
     """Fetch the authenticated user's maps from uMap."""
     hanko_cookie = require_hanko(request)
-    url = f"{UMAP_BASE_URL}/api/v1/maps/?source=mine"
+    url = f"{UMAP_BASE_URL}/{UMAP_LOCALE}/me"
 
     try:
         async with umap_client() as client:

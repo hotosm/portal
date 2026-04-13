@@ -11,6 +11,40 @@ CHATMAP_API_BASE_URL = settings.chatmap_api_url
 router = APIRouter(prefix="/chatmap")
 
 
+@router.get("/user/maps")
+async def get_user_maps(
+    request: Request,
+    user: CurrentUser,
+) -> dict:
+    """
+    Get the authenticated user's ChatMap maps list.
+
+    Calls ChatMap API using the Hanko cookie and returns the user's maps.
+    """
+    hanko_cookie = request.cookies.get("hanko")
+    if not hanko_cookie:
+        raise HTTPException(status_code=401, detail="Hanko auth cookie not found.")
+
+    url = f"{CHATMAP_API_BASE_URL}/maps"
+
+    async with httpx.AsyncClient(timeout=30.0, verify=False) as client:
+        try:
+            response = await client.get(url, cookies={"hanko": hanko_cookie})
+            response.raise_for_status()
+            data = response.json()
+            logger.info("[ChatMap] Retrieved maps list for user %s", user.id)
+            if isinstance(data, list):
+                return {"maps": data}
+            return data
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(
+                status_code=e.response.status_code,
+                detail=f"Error from ChatMap API: {e.response.text}",
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/map")
 async def get_my_chatmap(
     request: Request,
