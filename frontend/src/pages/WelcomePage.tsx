@@ -17,7 +17,7 @@ function SectionBanner({
 }: ISectionBannerProps) {
   return (
     <div className="flex flex-col md:flex-row md:justify-between items-center">
-      <a href={sectionPath} className="text-lg font-bold">
+      <a href={sectionPath} className="text-xl font-bold text-hot-gray-950">
         {sectionTitle} {">"}
       </a>
       <p
@@ -55,14 +55,15 @@ function WelcomePage() {
 
   return (
     <>
-      <SectionHeader>
-        <strong>{m.welcome()}</strong>
-      </SectionHeader>
+      <SectionHeader>{m.welcome()}</SectionHeader>
       <PageWrapper>
         <div className="flex flex-col gap-sm py-lg">
           <div>
-            <h3>{m.welcome_intro_title()}</h3>
-            <p dangerouslySetInnerHTML={{ __html: m.welcome_intro_p() }} />
+            <p className="text-2xl font-bold">{m.welcome_intro_title()}</p>
+            <p
+              className="max-w-xl"
+              dangerouslySetInnerHTML={{ __html: m.welcome_intro_p() }}
+            />
           </div>
         </div>
 
@@ -74,6 +75,7 @@ function WelcomePage() {
               sectionDescription={section.description}
               sectionPath={section.path}
             />
+            <Divider />
           </div>
         ))}
       </PageWrapper>
