@@ -47,7 +47,7 @@ function NavigationMain({ onLinkClick }: NavigationMainProps) {
                   />
                 </>
               )}
-              {item.label}
+              {item.label()}
             </span>
           </NavLink>
         );
