@@ -24,6 +24,7 @@ interface AuthContextType {
   user: HankoUser | null;
   osmConnection: OSMConnection | null;
   isLogin: boolean; // Computed from user !== null
+  isAuthLoading: boolean; // True while waiting for web component to signal auth state
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -46,6 +47,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [osmConnection, setOsmConnection] = useState<OSMConnection | null>(
     null
   );
+  // Start loading if there's no cached user — wait for the web component to signal auth state
+  const [isAuthLoading, setIsAuthLoading] = useState<boolean>(() => {
+    try {
+      return !localStorage.getItem(AUTH_CACHE_KEY);
+    } catch {
+      return true;
+    }
+  });
 
   useEffect(() => {
     // Check initial OSM connection status
@@ -72,9 +81,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Check OSM status on mount
     checkOsmStatus();
 
+    // Fallback: stop loading after 500ms even if no auth event fires (user is not logged in)
+    const loadingTimer = setTimeout(() => setIsAuthLoading(false), 500);
+
     // Listen to hanko-login event from web component
     const handleLogin = (event: Event) => {
       const customEvent = event as CustomEvent;
+      setIsAuthLoading(false);
       setUser(customEvent.detail.user);
       try {
         localStorage.setItem(AUTH_CACHE_KEY, JSON.stringify(customEvent.detail.user));
@@ -105,6 +118,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     // Cleanup
     return () => {
+      clearTimeout(loadingTimer);
       document.removeEventListener("hanko-login", handleLogin);
       document.removeEventListener("logout", handleLogout);
       document.removeEventListener("osm-connected", handleOsmConnected);
@@ -115,6 +129,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     user,
     osmConnection,
     isLogin: user !== null,
+    isAuthLoading,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -19,16 +19,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isLogin } = useAuth();
 
   if (!isLogin) {
-    return (
-      <div className="text-center py-16">
-        <h1 className="text-3xl font-bold mb-4 text-hot-red-600">
-          Access Denied
-        </h1>
-        <p className="text-hot-gray-600 mb-8">
-          You must be logged in to access this page.
-        </p>
-      </div>
-    );
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;
@@ -37,8 +28,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 const MainNavRoute = ProtectedRoute;
 
 function HomeRoute() {
-  const { isLogin } = useAuth();
+  const { isLogin, isAuthLoading } = useAuth();
   const { locale } = useParams<{ locale?: string }>();
+
+  if (isAuthLoading) {
+    return null;
+  }
 
   if (isLogin) {
     return <Navigate to={locale ? `/${locale}/welcome` : "/welcome"} replace />;
