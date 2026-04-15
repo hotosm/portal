@@ -16,9 +16,10 @@ from app.models.open_aerial_map import (
     ImageryDetailResponse,
     ImageryListResponse,
 )
+from app.core.config import settings
 from app.services import oam_service
 
-OAM_API_BASE_URL = "https://api.openaerialmap.org"
+OAM_API_BASE_URL = settings.oam_api_url
 SYNC_INTERVAL = 7 * 24 * 60 * 60  # 1 week in seconds
 
 router = APIRouter(prefix="/open-aerial-map")

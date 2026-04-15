@@ -12,12 +12,13 @@ from sqlalchemy import asc, desc, func, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.db.models.oam import OAMImage
 
-OAM_API_BASE_URL = "https://api.openaerialmap.org"
+OAM_API_BASE_URL = settings.oam_api_url
 
 
-def _bbox_to_wkt(bbox: list[float]) -> str:
+def bbox_to_wkt(bbox: list[float]) -> str:
     """Convert [min_lon, min_lat, max_lon, max_lat] to WKT POLYGON."""
     min_lon, min_lat, max_lon, max_lat = bbox
     return (
@@ -26,11 +27,11 @@ def _bbox_to_wkt(bbox: list[float]) -> str:
     )
 
 
-def _oam_item_to_row(item: dict) -> dict:
+def oam_item_to_row(item: dict) -> dict:
     """Convert a raw OAM API result dict to a DB row dict."""
     props = item.get("properties") or {}
     bbox = item.get("bbox")
-    geometry_wkt = _bbox_to_wkt(bbox) if bbox and len(bbox) == 4 else None
+    geometry_wkt = bbox_to_wkt(bbox) if bbox and len(bbox) == 4 else None
 
     acq_raw = item.get("acquisition_end")
     acquisition_end = None
@@ -65,7 +66,7 @@ async def upsert_images(db: AsyncSession, images: list[dict]) -> int:
     if not images:
         return 0
 
-    rows = [r for r in (_oam_item_to_row(img) for img in images) if r.get("id")]
+    rows = [r for r in (oam_item_to_row(img) for img in images) if r.get("id")]
 
     if not rows:
         return 0
@@ -196,7 +197,7 @@ async def query_images(
 
     rows = (await db.execute(query)).scalars().all()
 
-    results = [_row_to_api_dict(row) for row in rows]
+    results = [row_to_api_dict(row) for row in rows]
 
     return {
         "meta": {
@@ -216,7 +217,7 @@ async def query_all_images(db: AsyncSession) -> dict:
     rows = (await db.execute(query)).scalars().all()
 
     stats = await get_db_stats(db)
-    results = [_row_to_compact_dict(row) for row in rows]
+    results = [row_to_compact_dict(row) for row in rows]
 
     return {
         "count": len(results),
@@ -230,7 +231,7 @@ async def get_image_by_id(db: AsyncSession, image_id: str) -> Optional[dict]:
     row = await db.get(OAMImage, image_id)
     if row is None:
         return None
-    return _row_to_api_dict(row)
+    return row_to_api_dict(row)
 
 
 async def get_db_stats(db: AsyncSession) -> dict:
@@ -254,7 +255,7 @@ async def is_db_empty(db: AsyncSession) -> bool:
 # ── Internal helpers ──────────────────────────────────────────────────────────
 
 
-def _row_to_api_dict(row: OAMImage) -> dict:
+def row_to_api_dict(row: OAMImage) -> dict:
     """Serialize an OAMImage row to the full OAM API response format."""
     return {
         "_id": row.id,
@@ -270,7 +271,7 @@ def _row_to_api_dict(row: OAMImage) -> dict:
     }
 
 
-def _row_to_compact_dict(row: OAMImage) -> dict:
+def row_to_compact_dict(row: OAMImage) -> dict:
     """Serialize an OAMImage row to compact snapshot format (short field names)."""
     compact = {
         "_id": row.id,

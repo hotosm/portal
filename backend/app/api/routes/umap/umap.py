@@ -10,7 +10,6 @@ from fastapi import APIRouter, HTTPException, Path, Request
 from app.models.umap import (
     UMapFeatureCollection,
     ShowcaseResponse,
-    UserMapsResponse,
 )
 from app.core.cache import get_cached, set_cached, DEFAULT_TTL
 from app.core.config import settings
@@ -20,31 +19,65 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/umap")
 
 UMAP_BASE_URL = settings.umap_base_url
-UMAP_API_BASE_URL = f"{UMAP_BASE_URL}/en/datalayer"
-UMAP_SHOWCASE_URL = f"{UMAP_BASE_URL}/en/showcase/"
+UMAP_LOCALE = "en"
+UMAP_API_BASE_URL = f"{UMAP_BASE_URL}/{UMAP_LOCALE}/datalayer"
+UMAP_SHOWCASE_URL = f"{UMAP_BASE_URL}/{UMAP_LOCALE}/showcase/"
 UMAP_VERIFY_SSL = os.getenv("UMAP_VERIFY_SSL", "false").lower() == "true"
 
+MAP_LINK_RE = re.compile(
+    r'<a\s[^>]*href="(/(?:[a-z]{2}/)?map/([^/?#"]+_(\d+)))"[^>]*>\s*([^<]+?)\s*</a>',
+    re.IGNORECASE | re.DOTALL,
+)
 
-def _umap_client() -> httpx.AsyncClient:
+
+def umap_client() -> httpx.AsyncClient:
     return httpx.AsyncClient(timeout=30.0, verify=UMAP_VERIFY_SSL, follow_redirects=True)
 
 
-def _require_hanko(request: Request) -> str:
+def require_hanko(request: Request) -> str:
     cookie = request.cookies.get("hanko")
     if not cookie:
         raise HTTPException(status_code=401, detail="Hanko authentication cookie not found.")
     return cookie
 
 
+def parse_map_links(html: str) -> list[dict]:
+    """Extract unique map entries from a uMap HTML page.
 
-@router.get("/user/maps", response_model=UserMapsResponse)
+    Returns dicts matching the UMapMap frontend interface:
+    {id, name, description, slug, url, modified_at}.
+    Skips duplicates.
+    """
+    seen_ids: set[str] = set()
+    results: list[dict] = []
+
+    for m in MAP_LINK_RE.finditer(html):
+        url = m.group(1)
+        slug = m.group(2)
+        map_id = m.group(3)
+        name = m.group(4).strip()
+        if map_id not in seen_ids:
+            seen_ids.add(map_id)
+            results.append({
+                "id": map_id,
+                "name": name,
+                "description": None,
+                "slug": slug,
+                "url": url,
+                "modified_at": "",
+            })
+
+    return results
+
+
+@router.get("/user/maps")
 async def get_user_maps(request: Request) -> dict:
     """Fetch the authenticated user's maps from uMap."""
-    hanko_cookie = _require_hanko(request)
+    hanko_cookie = require_hanko(request)
     url = f"{UMAP_BASE_URL}/api/v1/maps/?source=mine"
 
     try:
-        async with _umap_client() as client:
+        async with umap_client() as client:
             response = await client.get(url, cookies={"hanko": hanko_cookie})
             if response.status_code == 401:
                 raise HTTPException(status_code=401, detail="uMap authentication failed.")
@@ -56,6 +89,7 @@ async def get_user_maps(request: Request) -> dict:
         raise HTTPException(status_code=e.response.status_code, detail=f"uMap error: {e.response.text}")
     except httpx.RequestError as e:
         raise HTTPException(status_code=503, detail=f"Connection error to uMap: {str(e)}")
+
 
 
 @router.get("/showcase", response_model=ShowcaseResponse)

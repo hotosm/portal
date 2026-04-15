@@ -2,10 +2,13 @@
 
 import asyncio
 from datetime import datetime, timezone
+import logging
 import re
 
 import httpx
-from sqlalchemy import and_, case, func, or_, select
+
+logger = logging.getLogger(__name__)
+from sqlalchemy import and_, case, delete, func, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,12 +18,13 @@ from app.db.models.map_project_sync_state import MapProjectSyncState
 from app.db.models.oam import OAMImage
 from app.services import oam_service
 
-TASKING_MANAGER_API_BASE_URL = "https://tasking-manager-production-api.hotosm.org/api/v2"
-FAIR_PRODUCTION_CENTROIDS_URL = "https://api-prod.fair.hotosm.org/api/v1/models/centroid/"
+TASKING_MANAGER_API_BASE_URL = settings.tasking_manager_api_url
+FAIR_CENTROIDS_URL = f"{settings.fair_api_url}/models/centroid/"
+CHATMAP_PUBLIC_MAP_URL = f"{settings.chatmap_api_url}/map"
 UPSERT_CHUNK_SIZE = 2000
 
 
-def _to_iso_datetime(value: object) -> str | None:
+def to_iso_datetime(value: object) -> str | None:
     if value is None:
         return None
     if isinstance(value, datetime):
@@ -31,7 +35,7 @@ def _to_iso_datetime(value: object) -> str | None:
     return None
 
 
-def _parse_iso_datetime(value: str | None) -> datetime | None:
+def parse_iso_datetime(value: str | None) -> datetime | None:
     if not value:
         return None
     try:
@@ -44,7 +48,7 @@ def _parse_iso_datetime(value: str | None) -> datetime | None:
         return None
 
 
-def _identity_sort_key(identity: str | None) -> tuple[int, int | str]:
+def identity_sort_key(identity: str | None) -> tuple[int, int | str]:
     if identity is None:
         return (-1, "")
     value = str(identity)
@@ -53,7 +57,7 @@ def _identity_sort_key(identity: str | None) -> tuple[int, int | str]:
     return (0, value)
 
 
-def _normalize_utc(dt: datetime | None) -> datetime | None:
+def normalize_utc(dt: datetime | None) -> datetime | None:
     if dt is None:
         return None
     if dt.tzinfo is None:
@@ -61,32 +65,32 @@ def _normalize_utc(dt: datetime | None) -> datetime | None:
     return dt.astimezone(timezone.utc)
 
 
-def _is_newer_cursor(
+def is_newer_cursor(
     candidate_created_at: datetime | None,
     candidate_identity: str,
     current_created_at: datetime | None,
     current_identity: str | None,
 ) -> bool:
-    candidate_created_at = _normalize_utc(candidate_created_at)
-    current_created_at = _normalize_utc(current_created_at)
+    candidate_created_at = normalize_utc(candidate_created_at)
+    current_created_at = normalize_utc(current_created_at)
 
     if current_created_at and candidate_created_at:
         if candidate_created_at > current_created_at:
             return True
         if candidate_created_at < current_created_at:
             return False
-        return _identity_sort_key(candidate_identity) > _identity_sort_key(current_identity)
+        return identity_sort_key(candidate_identity) > identity_sort_key(current_identity)
 
     if current_created_at and not candidate_created_at:
-        return _identity_sort_key(candidate_identity) > _identity_sort_key(current_identity)
+        return identity_sort_key(candidate_identity) > identity_sort_key(current_identity)
 
     if not current_created_at and candidate_created_at:
         return True
 
-    return _identity_sort_key(candidate_identity) > _identity_sort_key(current_identity)
+    return identity_sort_key(candidate_identity) > identity_sort_key(current_identity)
 
 
-def _build_row(
+def build_row(
     product: str,
     project_id: str,
     lon: float,
@@ -108,7 +112,7 @@ def _build_row(
     }
 
 
-def _extract_point_coordinates(geometry: dict | None) -> tuple[float, float] | None:
+def extract_point_coordinates(geometry: dict | None) -> tuple[float, float] | None:
     if not geometry:
         return None
 
@@ -149,7 +153,7 @@ def _extract_point_coordinates(geometry: dict | None) -> tuple[float, float] | N
     return None
 
 
-async def _fetch_tasking_manager_rows(client: httpx.AsyncClient) -> list[dict]:
+async def fetch_tasking_manager_rows(client: httpx.AsyncClient) -> list[dict]:
     response = await client.get(
         f"{TASKING_MANAGER_API_BASE_URL}/projects/",
         params={"action": "any", "omitMapResults": "false"},
@@ -162,11 +166,11 @@ async def _fetch_tasking_manager_rows(client: httpx.AsyncClient) -> list[dict]:
         project_id = feature.get("properties", {}).get("projectId")
         if project_id is None:
             continue
-        coords = _extract_point_coordinates(feature.get("geometry"))
+        coords = extract_point_coordinates(feature.get("geometry"))
         if not coords:
             continue
         rows.append(
-            _build_row(
+            build_row(
                 product="tasking-manager",
                 project_id=str(project_id),
                 lon=coords[0],
@@ -174,7 +178,7 @@ async def _fetch_tasking_manager_rows(client: httpx.AsyncClient) -> list[dict]:
                 name=feature.get("properties", {}).get("name"),
                 metadata_json={
                     "source_project_id": str(project_id),
-                    "created_at": _to_iso_datetime(
+                    "created_at": to_iso_datetime(
                         feature.get("properties", {}).get("created")
                         or feature.get("properties", {}).get("createdAt")
                     ),
@@ -185,14 +189,14 @@ async def _fetch_tasking_manager_rows(client: httpx.AsyncClient) -> list[dict]:
     return rows
 
 
-async def _fetch_dronetm_rows(client: httpx.AsyncClient) -> list[dict]:
+async def fetch_dronetm_rows(client: httpx.AsyncClient) -> list[dict]:
     page = 1
     per_page = 1000
     rows: list[dict] = []
 
     while True:
         response = await client.get(
-            f"{settings.drone_tm_backend_url}/projects/centroids",
+            f"{settings.drone_tm_api_url}/projects/centroids",
             params={"filter_by_owner": "false", "page": page, "results_per_page": per_page},
         )
         response.raise_for_status()
@@ -202,11 +206,11 @@ async def _fetch_dronetm_rows(client: httpx.AsyncClient) -> list[dict]:
         for item in results:
             project_id = item.get("id")
             centroid = item.get("centroid") or {}
-            coords = _extract_point_coordinates(centroid)
+            coords = extract_point_coordinates(centroid)
             if project_id is None or not coords:
                 continue
             rows.append(
-                _build_row(
+                build_row(
                     product="drone-tasking-manager",
                     project_id=str(project_id),
                     lon=coords[0],
@@ -214,7 +218,7 @@ async def _fetch_dronetm_rows(client: httpx.AsyncClient) -> list[dict]:
                     name=item.get("name"),
                     metadata_json={
                         "source_uuid": str(project_id),
-                        "created_at": _to_iso_datetime(item.get("created") or item.get("created_at")),
+                        "created_at": to_iso_datetime(item.get("created") or item.get("created_at")),
                     },
                 )
             )
@@ -244,7 +248,7 @@ async def _fetch_dronetm_rows(client: httpx.AsyncClient) -> list[dict]:
     return rows
 
 
-async def _fetch_fair_rows(client: httpx.AsyncClient) -> list[dict]:
+async def fetch_fair_rows(client: httpx.AsyncClient) -> list[dict]:
     async def fetch_rows_from_url(url: str) -> list[dict]:
         response = await client.get(url, headers={"accept": "application/json"})
         response.raise_for_status()
@@ -254,11 +258,11 @@ async def _fetch_fair_rows(client: httpx.AsyncClient) -> list[dict]:
         for feature in data.get("features", []):
             props = feature.get("properties", {})
             model_id = props.get("mid")
-            coords = _extract_point_coordinates(feature.get("geometry"))
+            coords = extract_point_coordinates(feature.get("geometry"))
             if model_id is None or not coords:
                 continue
             rows.append(
-                _build_row(
+                build_row(
                     product="fair",
                     project_id=str(model_id),
                     lon=coords[0],
@@ -266,7 +270,7 @@ async def _fetch_fair_rows(client: httpx.AsyncClient) -> list[dict]:
                     name=props.get("name"),
                     metadata_json={
                         "source_mid": str(model_id),
-                        "created_at": _to_iso_datetime(
+                        "created_at": to_iso_datetime(
                             props.get("created")
                             or props.get("created_at")
                             or props.get("creation_date")
@@ -276,20 +280,10 @@ async def _fetch_fair_rows(client: httpx.AsyncClient) -> list[dict]:
             )
         return rows
 
-    primary_url = f"{settings.effective_fair_api_base_url}/models/centroid/"
-    primary_rows = await fetch_rows_from_url(primary_url)
-
-    if primary_url.rstrip("/") == FAIR_PRODUCTION_CENTROIDS_URL.rstrip("/"):
-        return primary_rows
-
-    try:
-        fallback_rows = await fetch_rows_from_url(FAIR_PRODUCTION_CENTROIDS_URL)
-        return fallback_rows if len(fallback_rows) > len(primary_rows) else primary_rows
-    except Exception:
-        return primary_rows
+    return await fetch_rows_from_url(FAIR_CENTROIDS_URL)
 
 
-async def _fetch_umap_rows(client: httpx.AsyncClient) -> list[dict]:
+async def fetch_umap_rows(client: httpx.AsyncClient) -> list[dict]:
     response = await client.get(
         f"{settings.umap_base_url}/en/showcase/",
         headers={"accept": "application/json"},
@@ -301,7 +295,7 @@ async def _fetch_umap_rows(client: httpx.AsyncClient) -> list[dict]:
     rows: list[dict] = []
     for feature in data.get("features", []):
         geometry = feature.get("geometry")
-        coords = _extract_point_coordinates(geometry)
+        coords = extract_point_coordinates(geometry)
         if not coords:
             continue
 
@@ -319,7 +313,7 @@ async def _fetch_umap_rows(client: httpx.AsyncClient) -> list[dict]:
             continue
 
         rows.append(
-            _build_row(
+            build_row(
                 product="umap",
                 project_id=str(map_id),
                 lon=coords[0],
@@ -327,7 +321,7 @@ async def _fetch_umap_rows(client: httpx.AsyncClient) -> list[dict]:
                 name=props.get("name"),
                 metadata_json={
                     "source_map_id": str(map_id),
-                    "created_at": _to_iso_datetime(
+                    "created_at": to_iso_datetime(
                         props.get("created")
                         or props.get("created_at")
                         or props.get("creation_date")
@@ -340,7 +334,39 @@ async def _fetch_umap_rows(client: httpx.AsyncClient) -> list[dict]:
     return rows
 
 
-async def _fetch_oam_rows_from_db(db: AsyncSession) -> list[dict]:
+async def fetch_chatmap_rows(client: httpx.AsyncClient) -> list[dict]:
+    response = await client.get(
+        CHATMAP_PUBLIC_MAP_URL,
+        headers={"accept": "application/json"},
+    )
+    response.raise_for_status()
+    data = response.json()
+
+    rows: list[dict] = []
+    for item in data if isinstance(data, list) else []:
+        map_id = item.get("id")
+        centroid = item.get("centroid")
+        if not map_id or not isinstance(centroid, list) or len(centroid) < 2:
+            continue
+        # chatmap returns [lat, lon]; GeoJSON needs [lon, lat]
+        lat, lon = float(centroid[0]), float(centroid[1])
+        rows.append(
+            build_row(
+                product="chatmap",
+                project_id=str(map_id),
+                lon=lon,
+                lat=lat,
+                name=item.get("name"),
+                metadata_json={
+                    "updated_at": to_iso_datetime(item.get("updated_at")),
+                },
+            )
+        )
+
+    return rows
+
+
+async def fetch_oam_rows_from_db(db: AsyncSession) -> list[dict]:
     state = await db.get(MapProjectSyncState, "imagery")
     last_created_at = state.last_created_at if state else None
     last_identity = state.last_identity if state else None
@@ -384,7 +410,7 @@ async def _fetch_oam_rows_from_db(db: AsyncSession) -> list[dict]:
         lon = (min_lon + max_lon) / 2
         lat = (min_lat + max_lat) / 2
         output.append(
-            _build_row(
+            build_row(
                 product="imagery",
                 project_id=image.id,
                 lon=lon,
@@ -392,14 +418,19 @@ async def _fetch_oam_rows_from_db(db: AsyncSession) -> list[dict]:
                 name=image.title,
                 metadata_json={
                     "source_uuid": image.id,
-                    "created_at": _to_iso_datetime(image.acquisition_end),
+                    "created_at": to_iso_datetime(image.acquisition_end),
                 },
             )
         )
     return output
 
 
-async def _upsert_product_rows(db: AsyncSession, rows: list[dict]) -> int:
+async def delete_product_rows(db: AsyncSession, product: str) -> None:
+    """Delete all map_projects rows for a given product before a full re-sync."""
+    await db.execute(delete(MapProject).where(MapProject.product == product))
+
+
+async def upsert_product_rows(db: AsyncSession, rows: list[dict]) -> int:
     if not rows:
         return 0
 
@@ -422,12 +453,12 @@ async def _upsert_product_rows(db: AsyncSession, rows: list[dict]) -> int:
     return affected_total
 
 
-async def _get_sync_states(db: AsyncSession) -> dict[str, MapProjectSyncState]:
+async def get_sync_states(db: AsyncSession) -> dict[str, MapProjectSyncState]:
     states = (await db.execute(select(MapProjectSyncState))).scalars().all()
     return {state.product: state for state in states}
 
 
-def _filter_rows_since_cursor(
+def filter_rows_since_cursor(
     rows: list[dict],
     state: MapProjectSyncState | None,
 ) -> list[dict]:
@@ -437,30 +468,30 @@ def _filter_rows_since_cursor(
     filtered: list[dict] = []
     for row in rows:
         metadata = row.get("metadata_json") or {}
-        created_at = _parse_iso_datetime(metadata.get("created_at"))
+        created_at = parse_iso_datetime(metadata.get("created_at"))
         identity = row["project_id"]
-        if _is_newer_cursor(created_at, identity, state.last_created_at, state.last_identity):
+        if is_newer_cursor(created_at, identity, state.last_created_at, state.last_identity):
             filtered.append(row)
 
     return filtered
 
 
-def _compute_latest_cursor(rows: list[dict]) -> tuple[datetime | None, str | None]:
+def compute_latest_cursor(rows: list[dict]) -> tuple[datetime | None, str | None]:
     latest_created_at: datetime | None = None
     latest_identity: str | None = None
 
     for row in rows:
         metadata = row.get("metadata_json") or {}
-        created_at = _parse_iso_datetime(metadata.get("created_at"))
+        created_at = parse_iso_datetime(metadata.get("created_at"))
         identity = row["project_id"]
-        if _is_newer_cursor(created_at, identity, latest_created_at, latest_identity):
+        if is_newer_cursor(created_at, identity, latest_created_at, latest_identity):
             latest_created_at = created_at
             latest_identity = identity
 
     return latest_created_at, latest_identity
 
 
-async def _upsert_sync_state(
+async def upsert_sync_state(
     db: AsyncSession,
     product: str,
     rows: list[dict],
@@ -469,7 +500,7 @@ async def _upsert_sync_state(
     if not rows:
         return
 
-    candidate_created_at, candidate_identity = _compute_latest_cursor(rows)
+    candidate_created_at, candidate_identity = compute_latest_cursor(rows)
     if candidate_identity is None:
         return
 
@@ -485,7 +516,7 @@ async def _upsert_sync_state(
         states[product] = new_state
         return
 
-    if _is_newer_cursor(
+    if is_newer_cursor(
         candidate_created_at,
         candidate_identity,
         existing.last_created_at,
@@ -503,18 +534,21 @@ async def sync_from_sources(db: AsyncSession) -> dict[str, int]:
         "drone-tasking-manager": 0,
         "fair": 0,
         "umap": 0,
+        "chatmap": 0,
         "imagery": 0,
     }
 
     async with (
         httpx.AsyncClient(timeout=90.0, verify=True) as default_client,
+        httpx.AsyncClient(timeout=90.0, verify=settings.drone_tm_verify_ssl) as drone_client,
         httpx.AsyncClient(timeout=90.0, verify=settings.fair_verify_ssl) as fair_client,
     ):
-        tm_result, drone_result, fair_result, umap_result = await asyncio.gather(
-            _fetch_tasking_manager_rows(default_client),
-            _fetch_dronetm_rows(default_client),
-            _fetch_fair_rows(fair_client),
-            _fetch_umap_rows(default_client),
+        tm_result, drone_result, fair_result, umap_result, chatmap_result = await asyncio.gather(
+            fetch_tasking_manager_rows(default_client),
+            fetch_dronetm_rows(drone_client),
+            fetch_fair_rows(fair_client),
+            fetch_umap_rows(default_client),
+            fetch_chatmap_rows(default_client),
             return_exceptions=True,
         )
 
@@ -522,28 +556,43 @@ async def sync_from_sources(db: AsyncSession) -> dict[str, int]:
     drone_rows = [] if isinstance(drone_result, Exception) else drone_result
     fair_rows = [] if isinstance(fair_result, Exception) else fair_result
     umap_rows = [] if isinstance(umap_result, Exception) else umap_result
+    chatmap_rows = [] if isinstance(chatmap_result, Exception) else chatmap_result
 
-    oam_rows = await _fetch_oam_rows_from_db(db)
+    if isinstance(chatmap_result, Exception):
+        logger.warning("ChatMap sync failed (non-critical): %s", chatmap_result)
 
-    states = await _get_sync_states(db)
+    oam_rows = await fetch_oam_rows_from_db(db)
 
-    tm_rows_to_upsert = tm_rows
-    drone_rows_to_upsert = drone_rows
-    fair_rows_to_upsert = fair_rows
-    umap_rows_to_upsert = umap_rows
-    oam_rows_to_upsert = _filter_rows_since_cursor(oam_rows, states.get("imagery"))
+    states = await get_sync_states(db)
 
-    counts["tasking-manager"] = await _upsert_product_rows(db, tm_rows_to_upsert)
-    counts["drone-tasking-manager"] = await _upsert_product_rows(db, drone_rows_to_upsert)
-    counts["fair"] = await _upsert_product_rows(db, fair_rows_to_upsert)
-    counts["umap"] = await _upsert_product_rows(db, umap_rows_to_upsert)
-    counts["imagery"] = await _upsert_product_rows(db, oam_rows_to_upsert)
+    # For full-refresh products, delete stale rows before re-inserting.
+    # Only delete when the fetch succeeded to avoid wiping data on API failures.
+    if not isinstance(tm_result, Exception):
+        await delete_product_rows(db, "tasking-manager")
+    if not isinstance(drone_result, Exception):
+        await delete_product_rows(db, "drone-tasking-manager")
+    if not isinstance(fair_result, Exception):
+        await delete_product_rows(db, "fair")
+    if not isinstance(umap_result, Exception):
+        await delete_product_rows(db, "umap")
+    if not isinstance(chatmap_result, Exception):
+        await delete_product_rows(db, "chatmap")
 
-    await _upsert_sync_state(db, "tasking-manager", tm_rows, states)
-    await _upsert_sync_state(db, "drone-tasking-manager", drone_rows, states)
-    await _upsert_sync_state(db, "fair", fair_rows, states)
-    await _upsert_sync_state(db, "umap", umap_rows, states)
-    await _upsert_sync_state(db, "imagery", oam_rows, states)
+    oam_rows_to_upsert = filter_rows_since_cursor(oam_rows, states.get("imagery"))
+
+    counts["tasking-manager"] = await upsert_product_rows(db, tm_rows)
+    counts["drone-tasking-manager"] = await upsert_product_rows(db, drone_rows)
+    counts["fair"] = await upsert_product_rows(db, fair_rows)
+    counts["umap"] = await upsert_product_rows(db, umap_rows)
+    counts["chatmap"] = await upsert_product_rows(db, chatmap_rows)
+    counts["imagery"] = await upsert_product_rows(db, oam_rows_to_upsert)
+
+    await upsert_sync_state(db, "tasking-manager", tm_rows, states)
+    await upsert_sync_state(db, "drone-tasking-manager", drone_rows, states)
+    await upsert_sync_state(db, "fair", fair_rows, states)
+    await upsert_sync_state(db, "umap", umap_rows, states)
+    await upsert_sync_state(db, "chatmap", chatmap_rows, states)
+    await upsert_sync_state(db, "imagery", oam_rows, states)
 
     await db.commit()
 
