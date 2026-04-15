@@ -7,8 +7,9 @@ import respx
 import httpx
 from httpx import AsyncClient, Response
 
-# Import the URLs from the umap module to use in mocks
-from app.api.routes.umap.umap import UMAP_API_BASE_URL, UMAP_BASE_URL, UMAP_LOCALE, UMAP_SHOWCASE_URL
+from app.api.routes.umap.umap import UMAP_API_BASE_URL, UMAP_BASE_URL, UMAP_SHOWCASE_URL
+
+UMAP_MAPS_API_URL = f"{UMAP_BASE_URL}/api/v1/maps/?source=mine"
 
 
 # -------------------------------
@@ -105,7 +106,6 @@ async def test_get_umap_data_response_structure(client: AsyncClient):
     assert isinstance(data, dict)
     assert data["type"] == "FeatureCollection"
     assert isinstance(data["features"], list)
-    # _umap_options is optional, so we just check the required fields
     assert "features" in data
 
 
@@ -259,11 +259,9 @@ async def test_get_umap_data_with_umap_options(client: AsyncClient):
 
     assert response.status_code == 200
     data = response.json()
-    # Check that _umap_options exists at layer level when provided
     if "_umap_options" in data:
         assert data["_umap_options"]["displayOnLoad"] is True
         assert data["_umap_options"]["color"] == "SlateBlue"
-    # Check feature properties _umap_options when provided
     feature_props = data["features"][0]["properties"]
     if "_umap_options" in feature_props:
         assert feature_props["_umap_options"]["iconOpacity"] == 0.5
@@ -333,7 +331,6 @@ async def test_get_umap_data_feature_without_id(client: AsyncClient):
 
     assert response.status_code == 200
     data = response.json()
-    # ID is optional, so we check it can be None or not present
     feature = data["features"][0]
     assert "id" not in feature or feature.get("id") is None
 
@@ -477,16 +474,6 @@ async def test_get_showcase_unexpected_error(client: AsyncClient):
 
     assert response.status_code == 500
     assert "Unexpected error" in response.json()["detail"]
-
-
-# -------------------------------
-# helpers
-# -------------------------------
-
-def _maps_html(*map_entries: tuple[str, str]) -> str:
-    """Build minimal HTML with map links. Each entry is (href, label)."""
-    links = "".join(f'<a href="{href}">{label}</a>' for href, label in map_entries)
-    return f"<html><body>{links}</body></html>"
 
 
 # -------------------------------
