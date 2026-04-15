@@ -13,9 +13,9 @@ from app.db.models.map_project import MapProject
 from app.db.models.map_project_sync_state import MapProjectSyncState
 
 
-TM_URL = "https://tasking-manager-production-api.hotosm.org/api/v2/projects/"
-DRONE_URL = f"{settings.drone_tm_backend_url}/projects/centroids"
-FAIR_URL = f"{settings.effective_fair_api_base_url}/models/centroid/"
+TM_URL = f"{settings.tasking_manager_api_url}/projects/"
+DRONE_URL = f"{settings.drone_tm_api_url}/projects/centroids"
+FAIR_URL = f"{settings.fair_api_url}/models/centroid/"
 UMAP_SHOWCASE_URL = f"{settings.umap_base_url}/en/showcase/"
 
 
@@ -130,7 +130,7 @@ async def test_refresh_sync_inserts_all_products_and_metadata(client: AsyncClien
     )
 
     with patch(
-        "app.services.map_projects_service._fetch_oam_rows_from_db",
+        "app.services.map_projects_service.fetch_oam_rows_from_db",
         new=AsyncMock(return_value=_oam_rows(["img-1"])),
     ):
         response = await client.get("/api/homepage-map/projects/snapshot?refresh=true")
@@ -170,7 +170,7 @@ async def test_refresh_sync_does_not_duplicate_existing_rows(client: AsyncClient
     )
 
     with patch(
-        "app.services.map_projects_service._fetch_oam_rows_from_db",
+        "app.services.map_projects_service.fetch_oam_rows_from_db",
         new=AsyncMock(return_value=_oam_rows(["img-1001"])),
     ):
         response_1 = await client.get("/api/homepage-map/projects/snapshot?refresh=true")
@@ -210,8 +210,11 @@ async def test_refresh_sync_does_not_delete_rows_when_source_shrinks(client: Asy
     )
 
     with patch(
-        "app.services.map_projects_service._fetch_oam_rows_from_db",
+        "app.services.map_projects_service.fetch_oam_rows_from_db",
         new=AsyncMock(side_effect=[_oam_rows(["img-a"]), _oam_rows([])]),
+    ), patch(
+        "app.services.map_projects_service.fetch_chatmap_rows",
+        new=AsyncMock(return_value=[]),
     ):
         first = await client.get("/api/homepage-map/projects/snapshot?refresh=true")
         second = await client.get("/api/homepage-map/projects/snapshot?refresh=true")
@@ -219,15 +222,19 @@ async def test_refresh_sync_does_not_delete_rows_when_source_shrinks(client: Asy
     assert first.status_code == 200
     assert second.status_code == 200
 
+    # Full-refresh products delete existing rows before re-inserting from the new source response.
+    # When TM returns only [1] on the second sync, TM:2 is removed (source is authoritative).
     ids = (
         await test_db_session.execute(
             select(MapProject.id).where(MapProject.product == "tasking-manager")
         )
     ).scalars().all()
-    assert set(ids) == {"tasking-manager:1", "tasking-manager:2"}
+    assert set(ids) == {"tasking-manager:1"}
 
     all_ids = (await test_db_session.execute(select(MapProject.id))).scalars().all()
-    assert "drone-tasking-manager:dr-a" in all_ids
+    # Drone returned [] on the second sync — all drone rows are removed.
+    assert "drone-tasking-manager:dr-a" not in all_ids
+    # Imagery is cursor-based and never deleted, so img-a persists.
     assert "imagery:img-a" in all_ids
 
 
@@ -243,7 +250,7 @@ async def test_refresh_sync_continues_when_one_product_endpoint_fails(client: As
     )
 
     with patch(
-        "app.services.map_projects_service._fetch_oam_rows_from_db",
+        "app.services.map_projects_service.fetch_oam_rows_from_db",
         new=AsyncMock(return_value=_oam_rows(["img-x"])),
     ):
         response = await client.get("/api/homepage-map/projects/snapshot?refresh=true")
@@ -279,7 +286,7 @@ async def test_refresh_sync_tracks_cursor_and_inserts_only_newer_rows(client: As
     )
 
     with patch(
-        "app.services.map_projects_service._fetch_oam_rows_from_db",
+        "app.services.map_projects_service.fetch_oam_rows_from_db",
         new=AsyncMock(return_value=_oam_rows(["img-cursor"])),
     ):
         first = await client.get("/api/homepage-map/projects/snapshot?refresh=true")
@@ -342,7 +349,7 @@ async def test_refresh_sync_updates_existing_record_when_name_changes(client: As
     )
 
     with patch(
-        "app.services.map_projects_service._fetch_oam_rows_from_db",
+        "app.services.map_projects_service.fetch_oam_rows_from_db",
         new=AsyncMock(return_value=_oam_rows(["img-update"])),
     ):
         first = await client.get("/api/homepage-map/projects/snapshot?refresh=true")
@@ -387,7 +394,7 @@ async def test_refresh_sync_fetches_all_dronetm_pages(client: AsyncClient, test_
     )
 
     with patch(
-        "app.services.map_projects_service._fetch_oam_rows_from_db",
+        "app.services.map_projects_service.fetch_oam_rows_from_db",
         new=AsyncMock(return_value=_oam_rows(["img-pages"])),
     ):
         response = await client.get("/api/homepage-map/projects/snapshot?refresh=true")
@@ -424,14 +431,16 @@ async def test_refresh_sync_uses_source_specific_ssl_verification(client: AsyncC
     drone_fetch = AsyncMock(return_value=[])
     fair_fetch = AsyncMock(return_value=[])
     umap_fetch = AsyncMock(return_value=[])
+    chatmap_fetch = AsyncMock(return_value=[])
 
     monkeypatch.setattr("app.services.map_projects_service.httpx.AsyncClient", _FakeAsyncClient)
-    monkeypatch.setattr("app.services.map_projects_service._fetch_tasking_manager_rows", tm_fetch)
-    monkeypatch.setattr("app.services.map_projects_service._fetch_dronetm_rows", drone_fetch)
-    monkeypatch.setattr("app.services.map_projects_service._fetch_fair_rows", fair_fetch)
-    monkeypatch.setattr("app.services.map_projects_service._fetch_umap_rows", umap_fetch)
+    monkeypatch.setattr("app.services.map_projects_service.fetch_tasking_manager_rows", tm_fetch)
+    monkeypatch.setattr("app.services.map_projects_service.fetch_dronetm_rows", drone_fetch)
+    monkeypatch.setattr("app.services.map_projects_service.fetch_fair_rows", fair_fetch)
+    monkeypatch.setattr("app.services.map_projects_service.fetch_umap_rows", umap_fetch)
+    monkeypatch.setattr("app.services.map_projects_service.fetch_chatmap_rows", chatmap_fetch)
     monkeypatch.setattr(
-        "app.services.map_projects_service._fetch_oam_rows_from_db",
+        "app.services.map_projects_service.fetch_oam_rows_from_db",
         AsyncMock(return_value=[]),
     )
     monkeypatch.setattr("app.services.map_projects_service.settings.fair_verify_ssl", False)
@@ -439,8 +448,11 @@ async def test_refresh_sync_uses_source_specific_ssl_verification(client: AsyncC
     response = await client.get("/api/homepage-map/projects/snapshot?refresh=true")
     assert response.status_code == 200
 
-    assert created_verify_values == [True, False]
-    assert tm_fetch.await_args.args[0].verify is True
-    assert drone_fetch.await_args.args[0].verify is True
-    assert umap_fetch.await_args.args[0].verify is True
-    assert fair_fetch.await_args.args[0].verify is False
+    # Three AsyncClient instances are created: default (verify=True), drone (verify=drone_tm_verify_ssl),
+    # and fair (verify=fair_verify_ssl). drone_tm_verify_ssl defaults to False.
+    assert created_verify_values == [True, False, False]
+    assert tm_fetch.await_args.args[0].verify is True      # uses default_client
+    assert drone_fetch.await_args.args[0].verify is False  # uses drone_client (drone_tm_verify_ssl=False)
+    assert umap_fetch.await_args.args[0].verify is True    # uses default_client
+    assert chatmap_fetch.await_args.args[0].verify is True # uses default_client
+    assert fair_fetch.await_args.args[0].verify is False   # uses fair_client (fair_verify_ssl=False)

@@ -62,7 +62,7 @@ async def preload_cache():
     async def preload_drone_tm():
         """Preload Drone TM centroids from production API."""
         try:
-            drone_tm_production_url = "https://dronetm.org/api"
+            drone_tm_url = settings.drone_tm_api_url
             cache_key = build_dronetm_cache_key(
                 filter_by_owner=False, search=None, page=1, results_per_page=1000
             )
@@ -73,7 +73,7 @@ async def preload_cache():
 
             async with httpx.AsyncClient(timeout=60.0) as client:
                 response = await client.get(
-                    f"{drone_tm_production_url}/projects/centroids",
+                    f"{drone_tm_url}/projects/centroids",
                     params={"filter_by_owner": "false", "page": 1, "results_per_page": 1000}
                 )
                 response.raise_for_status()
@@ -114,9 +114,9 @@ async def preload_cache():
                 asyncio.create_task(enrich_fair_centroids_in_background())
                 return
 
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=30.0, verify=settings.fair_verify_ssl) as client:
                 response = await client.get(
-                    "https://api-prod.fair.hotosm.org/api/v1/models/centroid/",
+                    f"{settings.fair_api_url}/models/centroid/",
                     headers={"accept": "application/json"}
                 )
                 response.raise_for_status()

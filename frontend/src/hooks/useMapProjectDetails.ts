@@ -304,6 +304,21 @@ async function fetchProjectDetailsByProduct(
     return normalizeUMap(data, String(projectId));
   }
 
+  if (product === "chatmap") {
+    const mapId = String(projectId);
+    const response = await fetch(`/api/chatmap/map/${mapId}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ChatMap map ${mapId}`);
+    }
+    const data = await response.json();
+    return {
+      id: mapId,
+      name: data.name || `Map #${mapId}`,
+      productName: "ChatMap",
+      url: `https://chatmap.hotosm.org/#map/${mapId}`,
+    };
+  }
+
   throw new Error(`Unsupported product: ${product}`);
 }
 
