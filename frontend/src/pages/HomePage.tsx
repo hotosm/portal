@@ -1,35 +1,22 @@
-import { ProjectsMap } from "../components/ProjectsMap";
+import Button from "../components/shared/Button";
 import Carousel from "../components/shared/Carousel";
 import CarouselItem from "../components/shared/CarouselItem";
-import Button from "../components/shared/Button";
 import { carouselItems } from "../constants/carouselItems";
 import { useLanguage } from "../contexts/LanguageContext";
-import { useProjects } from "../hooks/useProjects";
-import { useProjectsMapCallout } from "../hooks/useProjectsMapCallout";
 import { m } from "../paraglide/messages";
 
 function HomePage() {
   const { currentLanguage: _currentLanguage } = useLanguage(); // subscribe to force re-render on language change
-  const { data: projectsData, isLoading, error } = useProjects();
-  const {
-    selectedProjectId,
-    selectedProjects,
-    locationName,
-    selectedProduct,
-    handleProjectClick,
-    handleCloseDetails,
-  } = useProjectsMapCallout();
 
   return (
     <div
       style={{
         background:
-          "linear-gradient(180.571deg, #ffffff 8.3%, #ffe6de 61.9%, #e6f6f5 83.6%, #e6f6f5b9 99.9%)",
+          "linear-gradient(180deg, var(--hot-color-neutral-0) 0.5%, var(--hot-color-cyan-50) 5%, var(--hot-color-rose-50) 30%, var(--hot-color-neutral-0) 50%)",
       }}
     >
-      {/* Map Section */}
-      <div className="container flex flex-col gap-xl mb-3xl">
-        <section className="h-[calc(100vh_-_68px_-_2rem)] relative pt-4">
+      <div className="container flex flex-col gap-xl mb-3xl mt-xl">
+        {/* <section className="h-[calc(100vh_-_68px_-_2rem)] relative pt-4">
           <ProjectsMap
             mapResults={projectsData}
             selectedProjectId={selectedProjectId}
@@ -49,17 +36,16 @@ function HomePage() {
               <p>{m.loading_projects_error()}</p>
             </div>
           )}
-        </section>
+        </section> */}
 
         <section className="container overflow-hidden px-md md:px-xl py-3xl  bg-white  flex flex-col gap-xl md:gap-3xl justify-center items-center rounded-xl text-center">
           <div className="flex flex-col gap-md md:gap-xl">
             <span className="text-2xl md:text-3xl leading-tight">
-              {m.home_workflow_header()}{" "}
-              <strong>{m.home_workflow_header_strong()}</strong>
+              <strong>{m.home_workflow_header()}</strong>
             </span>
             <span>
               <span
-                className="p-xs md:p-md leading-normal text-2xl md:text-3xl text-white rounded-md"
+                className="p-xs md:p-md leading-normal text-2xl md:text-2xl text-white rounded-md"
                 style={{
                   background:
                     "linear-gradient(172.711deg, #d73f3f 8.4%, #459ba0 92.3%)",
@@ -69,9 +55,13 @@ function HomePage() {
               </span>
             </span>
             <span className="text-lg md:text-xl leading-tight text-center">
-              {m.home_workflow_p1()}
+              <span
+                dangerouslySetInnerHTML={{ __html: m.home_workflow_p1() }}
+              />
               <br />
-              {m.home_workflow_p2()}
+              <span
+                dangerouslySetInnerHTML={{ __html: m.home_workflow_p2() }}
+              />
             </span>
           </div>
 
@@ -97,20 +87,17 @@ function HomePage() {
 
           <div className="flex flex-col justify-center items-center text-center gap-md md:gap-xl">
             <div className="text-2xl md:text-3xl leading-tight">
-              Create & share geospatial data
+              <strong>{m.home_create_header()}</strong>
             </div>
-            <div className="text-lg md:text-xl leading-tight max-w-3xl">
-              Fly <strong>drones</strong>, publish aerial{" "}
-              <strong>imagery</strong> for free, organize{" "}
-              <strong>mapping</strong> projects from home, go the{" "}
-              <strong>field</strong> for easy mapping, <strong>free</strong> and
-              open for everyone!
-            </div>
+            <div
+              className="text-lg md:text-xl leading-tight max-w-3xl"
+              dangerouslySetInnerHTML={{ __html: m.home_create_p() }}
+            />
             <Button size="large" onClick={() => (window.location.href = "#")}>
-              Start a project
+              {m.home_create_cta()}
             </Button>
             <Button appearance="plain" className="accent-link-button">
-              Take a course or specialize
+              {m.home_create_cta_secondary()}
             </Button>
           </div>
         </section>
