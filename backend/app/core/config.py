@@ -39,7 +39,7 @@ ENV_DEFAULTS: dict[Environment, dict[str, str]] = {
     Environment.TEST: {
         "hanko_api_url": "https://dev.login.hotosm.org",
         "drone_tm_base_url": "https://dev.drone.hotosm.org",
-        "fair_base_url": "https://dev.fair.hotosm.org",
+        "fair_base_url": "https://fair-dev.hotosm.org/",
         "oam_api_url": "https://api.openaerialmap.org",
         "umap_base_url": "https://umap.hotosm.org",
         "chatmap_base_url": "https://chatmap.hotosm.org",

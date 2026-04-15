@@ -493,18 +493,20 @@ def _maps_html(*map_entries: tuple[str, str]) -> str:
 # /umap/user/maps
 # -------------------------------
 
-UMAP_ME_URL = f"{UMAP_BASE_URL}/{UMAP_LOCALE}/me"
+UMAP_MAPS_URL = f"{UMAP_BASE_URL}/api/v1/maps/"
 
 
 @pytest.mark.asyncio
 @respx.mock
 async def test_get_user_maps_success(client: AsyncClient):
-    """Test that get_user_maps returns 200 with parsed map list."""
-    html = _maps_html(
-        (f"/{UMAP_LOCALE}/map/makeni-survey_1813", "Makeni Survey"),
-        (f"/{UMAP_LOCALE}/map/flood-risk_1780", "Flood Risk"),
-    )
-    respx.get(UMAP_ME_URL).mock(return_value=Response(200, text=html))
+    """Test that get_user_maps returns 200 with the upstream JSON payload."""
+    payload = {
+        "maps": [
+            {"id": 1813, "name": "Makeni Survey", "slug": "makeni-survey"},
+            {"id": 1780, "name": "Flood Risk", "slug": "flood-risk"},
+        ]
+    }
+    respx.get(UMAP_MAPS_URL).mock(return_value=Response(200, json=payload))
 
     response = await client.get("/api/umap/user/maps", cookies={"hanko": "tok123"})
 
@@ -512,9 +514,8 @@ async def test_get_user_maps_success(client: AsyncClient):
     data = response.json()
     assert "maps" in data
     assert len(data["maps"]) == 2
-    assert data["maps"][0]["id"] == "1813"
-    assert data["maps"][0]["slug"] == "makeni-survey_1813"
-    assert data["maps"][1]["id"] == "1780"
+    assert data["maps"][0]["id"] == 1813
+    assert data["maps"][1]["id"] == 1780
 
 
 @pytest.mark.asyncio
@@ -528,10 +529,9 @@ async def test_get_user_maps_no_cookie(client: AsyncClient):
 
 @pytest.mark.asyncio
 @respx.mock
-async def test_get_user_maps_auth_redirect(client: AsyncClient):
-    """Test that a login-page redirect returns 401."""
-    html = "<html><body>Iniciar sesión</body></html>"
-    respx.get(UMAP_ME_URL).mock(return_value=Response(200, text=html))
+async def test_get_user_maps_upstream_unauthorized(client: AsyncClient):
+    """Test that an upstream 401 is translated to a 401 auth error."""
+    respx.get(UMAP_MAPS_URL).mock(return_value=Response(401, text="Unauthorized"))
 
     response = await client.get("/api/umap/user/maps", cookies={"hanko": "expired"})
 
@@ -541,44 +541,9 @@ async def test_get_user_maps_auth_redirect(client: AsyncClient):
 
 @pytest.mark.asyncio
 @respx.mock
-async def test_get_user_maps_deduplicates(client: AsyncClient):
-    """Test that the same map_id appearing twice is returned only once."""
-    html = _maps_html(
-        (f"/{UMAP_LOCALE}/map/my-map_999", "My Map"),
-        (f"/{UMAP_LOCALE}/map/my-map_999", "My Map duplicate"),
-    )
-    respx.get(UMAP_ME_URL).mock(return_value=Response(200, text=html))
-
-    response = await client.get("/api/umap/user/maps", cookies={"hanko": "tok"})
-
-    assert response.status_code == 200
-    assert len(response.json()["maps"]) == 1
-
-
-@pytest.mark.asyncio
-@respx.mock
-async def test_get_user_maps_skips_share_edit(client: AsyncClient):
-    """Test that ?share and ?edit hrefs are ignored."""
-    html = _maps_html(
-        (f"/{UMAP_LOCALE}/map/real-map_100", "Real"),
-        (f"/{UMAP_LOCALE}/map/real-map_100?share", "Share"),
-        (f"/{UMAP_LOCALE}/map/real-map_100?edit", "Edit"),
-    )
-    respx.get(UMAP_ME_URL).mock(return_value=Response(200, text=html))
-
-    response = await client.get("/api/umap/user/maps", cookies={"hanko": "tok"})
-
-    assert response.status_code == 200
-    assert len(response.json()["maps"]) == 1
-    assert response.json()["maps"][0]["id"] == "100"
-
-
-@pytest.mark.asyncio
-@respx.mock
-async def test_get_user_maps_empty_page(client: AsyncClient):
-    """Test that a page with no map links returns an empty list."""
-    html = "<html><body><p>No maps yet.</p></body></html>"
-    respx.get(UMAP_ME_URL).mock(return_value=Response(200, text=html))
+async def test_get_user_maps_empty_list(client: AsyncClient):
+    """Test that an empty maps list is returned as-is."""
+    respx.get(UMAP_MAPS_URL).mock(return_value=Response(200, json={"maps": []}))
 
     response = await client.get("/api/umap/user/maps", cookies={"hanko": "tok"})
 
@@ -590,38 +555,24 @@ async def test_get_user_maps_empty_page(client: AsyncClient):
 @respx.mock
 async def test_get_user_maps_http_error(client: AsyncClient):
     """Test that an upstream HTTP error is propagated."""
-    respx.get(UMAP_ME_URL).mock(return_value=Response(503, text="Service Unavailable"))
+    respx.get(UMAP_MAPS_URL).mock(return_value=Response(503, text="Service Unavailable"))
 
     response = await client.get("/api/umap/user/maps", cookies={"hanko": "tok"})
 
     assert response.status_code == 503
-    assert "Error fetching uMap maps" in response.json()["detail"]
+    assert "uMap error" in response.json()["detail"]
 
 
 @pytest.mark.asyncio
 @respx.mock
 async def test_get_user_maps_connection_error(client: AsyncClient):
     """Test that a connection error returns 503."""
-    respx.get(UMAP_ME_URL).mock(side_effect=httpx.RequestError("Timeout"))
+    respx.get(UMAP_MAPS_URL).mock(side_effect=httpx.RequestError("Timeout"))
 
     response = await client.get("/api/umap/user/maps", cookies={"hanko": "tok"})
 
     assert response.status_code == 503
     assert "Connection error to uMap" in response.json()["detail"]
-
-
-@pytest.mark.asyncio
-@respx.mock
-async def test_get_user_maps_uses_locale_in_url(client: AsyncClient):
-    """Test that the request to uMap uses UMAP_LOCALE, not a hardcoded locale."""
-    html = _maps_html((f"/{UMAP_LOCALE}/map/test_42", "Test"))
-    # Only mock the locale-based URL; any other URL would raise an error
-    respx.get(UMAP_ME_URL).mock(return_value=Response(200, text=html))
-
-    response = await client.get("/api/umap/user/maps", cookies={"hanko": "tok"})
-
-    assert response.status_code == 200
-    assert UMAP_LOCALE in UMAP_ME_URL
 
 
 # -------------------------------

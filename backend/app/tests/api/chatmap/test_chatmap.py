@@ -6,9 +6,9 @@ import pytest
 from unittest.mock import Mock, AsyncMock, patch
 import httpx
 
-from app.api.routes.chatmap.chatmap import get_my_chatmap, CHATMAP_API_BASE_URL
+from app.api.routes.chatmap.chatmap import get_my_chatmap, CHATMAP_API_URL
 
-BASE_URL = CHATMAP_API_BASE_URL
+BASE_URL = CHATMAP_API_URL
 
 MOCK_CHATMAP_RESPONSE = {
     "id": "abc123-map-uuid",
@@ -126,7 +126,7 @@ class TestGetMyChatMap:
             await get_my_chatmap(request=mock_request, user=mock_user)
 
         assert exc_info.value.status_code == 401
-        assert "Hanko auth cookie not found" in exc_info.value.detail
+        assert "Hanko auth cookie not found" in exc_info.value.detail  # substring match, handles trailing punctuation
 
     @pytest.mark.asyncio
     async def test_get_my_chatmap_upstream_error(self):
