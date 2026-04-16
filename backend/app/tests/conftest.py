@@ -10,7 +10,14 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from app.core.database import Base, get_db
 from app.core.cache import clear_cache
 from app.main import app
+from hotosm_auth import AuthConfig
+from hotosm_auth_fastapi import init_auth
 from hotosm_auth_fastapi.dependencies import get_current_user_optional
+
+init_auth(AuthConfig(
+    hanko_api_url="http://test-hanko-api",
+    cookie_secret="x" * 32,
+))
 
 
 @pytest.fixture(autouse=True)

@@ -47,7 +47,7 @@ APP_FETCHERS = {
 }
 
 
-def _plan_to_read(plan: Plan) -> PlanRead:
+def plan_to_read(plan: Plan) -> PlanRead:
     return PlanRead(
         id=plan.id,
         name=plan.name,
@@ -61,7 +61,7 @@ def _plan_to_read(plan: Plan) -> PlanRead:
     )
 
 
-def _check_no_duplicates(items: list[PlanProjectItem]) -> None:
+def check_no_duplicates(items: list[PlanProjectItem]) -> None:
     seen: set[tuple[str, str]] = set()
     for item in items:
         key = (item.app, item.project_id)
@@ -81,10 +81,10 @@ async def list_plans(db: AsyncSession, owner_id: str) -> list[PlanRead]:
     )
     result = await db.execute(stmt)
     plans = result.scalars().all()
-    return [_plan_to_read(p) for p in plans]
+    return [plan_to_read(p) for p in plans]
 
 
-async def _get_owned_plan(
+async def get_owned_plan(
     db: AsyncSession, owner_id: str, plan_id: str
 ) -> Plan | None:
     stmt = (
@@ -99,7 +99,7 @@ async def _get_owned_plan(
 async def create_plan(
     db: AsyncSession, owner_id: str, payload: PlanCreate
 ) -> PlanRead:
-    _check_no_duplicates(payload.projects)
+    check_no_duplicates(payload.projects)
 
     plan = Plan(
         owner_id=owner_id,
@@ -126,13 +126,13 @@ async def create_plan(
         raise DuplicateProjectError(str(e)) from e
 
     await db.refresh(plan, attribute_names=["projects"])
-    return _plan_to_read(plan)
+    return plan_to_read(plan)
 
 
 async def update_plan(
     db: AsyncSession, owner_id: str, plan_id: str, payload: PlanUpdate
 ) -> PlanRead | None:
-    plan = await _get_owned_plan(db, owner_id, plan_id)
+    plan = await get_owned_plan(db, owner_id, plan_id)
     if plan is None:
         return None
 
@@ -142,7 +142,7 @@ async def update_plan(
         plan.description = payload.description
 
     if payload.projects is not None:
-        _check_no_duplicates(payload.projects)
+        check_no_duplicates(payload.projects)
         await db.execute(
             delete(PlanProject).where(PlanProject.plan_id == plan.id)
         )
@@ -164,11 +164,11 @@ async def update_plan(
         raise DuplicateProjectError(str(e)) from e
 
     await db.refresh(plan, attribute_names=["projects"])
-    return _plan_to_read(plan)
+    return plan_to_read(plan)
 
 
 async def delete_plan(db: AsyncSession, owner_id: str, plan_id: str) -> bool:
-    plan = await _get_owned_plan(db, owner_id, plan_id)
+    plan = await get_owned_plan(db, owner_id, plan_id)
     if plan is None:
         return False
     await db.delete(plan)
@@ -176,7 +176,7 @@ async def delete_plan(db: AsyncSession, owner_id: str, plan_id: str) -> bool:
     return True
 
 
-async def _hydrate_one(row: PlanProject) -> HydratedProjectItem:
+async def hydrate_one(row: PlanProject) -> HydratedProjectItem:
     fetcher = APP_FETCHERS.get(row.app)
     if fetcher is None:
         return HydratedProjectItem(
@@ -216,12 +216,12 @@ async def _hydrate_one(row: PlanProject) -> HydratedProjectItem:
 async def get_plan_hydrated(
     db: AsyncSession, owner_id: str, plan_id: str
 ) -> PlanReadHydrated | None:
-    plan = await _get_owned_plan(db, owner_id, plan_id)
+    plan = await get_owned_plan(db, owner_id, plan_id)
     if plan is None:
         return None
 
     hydrated_items = await asyncio.gather(
-        *[_hydrate_one(row) for row in plan.projects]
+        *[hydrate_one(row) for row in plan.projects]
     )
 
     return PlanReadHydrated(

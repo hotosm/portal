@@ -28,7 +28,7 @@ from app.services import plans_service
 from app.services.exceptions import UpstreamUnavailable
 
 
-def _make_user(user_id: str, email: str = "u@example.com") -> HankoUser:
+def make_user(user_id: str, email: str = "u@example.com") -> HankoUser:
     now = datetime.now(timezone.utc)
     return HankoUser(
         id=user_id,
@@ -43,7 +43,7 @@ def _make_user(user_id: str, email: str = "u@example.com") -> HankoUser:
 @pytest_asyncio.fixture
 async def auth_client(test_db_session) -> AsyncGenerator[tuple[AsyncClient, HankoUser], None]:
     """Client authenticated as a fixed test user (user A)."""
-    user = _make_user("user-a-id", "a@example.com")
+    user = make_user("user-a-id", "a@example.com")
 
     async def override_get_db():
         yield test_db_session
@@ -215,8 +215,8 @@ async def test_unique_constraint_duplicate_in_payload(auth_client):
 @pytest.mark.asyncio
 async def test_user_isolation(two_auth_clients):
     client, user_cell = two_auth_clients
-    user_a = _make_user("user-a-id", "a@example.com")
-    user_b = _make_user("user-b-id", "b@example.com")
+    user_a = make_user("user-a-id", "a@example.com")
+    user_b = make_user("user-b-id", "b@example.com")
 
     user_cell[0] = user_a
     resp = await client.post("/api/plans", json={"name": "A's plan", "projects": []})

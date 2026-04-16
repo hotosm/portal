@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 HOTOSM_API_BASE_URL = settings.tasking_manager_api_url
 
 # Flag to track if background enrichment is running
-_enrichment_in_progress = False
+enrichment_in_progress = False
 
 
 async def fetch_page(client: httpx.AsyncClient, page: int) -> list[dict]:
@@ -80,12 +80,12 @@ def enrich_data_with_names(data: dict, project_names: dict[int, str]) -> dict:
 
 async def fetch_and_enrich_in_background():
     """Background task to fetch all project names and update cache."""
-    global _enrichment_in_progress
+    global enrichment_in_progress
 
-    if _enrichment_in_progress:
+    if enrichment_in_progress:
         return
 
-    _enrichment_in_progress = True
+    enrichment_in_progress = True
     cache_key = "tasking_manager_projects"
     enriched_cache_key = "tasking_manager_projects_enriched"
 
@@ -123,7 +123,7 @@ async def fetch_and_enrich_in_background():
     except Exception as e:
         logger.error(f"Background enrichment failed: {e}")
     finally:
-        _enrichment_in_progress = False
+        enrichment_in_progress = False
 
 
 @router.get("/projects", response_model=ProjectsResponse)
@@ -160,7 +160,7 @@ async def get_tasking_manager_projects(
     """
     cache_key = "tasking_manager_projects"
 
-    async def _enrich(data: dict) -> dict:
+    async def enrich(data: dict) -> dict:
         results = data.get("results") or []
         owner_id = user.id if user is not None else None
         enriched = await plans_service.enrich_items_with_plans(
@@ -171,7 +171,7 @@ async def get_tasking_manager_projects(
     # Check cache first - if enriched data exists, return it immediately
     cached_data = get_cached(cache_key)
     if cached_data is not None:
-        return await _enrich(cached_data)
+        return await enrich(cached_data)
 
     url = f"{HOTOSM_API_BASE_URL}/projects/"
     params = {"action": "any", "omitMapResults": "false"}
@@ -189,7 +189,7 @@ async def get_tasking_manager_projects(
             # Schedule background enrichment
             background_tasks.add_task(fetch_and_enrich_in_background)
 
-            return await _enrich(data)
+            return await enrich(data)
 
     except httpx.HTTPStatusError as e:
         raise HTTPException(

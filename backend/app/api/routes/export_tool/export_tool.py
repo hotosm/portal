@@ -37,7 +37,7 @@ async def get_export_jobs(
     """
     cache_key = f"export_jobs_{pinned}_{all}_{limit}_{offset}_{search}_{status}_{user}_{region}"
 
-    async def _enrich(payload: dict) -> dict:
+    async def enrich(payload: dict) -> dict:
         results = payload.get("results") or []
         owner_id = auth_user.id if auth_user is not None else None
         enriched = await plans_service.enrich_items_with_plans(
@@ -47,7 +47,7 @@ async def get_export_jobs(
 
     cached_data = get_cached(cache_key)
     if cached_data is not None:
-        return await _enrich(cached_data)
+        return await enrich(cached_data)
 
     url = f"{EXPORT_TOOL_API_BASE_URL}/jobs"
 
@@ -74,7 +74,7 @@ async def get_export_jobs(
             response.raise_for_status()
             data = response.json()
             set_cached(cache_key, data, SHORT_TTL)  # Short TTL for jobs (status changes frequently)
-            return await _enrich(data)
+            return await enrich(data)
         except httpx.HTTPStatusError as e:
             raise HTTPException(
                 status_code=e.response.status_code,

@@ -52,7 +52,7 @@ async def get_fmtm_projects(
     """
     cache_key = "fmtm_projects"
 
-    async def _enrich(payload: dict) -> dict:
+    async def enrich(payload: dict) -> dict:
         projects_block = payload.get("projects") or {}
         results = projects_block.get("results") or []
         owner_id = user.id if user is not None else None
@@ -63,7 +63,7 @@ async def get_fmtm_projects(
 
     cached_data = get_cached(cache_key)
     if cached_data is not None:
-        return await _enrich(cached_data)
+        return await enrich(cached_data)
 
     url = f"{FMTM_API_BASE_URL}/projects/summaries"
 
@@ -74,7 +74,7 @@ async def get_fmtm_projects(
             data = response.json()
             result = {"projects": data}
             set_cached(cache_key, result, DEFAULT_TTL)
-            return await _enrich(result)
+            return await enrich(result)
     except httpx.HTTPStatusError as e:
         raise HTTPException(
             status_code=e.response.status_code,

@@ -43,7 +43,7 @@ def build_dronetm_cache_key(
     return f"dronetm_centroids_{filter_by_owner}_{search}_{page}_{results_per_page}"
 
 
-def _extract_hanko_user_id_from_token(token: str) -> Optional[str]:
+def extract_hanko_user_id_from_token(token: str) -> Optional[str]:
     """Try to decode a JWT-like token and extract a user id (sub or hanko_user_id).
 
     This does a unsigned decode (no verification) and is only used to pass an
@@ -130,7 +130,7 @@ async def get_projects(
         logger.warning("Failed to set DroneTM auth header from Hanko cookie")
 
     # Add an extra header with the Hanko user id (if we can extract it)
-    hanko_user_id = _extract_hanko_user_id_from_token(hanko_cookie)
+    hanko_user_id = extract_hanko_user_id_from_token(hanko_cookie)
     if hanko_user_id:
         headers["X-Hanko-User-Id"] = hanko_user_id
     
@@ -138,7 +138,7 @@ async def get_projects(
     # In production with valid certs, set verify=True
     verify_ssl = not DRONE_TM_BACKEND_URL.startswith("https://") or settings.drone_tm_verify_ssl
     
-    async def _enrich(payload: dict) -> dict:
+    async def enrich(payload: dict) -> dict:
         results = payload.get("results") or []
         owner_id = user.id if user is not None else None
         enriched = await plans_service.enrich_items_with_plans(
@@ -163,7 +163,7 @@ async def get_projects(
                 response = await client.get(url, headers=headers, params=params)
                 logger.info(f"Response status: {response.status_code}")
                 response.raise_for_status()
-                return await _enrich(response.json())
+                return await enrich(response.json())
 
             else:
                 # Fetch all pages
@@ -196,7 +196,7 @@ async def get_projects(
                     
                     current_page += 1
                 
-                return await _enrich({
+                return await enrich({
                     "results": all_results,
                     "pagination": {
                         "page": 1,
@@ -391,7 +391,7 @@ async def get_user_projects(
         logger.warning("Failed to set DroneTM auth header from Hanko cookie")
 
     # Include extracted Hanko user id to help DroneTM match the Portal user
-    hanko_user_id = _extract_hanko_user_id_from_token(hanko_cookie)
+    hanko_user_id = extract_hanko_user_id_from_token(hanko_cookie)
     if hanko_user_id:
         headers["X-Hanko-User-Id"] = hanko_user_id
     

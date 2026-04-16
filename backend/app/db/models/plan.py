@@ -19,11 +19,11 @@ from sqlalchemy.orm import relationship
 from app.core.base import Base
 
 
-def _uuid_str() -> str:
+def uuid_str() -> str:
     return str(uuid.uuid4())
 
 
-def _utcnow() -> datetime:
+def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
@@ -32,15 +32,15 @@ class Plan(Base):
 
     __tablename__ = "plans"
 
-    id = Column(String, primary_key=True, default=_uuid_str)
+    id = Column(String, primary_key=True, default=uuid_str)
     owner_id = Column(String, nullable=False, index=True)
     name = Column(String, nullable=False)
     description = Column(Text, nullable=True)
-    created_at = Column(DateTime(timezone=True), default=_utcnow, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at = Column(
         DateTime(timezone=True),
-        default=_utcnow,
-        onupdate=_utcnow,
+        default=utcnow,
+        onupdate=utcnow,
         nullable=False,
     )
 
@@ -58,7 +58,7 @@ class PlanProject(Base):
 
     __tablename__ = "plan_projects"
 
-    id = Column(String, primary_key=True, default=_uuid_str)
+    id = Column(String, primary_key=True, default=uuid_str)
     plan_id = Column(
         String,
         ForeignKey("plans.id", ondelete="CASCADE"),
@@ -68,7 +68,7 @@ class PlanProject(Base):
     app = Column(String, nullable=False)
     project_id = Column(String, nullable=False)
     data = Column(JSON().with_variant(JSONB, "postgresql"), nullable=True)
-    added_at = Column(DateTime(timezone=True), default=_utcnow, nullable=False)
+    added_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
 
     plan = relationship("Plan", back_populates="projects")
 
