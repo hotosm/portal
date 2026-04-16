@@ -1,6 +1,6 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
-  "header_tagline": "Plataforma de mapeo de código abierto liderada por la comunidad",
+  "header_tagline": "Plataforma de mapeo libre y de código abierto liderada por la comunidad",
   "products_drone_title": "Dron",
   "products_drone_description": "Los residentes locales utilizan drones accesibles y generan imágenes consistentes y de alta calidad.",
   "products_field_title": "Campo",
@@ -80,6 +80,7 @@
   "section_field_by": "por <strong>Field</strong> Tasking Manager, <strong>ChatMap</strong>",
   "section_data": "Datos",
   "section_data_by": "por <strong>Export Tool</strong>, <strong>uMap</strong>",
+  "section_plan": "Plan",
   "getting_started": "Empezar",
   "welcome": "¡Bienvenido!"
 }

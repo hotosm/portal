@@ -1,6 +1,6 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
-  "header_tagline": "Open Source Community-led Mapping Platform",
+  "header_tagline": "Free and Open Source Community-led Mapping Platform",
   "products_drone_title": "Drone",
   "products_drone_description": "Local residents use accessible drones and generate consistent, high-quality imagery.",
   "products_field_title": "Field",
@@ -80,6 +80,7 @@
   "section_field_by": "by <strong>Field</strong> Tasking Manager, <strong>ChatMap</strong>",
   "section_data": "Data",
   "section_data_by": "by <strong>Export Tool</strong>, <strong>uMap</strong>",
+  "section_plan": "Plan",
   "getting_started": "Getting started",
   "welcome": "Welcome!"
 }

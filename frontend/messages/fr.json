@@ -1,6 +1,6 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
-  "header_tagline": "Plateforme de cartographie open source pilotée par la communauté",
+  "header_tagline": "Plateforme de cartographie libre et open source pilotée par la communauté",
   "products_drone_title": "Drone",
   "products_drone_description": "Les habitants locaux utilisent des drones accessibles et produisent des images de haute qualité et régulières.",
   "products_field_title": "Terrain",
@@ -80,6 +80,7 @@
   "section_field_by": "par <strong>Field</strong> Tasking Manager, <strong>ChatMap</strong>",
   "section_data": "Données",
   "section_data_by": "par <strong>Export Tool</strong>, <strong>uMap</strong>",
+  "section_plan": "Plan",
   "getting_started": "Premiers pas",
   "welcome": "Bienvenue!"
 }
