@@ -1,12 +1,16 @@
 # portal/backend/app/api/routes/export_tool/export_tool.py
 
 import httpx
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
-from hotosm_auth_fastapi import CurrentUser
+from hotosm_auth_fastapi import CurrentUser, CurrentUserOptional
 from app.models.export_tool import ExportJobsResponse
 from app.core.cache import get_cached, set_cached, DEFAULT_TTL, SHORT_TTL
 from app.core.config import settings
+from app.core.database import get_db
+from app.services import export_tool_service, plans_service
+from app.services.exceptions import UpstreamUnavailable
 
 EXPORT_TOOL_API_BASE_URL = settings.export_tool_api_url
 
@@ -15,6 +19,8 @@ router = APIRouter(prefix="/export-tool")
 
 @router.get("/jobs", response_model=ExportJobsResponse)
 async def get_export_jobs(
+    auth_user: CurrentUserOptional = None,
+    db: AsyncSession = Depends(get_db),
     pinned: bool = Query(True, description="Filter pinned jobs"),
     all: bool = Query(True, description="Get all jobs"),
     limit: int = Query(20, ge=1, le=100, description="Number of results to return"),
@@ -30,9 +36,18 @@ async def get_export_jobs(
     Example: GET /api/export-tool/jobs?pinned=true&all=true&limit=20&offset=0
     """
     cache_key = f"export_jobs_{pinned}_{all}_{limit}_{offset}_{search}_{status}_{user}_{region}"
+
+    async def _enrich(payload: dict) -> dict:
+        results = payload.get("results") or []
+        owner_id = auth_user.id if auth_user is not None else None
+        enriched = await plans_service.enrich_items_with_plans(
+            db, owner_id, "export-tool", results, "uid"
+        )
+        return {**payload, "results": enriched}
+
     cached_data = get_cached(cache_key)
     if cached_data is not None:
-        return cached_data
+        return await _enrich(cached_data)
 
     url = f"{EXPORT_TOOL_API_BASE_URL}/jobs"
 
@@ -59,7 +74,7 @@ async def get_export_jobs(
             response.raise_for_status()
             data = response.json()
             set_cached(cache_key, data, SHORT_TTL)  # Short TTL for jobs (status changes frequently)
-            return data
+            return await _enrich(data)
         except httpx.HTTPStatusError as e:
             raise HTTPException(
                 status_code=e.response.status_code,
@@ -128,24 +143,10 @@ async def get_export_job_detail(
 
     Example: GET /api/export-tool/jobs/18086728-c32d-4a52-afa0-1ca15b7df380
     """
-    cache_key = f"export_job_{job_uid}"
-    cached_data = get_cached(cache_key)
-    if cached_data is not None:
-        return cached_data
-
-    url = f"{EXPORT_TOOL_API_BASE_URL}/jobs/{job_uid}"
-
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        try:
-            response = await client.get(url)
-            response.raise_for_status()
-            data = response.json()
-            set_cached(cache_key, data, SHORT_TTL)  # Short TTL for job details (status changes)
-            return data
-        except httpx.HTTPStatusError as e:
-            raise HTTPException(
-                status_code=e.response.status_code,
-                detail=f"Error from HOT Export Tool API: {e.response.text}"
-            )
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+    try:
+        result = await export_tool_service.fetch_job_by_uid(job_uid)
+    except UpstreamUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"Export job {job_uid} not found")
+    return result

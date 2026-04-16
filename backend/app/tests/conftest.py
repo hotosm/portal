@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from app.core.database import Base, get_db
 from app.core.cache import clear_cache
 from app.main import app
+from hotosm_auth_fastapi.dependencies import get_current_user_optional
 
 
 @pytest.fixture(autouse=True)
@@ -80,6 +81,7 @@ async def client(test_db_session: AsyncSession) -> AsyncGenerator[AsyncClient, N
         yield test_db_session
 
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user_optional] = lambda: None
 
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"

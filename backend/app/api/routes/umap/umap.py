@@ -13,6 +13,8 @@ from app.models.umap import (
 )
 from app.core.cache import get_cached, set_cached, DEFAULT_TTL
 from app.core.config import settings
+from app.services import umap_service
+from app.services.exceptions import UpstreamUnavailable
 
 logger = logging.getLogger(__name__)
 
@@ -222,41 +224,15 @@ async def get_umap_data(
         }
         ```
     """
-    cache_key = f"umap_{location}_{project_id}"
-    cached_data = get_cached(cache_key)
-    if cached_data is not None:
-        return cached_data
-
-    url = f"{UMAP_API_BASE_URL}/{location}/{project_id}/"
-
     try:
-        async with httpx.AsyncClient(
-            timeout=30.0,
-            verify=UMAP_VERIFY_SSL,
-            follow_redirects=True,
-        ) as client:
-            response = await client.get(url)
-            response.raise_for_status()
-            data = response.json()
-            set_cached(cache_key, data, DEFAULT_TTL)
-            return data
-    except httpx.HTTPStatusError as e:
-        if e.response.status_code == 404:
-            raise HTTPException(
-                status_code=404,
-                detail=f"uMap data not found for location '{location}' and project '{project_id}'",
-            )
-        raise HTTPException(
-            status_code=e.response.status_code,
-            detail=f"Error querying uMap API: {e.response.text}",
-        )
-    except httpx.RequestError as e:
-        raise HTTPException(
-            status_code=503,
-            detail=f"Connection error with uMap API: {str(e)}",
-        )
+        result = await umap_service.fetch_map_by_location(f"{location}/{project_id}")
+    except UpstreamUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+    if result is None:
         raise HTTPException(
-            status_code=500,
-            detail=f"Unexpected error: {str(e)}",
+            status_code=404,
+            detail=f"uMap data not found for location '{location}' and project '{project_id}'",
         )
+    return result

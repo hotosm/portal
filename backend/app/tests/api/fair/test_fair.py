@@ -32,7 +32,10 @@ class TestGetFairProjects:
             from app.api.routes.fair.fair import router
             endpoint = router.routes[0].endpoint
 
-            result = await endpoint()
+            mock_db = AsyncMock()
+            with patch("app.services.plans_service.enrich_items_with_plans", new_callable=AsyncMock) as mock_enrich:
+                mock_enrich.side_effect = lambda db, owner_id, source, items, key: items
+                result = await endpoint(user=None, db=mock_db)
 
             assert result == mock_response_data
             mock_client.return_value.__aenter__.return_value.get.assert_called_once()
@@ -831,18 +834,8 @@ class TestGetFairModelDetail:
     @pytest.mark.asyncio
     async def test_get_model_detail_not_found(self):
         """Test handling of 404 when model doesn't exist"""
-        mock_response = Mock()
-        mock_response.status_code = 404
-        mock_response.text = "Model not found"
-
-        with patch("httpx.AsyncClient") as mock_client:
-            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
-                side_effect=httpx.HTTPStatusError(
-                    "Error from fAIr API",
-                    request=Mock(),
-                    response=mock_response
-                )
-            )
+        with patch("app.api.routes.fair.fair.fair_service.fetch_model_by_id", new_callable=AsyncMock) as mock_fetch:
+            mock_fetch.return_value = None
 
             from app.api.routes.fair.fair import get_fair_model_detail
 
@@ -850,7 +843,7 @@ class TestGetFairModelDetail:
                 await get_fair_model_detail(mid=99999)
 
             assert exc_info.value.status_code == 404
-            assert "Error from fAIr API" in exc_info.value.detail
+            assert "not found" in exc_info.value.detail.lower()
 
     @pytest.mark.asyncio
     async def test_get_model_detail_server_error(self):
@@ -879,10 +872,8 @@ class TestGetFairModelDetail:
     @pytest.mark.asyncio
     async def test_get_model_detail_generic_exception(self):
         """Test handling of generic exceptions"""
-        with patch("app.api.routes.fair.fair.httpx.AsyncClient") as mock_client:
-            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
-                side_effect=Exception("Network error")
-            )
+        with patch("app.api.routes.fair.fair.fair_service.fetch_model_by_id", new_callable=AsyncMock) as mock_fetch:
+            mock_fetch.side_effect = Exception("Network error")
 
             from app.api.routes.fair.fair import get_fair_model_detail
 

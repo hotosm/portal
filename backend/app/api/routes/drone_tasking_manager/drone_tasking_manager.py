@@ -1,7 +1,9 @@
 # portal/backend/app/api/routes/drone_tasking_manager/drone_tasking_manager.py
 
 import httpx
-from fastapi import APIRouter, HTTPException, Path, Request
+from fastapi import APIRouter, Depends, HTTPException, Path, Request
+from hotosm_auth_fastapi import CurrentUserOptional
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from app.models.drone_tasking_manager import (
     DroneTMProjectsResponse,
@@ -9,6 +11,9 @@ from app.models.drone_tasking_manager import (
     DroneTMCentroidsResponse,
 )
 from app.core.cache import get_cached, set_cached, DEFAULT_TTL
+from app.core.database import get_db
+from app.services import drone_tm_service, plans_service
+from app.services.exceptions import UpstreamUnavailable
 
 import logging
 import json
@@ -65,7 +70,9 @@ async def get_projects(
     search: Optional[str] = None,
     page: int = 1,
     results_per_page: int = 20,
-    fetch_all: Optional[bool] = False
+    fetch_all: Optional[bool] = False,
+    user: CurrentUserOptional = None,
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     """
     Proxy to DroneTM API with Hanko authentication.
@@ -131,6 +138,14 @@ async def get_projects(
     # In production with valid certs, set verify=True
     verify_ssl = not DRONE_TM_BACKEND_URL.startswith("https://") or settings.drone_tm_verify_ssl
     
+    async def _enrich(payload: dict) -> dict:
+        results = payload.get("results") or []
+        owner_id = user.id if user is not None else None
+        enriched = await plans_service.enrich_items_with_plans(
+            db, owner_id, "drone-tasking-manager", results, "id"
+        )
+        return {**payload, "results": enriched}
+
     async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl) as client:
         try:
             if not fetch_all:
@@ -148,8 +163,8 @@ async def get_projects(
                 response = await client.get(url, headers=headers, params=params)
                 logger.info(f"Response status: {response.status_code}")
                 response.raise_for_status()
-                return response.json()
-            
+                return await _enrich(response.json())
+
             else:
                 # Fetch all pages
                 all_results = []
@@ -181,7 +196,7 @@ async def get_projects(
                     
                     current_page += 1
                 
-                return {
+                return await _enrich({
                     "results": all_results,
                     "pagination": {
                         "page": 1,
@@ -189,7 +204,7 @@ async def get_projects(
                         "total_pages": 1,
                         "total": len(all_results)
                     }
-                }
+                })
                 
         except httpx.HTTPStatusError as e:
             logger.error(f"HTTP Error: {e.response.status_code} - {e.response.text}")
@@ -436,41 +451,12 @@ async def get_project_by_id(
         }
     ```
     """
-    cache_key = f"dronetm_project_{project_id}"
-    cached_data = get_cached(cache_key)
-    if cached_data is not None:
-        return cached_data
-
-    # Use configured backend URL for public project details endpoint
-    url = f"{DRONE_TM_BACKEND_URL}/projects/{project_id}"
-
-    headers = {
-        "Accept": "application/json",
-    }
-
-    verify_ssl = not DRONE_TM_BACKEND_URL.startswith("https://") or settings.drone_tm_verify_ssl
-
-    async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl) as client:
-        try:
-            response = await client.get(url, headers=headers)
-            response.raise_for_status()
-            data = response.json()
-            set_cached(cache_key, data, DEFAULT_TTL)
-            return data
-        except httpx.HTTPStatusError as e:
-            if e.response.status_code == 404:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"DroneTM project '{project_id}' not found"
-                )
-            raise HTTPException(
-                status_code=e.response.status_code,
-                detail=f"Error from DroneTM API: {e.response.text}"
-            )
-        except httpx.TimeoutException:
-            raise HTTPException(
-                status_code=504,
-                detail="Request to DroneTM API timed out"
-            )
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+    try:
+        result = await drone_tm_service.fetch_project_by_id(project_id)
+    except UpstreamUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"DroneTM project '{project_id}' not found")
+    return result

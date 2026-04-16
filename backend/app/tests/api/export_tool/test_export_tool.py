@@ -5,18 +5,12 @@
 import pytest
 import respx
 from unittest.mock import Mock, AsyncMock, patch
-from fastapi.testclient import TestClient
-from fastapi import FastAPI
 import httpx
 from datetime import datetime
+from httpx import AsyncClient
 
-from app.api.routes.export_tool.export_tool import router, EXPORT_TOOL_API_BASE_URL
+from app.api.routes.export_tool.export_tool import EXPORT_TOOL_API_BASE_URL
 from app.models.export_tool import ExportJobsResponse, ExportJob, ExportJobUser
-
-app = FastAPI()
-app.include_router(router)
-
-client = TestClient(app)
 
 # Use the configured URL for mocking (matches whatever .env sets)
 BASE_URL = EXPORT_TOOL_API_BASE_URL
@@ -109,14 +103,15 @@ MOCK_JOB_DETAIL_RESPONSE = {
 class TestExportToolEndpoints:
     """Tests for Export Tool API endpoints"""
 
+    @pytest.mark.asyncio
     @respx.mock
-    def test_get_export_jobs_success(self):
+    async def test_get_export_jobs_success(self, client: AsyncClient):
         """Test successful retrieval of export jobs"""
         respx.get(f"{BASE_URL}/jobs").mock(
             return_value=httpx.Response(200, json=MOCK_EXPORT_JOBS_RESPONSE)
         )
 
-        response = client.get("/export-tool/jobs?pinned=true&all=true&limit=20&offset=0")
+        response = await client.get("/api/export-tool/jobs?pinned=true&all=true&limit=20&offset=0")
 
         assert response.status_code == 200
         data = response.json()
@@ -125,92 +120,69 @@ class TestExportToolEndpoints:
         assert data["results"][0]["uid"] == "test-job-123"
         assert data["results"][0]["name"] == "Test Export Job 1"
 
+    @pytest.mark.asyncio
     @respx.mock
-    def test_get_export_jobs_with_filters(self):
+    async def test_get_export_jobs_with_filters(self, client: AsyncClient):
         """Test export jobs retrieval with additional filters"""
         respx.get(f"{BASE_URL}/jobs").mock(
             return_value=httpx.Response(200, json=MOCK_EXPORT_JOBS_RESPONSE)
         )
 
-        response = client.get(
-            "/export-tool/jobs?pinned=true&all=true&limit=10&offset=0&search=test&status=COMPLETED"
+        response = await client.get(
+            "/api/export-tool/jobs?pinned=true&all=true&limit=10&offset=0&search=test&status=COMPLETED"
         )
 
         assert response.status_code == 200
         data = response.json()
         assert "results" in data
 
+    @pytest.mark.asyncio
     @respx.mock
-    def test_get_export_jobs_http_error(self):
+    async def test_get_export_jobs_http_error(self, client: AsyncClient):
         """Test handling of HTTP errors from Export Tool API"""
         respx.get(f"{BASE_URL}/jobs").mock(
             return_value=httpx.Response(404, text="Not Found")
         )
 
-        response = client.get("/export-tool/jobs")
+        response = await client.get("/api/export-tool/jobs")
 
         assert response.status_code == 404
         assert "Error from HOT Export Tool API" in response.json()["detail"]
 
+    @pytest.mark.asyncio
     @respx.mock
-    def test_get_export_jobs_generic_error(self):
+    async def test_get_export_jobs_generic_error(self, client: AsyncClient):
         """Test handling of generic errors"""
         respx.get(f"{BASE_URL}/jobs").mock(
             side_effect=Exception("Connection error")
         )
 
-        response = client.get("/export-tool/jobs")
+        response = await client.get("/api/export-tool/jobs")
 
         assert response.status_code == 500
         assert "Connection error" in response.json()["detail"]
 
-    @respx.mock
-    def test_get_export_job_detail_success(self):
-        """Test successful retrieval of job detail"""
-        respx.get(f"{BASE_URL}/jobs/test-job-123").mock(
-            return_value=httpx.Response(200, json=MOCK_JOB_DETAIL_RESPONSE)
-        )
-
-        response = client.get("/export-tool/jobs/test-job-123")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data["uid"] == "test-job-123"
-        assert data["name"] == "Test Export Job Detail"
-
-    @respx.mock
-    def test_get_export_job_detail_not_found(self):
-        """Test job detail retrieval with non-existent job"""
-        respx.get(f"{BASE_URL}/jobs/non-existent-job").mock(
-            return_value=httpx.Response(404, text="Job not found")
-        )
-
-        response = client.get("/export-tool/jobs/non-existent-job")
-
-        assert response.status_code == 404
-
-    def test_get_export_jobs_validation(self):
+    @pytest.mark.asyncio
+    async def test_get_export_jobs_validation(self, client: AsyncClient):
         """Test query parameter validation"""
-        # Test negative limit
-        response = client.get("/export-tool/jobs?limit=-1")
+        response = await client.get("/api/export-tool/jobs?limit=-1")
         assert response.status_code == 422
 
-        # Test limit exceeding maximum
-        response = client.get("/export-tool/jobs?limit=101")
+        response = await client.get("/api/export-tool/jobs?limit=101")
         assert response.status_code == 422
 
-        # Test negative offset
-        response = client.get("/export-tool/jobs?offset=-1")
+        response = await client.get("/api/export-tool/jobs?offset=-1")
         assert response.status_code == 422
 
+    @pytest.mark.asyncio
     @respx.mock
-    def test_export_jobs_response_structure(self):
+    async def test_export_jobs_response_structure(self, client: AsyncClient):
         """Test that response structure matches expected model"""
         respx.get(f"{BASE_URL}/jobs").mock(
             return_value=httpx.Response(200, json=MOCK_EXPORT_JOBS_RESPONSE)
         )
 
-        response = client.get("/export-tool/jobs")
+        response = await client.get("/api/export-tool/jobs")
 
         assert response.status_code == 200
         data = response.json()

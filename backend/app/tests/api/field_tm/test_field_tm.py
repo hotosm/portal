@@ -149,8 +149,8 @@ async def test_get_fmtm_project_by_id_http_error(client: AsyncClient):
 
     response = await client.get("/api/field-tm/projectid/321")
 
-    assert response.status_code == 502
-    assert "Error querying FMTM API" in response.json()["detail"]
+    assert response.status_code == 503
+    assert "field-tm" in response.json()["detail"]
 
 
 @pytest.mark.asyncio
@@ -164,7 +164,7 @@ async def test_get_fmtm_project_by_id_connection_error(client: AsyncClient):
     response = await client.get("/api/field-tm/projectid/111")
 
     assert response.status_code == 503
-    assert "FMTM API connection error" in response.json()["detail"]
+    assert "field-tm" in response.json()["detail"]
 
 
 @pytest.mark.asyncio

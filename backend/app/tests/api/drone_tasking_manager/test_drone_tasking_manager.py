@@ -42,9 +42,12 @@ class TestGetProjects:
             endpoint = router.routes[0].endpoint
             
             mock_request = self.create_mock_request(has_cookie=True)
-            result = await endpoint(mock_request)
+            mock_db = AsyncMock()
+            with patch("app.services.plans_service.enrich_items_with_plans", new_callable=AsyncMock) as mock_enrich:
+                mock_enrich.side_effect = lambda db, owner_id, source, items, key: items
+                result = await endpoint(mock_request, user=None, db=mock_db)
             
-            assert result == mock_response_data
+                assert result == mock_response_data
             mock_client.return_value.__aenter__.return_value.get.assert_called_once()
             call_args = mock_client.return_value.__aenter__.return_value.get.call_args
             
@@ -325,15 +328,12 @@ class TestGetProjectById:
         project_id = "non-existent-id"
         mock_response = Mock()
         mock_response.status_code = 404
-        mock_response.text = "Project not found"
+        mock_response.json.return_value = {}
+        mock_response.raise_for_status = Mock()
 
         with patch("httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
-                side_effect=httpx.HTTPStatusError(
-                    "Not found",
-                    request=Mock(),
-                    response=mock_response
-                )
+                return_value=mock_response
             )
 
             from app.api.routes.drone_tasking_manager.drone_tasking_manager import router

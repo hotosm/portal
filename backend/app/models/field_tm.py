@@ -3,6 +3,8 @@
 from pydantic import BaseModel
 from typing import List, Optional
 
+from app.models.plan import PlanTag
+
 
 class Centroid(BaseModel):
     type: Optional[str] = None
@@ -27,6 +29,7 @@ class FMTMProjectSummary(BaseModel):
     tasks_mapped: Optional[int] = None
     tasks_validated: Optional[int] = None
     tasks_bad: Optional[int] = None
+    plans: List[PlanTag] = []
 
 
 class FMTMPagination(BaseModel):
