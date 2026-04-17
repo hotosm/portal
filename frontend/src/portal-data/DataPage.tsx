@@ -53,6 +53,7 @@ function DataPage() {
                 title="Export"
                 description="filter and download data in any format"
                 buttonLabel="Create new export"
+                icon="add"
               />
             </div>
             {exports.map((project) => (
@@ -81,6 +82,7 @@ function DataPage() {
                 title="Map"
                 description="put all your data into one map"
                 buttonLabel="Create a map"
+                icon="add"
               />
             </div>
             {maps.map((map) => (
