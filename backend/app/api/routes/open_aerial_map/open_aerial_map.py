@@ -1,7 +1,8 @@
-# portal/backend/app/api/routes/open_aerial_map/open_aerial_map.py
-
 import asyncio
+import logging
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
@@ -15,9 +16,10 @@ from app.models.open_aerial_map import (
     ImageryDetailResponse,
     ImageryListResponse,
 )
+from app.core.config import settings
 from app.services import oam_service
 
-OAM_API_BASE_URL = "https://api.openaerialmap.org"
+OAM_API_BASE_URL = settings.oam_api_url
 SYNC_INTERVAL = 7 * 24 * 60 * 60  # 1 week in seconds
 
 router = APIRouter(prefix="/open-aerial-map")
@@ -38,7 +40,7 @@ async def _db_sync_scheduler() -> None:
             async with AsyncSessionLocal() as db:
                 await oam_service.sync_from_oam_api(db)
         except Exception as e:
-            print(f"⚠️ OAM DB sync scheduler error: {e}")
+            logger.error("OAM DB sync scheduler error: %s", e)
 
         await asyncio.sleep(SYNC_INTERVAL)
 
@@ -48,7 +50,7 @@ def start_sync_scheduler() -> None:
     global _sync_task
     if _sync_task is None or _sync_task.done():
         _sync_task = asyncio.create_task(_db_sync_scheduler())
-        print("🕐 OAM DB sync scheduler started (weekly updates)")
+        logger.info("OAM DB sync scheduler started (weekly updates)")
 
 
 def stop_sync_scheduler() -> None:
@@ -56,7 +58,7 @@ def stop_sync_scheduler() -> None:
     global _sync_task
     if _sync_task and not _sync_task.done():
         _sync_task.cancel()
-        print("🛑 OAM DB sync scheduler stopped")
+        logger.info("OAM DB sync scheduler stopped")
 
 
 # Keep legacy name so main.py import doesn't break during transition

@@ -1,7 +1,7 @@
 import { LitElement, html, svg } from "lit";
 import { property, state } from "lit/decorators.js";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
-import { styles } from "./tool-menu.styles.js";
+import { styles, HOT_DESIGN_SYSTEM_URL } from "./tool-menu.styles.js";
 import { translations } from "./translations.js";
 // Import tools icons. These icons will be added in the near future, and are not being showed as default.
 import droneIcon from "../assets/icon-drone.svg";
@@ -140,14 +140,14 @@ export class HotToolMenu extends LitElement {
 
     // Dev environment URLs (testlogin.*)
     const devUrls: Record<string, string> = {
-      'drone': 'https://testlogin.dronetm.hotosm.org',
+      'drone': 'https://dronetm.testlogin.hotosm.org',
       'oam': 'https://openaerialmap.org',
       'tasking-manager': 'https://tasks.hotosm.org',
-      'fair': 'https://testlogin.fair.hotosm.org',
+      'fair': 'https://fair.testlogin.hotosm.org',
       'field': 'https://fmtm.hotosm.org',
       'chat-map': 'https://chatmap-dev.hotosm.org',
-      'export-tool': 'https://testlogin.export.hotosm.org',
-      'umap': 'https://testlogin.umap.hotosm.org',
+      'export-tool': 'https://export.testlogin.hotosm.org',
+      'umap': 'https://umap.testlogin.hotosm.org',
     };
 
     const urls = isLocal ? localUrls : devUrls;
@@ -199,6 +199,21 @@ export class HotToolMenu extends LitElement {
       this.closeDropdown();
     }
   };
+
+  private injectHotStyles() {
+    if (!document.getElementById('hot-design-system')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = HOT_DESIGN_SYSTEM_URL;
+      link.id = 'hot-design-system';
+      document.head.appendChild(link);
+    }
+  }
+
+  override connectedCallback() {
+    super.connectedCallback();
+    this.injectHotStyles();
+  }
 
   disconnectedCallback() {
     super.disconnectedCallback();

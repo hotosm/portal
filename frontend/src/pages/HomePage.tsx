@@ -1,31 +1,22 @@
-import { ProjectsMap } from "../components/ProjectsMap";
+import Button from "../components/shared/Button";
 import Carousel from "../components/shared/Carousel";
 import CarouselItem from "../components/shared/CarouselItem";
 import { carouselItems } from "../constants/carouselItems";
 import { useLanguage } from "../contexts/LanguageContext";
-import { useProjects } from "../hooks/useProjects";
-import { useProjectsMapCallout } from "../hooks/useProjectsMapCallout";
 import { m } from "../paraglide/messages";
-import CallToAction from "../components/shared/CallToAction";
 
 function HomePage() {
-  const { currentLanguage: _currentLanguage } = useLanguage(); // suscribe to force re-render on language change
-  // TODO relocate when adding other APIs
-  const { data: projectsData, isLoading, error } = useProjects();
-  const {
-    selectedProjectId,
-    selectedProjects,
-    locationName,
-    selectedProduct,
-    handleProjectClick,
-    handleCloseDetails,
-  } = useProjectsMapCallout();
+  const { currentLanguage: _currentLanguage } = useLanguage(); // subscribe to force re-render on language change
 
   return (
-    <div>
-      {/* Map Section */}
-      <div className="h-[calc(100vh_-_68px)] flex flex-col">
-        <section className="flex-1 relative">
+    <div
+      style={{
+        background:
+          "linear-gradient(180deg, var(--hot-color-neutral-0) 0.5%, var(--hot-color-cyan-50) 5%, var(--hot-color-rose-50) 30%, var(--hot-color-neutral-0) 50%)",
+      }}
+    >
+      <div className="container flex flex-col gap-xl mb-3xl mt-xl">
+        {/* <section className="h-[calc(100vh_-_68px_-_2rem)] relative pt-4">
           <ProjectsMap
             mapResults={projectsData}
             selectedProjectId={selectedProjectId}
@@ -40,128 +31,77 @@ function HomePage() {
               <p>{m.loading_projects()}...</p>
             </div>
           )}
-          {/* TODO customize error message */}
           {error && (
             <div className="absolute inset-0 flex items-center justify-center bg-white/80">
               <p>{m.loading_projects_error()}</p>
             </div>
           )}
-        </section>
+        </section> */}
 
-        <section className="text-center relative py-lg md:py-2xl flex-shrink-0 space-y-sm md:space-y-lg">
-          {/* TODO replace with HOT resources */}
-          {/* <svg
-            className="absolute bottom-0 inset-0 w-full h-full -z-10"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <defs>
-              <pattern
-                id="dot-pattern"
-                x="0"
-                y="0"
-                width="20"
-                height="20"
-                patternUnits="userSpaceOnUse"
+        <section className="container overflow-hidden px-md md:px-xl py-3xl  bg-white  flex flex-col gap-xl md:gap-3xl justify-center items-center rounded-xl text-center">
+          <div className="flex flex-col gap-md md:gap-xl">
+            <span className="text-2xl md:text-3xl leading-tight">
+              <strong>{m.home_workflow_header()}</strong>
+            </span>
+            <span>
+              <span
+                className="p-xs md:p-md leading-normal text-2xl md:text-2xl text-white rounded-md"
+                style={{
+                  background:
+                    "linear-gradient(172.711deg, #d73f3f 8.4%, #459ba0 92.3%)",
+                }}
               >
-                <circle cx="6" cy="6" r="4" fill="#f1f0f0c3" />
-                <circle cx="18" cy="18" r="4" fill="#f1f0f0c3" />
-              </pattern>
-              <linearGradient
-                id="fade-gradient"
-                x1="100%"
-                y1="100%"
-                x2="0%"
-                y2="0%"
-              >
-                <stop offset="0%" stopColor="white" stopOpacity="1" />
-                <stop offset="100%" stopColor="white" stopOpacity="0" />
-              </linearGradient>
-              <mask id="fade-mask">
-                <rect
-                  x="0"
-                  y="0"
-                  width="100%"
-                  height="100%"
-                  fill="url(#fade-gradient)"
-                />
-              </mask>
-            </defs>
-            <rect
-              x="0"
-              y="0"
-              width="100%"
-              height="100%"
-              fill="url(#dot-pattern)"
-              mask="url(#fade-mask)"
-            />
-          </svg> */}
-          <div className="container text-xl md:text-2xl leading-tight ">
-            {m.home_workflow_header()}{" "}
-            <strong>{m.home_workflow_header_strong()}</strong>
-          </div>
-          <div className="bg-hot-red-600 md:bg-transparent md:container leading-tight text-xl md:text-2xl font-bold text-white">
-            <span className="bg-hot-red-600 ">
-              {m.home_workflow_header_hightlight()}
+                <strong>{m.home_workflow_header_hightlight()}</strong>
+              </span>
+            </span>
+            <span className="text-lg md:text-xl leading-tight text-center">
+              <span
+                dangerouslySetInnerHTML={{ __html: m.home_workflow_p1() }}
+              />
+              <br />
+              <span
+                dangerouslySetInnerHTML={{ __html: m.home_workflow_p2() }}
+              />
             </span>
           </div>
 
-          <div className="container text-md md:text-lg leading-tight">
-            {m.home_workflow_p1()}
-            <br />
-            {m.home_workflow_p2()}
+          <Carousel
+            loop
+            autoplay
+            autoplayInterval={4000}
+            mouseDragging
+            className="w-full max-w-4xl hero-carousel"
+          >
+            {carouselItems.map((item, index) => (
+              <CarouselItem key={index}>
+                <img
+                  src={item.image}
+                  srcSet={`${item.imageSm} 800w, ${item.image} 1674w`}
+                  sizes="(max-width: 896px) 100vw, 896px"
+                  alt={item.title}
+                  className="w-full aspect-[1200/774] md:aspect-[1674/774] object-cover rounded-xl"
+                />
+              </CarouselItem>
+            ))}
+          </Carousel>
+
+          <div className="flex flex-col justify-center items-center text-center gap-md md:gap-xl">
+            <div className="text-2xl md:text-3xl leading-tight">
+              <strong>{m.home_create_header()}</strong>
+            </div>
+            <div
+              className="text-lg md:text-xl leading-tight max-w-3xl"
+              dangerouslySetInnerHTML={{ __html: m.home_create_p() }}
+            />
+            <Button size="large" onClick={() => (window.location.href = "#")}>
+              {m.home_create_cta()}
+            </Button>
+            <Button appearance="plain" className="accent-link-button">
+              {m.home_create_cta_secondary()}
+            </Button>
           </div>
         </section>
       </div>
-      {/* Carousel Section */}
-      <section className="relative">
-        <Carousel
-          pagination
-          loop
-          /* autoplay */
-          autoplayInterval={5000}
-          mouseDragging
-          className="md:container hero-carousel"
-        >
-          {carouselItems.map((item, index) => (
-            <CarouselItem key={index}>
-              <div
-                className="relative h-[400px] md:h-[500px] lg:h-[600px] w-full bg-cover bg-center grayscale"
-                style={{ backgroundImage: `url(${item.image})` }}
-              >
-                {/* desktop block */}
-                <div className="hidden md:block md:absolute left-md bottom-md bg-hot-gray-800 p-lg max-w-md text-center">
-                  <h3 className="text-white uppercase font-bold text-xl mb-sm">
-                    {item.title}
-                  </h3>
-                  <p className="text-white text-md md:text-lg leading-tight mb-0">
-                    {item.description}
-                  </p>
-                </div>
-                <div></div>
-              </div>
-              {/* mobile block */}
-              <div className="md:hidden bg-hot-gray-800 p-lg w-full text-center h-[150px]">
-                <h3 className="text-white uppercase font-bold text-xl">
-                  {item.title}
-                </h3>
-                <p className="text-white text-lg leading-tight mb-0 line-clamp-3">
-                  {item.description}
-                </p>
-              </div>
-            </CarouselItem>
-          ))}
-        </Carousel>
-      </section>
-
-      {/* Call to action TODO change button appearence */}
-      <section className="container py-xl md:py-2xl">
-        <CallToAction
-          title="Start mapping, today"
-          description="Fly drones, publish aerial imagery for free, organize mapping projects from home, go the field for easy mapping, free and open for everyone!"
-          buttonText="Start a mapping project"
-          buttonLink="#"
-        />
-      </section>
     </div>
   );
 }

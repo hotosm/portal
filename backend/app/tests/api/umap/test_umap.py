@@ -7,8 +7,9 @@ import respx
 import httpx
 from httpx import AsyncClient, Response
 
-# Import the URLs from the umap module to use in mocks
-from app.api.routes.umap.umap import UMAP_API_BASE_URL, UMAP_SHOWCASE_URL
+from app.api.routes.umap.umap import UMAP_API_BASE_URL, UMAP_BASE_URL, UMAP_SHOWCASE_URL
+
+UMAP_MAPS_API_URL = f"{UMAP_BASE_URL}/api/v1/maps/?source=mine"
 
 
 # -------------------------------
@@ -105,7 +106,6 @@ async def test_get_umap_data_response_structure(client: AsyncClient):
     assert isinstance(data, dict)
     assert data["type"] == "FeatureCollection"
     assert isinstance(data["features"], list)
-    # _umap_options is optional, so we just check the required fields
     assert "features" in data
 
 
@@ -259,11 +259,9 @@ async def test_get_umap_data_with_umap_options(client: AsyncClient):
 
     assert response.status_code == 200
     data = response.json()
-    # Check that _umap_options exists at layer level when provided
     if "_umap_options" in data:
         assert data["_umap_options"]["displayOnLoad"] is True
         assert data["_umap_options"]["color"] == "SlateBlue"
-    # Check feature properties _umap_options when provided
     feature_props = data["features"][0]["properties"]
     if "_umap_options" in feature_props:
         assert feature_props["_umap_options"]["iconOpacity"] == 0.5
@@ -333,7 +331,6 @@ async def test_get_umap_data_feature_without_id(client: AsyncClient):
 
     assert response.status_code == 200
     data = response.json()
-    # ID is optional, so we check it can be None or not present
     feature = data["features"][0]
     assert "id" not in feature or feature.get("id") is None
 
@@ -477,3 +474,125 @@ async def test_get_showcase_unexpected_error(client: AsyncClient):
 
     assert response.status_code == 500
     assert "Unexpected error" in response.json()["detail"]
+
+
+# -------------------------------
+# /umap/user/maps
+# -------------------------------
+
+UMAP_MAPS_URL = f"{UMAP_BASE_URL}/api/v1/maps/"
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_get_user_maps_success(client: AsyncClient):
+    """Test that get_user_maps returns 200 with the upstream JSON payload."""
+    payload = {
+        "maps": [
+            {"id": 1813, "name": "Makeni Survey", "slug": "makeni-survey"},
+            {"id": 1780, "name": "Flood Risk", "slug": "flood-risk"},
+        ]
+    }
+    respx.get(UMAP_MAPS_URL).mock(return_value=Response(200, json=payload))
+
+    response = await client.get("/api/umap/user/maps", cookies={"hanko": "tok123"})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "maps" in data
+    assert len(data["maps"]) == 2
+    assert data["maps"][0]["id"] == 1813
+    assert data["maps"][1]["id"] == 1780
+
+
+@pytest.mark.asyncio
+async def test_get_user_maps_no_cookie(client: AsyncClient):
+    """Test that missing Hanko cookie returns 401."""
+    response = await client.get("/api/umap/user/maps")
+
+    assert response.status_code == 401
+    assert "cookie" in response.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_get_user_maps_upstream_unauthorized(client: AsyncClient):
+    """Test that an upstream 401 is translated to a 401 auth error."""
+    respx.get(UMAP_MAPS_URL).mock(return_value=Response(401, text="Unauthorized"))
+
+    response = await client.get("/api/umap/user/maps", cookies={"hanko": "expired"})
+
+    assert response.status_code == 401
+    assert "authentication failed" in response.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_get_user_maps_empty_list(client: AsyncClient):
+    """Test that an empty maps list is returned as-is."""
+    respx.get(UMAP_MAPS_URL).mock(return_value=Response(200, json={"maps": []}))
+
+    response = await client.get("/api/umap/user/maps", cookies={"hanko": "tok"})
+
+    assert response.status_code == 200
+    assert response.json()["maps"] == []
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_get_user_maps_http_error(client: AsyncClient):
+    """Test that an upstream HTTP error is propagated."""
+    respx.get(UMAP_MAPS_URL).mock(return_value=Response(503, text="Service Unavailable"))
+
+    response = await client.get("/api/umap/user/maps", cookies={"hanko": "tok"})
+
+    assert response.status_code == 503
+    assert "uMap error" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_get_user_maps_connection_error(client: AsyncClient):
+    """Test that a connection error returns 503."""
+    respx.get(UMAP_MAPS_URL).mock(side_effect=httpx.RequestError("Timeout"))
+
+    response = await client.get("/api/umap/user/maps", cookies={"hanko": "tok"})
+
+    assert response.status_code == 503
+    assert "Connection error to uMap" in response.json()["detail"]
+
+
+# -------------------------------
+# parse_map_links (unit)
+# -------------------------------
+
+def testparse_map_links_extracts_id_and_slug():
+    """Unit test for the HTML parser helper."""
+    from app.api.routes.umap.umap import parse_map_links
+
+    html = _maps_html(
+        ("/es/map/sierra-leone_2001", "SL"),
+        ("/map/no-locale_99", "No locale"),
+    )
+    result = parse_map_links(html)
+
+    assert len(result) == 2
+    assert result[0]["id"] == "2001"
+    assert result[0]["slug"] == "sierra-leone_2001"
+    assert result[1]["id"] == "99"
+
+
+def testparse_map_links_ignores_non_map_hrefs():
+    """Non-map hrefs must not appear in the result."""
+    from app.api.routes.umap.umap import parse_map_links
+
+    html = """<html><body>
+        <a href="/es/map/valid_10">Valid</a>
+        <a href="/es/about">About</a>
+        <a href="https://external.example.com/map/foo_1">External</a>
+        <a href="/es/map/share_only?share">Share</a>
+    </body></html>"""
+    result = parse_map_links(html)
+
+    assert len(result) == 1
+    assert result[0]["id"] == "10"

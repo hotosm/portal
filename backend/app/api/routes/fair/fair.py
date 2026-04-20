@@ -11,13 +11,13 @@ from app.core.cache import get_cached, set_cached, delete_cached, DEFAULT_TTL, L
 from app.core.config import settings
 
 # fAIr API Configuration (from .env / environment variables)
-FAIR_API_BASE_URL = settings.fair_api_base_url
+FAIR_API_BASE_URL = settings.fair_api_url
 FAIR_VERIFY_SSL = settings.fair_verify_ssl
 
 router = APIRouter(prefix="/fair")
 logger = logging.getLogger(__name__)
 
-logger.info(f"🤖 fAIr API URL: {FAIR_API_BASE_URL} (SSL verify: {FAIR_VERIFY_SSL})")
+logger.info(f"fAIr API URL: {FAIR_API_BASE_URL} (SSL verify: {FAIR_VERIFY_SSL})")
 
 # Flag to track if background enrichment is running
 _fair_enrichment_in_progress = False
@@ -73,7 +73,7 @@ async def enrich_fair_centroids_in_background():
     cache_key = "fair_models_centroids"
 
     try:
-        logger.info("🔄 Starting background enrichment of fAIr model centroids...")
+        logger.info("Starting background enrichment of fAIr model centroids...")
 
         # Get base centroids data from cache
         base_data = get_cached(cache_key)
@@ -100,10 +100,10 @@ async def enrich_fair_centroids_in_background():
 
         # Update cache with enriched data
         set_cached(cache_key, base_data, DEFAULT_TTL)
-        logger.info(f"✅ fAIr enrichment complete. {len(base_data['features'])} models with geometry, {len(model_names)} names enriched.")
+        logger.info(f"fAIr enrichment complete. {len(base_data['features'])} models with geometry, {len(model_names)} names enriched.")
 
     except Exception as e:
-        logger.error(f"❌ fAIr background enrichment failed: {e}")
+        logger.error(f"fAIr background enrichment failed: {e}")
     finally:
         _fair_enrichment_in_progress = False
 
@@ -217,7 +217,7 @@ async def get_fair_models_centroids() -> dict:
     if cached_data is not None:
         return cached_data
 
-    url = f"https://api-prod.fair.hotosm.org/api/v1/models/centroid/"
+    url = f"{FAIR_API_BASE_URL}/models/centroid/"
 
     headers = {
         "accept": "application/json",
@@ -230,7 +230,7 @@ async def get_fair_models_centroids() -> dict:
             data = response.json()
 
             # Fetch model names synchronously and enrich before caching
-            logger.info("🔄 Fetching fAIr model names for enrichment...")
+            logger.info("Fetching fAIr model names for enrichment...")
             model_names = await fetch_all_fair_model_names()
 
             # Filter out features with null geometry (can't be plotted on map)
@@ -243,7 +243,7 @@ async def get_fair_models_centroids() -> dict:
                 if mid and mid in model_names:
                     feature["properties"]["name"] = model_names[mid]
 
-            logger.info(f"✅ Enriched {len(model_names)} fAIr model names ({len(data['features'])} with geometry)")
+            logger.info(f"Enriched {len(model_names)} fAIr model names ({len(data['features'])} with geometry)")
 
             # Cache the enriched data
             set_cached(cache_key, data, DEFAULT_TTL)

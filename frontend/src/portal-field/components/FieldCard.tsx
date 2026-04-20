@@ -1,4 +1,11 @@
-const FieldCard = ({ project }: any) => {
+import placeholder from "../../assets/images/placeholder.png";
+import { FieldTMProject } from "../types";
+
+interface FieldCardProps {
+  project: FieldTMProject;
+}
+
+const ImageryCard = ({ project }: FieldCardProps) => {
   return (
     <a
       href={project.href}
@@ -6,12 +13,19 @@ const FieldCard = ({ project }: any) => {
       rel="noopener noreferrer"
       className="block group no-underline hover:no-underline"
     >
-      <div className="w-full h-full bg-white rounded-lg p-md flex flex-col gap-lg shadow-sm transition-all duration-200 group-hover:shadow-lg group-hover:scale-[1.01] justify-between">
-        <h4>{project.title}</h4>
-        <img className="max-h-[50px] max-w-max grayscale" src={project.logo} />
+      <div className="w-full h-full bg-white rounded-lg p-md flex flex-col gap-lg shadow-sm transition-all duration-200 group-hover:shadow-lg group-hover:scale-[1.01]">
+        <img
+          src={project.image}
+          alt={project.title}
+          className="w-full h-48 object-cover rounded"
+          onError={(e) => {
+            e.currentTarget.src = placeholder;
+          }}
+        />
+        <p className="bold">{project.title}</p>
       </div>
     </a>
   );
 };
 
-export default FieldCard;
+export default ImageryCard;

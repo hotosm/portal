@@ -8,7 +8,7 @@ from app.models.export_tool import ExportJobsResponse
 from app.core.cache import get_cached, set_cached, DEFAULT_TTL, SHORT_TTL
 from app.core.config import settings
 
-EXPORT_TOOL_API_BASE_URL = settings.export_tool_api_base_url
+EXPORT_TOOL_API_BASE_URL = settings.export_tool_api_url
 
 router = APIRouter(prefix="/export-tool")
 

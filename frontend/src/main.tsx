@@ -6,6 +6,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App'
 import { AuthProvider } from './contexts/AuthContext'
 import { LanguageProvider } from './contexts/LanguageContext'
+import 'hotosm-ui-design/dist/hot.css'
+import 'hotosm-ui-design/dist/hot-font-face.css'
+import 'hotosm-ui-design/dist/hot-wa.css'
 import './styles/index.css'
 
 // Import Web Awesome components needed by hanko-auth web component
@@ -24,7 +27,6 @@ registerIconLibrary('bootstrap', {
 
 // Set Hanko URL for authentication (fallback to .test for local dev)
 window.HANKO_URL = import.meta.env.VITE_HANKO_URL || 'https://login.hotosm.test'
-console.log('🔧 Hanko URL configured:', window.HANKO_URL)
 
 // Ensure all WebAwesome components are loaded before rendering
 await allDefined()
