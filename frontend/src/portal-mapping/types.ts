@@ -1,8 +1,8 @@
-import { FAIRModel, FAIRDataset } from "../types/projectsMap";
+import { FAIRModel } from "../types/projectsMap";
 import placeholderImage from "../assets/images/demo/demo1.png";
-import { getFairModelUrl, getFairDatasetUrl } from "../utils/envConfig";
+import { getFairModelUrl } from "../utils/envConfig";
 
-export type { FAIRModel, FAIRDataset };
+export type { FAIRModel };
 
 export interface IFairProject {
   id: number;
@@ -29,13 +29,3 @@ export function mapModelsToDataProjects(models: FAIRModel[]): IFairProject[] {
   }));
 }
 
-export function mapDatasetsToDataProjects(datasets: FAIRDataset[]): IFairProject[] {
-  return datasets.map((dataset) => ({
-    id: dataset.id,
-    title: dataset.name || "Untitled Dataset",
-    href: getFairDatasetUrl(dataset.id),
-    status: mapFairStatus(dataset.status),
-    image: placeholderImage,
-    accuracy: null,
-  }));
-}

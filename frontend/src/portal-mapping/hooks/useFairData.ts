@@ -3,9 +3,7 @@ import type { FAIRResponse } from "../../types/projectsMap";
 import {
   type IFairProject,
   type FAIRModel,
-  type FAIRDataset,
   mapModelsToDataProjects,
-  mapDatasetsToDataProjects,
 } from "../types";
 
 interface PaginatedResult<T> {
@@ -37,29 +35,6 @@ export function useMyModels(page = 1, limit = 4) {
         items: mapModelsToDataProjects(data.results || []),
         total: data.count,
       };
-    },
-  });
-}
-// not in use for the moment
-export function useMyDatasets() {
-  return useQuery({
-    queryKey: ["fair", "my-datasets"],
-    queryFn: async (): Promise<IFairProject[]> => {
-      const response = await fetch("/api/fair/me/datasets");
-
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          return [];
-        }
-        const errorText = await response.text();
-        throw new Error(
-          `[${response.status}] Failed to fetch fAIr datasets: ${errorText}`,
-        );
-      }
-
-      const data: FAIRResponse<FAIRDataset> = await response.json();
-      const datasets = data.results || [];
-      return mapDatasetsToDataProjects(datasets);
     },
   });
 }

@@ -1,10 +1,7 @@
 import PageWrapper from "../components/shared/PageWrapper";
 import { useDroneProjects } from "../portal-imagery/hooks/useDroneProjects";
 import { useOAMImagery } from "../portal-imagery/hooks/useOAMImagery";
-import {
-  useMyModels,
-  useMyDatasets,
-} from "../portal-mapping/hooks/useFairData";
+import { useMyModels } from "../portal-mapping/hooks/useFairData";
 import { useMyMaps } from "../portal-data/hooks/useUMapData";
 import { useExportJobs } from "../portal-data/hooks/useExportToolData";
 import { useChatMapData } from "../portal-field/hooks/useChatMapData";
@@ -21,11 +18,6 @@ function TestPage() {
     isLoading: modelsLoading,
     error: modelsError,
   } = useMyModels();
-  const {
-    data: datasets,
-    isLoading: datasetsLoading,
-    error: datasetsError,
-  } = useMyDatasets();
   const {
     data: umapMaps,
     isLoading: umapLoading,
@@ -173,45 +165,6 @@ function TestPage() {
                     style={{ fontWeight: 600 }}
                   >
                     {model.title}
-                  </a>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <h2>FAIR Datasets</h2>
-
-        {datasetsLoading && <p>Loading FAIR datasets...</p>}
-        {datasetsError && (
-          <p>Error loading datasets: {datasetsError.message}</p>
-        )}
-
-        {datasets && datasets.length === 0 && !datasetsLoading && (
-          <p>No FAIR datasets found.</p>
-        )}
-
-        {datasets && datasets.length > 0 && (
-          <ul style={{ listStyle: "none", padding: 0 }}>
-            {datasets.map((dataset) => (
-              <li
-                key={dataset.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "1rem",
-                  padding: "1rem",
-                  borderBottom: "1px solid #eee",
-                }}
-              >
-                <div>
-                  <a
-                    href={dataset.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ fontWeight: 600 }}
-                  >
-                    {dataset.title}
                   </a>
                 </div>
               </li>

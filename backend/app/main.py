@@ -71,7 +71,7 @@ async def preload_cache():
                 logger.info("Drone TM already cached")
                 return
 
-            async with httpx.AsyncClient(timeout=60.0) as client:
+            async with httpx.AsyncClient(timeout=60.0, verify=bool(settings.drone_tm_verify_ssl)) as client:
                 response = await client.get(
                     f"{drone_tm_url}/projects/centroids",
                     params={"filter_by_owner": "false", "page": 1, "results_per_page": 1000}
