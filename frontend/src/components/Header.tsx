@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import "@hotosm/tool-menu";
-import hotLogo from "../assets/images/hot-icon.svg";
+import hotLogo from "../assets/icons/portal.svg";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import DrawerMenu from "./DrawerMenu";
@@ -23,9 +23,9 @@ function Header() {
           )}
           <Link
             to={`/${currentLanguage}/`}
-            className="flex items-center gap-2 hover:no-underline"
+            className="flex items-center gap-xl hover:no-underline"
           >
-            <img src={hotLogo} alt="HOT Logo" className="w-14 h-14" />
+            <img src={hotLogo} alt="HOT Logo" className="w-8 h-8" />
 
             <span
               className="text-[20px] font-bold text-hot-gray-950 leading-tight"
