@@ -3,7 +3,7 @@ import CardTakeCourse from "../components/shared/CardTakeCourse";
 import Divider from "../components/shared/Divider";
 import PageWrapper from "../components/shared/PageWrapper";
 import SectionHeader from "../components/shared/SectionHeader";
-import UMapCard from "../portal-mapping/components/UMapCard";
+import UMapCard from "./components/UMapCard";
 import DataNoProjects from "./components/DataNoProjects";
 import ExportCard from "./components/ExportCard";
 import { useExportJobs, useMyMaps } from "./hooks";

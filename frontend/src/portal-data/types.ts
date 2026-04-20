@@ -1,9 +1,16 @@
 import { ExportJob } from "../types/projectsMap";
-import { IDataProject } from "../portal-mapping/types";
 import placeholderImage from "../assets/images/demo/demo1.png";
 import { getExportToolJobUrl } from "../utils/envConfig";
 
-export type { IDataProject };
+export interface IDataProject {
+  id: number | string;
+  title: string;
+  href: string;
+  status: "draft" | "published";
+  section: "model" | "set" | "export";
+  image: string;
+  accuracy: number | null;
+}
 
 export interface IUMapProject {
   id: number;
