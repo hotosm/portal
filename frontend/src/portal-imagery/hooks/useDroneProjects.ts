@@ -1,32 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import type { IImageryProject } from "../imageryProjects";
+import type { IImageryProject, DroneProject, DroneApiResponse } from "../types";
 import { getDroneTmBaseUrl } from "../../utils/envConfig";
 
-// Drone TM API types
-export interface DroneProject {
-  id: string;
-  slug: string;
-  name: string;
-  description: string;
-  image_url: string;
-  status: string;
-  total_task_count: number;
-  ongoing_task_count: number;
-  completed_task_count: number;
-}
-
-export interface DroneApiResponse {
-  results: DroneProject[];
-  pagination: {
-    has_next: boolean;
-    has_prev: boolean;
-    next_num: number | null;
-    prev_num: number | null;
-    page: number;
-    per_page: number;
-    total: number;
-  };
-}
+export type { DroneProject, DroneApiResponse };
 
 // Query keys for cache management
 export const droneProjectsQueryKeys = {
