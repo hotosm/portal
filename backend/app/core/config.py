@@ -122,8 +122,8 @@ class Settings(BaseSettings):
     # --- Service-specific settings ---
     drone_tm_auth_header: str = "Authorization"
     drone_tm_auth_prefix: str = "Bearer"
-    drone_tm_verify_ssl: bool = False
-    fair_verify_ssl: bool = True
+    drone_tm_verify_ssl: bool | None = None
+    fair_verify_ssl: bool | None = None
     umap_locale: str = "es"
     homepage_map_sync_interval_hours: int = 7
 
@@ -165,6 +165,13 @@ class Settings(BaseSettings):
                 for suffix in suffixes:
                     base = base.removesuffix(suffix)
                 setattr(self, base_attr, base)
+
+        # SSL verification defaults: disabled on LOCAL/TEST (self-signed certs), enabled on PRODUCTION.
+        prod = self.detected_environment == Environment.PRODUCTION
+        if self.fair_verify_ssl is None:
+            self.fair_verify_ssl = prod
+        if self.drone_tm_verify_ssl is None:
+            self.drone_tm_verify_ssl = False
 
         return self
 
