@@ -16,7 +16,11 @@ function LanguageSwitcher() {
   return (
     <Dropdown onSelect={handleLanguageSelect}>
       <Button slot="trigger" appearance="plain">
-        <Icon library="bootstrap" name="translate">
+        <Icon
+          library="bootstrap"
+          name="translate"
+          style={{ color: "var(--hot-gray-950)" }}
+        >
           {getAvailableLangs(currentLanguage)}
         </Icon>
       </Button>
