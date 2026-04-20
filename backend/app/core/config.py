@@ -39,7 +39,7 @@ ENV_DEFAULTS: dict[Environment, dict[str, str]] = {
     Environment.TEST: {
         "hanko_api_url": "https://dev.login.hotosm.org",
         "drone_tm_base_url": "https://dev.drone.hotosm.org",
-        "fair_base_url": "https://fair-dev.hotosm.org/",
+        "fair_base_url": "https://fair-dev.hotosm.org",
         "oam_api_url": "https://api.openaerialmap.org",
         "umap_base_url": "https://umap.hotosm.org",
         "chatmap_base_url": "https://chatmap.hotosm.org",
@@ -81,7 +81,7 @@ class Settings(BaseSettings):
     )
 
     # --- Required ---
-    portal_base_url: str
+    portal_base_url: str | None = None
     database_url: PostgresDsn
     cookie_secret: str
 
@@ -134,7 +134,7 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def detect_env_and_fill_defaults(self) -> "Settings":
-        url = self.portal_base_url.lower()
+        url = (self.portal_base_url or self.hanko_api_url or "").lower()
         if ".test" in url:
             self.detected_environment = Environment.LOCAL
         elif "://dev." in url:
