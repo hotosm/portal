@@ -129,7 +129,7 @@ async def get_projects(
     
     # If using HTTPS with self-signed certificates in Docker, disable verification
     # In production with valid certs, set verify=True
-    verify_ssl = not DRONE_TM_BACKEND_URL.startswith("https://") or settings.drone_tm_verify_ssl
+    verify_ssl = bool(settings.drone_tm_verify_ssl)
     
     async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl) as client:
         try:
@@ -273,7 +273,7 @@ async def get_projects_centroids(
     if search:
         params["search"] = search
 
-    verify_ssl = not DRONE_TM_BACKEND_URL.startswith("https://") or settings.drone_tm_verify_ssl
+    verify_ssl = bool(settings.drone_tm_verify_ssl)
 
     async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl) as client:
         try:
@@ -391,7 +391,7 @@ async def get_user_projects(
     if search:
         params["search"] = search
     
-    verify_ssl = not DRONE_TM_BACKEND_URL.startswith("https://") or settings.drone_tm_verify_ssl
+    verify_ssl = bool(settings.drone_tm_verify_ssl)
     
     async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl) as client:
         try:
@@ -448,7 +448,7 @@ async def get_project_by_id(
         "Accept": "application/json",
     }
 
-    verify_ssl = not DRONE_TM_BACKEND_URL.startswith("https://") or settings.drone_tm_verify_ssl
+    verify_ssl = bool(settings.drone_tm_verify_ssl)
 
     async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl) as client:
         try:
