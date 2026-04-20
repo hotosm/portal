@@ -1,4 +1,4 @@
-import type { IDataProject } from "../../portal-mapping/types";
+import type { IDataProject } from "../types";
 
 const ExportCard = ({ project }: { project: IDataProject }) => {
   return (

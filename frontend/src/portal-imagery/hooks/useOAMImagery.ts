@@ -1,38 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import type { IImageryProject } from "../imageryProjects";
+import type { IImageryProject, OAMImageryResult, OAMApiResponse } from "../types";
+
+export type { OAMImageryResult, OAMApiResponse };
 
 // Get OAM URL from environment
 const OAM_URL = import.meta.env.VITE_OAM_URL || "https://openaerialmap.org";
-
-// OAM API types
-export interface OAMImageryResult {
-  _id: string;
-  uuid?: string;
-  title?: string;
-  provider?: string;
-  contact?: string;
-  bbox?: number[];
-  gsd?: number;
-  acquisition_start?: string;
-  acquisition_end?: string;
-  platform?: string;
-  uploaded_at?: string;
-  properties?: {
-    tms?: string;
-    thumbnail?: string;
-  };
-}
-
-export interface OAMApiResponse {
-  meta: {
-    provided_by?: string;
-    license?: string;
-    page?: number;
-    limit?: number;
-    found?: number;
-  };
-  results: OAMImageryResult[];
-}
 
 // Query keys for cache management
 export const oamImageryQueryKeys = {

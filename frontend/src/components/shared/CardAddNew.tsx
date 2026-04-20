@@ -2,10 +2,12 @@ import Button from "./Button";
 import Icon from "./Icon";
 import exploreIcon from "../../assets/icons/search.svg?url";
 import plusIcon from "../../assets/icons/plus-circle-fill.svg?url";
+import mapIcon from "../../assets/icons/star-fill.svg?url";
 
 const ICONS = {
   add: plusIcon,
   explore: exploreIcon,
+  map: mapIcon,
 };
 
 type CardIcon = keyof typeof ICONS | null;
