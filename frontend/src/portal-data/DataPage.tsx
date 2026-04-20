@@ -1,10 +1,11 @@
 import CardAddNew from "../components/shared/CardAddNew";
+import CardSkeleton from "../components/shared/CardSkeleton";
 import CardTakeCourse from "../components/shared/CardTakeCourse";
 import Divider from "../components/shared/Divider";
 import PageWrapper from "../components/shared/PageWrapper";
 import SectionHeader from "../components/shared/SectionHeader";
 import UMapCard from "./components/UMapCard";
-import DataNoProjects from "./components/DataNoProjects";
+import { m } from "../paraglide/messages";
 import ExportCard from "./components/ExportCard";
 import { useExportJobs, useMyMaps } from "./hooks";
 
@@ -15,26 +16,10 @@ function DataPage() {
   const { data: maps = [], isLoading: mapsLoading } = useMyMaps();
   const { data: exports = [], isLoading: exportsLoading } = useExportJobs();
 
-  const isLoading = mapsLoading || exportsLoading;
-
-  const hasAnyProjects = maps.length > 0 || exports.length > 0;
-
-  if (isLoading) {
-    return <p className="flex justify-center items-center pt-10">Loading...</p>;
-  }
-
-  if (!hasAnyProjects) {
-    return (
-      <PageWrapper>
-        <DataNoProjects />
-      </PageWrapper>
-    );
-  }
-
   return (
     <>
       <SectionHeader>
-        <strong>Download</strong> & <strong>visualize</strong> data
+        <strong>{m.section_data()}</strong>
       </SectionHeader>
       <PageWrapper>
         {/* Export / Download section */}
@@ -48,19 +33,29 @@ function DataPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-lg">
-            <div className={CARD_CLASS}>
-              <CardAddNew
-                title="Export"
-                description="filter and download data in any format"
-                buttonLabel="Create new export"
-                icon="add"
-              />
-            </div>
-            {exports.map((project) => (
-              <div key={project.id} className={CARD_CLASS}>
-                <ExportCard project={project} />
-              </div>
-            ))}
+            {exportsLoading ? (
+              Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className={CARD_CLASS}>
+                  <CardSkeleton linesCount={3} />
+                </div>
+              ))
+            ) : (
+              <>
+                <div className={CARD_CLASS}>
+                  <CardAddNew
+                    title="Export"
+                    description="filter and download data in any format"
+                    buttonLabel="Create new export"
+                    icon="add"
+                  />
+                </div>
+                {exports.map((project) => (
+                  <div key={project.id} className={CARD_CLASS}>
+                    <ExportCard project={project} />
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         </div>
 
@@ -77,26 +72,36 @@ function DataPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-lg">
-            <div className={CARD_CLASS}>
-              <CardAddNew
-                title="Map"
-                description="put all your data into one map"
-                buttonLabel="Create a map"
-                icon="add"
-              />
-            </div>
-            {maps.map((map) => (
-              <div key={map.id} className={CARD_CLASS}>
-                <UMapCard project={map} />
-              </div>
-            ))}
-            <div className={CARD_CLASS}>
-              <CardTakeCourse
-                title="Take the course"
-                subtitle="& get your certification"
-                href="#"
-              />
-            </div>
+            {mapsLoading ? (
+              Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className={CARD_CLASS}>
+                  <CardSkeleton linesCount={3} />
+                </div>
+              ))
+            ) : (
+              <>
+                <div className={CARD_CLASS}>
+                  <CardAddNew
+                    title="Map"
+                    description="put all your data into one map"
+                    buttonLabel="Create a map"
+                    icon="add"
+                  />
+                </div>
+                {maps.map((map) => (
+                  <div key={map.id} className={CARD_CLASS}>
+                    <UMapCard project={map} />
+                  </div>
+                ))}
+                <div className={CARD_CLASS}>
+                  <CardTakeCourse
+                    title="Take the course"
+                    subtitle="& get your certification"
+                    href="#"
+                  />
+                </div>
+              </>
+            )}
           </div>
         </div>
       </PageWrapper>
