@@ -148,13 +148,13 @@ function TestPage() {
         {modelsLoading && <p>Loading FAIR models...</p>}
         {modelsError && <p>Error loading models: {modelsError.message}</p>}
 
-        {models && models.length === 0 && !modelsLoading && (
+        {models && models.items.length === 0 && !modelsLoading && (
           <p>No FAIR models found.</p>
         )}
 
-        {models && models.length > 0 && (
+        {models && models.items.length > 0 && (
           <ul style={{ listStyle: "none", padding: 0 }}>
-            {models.map((model) => (
+            {models.items.map((model) => (
               <li
                 key={model.id}
                 style={{
