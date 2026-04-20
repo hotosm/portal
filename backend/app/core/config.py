@@ -1,12 +1,12 @@
 """Application configuration using Pydantic settings."""
 
-from enum import Enum
 from pathlib import Path
 from typing import Annotated
 
-from pydantic import BeforeValidator, Field, PostgresDsn, model_validator
+from pydantic import BeforeValidator, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# Get the project root directory (2 levels up from this file)
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 ENV_FILE = PROJECT_ROOT / ".env"
 
@@ -18,177 +18,78 @@ def parse_cors_origins(v: str | list[str]) -> list[str]:
     return v
 
 
-class Environment(str, Enum):
-    LOCAL = "local"
-    TEST = "test"
-    PRODUCTION = "production"
-
-
-ENV_DEFAULTS: dict[Environment, dict[str, str]] = {
-    Environment.LOCAL: {
-        "hanko_api_url": "https://login.hotosm.test",
-        "drone_tm_base_url": "https://drone.hotosm.org",
-        "fair_base_url": "https://api-prod.fair.hotosm.org",
-        "oam_api_url": "https://openaerialmap.hotosm.test/api",
-        "umap_base_url": "https://umap.hotosm.org",
-        "chatmap_base_url": "https://chatmap.hotosm.org",
-        "tasking_manager_api_url": "https://tasking-manager-production-api.hotosm.org/api/v2",
-        "export_tool_base_url": "https://export-tool.hotosm.test",
-        "field_tm_base_url": "https://field.hotosm.test",
-    },
-    Environment.TEST: {
-        "hanko_api_url": "https://dev.login.hotosm.org",
-        "drone_tm_base_url": "https://dev.drone.hotosm.org",
-        "fair_base_url": "https://fair-dev.hotosm.org/",
-        "oam_api_url": "https://api.openaerialmap.org",
-        "umap_base_url": "https://umap.hotosm.org",
-        "chatmap_base_url": "https://chatmap.hotosm.org",
-        "tasking_manager_api_url": "https://tasking-manager-production-api.hotosm.org/api/v2",
-        "export_tool_base_url": "https://export.hotosm.org",
-        "field_tm_base_url": "https://field.hotosm.org",
-    },
-    Environment.PRODUCTION: {
-        "hanko_api_url": "https://login.hotosm.org",
-        "drone_tm_base_url": "https://drone.hotosm.org",
-        "fair_base_url": "https://api-prod.fair.hotosm.org",
-        "oam_api_url": "https://api.openaerialmap.org",
-        "umap_base_url": "https://umap.hotosm.org",
-        "chatmap_base_url": "https://chatmap.hotosm.org",
-        "tasking_manager_api_url": "https://tasking-manager-production-api.hotosm.org/api/v2",
-        "export_tool_base_url": "https://export.hotosm.org",
-        "field_tm_base_url": "https://field.hotosm.org",
-    },
-}
-
-
 class Settings(BaseSettings):
-    """Application settings loaded from environment variables.
-
-    Environment is auto-detected from PORTAL_BASE_URL:
-      - *.hotosm.test  -> local
-      - dev.*           -> test
-      - otherwise       -> production
-
-    All service URLs default to the detected environment.
-    Individual URLs can be overridden via env vars.
-    """
+    """Application settings loaded from environment variables."""
 
     model_config = SettingsConfigDict(
+        # Only use .env file if it exists, otherwise rely on environment variables
         env_file=str(ENV_FILE) if ENV_FILE.exists() else None,
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
     )
 
-    # --- Required ---
-    portal_base_url: str
-    database_url: PostgresDsn
-    cookie_secret: str
-
-    # --- General ---
+    # API Settings
     project_name: str = "Portal API"
     version: str = "1.0.0"
     api_v1_prefix: str = "/api"
     debug: bool = False
+
+    # Database Settings
+    database_url: PostgresDsn
     db_echo: bool = False
+
+    # CORS Settings
     backend_cors_origins: Annotated[
         list[str], BeforeValidator(parse_cors_origins)
     ] = ["http://localhost:5173"]
-    cookie_domain: str | None = None
 
-    # --- OSM OAuth ---
+    # Authentication Settings (Hanko SSO + OSM OAuth)
+    hanko_api_url: str = "https://dev.login.hotosm.org"
+    cookie_secret: str
+    cookie_domain: str | None = None  # Auto-detected from hanko_api_url if not set
+
+    # OSM OAuth (optional)
     osm_client_id: str | None = None
     osm_client_secret: str | None = None
 
-    # --- Service Base URLs (auto-filled from detected environment) ---
-    hanko_api_url: str | None = None
-    drone_tm_base_url: str | None = None
-    fair_base_url: str | None = None
-    oam_api_url: str | None = None
-    umap_base_url: str | None = None
-    chatmap_base_url: str | None = None
-    tasking_manager_api_url: str | None = None
-    export_tool_base_url: str | None = None
-    field_tm_base_url: str | None = None
+    # OpenAerialMap STAC API
+    # Local: https://openaerialmap.hotosm.test/api
+    # Production: https://api.imagery.hotosm.org/stac
+    oam_stac_api_url: str = "https://openaerialmap.hotosm.test/api"
 
-    # --- Legacy env vars (override base URLs if set) ---
-    drone_tm_backend_url: str | None = None
-    fair_backend_url: str | None = None
-    fair_api_base_url: str | None = None
-    export_tool_api_base_url: str | None = None
-    chatmap_api_base_url: str | None = None
-    oam_stac_api_url: str | None = None
+    # uMap Base URL
+    # Local: https://umap.hotosm.test
+    # Test: https://testlogin.umap.hotosm.org
+    # Production: https://umap.hotosm.org
+    umap_base_url: str = "https://umap.hotosm.test"
 
-    # --- Service-specific settings ---
+    # Drone-TM Backend URL
+    # Local: https://dronetm.hotosm.test/api
+    # Test: https://testlogin.dronetm.hotosm.org/api
+    # Production: https://dronetm.org/api
+    drone_tm_backend_url: str = "https://dronetm.org/api"
     drone_tm_auth_header: str = "Authorization"
     drone_tm_auth_prefix: str = "Bearer"
     drone_tm_verify_ssl: bool = False
-    fair_verify_ssl: bool = True
-    umap_locale: str = "es"
-    homepage_map_sync_interval_hours: int = 7
 
-    # --- Computed (not from env) ---
-    detected_environment: Environment = Field(
-        default=Environment.PRODUCTION, exclude=True
-    )
+    # Export Tool API
+    # Local: https://export-tool.hotosm.test/api
+    # Test: https://testlogin.export.hotosm.org/api
+    # Production: https://export.hotosm.org/api
+    export_tool_api_base_url: str = "https://export.hotosm.org/api"
 
-    @model_validator(mode="after")
-    def detect_env_and_fill_defaults(self) -> "Settings":
-        url = self.portal_base_url.lower()
-        if ".test" in url:
-            self.detected_environment = Environment.LOCAL
-        elif "://dev." in url:
-            self.detected_environment = Environment.TEST
-        else:
-            self.detected_environment = Environment.PRODUCTION
+    # fAIr API
+    # Local: https://fair.hotosm.test/api/v1
+    # Test: https://testlogin.fair.hotosm.org/api/v1
+    # Production: https://api-prod.fair.hotosm.org/api/v1
+    fair_api_base_url: str = "https://api-prod.fair.hotosm.org/api/v1"
+    fair_verify_ssl: bool = False
 
-        defaults = ENV_DEFAULTS[self.detected_environment]
-
-        for field_name, default_value in defaults.items():
-            if getattr(self, field_name) is None:
-                setattr(self, field_name, default_value)
-
-        # Legacy env vars override the new base URL fields.
-        # Each tuple: (legacy_attr, base_attr, suffixes_to_strip_in_order)
-        legacy_overrides = [
-            ("drone_tm_backend_url", "drone_tm_base_url", ["/api"]),
-            ("fair_backend_url",     "fair_base_url",     ["/api/v1", "/api"]),
-            ("fair_api_base_url",    "fair_base_url",     ["/api/v1", "/api"]),
-            ("export_tool_api_base_url", "export_tool_base_url", ["/api"]),
-            ("chatmap_api_base_url", "chatmap_base_url",  ["/api/v1", "/api"]),
-            ("oam_stac_api_url",     "oam_api_url",       []),
-        ]
-        for legacy_attr, base_attr, suffixes in legacy_overrides:
-            legacy_val = getattr(self, legacy_attr, None)
-            if legacy_val and getattr(self, base_attr) == defaults.get(base_attr):
-                base = legacy_val.rstrip("/")
-                for suffix in suffixes:
-                    base = base.removesuffix(suffix)
-                setattr(self, base_attr, base)
-
-        return self
-
-    # --- Computed API URL properties ---
-
-    @property
-    def drone_tm_api_url(self) -> str:
-        """Drone TM API: base + /api"""
-        return f"{self.drone_tm_base_url}/api"
-
-    @property
-    def fair_api_url(self) -> str:
-        """fAIr API: base + /api/v1"""
-        return f"{self.fair_base_url}/api/v1"
-
-    @property
-    def chatmap_api_url(self) -> str:
-        """ChatMap API: base + /api/v1"""
-        return f"{self.chatmap_base_url}/api/v1"
-
-    @property
-    def export_tool_api_url(self) -> str:
-        """Export Tool API: base + /api"""
-        return f"{self.export_tool_base_url}/api"
+    # ChatMap API
+    # Local: http://chatmap-backend:8000/v1
+    # Production: https://chatmap.hotosm.org/api/v1
+    chatmap_api_base_url: str = "https://chatmap.hotosm.org/api/v1"
 
 
 settings = Settings()

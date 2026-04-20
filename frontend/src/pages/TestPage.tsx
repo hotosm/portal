@@ -1,46 +1,19 @@
 import PageWrapper from "../components/shared/PageWrapper";
 import { useDroneProjects } from "../portal-imagery/hooks/useDroneProjects";
 import { useOAMImagery } from "../portal-imagery/hooks/useOAMImagery";
-import {
-  useMyModels,
-  useMyDatasets,
-} from "../portal-mapping/hooks/useFairData";
-import { useMyMaps } from "../portal-data/hooks/useUMapData";
+import { useMyModels, useMyDatasets } from "../portal-data/hooks/useFairData";
+import { useUMapData } from "../portal-mapping/hooks/useUMapData";
 import { useExportJobs } from "../portal-data/hooks/useExportToolData";
 import { useChatMapData } from "../portal-field/hooks/useChatMapData";
 
 function TestPage() {
   const { data: projects, isLoading, error } = useDroneProjects();
-  const {
-    data: oamImagery,
-    isLoading: oamLoading,
-    error: oamError,
-  } = useOAMImagery();
-  const {
-    data: models,
-    isLoading: modelsLoading,
-    error: modelsError,
-  } = useMyModels();
-  const {
-    data: datasets,
-    isLoading: datasetsLoading,
-    error: datasetsError,
-  } = useMyDatasets();
-  const {
-    data: umapMaps,
-    isLoading: umapLoading,
-    error: umapError,
-  } = useMyMaps();
-  const {
-    data: exportJobs,
-    isLoading: exportsLoading,
-    error: exportsError,
-  } = useExportJobs();
-  const {
-    data: chatmap,
-    isLoading: chatmapLoading,
-    error: chatmapError,
-  } = useChatMapData();
+  const { data: oamImagery, isLoading: oamLoading, error: oamError } = useOAMImagery();
+  const { data: models, isLoading: modelsLoading, error: modelsError } = useMyModels();
+  const { data: datasets, isLoading: datasetsLoading, error: datasetsError } = useMyDatasets();
+  const { maps: umapMaps, templates: umapTemplates, isLoading: umapLoading, error: umapError } = useUMapData();
+  const { data: exportJobs, isLoading: exportsLoading, error: exportsError } = useExportJobs();
+  const { data: chatmap, isLoading: chatmapLoading, error: chatmapError } = useChatMapData();
 
   return (
     <PageWrapper>
@@ -148,13 +121,13 @@ function TestPage() {
         {modelsLoading && <p>Loading FAIR models...</p>}
         {modelsError && <p>Error loading models: {modelsError.message}</p>}
 
-        {models && models.items.length === 0 && !modelsLoading && (
+        {models && models.length === 0 && !modelsLoading && (
           <p>No FAIR models found.</p>
         )}
 
-        {models && models.items.length > 0 && (
+        {models && models.length > 0 && (
           <ul style={{ listStyle: "none", padding: 0 }}>
-            {models.items.map((model) => (
+            {models.map((model) => (
               <li
                 key={model.id}
                 style={{
@@ -183,9 +156,7 @@ function TestPage() {
         <h2>FAIR Datasets</h2>
 
         {datasetsLoading && <p>Loading FAIR datasets...</p>}
-        {datasetsError && (
-          <p>Error loading datasets: {datasetsError.message}</p>
-        )}
+        {datasetsError && <p>Error loading datasets: {datasetsError.message}</p>}
 
         {datasets && datasets.length === 0 && !datasetsLoading && (
           <p>No FAIR datasets found.</p>
@@ -222,9 +193,7 @@ function TestPage() {
         <h2>Export Tool Jobs</h2>
 
         {exportsLoading && <p>Loading export jobs...</p>}
-        {exportsError && (
-          <p>Error loading export jobs: {exportsError.message}</p>
-        )}
+        {exportsError && <p>Error loading export jobs: {exportsError.message}</p>}
 
         {exportJobs && exportJobs.length === 0 && !exportsLoading && (
           <p>No export jobs found.</p>
@@ -298,20 +267,19 @@ function TestPage() {
           </ul>
         )}
 
-        <h2>ChatMap</h2>
+        <h2>uMap Templates</h2>
 
-        {chatmapLoading && <p>Loading chatmap...</p>}
-        {chatmapError && <p>Error loading chatmap: {chatmapError.message}</p>}
+        {umapLoading && <p>Loading uMap templates...</p>}
 
-        {chatmap && chatmap.length === 0 && !chatmapLoading && (
-          <p>No chatmap data found.</p>
+        {umapTemplates && umapTemplates.length === 0 && !umapLoading && (
+          <p>No uMap templates found.</p>
         )}
 
-        {chatmap && chatmap.length > 0 && (
+        {umapTemplates && umapTemplates.length > 0 && (
           <ul style={{ listStyle: "none", padding: 0 }}>
-            {chatmap.map((item) => (
+            {umapTemplates.map((template) => (
               <li
-                key={item.id}
+                key={template.id}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -322,19 +290,56 @@ function TestPage() {
               >
                 <div>
                   <a
-                    href={item.href}
+                    href={template.href}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{ fontWeight: 600 }}
                   >
-                    {item.title}
+                    {template.title}
                   </a>
                   <span style={{ marginLeft: "0.5rem", color: "#666" }}>
-                    ({item.status})
+                    (template)
                   </span>
                 </div>
               </li>
             ))}
+          </ul>
+        )}
+
+        <h2>ChatMap</h2>
+
+        {chatmapLoading && <p>Loading chatmap...</p>}
+        {chatmapError && <p>Error loading chatmap: {chatmapError.message}</p>}
+
+        {!chatmap && !chatmapLoading && !chatmapError && (
+          <p>No chatmap data found.</p>
+        )}
+
+        {chatmap && (
+          <ul style={{ listStyle: "none", padding: 0 }}>
+            <li
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "1rem",
+                padding: "1rem",
+                borderBottom: "1px solid #eee",
+              }}
+            >
+              <div>
+                <a
+                  href={chatmap.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontWeight: 600 }}
+                >
+                  {chatmap.title}
+                </a>
+                <span style={{ marginLeft: "0.5rem", color: "#666" }}>
+                  ({chatmap.sharing})
+                </span>
+              </div>
+            </li>
           </ul>
         )}
       </div>

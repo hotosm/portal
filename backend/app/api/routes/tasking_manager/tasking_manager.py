@@ -8,13 +8,13 @@ import httpx
 from fastapi import APIRouter, HTTPException, Path, BackgroundTasks
 from app.models.tasking_manager import ProjectsResponse, Project, CountriesResponse
 from app.core.cache import get_cached, set_cached, LONG_TTL, DEFAULT_TTL
-from app.core.config import settings
 
 
 router = APIRouter(prefix="/tasking-manager")
 logger = logging.getLogger(__name__)
 
-HOTOSM_API_BASE_URL = settings.tasking_manager_api_url
+# HOT OSM Tasking Manager API base URL
+HOTOSM_API_BASE_URL = "https://tasking-manager-production-api.hotosm.org/api/v2"
 
 # Flag to track if background enrichment is running
 _enrichment_in_progress = False
@@ -85,7 +85,7 @@ async def fetch_and_enrich_in_background():
     enriched_cache_key = "tasking_manager_projects_enriched"
 
     try:
-        logger.info("Starting background enrichment of Tasking Manager projects...")
+        logger.info("🔄 Starting background enrichment of Tasking Manager projects...")
 
         async with httpx.AsyncClient(timeout=120.0) as client:
             # Get base data from cache or fetch it
@@ -113,10 +113,10 @@ async def fetch_and_enrich_in_background():
             set_cached(cache_key, enriched_data, DEFAULT_TTL)
             set_cached(enriched_cache_key, True, DEFAULT_TTL)  # Flag that enrichment is done
 
-            logger.info(f"Background enrichment complete. Enriched {len(project_names)} project names.")
+            logger.info(f"✅ Background enrichment complete. Enriched {len(project_names)} project names.")
 
     except Exception as e:
-        logger.error(f"Background enrichment failed: {e}")
+        logger.error(f"❌ Background enrichment failed: {e}")
     finally:
         _enrichment_in_progress = False
 
@@ -283,7 +283,7 @@ async def get_tasking_manager_project_by_id(
             response.raise_for_status()
             data = response.json()
 
-            # Extract only the keys you care about
+            # Extraer solo las claves que te interesan
             filtered_data = {
                 "organisationName": data.get("organisationName"),
                 "organisationSlug": data.get("organisationSlug"),

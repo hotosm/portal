@@ -1,12 +1,15 @@
 import ReactMarkdown from "react-markdown";
-import { useMapProjectDetails } from "../hooks/useMapProjectDetails";
+import { useProjectDetails } from "../hooks/useProjectDetails";
+import { useDroneProjectDetails } from "../hooks/useDroneProjectDetails";
+import { useOAMProjectDetails } from "../hooks/useOAMProjectDetails";
+import { useFAIRModelDetails } from "../hooks/useFAIRModelDetails";
+import { useUMapShowcaseDetails } from "../hooks/useUMapShowcaseDetails";
 import { m } from "../paraglide/messages";
 import { shortenText } from "../utils/utils";
 import Button from "./shared/Button";
 import Icon from "./shared/Icon";
 import { ProjectMapFeature } from "../types/projectsMap";
 import { ProjectMapListCallout } from "./ProjectsMapListCallout";
-import type { ProductType } from "../types/projectsMap/products";
 
 interface ProjectsMapCalloutProps {
   // For individual project details
@@ -17,9 +20,6 @@ interface ProjectsMapCalloutProps {
   locationName?: string; // For geographic searches
   onClose: () => void;
   onProjectClick?: (projectId: number | string, product?: string) => void;
-  // Application filter (shared with map layer visibility)
-  enabledFilters?: Set<string>;
-  onToggleFilter?: (type: string) => void;
 }
 
 export function ProjectsMapCallout({
@@ -29,8 +29,6 @@ export function ProjectsMapCallout({
   locationName,
   onClose,
   onProjectClick,
-  enabledFilters,
-  onToggleFilter,
 }: ProjectsMapCalloutProps) {
   // If we have a single project ID, show individual project details
   if (projectId) {
@@ -51,8 +49,6 @@ export function ProjectsMapCallout({
         locationName={locationName}
         onClose={onClose}
         onProjectClick={onProjectClick}
-        enabledFilters={enabledFilters}
-        onToggleFilter={onToggleFilter}
       />
     );
   }
@@ -62,7 +58,7 @@ export function ProjectsMapCallout({
     <>
       <div className="flex justify-between items-start text-sm">
         <span></span>
-        <Icon name="close" onClick={onClose} className="cursor-pointer" style={{ color: "white", background: "black", padding: "5px 6px", borderRadius: "100px" }} />
+        <Icon name="close" onClick={onClose} className="cursor-pointer" />
       </div>
       <div className="flex items-center justify-center h-[200px]">
         <p className="text-hot-gray-600">No projects found in this area.</p>
@@ -81,20 +77,56 @@ function IndividualProjectCallout({
   product: string;
   onClose: () => void;
 }) {
-  const detailsQuery = useMapProjectDetails(
-    product as ProductType,
-    projectId
+  // Use appropriate hook based on product type
+  const taskingManagerQuery = useProjectDetails(
+    product === "tasking-manager" ? Number(projectId) : null
+  );
+  const droneTaskingManagerQuery = useDroneProjectDetails(
+    product === "drone-tasking-manager" ? String(projectId) : null
+  );
+  const oamQuery = useOAMProjectDetails(
+    product === "imagery" ? String(projectId) : null
+  );
+  const fairQuery = useFAIRModelDetails(
+    product === "fair" ? Number(projectId) : null
+  );
+  const umapQuery = useUMapShowcaseDetails(
+    product === "umap" ? String(projectId) : null
   );
 
-  const projectData = detailsQuery.data;
-  const isLoading = detailsQuery.isLoading;
+  // Get the active query data
+  const projectData =
+    product === "tasking-manager"
+      ? taskingManagerQuery.data
+      : product === "drone-tasking-manager"
+      ? droneTaskingManagerQuery.data
+      : product === "imagery"
+      ? oamQuery.data
+      : product === "fair"
+      ? fairQuery.data
+      : product === "umap"
+      ? umapQuery.data
+      : null;
+
+  const isLoading =
+    product === "tasking-manager"
+      ? taskingManagerQuery.isLoading
+      : product === "drone-tasking-manager"
+      ? droneTaskingManagerQuery.isLoading
+      : product === "imagery"
+      ? oamQuery.isLoading
+      : product === "fair"
+      ? fairQuery.isLoading
+      : product === "umap"
+      ? umapQuery.isLoading
+      : false;
 
   if (isLoading) {
     return (
       <>
         <div className="flex justify-between items-start">
           <span></span>
-          <Icon name="close" onClick={onClose} className="cursor-pointer" style={{ color: "white", background: "black", padding: "5px 6px", borderRadius: "100px" }} />
+          <Icon name="close" onClick={onClose} className="cursor-pointer" />
         </div>
         <p className="text-xl leading-tight">Loading...</p>
         <div className="flex items-center justify-center h-[400px]">
@@ -111,7 +143,7 @@ function IndividualProjectCallout({
           <span>
             <strong>Project ID:</strong> {projectId}
           </span>
-          <Icon name="close" onClick={onClose} className="cursor-pointer" style={{ color: "white", background: "black", padding: "5px 6px", borderRadius: "100px" }} />
+          <Icon name="close" onClick={onClose} className="cursor-pointer" />
         </div>
         <p className="text-xl leading-tight">Project #{projectId}</p>
         <p className="text-sm text-hot-gray-600">
@@ -123,47 +155,45 @@ function IndividualProjectCallout({
 
   // Unified render using normalized data
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex justify-between items-start text-sm mb-2 flex-shrink-0">
+    <>
+      <div className="flex justify-between items-start text-sm mb-2">
         <span className="text-hot-gray-500">{projectData.productName}</span>
-        <Icon name="close" onClick={onClose} className="cursor-pointer" style={{ color: "white", background: "black", padding: "5px 6px", borderRadius: "100px" }} />
+        <Icon name="close" onClick={onClose} className="cursor-pointer" />
       </div>
 
-      <div className="flex-1 overflow-y-auto min-h-0">
-        <p className="text-xl leading-tight font-semibold mb-3">
-          {projectData.name}
-        </p>
+      <p className="text-xl leading-tight font-semibold mb-3">
+        {projectData.name}
+      </p>
 
-        {projectData.thumbnail && (
-          <div className="mb-3">
-            <img
-              src={projectData.thumbnail}
-              alt={projectData.name}
-              className="w-full h-32 object-cover rounded"
-            />
-          </div>
-        )}
+      {projectData.thumbnail && (
+        <div className="mb-3">
+          <img
+            src={projectData.thumbnail}
+            alt={projectData.name}
+            className="w-full h-32 object-cover rounded"
+          />
+        </div>
+      )}
 
-        {projectData.description && (
-          <div className="text-sm text-hot-gray-600 mb-3">
-            <ReactMarkdown>{shortenText(projectData.description)}</ReactMarkdown>
-          </div>
-        )}
+      {projectData.description && (
+        <div className="text-sm text-hot-gray-600 mb-3">
+          <ReactMarkdown>{shortenText(projectData.description)}</ReactMarkdown>
+        </div>
+      )}
 
-        {projectData.metadata && projectData.metadata.length > 0 && (
-          <div className="text-sm text-hot-gray-600 mb-3 space-y-1">
-            {projectData.metadata.map((item, index) => (
-              <div key={index}>
-                <strong>{item.label}:</strong> {item.value}
-              </div>
-            ))}
-          </div>
-        )}
+      {projectData.metadata && projectData.metadata.length > 0 && (
+        <div className="text-sm text-hot-gray-600 mb-3 space-y-1">
+          {projectData.metadata.map((item, index) => (
+            <div key={index}>
+              <strong>{item.label}:</strong> {item.value}
+            </div>
+          ))}
+        </div>
+      )}
 
-        <Button href={projectData.url} target="_blank">
-          {m.view_project_detail()}
-        </Button>
-      </div>
-    </div>
+      <Button href={projectData.url} target="_blank">
+        {m.view_project_detail()}
+      </Button>
+    </>
   );
 }

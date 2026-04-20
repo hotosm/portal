@@ -53,7 +53,6 @@ jobs:
         env:
           DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/test
           COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
-          PORTAL_BASE_URL: http://localhost:8000
         run: uv run pytest
 
       - name: Setup Node.js
@@ -127,7 +126,7 @@ jobs:
             -t ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-frontend:${{ github.sha }} \
             --target production \
             --build-arg VITE_HANKO_URL=https://dev.login.hotosm.org \
-            --build-arg VITE_DRONE_TM_URL=https://dronetm.testlogin.hotosm.org \
+            --build-arg VITE_DRONE_TM_URL=https://testlogin.dronetm.hotosm.org \
             --build-arg BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
             --no-cache \
             --pull \

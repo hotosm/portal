@@ -4,8 +4,7 @@ export type ProductType =
   | "fair"
   | "field"
   | "imagery"
-  | "umap"
-  | "chatmap";
+  | "umap";
 
 export interface ProductConfig {
   name: string;

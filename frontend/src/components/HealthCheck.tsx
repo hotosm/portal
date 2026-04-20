@@ -50,7 +50,7 @@ export function HealthCheck() {
       <div style={styles.container}>
         <h2 style={styles.title}>API Health Check</h2>
         <div style={styles.errorBox}>
-          <p style={styles.errorText}>Error: {error}</p>
+          <p style={styles.errorText}>❌ Error: {error}</p>
         </div>
       </div>
     )
@@ -70,6 +70,7 @@ export function HealthCheck() {
                 color: data.status === 'ok' ? '#10b981' : '#ef4444',
               }}
             >
+              {data.status === 'ok' ? '✅ ' : '❌ '}
               {data.status}
             </span>
           </div>
@@ -82,7 +83,7 @@ export function HealthCheck() {
           <div style={styles.row}>
             <span style={styles.label}>Database:</span>
             <span style={styles.value}>
-              {data.database.connected ? 'Connected' : 'Disconnected'}
+              {data.database.connected ? '✅ Connected' : '❌ Disconnected'}
             </span>
           </div>
 

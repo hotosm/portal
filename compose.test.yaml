@@ -54,10 +54,10 @@ services:
       - OSM_CLIENT_SECRET=${OSM_CLIENT_SECRET}
       - OSM_REDIRECT_URI=https://dev.portal.hotosm.org/api/auth/osm/callback
       - ADMIN_EMAILS=${ADMIN_EMAILS}
-      - DRONE_TM_BACKEND_URL=https://dronetm.testlogin.hotosm.org/api
-      - FAIR_API_BASE_URL=https://fair.testlogin.hotosm.org/api/v1
-      - UMAP_BASE_URL=https://umap-dev.hotosm.org
-      - EXPORT_TOOL_API_BASE_URL=https://export.testlogin.hotosm.org/api
+      - DRONE_TM_BACKEND_URL=https://testlogin.dronetm.hotosm.org/api
+      - FAIR_API_BASE_URL=https://testlogin.fair.hotosm.org/api/v1
+      - UMAP_BASE_URL=https://testlogin.umap.hotosm.org
+      - EXPORT_TOOL_API_BASE_URL=https://testlogin.export.hotosm.org/api
       - DRONE_TM_VERIFY_SSL=true
       - FAIR_VERIFY_SSL=true
     networks:

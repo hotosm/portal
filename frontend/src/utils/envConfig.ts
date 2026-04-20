@@ -8,9 +8,6 @@ type Environment = "local" | "test" | "production";
 
 /**
  * Detect the current environment based on the hostname.
- * - local:      *.hotosm.test, localhost, 127.0.0.1
- * - test:       dev.* (e.g. dev.portal.hotosm.org) or testlogin.*
- * - production: everything else
  */
 export function getEnvironment(): Environment {
   const hostname = window.location.hostname;
@@ -19,7 +16,7 @@ export function getEnvironment(): Environment {
     return "local";
   }
 
-  if (hostname.startsWith("dev.") || hostname.includes("testlogin.")) {
+  if (hostname.includes("testlogin.") || hostname.includes("test.")) {
     return "test";
   }
 
@@ -31,7 +28,7 @@ export function getEnvironment(): Environment {
  */
 const FAIR_URLS: Record<Environment, string> = {
   local: "https://fair.hotosm.test",
-  test: "https://fair.testlogin.hotosm.org",
+  test: "https://testlogin.fair.hotosm.org",
   production: "https://fair.hotosm.org",
 };
 
@@ -61,7 +58,7 @@ export function getFairDatasetUrl(datasetId: number): string {
  */
 const UMAP_URLS: Record<Environment, string> = {
   local: "https://umap.hotosm.test",
-  test: "https://umap-dev.hotosm.org",
+  test: "https://testlogin.umap.hotosm.org",
   production: "https://umap.hotosm.org",
 };
 
@@ -77,7 +74,7 @@ export function getUmapBaseUrl(): string {
  */
 const EXPORT_TOOL_URLS: Record<Environment, string> = {
   local: "https://export-tool.hotosm.test",
-  test: "https://export.testlogin.hotosm.org",
+  test: "https://testlogin.export.hotosm.org",
   production: "https://export.hotosm.org",
 };
 
@@ -107,7 +104,7 @@ export function getChatMapBaseUrl(): string {
  */
 const DRONE_TM_URLS: Record<Environment, string> = {
   local: "https://dronetm.hotosm.test",
-  test: "https://dronetm.testlogin.hotosm.org",
+  test: "https://testlogin.dronetm.hotosm.org",
   production: "https://dronetm.org",
 };
 

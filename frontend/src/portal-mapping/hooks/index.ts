@@ -1,1 +1,1 @@
-export { useMyModels, useMyDatasets } from "./useFairData";
+export { useMyMaps, useMyTemplates, useUMapData } from "./useUMapData";

@@ -1,8 +1,13 @@
-import { css } from "lit";
+import { css, unsafeCSS } from "lit";
 
-export const HOT_DESIGN_SYSTEM_URL = 'https://cdn.jsdelivr.net/npm/@hotosm/ui-design@latest/dist/hot.css';
+// Import HOT design system CSS
+const hotCSS = unsafeCSS(
+  `@import url('https://cdn.jsdelivr.net/npm/@hotosm/ui-design@latest/dist/hot.css');`,
+);
 
 export const styles = css`
+  ${hotCSS}
+
   :host {
     display: inline-block;
     position: relative;
@@ -42,7 +47,7 @@ export const styles = css`
     height: var(--icon-size, 20px);
     display: block;
     margin: var(--icon-margin, 0);
-    color: var(--icon-color, var(--hot-color-gray-800));
+    color: var(--icon-color, --hot-color-gray-800);
   }
 
   .dropdown-content {

@@ -33,8 +33,7 @@ export interface ProjectMapFeature {
       | "fair"
       | "field"
       | "imagery"
-      | "umap"
-      | "chatmap";
+      | "umap";
   };
 }
 

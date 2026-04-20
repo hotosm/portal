@@ -1,4 +1,4 @@
-import { IImageryProject } from "../types";
+import { IImageryProject } from "../imageryProjects";
 import placeholder from "../../assets/images/placeholder.png";
 
 interface ImageryCardProps {

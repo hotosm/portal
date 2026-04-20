@@ -20,11 +20,15 @@ export function useProjectsMapCallout(): UseProjectsMapCalloutReturn {
         setSelectedProjects(data.projects);
         setLocationName(data.locationName);
       } else if (typeof projectId === "number" || typeof projectId === "string") {
-        // Navigate to individual project — preserve list state so user can go back
+        // Handle individual project click
+        setSelectedProjects([]);
+        setLocationName("");
         setSelectedProjectId(projectId);
+        // Store product type if provided as string (from map marker or list click)
         if (typeof data === 'string' && data) {
           setSelectedProduct(data);
         } else {
+          // Default to tasking-manager only if no product provided
           setSelectedProduct("tasking-manager");
         }
       }
@@ -33,18 +37,11 @@ export function useProjectsMapCallout(): UseProjectsMapCalloutReturn {
   );
 
   const handleCloseDetails = useCallback(() => {
-    if (selectedProjectId !== null && selectedProjects.length > 0) {
-      // Coming from a list: go back to the list instead of closing entirely
-      setSelectedProjectId(null);
-      setSelectedProduct("tasking-manager");
-    } else {
-      // No backing list: close the panel entirely
-      setSelectedProjectId(null);
-      setSelectedProjects([]);
-      setLocationName("");
-      setSelectedProduct("tasking-manager");
-    }
-  }, [selectedProjectId, selectedProjects.length]);
+    setSelectedProjectId(null);
+    setSelectedProjects([]);
+    setLocationName("");
+    setSelectedProduct("tasking-manager");
+  }, []);
 
   // Computed property to check if callout is open
   const isCalloutOpen =

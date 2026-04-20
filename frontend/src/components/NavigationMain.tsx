@@ -29,26 +29,13 @@ function NavigationMain({ onLinkClick }: NavigationMainProps) {
         return (
           <NavLink
             key={item.id}
-            className={`nav-main-link text-hot-gray-800 hover:no-underline text-sm px-sm py-xs ${
-              isActive ? "font-bold" : ""
+            className={`text-hot-gray-800 hover:no-underline font-bold px-sm py-xs rounded transition-colors ${
+              isActive ? "bg-hot-gray-50" : "hover:bg-hot-gray-50"
             }`}
             to={localizedHref}
             onClick={onLinkClick}
           >
-            <span className="flex items-center gap-2xs">
-              {item.icon && (
-                <>
-                  {/* @ts-ignore */}
-                  <wa-icon
-                    class="nav-icon-regular"
-                    library="bootstrap"
-                    name={item.icon}
-                    style={{ fontSize: "16px" }}
-                  />
-                </>
-              )}
-              {item.label()}
-            </span>
+            {item.label}
           </NavLink>
         );
       })}

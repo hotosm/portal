@@ -1,29 +1,3 @@
-.gradient-button::part(base) {
-  background: linear-gradient(
-    217deg,
-    var(--wa-color-indigo-50),
-    var(--wa-color-purple-50),
-    var(--wa-color-red-50)
-  );
-  border: solid 1px var(--wa-color-purple-50);
-  transition: transform 100ms, box-shadow 100ms;
-}
-
-.gradient-button::part(base):hover {
-  box-shadow: var(--wa-shadow-m);
-  transform: translateY(-3px);
-}
-
-.gradient-button::part(base):active {
-  box-shadow: inset var(--wa-shadow-s);
-  transform: translateY(0);
-}
-
-.gradient-button::part(label) {
-  color: white;
-  text-shadow: rgb(0 0 0 / 0.3) 0 -1px;
-}
-
 /* ADDED FOR PORTAL */
 /* Remove shadows from plain buttons */
 wa-button[appearance="plain"]::part(base) {

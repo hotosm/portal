@@ -1,24 +1,20 @@
 """Service layer for OAM imagery DB operations."""
 
-import logging
 from datetime import datetime, timezone
 from typing import Optional
 
 import httpx
-
-logger = logging.getLogger(__name__)
 from geoalchemy2.functions import ST_GeomFromText, ST_Intersects, ST_MakeEnvelope
 from sqlalchemy import asc, desc, func, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.db.models.oam import OAMImage
 
-OAM_API_BASE_URL = settings.oam_api_url
+OAM_API_BASE_URL = "https://api.openaerialmap.org"
 
 
-def bbox_to_wkt(bbox: list[float]) -> str:
+def _bbox_to_wkt(bbox: list[float]) -> str:
     """Convert [min_lon, min_lat, max_lon, max_lat] to WKT POLYGON."""
     min_lon, min_lat, max_lon, max_lat = bbox
     return (
@@ -27,11 +23,11 @@ def bbox_to_wkt(bbox: list[float]) -> str:
     )
 
 
-def oam_item_to_row(item: dict) -> dict:
+def _oam_item_to_row(item: dict) -> dict:
     """Convert a raw OAM API result dict to a DB row dict."""
     props = item.get("properties") or {}
     bbox = item.get("bbox")
-    geometry_wkt = bbox_to_wkt(bbox) if bbox and len(bbox) == 4 else None
+    geometry_wkt = _bbox_to_wkt(bbox) if bbox and len(bbox) == 4 else None
 
     acq_raw = item.get("acquisition_end")
     acquisition_end = None
@@ -66,7 +62,7 @@ async def upsert_images(db: AsyncSession, images: list[dict]) -> int:
     if not images:
         return 0
 
-    rows = [r for r in (oam_item_to_row(img) for img in images) if r.get("id")]
+    rows = [r for r in (_oam_item_to_row(img) for img in images) if r.get("id")]
 
     if not rows:
         return 0
@@ -96,7 +92,7 @@ async def sync_from_oam_api(db: AsyncSession) -> int:
     Fetch all public imagery from OAM API and upsert into DB.
     Returns total number of images upserted.
     """
-    logger.info("Starting OAM sync from API...")
+    print("📸 Starting OAM sync from API...")
     url = f"{OAM_API_BASE_URL}/meta"
     params = {"limit": 99999, "sort": "desc"}
 
@@ -107,7 +103,7 @@ async def sync_from_oam_api(db: AsyncSession) -> int:
 
     results = data.get("results", [])
     if not results:
-        logger.info("OAM API returned 0 results")
+        print("⚠️ OAM API returned 0 results")
         return 0
 
     # Upsert in batches of 500 to avoid huge transactions
@@ -118,7 +114,7 @@ async def sync_from_oam_api(db: AsyncSession) -> int:
         count = await upsert_images(db, batch)
         total += count
 
-    logger.info("OAM sync complete: %s images upserted", total)
+    print(f"✅ OAM sync complete: {total} images upserted")
     return total
 
 
@@ -197,7 +193,7 @@ async def query_images(
 
     rows = (await db.execute(query)).scalars().all()
 
-    results = [row_to_api_dict(row) for row in rows]
+    results = [_row_to_api_dict(row) for row in rows]
 
     return {
         "meta": {
@@ -217,7 +213,7 @@ async def query_all_images(db: AsyncSession) -> dict:
     rows = (await db.execute(query)).scalars().all()
 
     stats = await get_db_stats(db)
-    results = [row_to_compact_dict(row) for row in rows]
+    results = [_row_to_compact_dict(row) for row in rows]
 
     return {
         "count": len(results),
@@ -231,7 +227,7 @@ async def get_image_by_id(db: AsyncSession, image_id: str) -> Optional[dict]:
     row = await db.get(OAMImage, image_id)
     if row is None:
         return None
-    return row_to_api_dict(row)
+    return _row_to_api_dict(row)
 
 
 async def get_db_stats(db: AsyncSession) -> dict:
@@ -255,7 +251,7 @@ async def is_db_empty(db: AsyncSession) -> bool:
 # ── Internal helpers ──────────────────────────────────────────────────────────
 
 
-def row_to_api_dict(row: OAMImage) -> dict:
+def _row_to_api_dict(row: OAMImage) -> dict:
     """Serialize an OAMImage row to the full OAM API response format."""
     return {
         "_id": row.id,
@@ -271,7 +267,7 @@ def row_to_api_dict(row: OAMImage) -> dict:
     }
 
 
-def row_to_compact_dict(row: OAMImage) -> dict:
+def _row_to_compact_dict(row: OAMImage) -> dict:
     """Serialize an OAMImage row to compact snapshot format (short field names)."""
     compact = {
         "_id": row.id,

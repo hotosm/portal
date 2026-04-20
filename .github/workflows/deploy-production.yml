@@ -51,7 +51,6 @@ jobs:
         env:
           DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/test
           COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
-          PORTAL_BASE_URL: http://localhost:8000
         run: uv run pytest
 
       - name: Setup Node.js

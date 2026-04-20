@@ -1,12 +1,11 @@
 import { Link } from "react-router-dom";
 import "@hotosm/tool-menu";
-import hotLogo from "../assets/icons/portal.svg";
+import hotLogo from "../assets/images/hot-icon.svg";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import DrawerMenu from "./DrawerMenu";
 import LanguageSwitcher from "./LanguageSwitcher";
 import NavigationMain from "./NavigationMain";
-import { m } from "../paraglide/messages";
 
 function Header() {
   const { isLogin } = useAuth();
@@ -23,36 +22,32 @@ function Header() {
           )}
           <Link
             to={`/${currentLanguage}/`}
-            className="flex items-center gap-xl hover:no-underline"
+            className="flex items-center gap-2 hover:no-underline"
           >
-            <img src={hotLogo} alt="HOT Logo" className="w-8 h-8" />
+            <img src={hotLogo} alt="HOT Logo" className="w-14 h-14" />
 
             <span
-              className="text-[20px] font-bold text-hot-gray-950 leading-tight"
-              style={{ fontFamily: "Barlow, sans-serif" }}
+              className="uppercase text-[22px] text-hot-gray-950 leading-tight hover:no-underline"
+              style={{ fontFamily: "Barlow" }}
             >
               Portal
             </span>
           </Link>
 
-          <div className="hidden lg:flex items-center gap-xl">
-            <span className="w-px h-5 bg-hot-gray-300" aria-hidden="true" />
-            {isLogin ? (
-              <NavigationMain />
+          {/* desktop navigation with tagline
+          <div className="hidden lg:block">
+            {isLogin ? <NavigationMain />
             ) : (
-              <span className="text-base leading-none text-hot-gray-950">
+              <span className="hidden lg:block text-lg leading-none xl:text-xl uppercase">
                 {m.header_tagline()}
               </span>
             )}
-          </div>
+          </div> */}
+          <div className="hidden lg:block">{isLogin && <NavigationMain />}</div>
         </div>
 
-        <div className="flex items-center gap-xs">
-          <hotosm-auth
-            lang={currentLanguage}
-            button-color="primary"
-            button-variant="filled"
-          />
+        <div className="flex items-center">
+          <hotosm-auth lang={currentLanguage} button-color="primary" />
           <LanguageSwitcher />
 
           <hotosm-tool-menu lang={currentLanguage} />

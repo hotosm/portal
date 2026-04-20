@@ -47,6 +47,7 @@ function ImageryNoProjects() {
             <Divider />
             <ul>
               <li>
+                {/* TODO check links */}
                 <LinkListItem
                   label="Upload new"
                   icon="upload"

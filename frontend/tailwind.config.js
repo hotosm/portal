@@ -44,7 +44,6 @@ export default {
         "hot-gray-300": "var(--hot-color-gray-300)",
         "hot-gray-200": "var(--hot-color-gray-200)",
         "hot-gray-100": "var(--hot-color-gray-100)",
-        "hot-gray-1000": "#000000",
         "hot-gray-50": "var(--hot-color-gray-50)",
 
         // Semantic colors

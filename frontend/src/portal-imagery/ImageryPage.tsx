@@ -1,95 +1,71 @@
-import CardAddNew from "../components/shared/CardAddNew";
-import CardDataNotAvailable from "../components/shared/CardDataNotAvailable";
-import CardSkeleton from "../components/shared/CardSkeleton";
-import CardTakeCourse from "../components/shared/CardTakeCourse";
+import GoToWesiteCTA from "../components/shared/GoToWesiteCTA";
 import PageWrapper from "../components/shared/PageWrapper";
-import SectionHeader from "../components/shared/SectionHeader";
-import SubSectionHeader from "../components/shared/SubSectionHeader";
+import YourProjectsTitle from "../components/shared/YourProjectsTitle";
 import { m } from "../paraglide/messages";
 import ImageryCard from "./components/ImageryCard";
-import { useDroneProjects } from "./hooks";
-import droneIcon from "../assets/icons/drone.svg";
-import oamIcon from "../assets/icons/oam.svg";
-
-const CARD_CLASS =
-  "w-full md:w-[calc(33.333%_-_var(--hot-spacing-large)*0.667)] lg:w-[calc(25%_-_var(--hot-spacing-large)*0.75)] shrink-0";
+import ImageryNoProjects from "./components/ImageryNoProjects";
+import { useAllImageryData } from "./hooks/useImageryData";
 
 function ImageryPage() {
-  const { data: droneProjects = [], isLoading } = useDroneProjects();
+  const {
+    allProjects,
+    droneProjects,
+    oamProjects,
+    isLoading,
+    isError,
+    error,
+  } = useAllImageryData();
 
   return (
-    <>
-      <SectionHeader>
-        <span
-          dangerouslySetInnerHTML={{ __html: m.section_imagery_header() }}
-        />
-      </SectionHeader>
-      <SubSectionHeader
-        icon={droneIcon}
-        title={m.imagery_drone_capturing()}
-        toolName="Drone Tasking Manager"
-      />
-      <PageWrapper>
-        {/* Drone image capturing section */}
-        <div className="flex flex-col gap-sm py-lg">
-          <div className="flex flex-wrap gap-lg">
-            {isLoading ? (
-              Array.from({ length: 1 }).map((_, i) => (
-                <div key={i} className={CARD_CLASS}>
-                  <CardSkeleton linesCount={3} />
-                </div>
-              ))
-            ) : (
-              <>
-                <div className={CARD_CLASS}>
-                  <CardAddNew
-                    title={m.imagery_drone_card_title()}
-                    description={m.imagery_drone_card_description()}
-                    buttonLabel={m.imagery_drone_card_button()}
-                    icon="add"
-                  />
-                </div>
-                {droneProjects.map((project) => (
-                  <div key={project.id} className={CARD_CLASS}>
-                    <ImageryCard project={project} />
-                  </div>
-                ))}
-              </>
-            )}
-            <div className={CARD_CLASS}>
-              <CardTakeCourse
-                title={m.imagery_take_course_title()}
-                subtitle={m.imagery_take_course_subtitle()}
-                href="#"
-              />
-            </div>
-          </div>
-        </div>
-      </PageWrapper>
+    <PageWrapper>
+      <div className="space-y-xl">
+        <GoToWesiteCTA
+          buttonLink="https://dronetm.org"
+          buttonText="Drone TM"
+          link2={{
+            label: "OpenAerialMap",
+            url: "https://openaerialmap.org",
+          }}
+        >
+          <strong>Drone</strong> Tasking Manager and{" "}
+          <strong>OpenAerialMap</strong>
+        </GoToWesiteCTA>
 
-      <SubSectionHeader
-        icon={oamIcon}
-        title={m.imagery_image_publishing()}
-        toolName="OpenAerialMap"
-      />
-      <PageWrapper>
-        <div className="flex flex-col gap-sm py-lg">
-          <div className="flex flex-wrap gap-lg">
-            <div className={CARD_CLASS}>
-              <CardAddNew
-                title={m.imagery_oam_card_title()}
-                description={m.imagery_oam_card_description()}
-                buttonLabel={m.imagery_oam_card_button()}
-                icon="explore"
-              />
-            </div>
-            <div className={CARD_CLASS}>
-              <CardDataNotAvailable />
-            </div>
+        {isLoading ? (
+          <div className="flex justify-center items-center py-xl">
+            <div className="text-lg">Loading projects...</div>
           </div>
-        </div>
-      </PageWrapper>
-    </>
+        ) : isError ? (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-md">
+            <p className="text-red-800">{error?.message || "Failed to load projects"}</p>
+          </div>
+        ) : allProjects.length === 0 ? (
+          <ImageryNoProjects />
+        ) : (
+          <div className="bg-hot-gray-50 p-md md:p-lg rounded-lg space-y-lg">
+            <YourProjectsTitle projects={droneProjects} />
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-lg">
+              {droneProjects.map((project) => {
+                return <ImageryCard key={project.id} project={project} />;
+              })}
+            </div>
+
+            {oamProjects.length > 0 && (
+              <div>
+                <p className="text-lg ">
+                  {m.your_plural()} <strong>{m.imagery()}</strong>
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-lg">
+                  {oamProjects.map((project) => {
+                    return <ImageryCard key={project.id} project={project} />;
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </PageWrapper>
   );
 }
 
