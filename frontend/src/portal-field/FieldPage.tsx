@@ -12,7 +12,8 @@ const CARD_CLASS =
   "w-full md:w-[calc(33.333%_-_var(--hot-spacing-large)*0.667)] lg:w-[calc(25%_-_var(--hot-spacing-large)*0.75)] shrink-0";
 
 function FieldPage() {
-  const { data: fieldProjects = [], isLoading: fieldLoading } = useFieldTMProjects();
+  const { data: fieldProjects = [], isLoading: fieldLoading } =
+    useFieldTMProjects();
   const { data: chatMaps = [], isLoading: chatmapLoading } = useChatMapData();
 
   if (fieldLoading || chatmapLoading) {
@@ -26,7 +27,6 @@ function FieldPage() {
       </SectionHeader>
       <PageWrapper>
         <div className="space-y-xl">
-
           {/* Organize field projects */}
           <div className="flex flex-col gap-sm py-lg">
             <div>
@@ -43,6 +43,7 @@ function FieldPage() {
                   title="Create"
                   description="a field mapping project"
                   buttonLabel="Create a project"
+                  icon="add"
                 />
               </div>
               {fieldProjects.map((project) => (
@@ -71,6 +72,7 @@ function FieldPage() {
                   title="Map"
                   description="with chats"
                   buttonLabel="Create a map"
+                  icon="add"
                 />
               </div>
               {chatMaps.map((map) => (
@@ -87,7 +89,6 @@ function FieldPage() {
               </div>
             </div>
           </div>
-
         </div>
       </PageWrapper>
     </>
