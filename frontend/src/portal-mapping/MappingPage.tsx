@@ -58,7 +58,7 @@ function MappingPage() {
 
       <SubSectionHeader
         icon={aiIcon}
-        title="<strong>AI-assisted </strong>mapping"
+        title={m.mapping_ai_assisted()}
         toolName="fAIr"
       />
 
