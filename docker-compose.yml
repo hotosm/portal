@@ -54,7 +54,7 @@ services:
       # External service URLs
       DRONE_TM_BACKEND_URL: ${DRONE_TM_BACKEND_URL:-}
       FAIR_API_BASE_URL: ${FAIR_API_BASE_URL:-}
-      FAIR_VERIFY_SSL: ${FAIR_VERIFY_SSL:-true}
+      FAIR_VERIFY_SSL: ${FAIR_VERIFY_SSL:-}
       UMAP_BASE_URL: ${UMAP_BASE_URL:-https://umap.hotosm.org}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
