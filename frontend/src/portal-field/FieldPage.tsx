@@ -9,8 +9,8 @@ import SubSectionHeader from "../components/shared/SubSectionHeader";
 import chatIcon from "../assets/icons/chat.svg";
 import fieldIcon from "../assets/icons/field.svg";
 import { useFieldTMProjects } from "./hooks/useFieldTMProjects";
-import FieldCard from "./components/FieldCard";
 import CardTakeCourse from "../components/shared/CardTakeCourse";
+import FieldTMCard from "./components/FieldTMCard";
 
 const CARD_CLASS =
   "w-full md:w-[calc(33.333%_-_var(--hot-spacing-large)*0.667)] lg:w-[calc(25%_-_var(--hot-spacing-large)*0.75)] shrink-0";
@@ -83,7 +83,7 @@ function FieldPage() {
               <>
                 {fieldMaps.map((project) => (
                   <div key={project.id} className={CARD_CLASS}>
-                    <FieldCard project={project} />
+                    <FieldTMCard project={project} />
                   </div>
                 ))}
               </>

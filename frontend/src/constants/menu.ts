@@ -37,7 +37,7 @@ export const MAIN_MENU_ITEMS: MenuItem[] = [
     requiresAuth: false,
   },
   {
-    id: "plan",
+    id: "plans",
     label: m.section_plan,
     href: "/plan",
     requiresAuth: false,

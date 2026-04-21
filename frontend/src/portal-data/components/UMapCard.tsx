@@ -1,33 +1,30 @@
+import CardProjectTitle from "../../components/shared/CardProjectTitle";
 import Tag from "../../components/shared/Tag";
 import type { IUMapProject } from "../../portal-data/types";
+import placeholder from "../../assets/images/placeholder.png";
 
 const UMapCard = ({ project }: { project: IUMapProject }) => {
   return (
-    <div
-      className="w-full h-full bg-white rounded-xl p-md flex flex-col gap-lg"
-      style={{ boxShadow: "0 0 5px 0 rgba(0, 0, 0, 0.25)" }}
-    >
-      <div className="relative">
-        <img
-          src={project.image}
-          alt={project.title}
-          className="w-full h-[160px] object-cover"
-        />
-        <Tag
-          variant={project.status === "draft" ? "neutral" : "success"}
-          className="absolute top-1 right-1 z-10 capitalize"
-        >
-          {project.status}
-        </Tag>
+    <div className="w-full h-full bg-white rounded-xl shadow-[0_0_14px_rgba(0,0,0,0.2)] p-md flex flex-col gap-lg">
+      <div className="flex flex-col gap-sm">
+        <div className="relative">
+          <img
+            src={project.image}
+            alt={project.title}
+            className="w-full h-[160px] object-cover"
+            onError={(e) => {
+              e.currentTarget.src = placeholder;
+            }}
+          />
+          <Tag
+            variant={project.status === "draft" ? "neutral" : "success"}
+            className="absolute top-1 right-1 z-10 capitalize"
+          >
+            {project.status}
+          </Tag>
+        </div>
+        <CardProjectTitle href={project.href} title={project.title} />
       </div>
-      <a
-        href={project.href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="no-underline font-bold line-clamp-3"
-      >
-        {project.title}
-      </a>
     </div>
   );
 };
