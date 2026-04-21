@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { IImageryProject, DroneProject, DroneApiResponse } from "../types";
 import { getDroneTmBaseUrl } from "../../utils/envConfig";
+import { useAuth } from "../../contexts/AuthContext";
 
 export type { DroneProject, DroneApiResponse };
 
@@ -21,6 +22,7 @@ export const droneProjectsQueryKeys = {
  * - Pagination handled internally
  */
 export function useDroneProjects() {
+  const { isLogin } = useAuth();
   return useQuery({
     queryKey: droneProjectsQueryKeys.user(),
     queryFn: async (): Promise<IImageryProject[]> => {
@@ -63,6 +65,7 @@ export function useDroneProjects() {
     gcTime: 30 * 60 * 1000, // 30 minutes - keep in cache (formerly cacheTime)
     refetchOnWindowFocus: true,
     retry: 2,
+    enabled: isLogin,
   });
 }
 
@@ -70,6 +73,7 @@ export function useDroneProjects() {
  * Get the raw Drone project data (without IImageryProject mapping)
  */
 export function useDroneProjectsRaw() {
+  const { isLogin } = useAuth();
   return useQuery({
     queryKey: [...droneProjectsQueryKeys.user(), "raw"],
     queryFn: async (): Promise<DroneProject[]> => {
@@ -103,5 +107,6 @@ export function useDroneProjectsRaw() {
     gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: true,
     retry: 2,
+    enabled: isLogin,
   });
 }

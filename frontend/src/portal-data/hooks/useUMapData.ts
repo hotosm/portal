@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { IUMapProject } from "../types";
 import { getUmapBaseUrl } from "../../utils/envConfig";
 import placeholderImage from "../../assets/images/demo/demo1.png";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface UMapMap {
   id: number;
@@ -24,6 +25,7 @@ function mapToProject(item: UMapMap): IUMapProject {
 }
 
 export function useMyMaps() {
+  const { isLogin } = useAuth();
   return useQuery({
     queryKey: ["umap", "my-maps"],
     queryFn: async (): Promise<IUMapProject[]> => {
@@ -43,5 +45,6 @@ export function useMyMaps() {
     gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: true,
     retry: 2,
+    enabled: isLogin,
   });
 }

@@ -4,8 +4,10 @@ import {
   type IDataProject,
   mapExportJobsToDataProjects,
 } from "../types";
+import { useAuth } from "../../contexts/AuthContext";
 
 export function useExportJobs() {
+  const { isLogin } = useAuth();
   return useQuery({
     queryKey: ["export-tool", "jobs", "me"],
     queryFn: async (): Promise<IDataProject[]> => {
@@ -30,5 +32,6 @@ export function useExportJobs() {
         return [];
       }
     },
+    enabled: isLogin,
   });
 }

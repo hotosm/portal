@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getChatMapBaseUrl } from "../../utils/envConfig";
 import type { ChatMapProject } from "../types";
 import placeholderImage from "../../assets/images/demo/demo1.png";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface ChatMap {
   id: string;
@@ -24,6 +25,7 @@ function mapToProject(item: ChatMap): ChatMapProject {
 }
 
 export function useChatMapData() {
+  const { isLogin } = useAuth();
   return useQuery({
     queryKey: ["chatmap", "my-maps"],
     queryFn: async (): Promise<ChatMapProject[]> => {
@@ -43,5 +45,6 @@ export function useChatMapData() {
     gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: true,
     retry: 2,
+    enabled: isLogin,
   });
 }
