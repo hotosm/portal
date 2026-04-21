@@ -1,23 +1,20 @@
 import CardProjectTitle from "../../components/shared/CardProjectTitle";
 import Tag from "../../components/shared/Tag";
-import { ChatMapProject } from "../types";
-import placeholder from "../../assets/images/placeholder.png";
+import { IFairProject } from "../types";
 
-const ChatMapCard = ({ project }: { project: ChatMapProject }) => {
+interface FairCardProps {
+  project: IFairProject;
+}
+
+const FairProjectCard = ({ project }: FairCardProps) => {
   return (
-    <div
-      className="w-full h-full bg-white rounded-xl p-md flex flex-col gap-lg"
-      style={{ boxShadow: "0 0 5px 0 rgba(0, 0, 0, 0.25)" }}
-    >
+    <div className="w-full h-full bg-white rounded-xl shadow-[0_0_14px_rgba(0,0,0,0.2)] p-md flex flex-col gap-lg">
       <div className="flex flex-col gap-sm">
         <div className="relative">
           <img
             src={project.image}
             alt={project.title}
-            className="w-full h-[160px] object-cover"
-            onError={(e) => {
-              e.currentTarget.src = placeholder;
-            }}
+            className="w-full h-[147px] object-cover"
           />
           <Tag
             variant={project.status === "draft" ? "neutral" : "success"}
@@ -32,4 +29,4 @@ const ChatMapCard = ({ project }: { project: ChatMapProject }) => {
   );
 };
 
-export default ChatMapCard;
+export default FairProjectCard;

@@ -22,8 +22,8 @@ function SectionHeader({ children }: SectionHeaderProps) {
       }}
     >
       <PageWrapper>
-        <div className="flex flex-col md:flex-row gap-sm w-full justify-between p-md items-start md:items-center">
-          <div className="text-2xl font-bold">{children}</div>
+        <div className="flex flex-col md:flex-row gap-sm w-full justify-between pt-md pb-md items-start md:items-center">
+          <div className="text-2xl">{children}</div>
           <Button>
             {m.getting_started()}{" "}
             <Icon className="ml-xs" src={playCircleFill} />

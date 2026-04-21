@@ -1,10 +1,7 @@
 import PageWrapper from "../components/shared/PageWrapper";
 import { useDroneProjects } from "../portal-imagery/hooks/useDroneProjects";
 import { useOAMImagery } from "../portal-imagery/hooks/useOAMImagery";
-import {
-  useMyModels,
-  useMyDatasets,
-} from "../portal-mapping/hooks/useFairData";
+import { useMyModels } from "../portal-mapping/hooks/useFairData";
 import { useMyMaps } from "../portal-data/hooks/useUMapData";
 import { useExportJobs } from "../portal-data/hooks/useExportToolData";
 import { useChatMapData } from "../portal-field/hooks/useChatMapData";
@@ -21,11 +18,6 @@ function TestPage() {
     isLoading: modelsLoading,
     error: modelsError,
   } = useMyModels();
-  const {
-    data: datasets,
-    isLoading: datasetsLoading,
-    error: datasetsError,
-  } = useMyDatasets();
   const {
     data: umapMaps,
     isLoading: umapLoading,
@@ -148,13 +140,13 @@ function TestPage() {
         {modelsLoading && <p>Loading FAIR models...</p>}
         {modelsError && <p>Error loading models: {modelsError.message}</p>}
 
-        {models && models.length === 0 && !modelsLoading && (
+        {models && models.items.length === 0 && !modelsLoading && (
           <p>No FAIR models found.</p>
         )}
 
-        {models && models.length > 0 && (
+        {models && models.items.length > 0 && (
           <ul style={{ listStyle: "none", padding: 0 }}>
-            {models.map((model) => (
+            {models.items.map((model) => (
               <li
                 key={model.id}
                 style={{
@@ -180,45 +172,6 @@ function TestPage() {
           </ul>
         )}
 
-        <h2>FAIR Datasets</h2>
-
-        {datasetsLoading && <p>Loading FAIR datasets...</p>}
-        {datasetsError && (
-          <p>Error loading datasets: {datasetsError.message}</p>
-        )}
-
-        {datasets && datasets.length === 0 && !datasetsLoading && (
-          <p>No FAIR datasets found.</p>
-        )}
-
-        {datasets && datasets.length > 0 && (
-          <ul style={{ listStyle: "none", padding: 0 }}>
-            {datasets.map((dataset) => (
-              <li
-                key={dataset.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "1rem",
-                  padding: "1rem",
-                  borderBottom: "1px solid #eee",
-                }}
-              >
-                <div>
-                  <a
-                    href={dataset.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ fontWeight: 600 }}
-                  >
-                    {dataset.title}
-                  </a>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-
         <h2>Export Tool Jobs</h2>
 
         {exportsLoading && <p>Loading export jobs...</p>}
@@ -226,13 +179,13 @@ function TestPage() {
           <p>Error loading export jobs: {exportsError.message}</p>
         )}
 
-        {exportJobs && exportJobs.length === 0 && !exportsLoading && (
+        {exportJobs && exportJobs.items.length === 0 && !exportsLoading && (
           <p>No export jobs found.</p>
         )}
 
-        {exportJobs && exportJobs.length > 0 && (
+        {exportJobs && exportJobs.items.length > 0 && (
           <ul style={{ listStyle: "none", padding: 0 }}>
-            {exportJobs.map((job) => (
+            {exportJobs.items.map((job) => (
               <li
                 key={job.id}
                 style={{

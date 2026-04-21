@@ -1,38 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import type { IImageryProject } from "../imageryProjects";
+import type { IImageryProject, OAMImageryResult, OAMApiResponse } from "../types";
+import { useAuth } from "../../contexts/AuthContext";
+
+export type { OAMImageryResult, OAMApiResponse };
 
 // Get OAM URL from environment
 const OAM_URL = import.meta.env.VITE_OAM_URL || "https://openaerialmap.org";
-
-// OAM API types
-export interface OAMImageryResult {
-  _id: string;
-  uuid?: string;
-  title?: string;
-  provider?: string;
-  contact?: string;
-  bbox?: number[];
-  gsd?: number;
-  acquisition_start?: string;
-  acquisition_end?: string;
-  platform?: string;
-  uploaded_at?: string;
-  properties?: {
-    tms?: string;
-    thumbnail?: string;
-  };
-}
-
-export interface OAMApiResponse {
-  meta: {
-    provided_by?: string;
-    license?: string;
-    page?: number;
-    limit?: number;
-    found?: number;
-  };
-  results: OAMImageryResult[];
-}
 
 // Query keys for cache management
 export const oamImageryQueryKeys = {
@@ -50,6 +23,7 @@ export const oamImageryQueryKeys = {
  * - Automatic background refetch on window focus
  */
 export function useOAMImagery() {
+  const { isLogin } = useAuth();
   return useQuery({
     queryKey: oamImageryQueryKeys.user(),
     queryFn: async (): Promise<IImageryProject[]> => {
@@ -79,10 +53,11 @@ export function useOAMImagery() {
         image: item.properties?.thumbnail || "",
       }));
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 30 * 60 * 1000, // 30 minutes (formerly cacheTime)
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: true,
     retry: 2,
+    enabled: isLogin,
   });
 }
 
@@ -90,6 +65,7 @@ export function useOAMImagery() {
  * Get the raw OAM imagery data (without IImageryProject mapping)
  */
 export function useOAMImageryRaw() {
+  const { isLogin } = useAuth();
   return useQuery({
     queryKey: [...oamImageryQueryKeys.user(), "raw"],
     queryFn: async (): Promise<OAMImageryResult[]> => {
@@ -115,5 +91,6 @@ export function useOAMImageryRaw() {
     gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: true,
     retry: 2,
+    enabled: isLogin,
   });
 }

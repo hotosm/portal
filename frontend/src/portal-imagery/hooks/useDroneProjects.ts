@@ -1,32 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import type { IImageryProject } from "../imageryProjects";
+import type { IImageryProject, DroneProject, DroneApiResponse } from "../types";
 import { getDroneTmBaseUrl } from "../../utils/envConfig";
+import { useAuth } from "../../contexts/AuthContext";
 
-// Drone TM API types
-export interface DroneProject {
-  id: string;
-  slug: string;
-  name: string;
-  description: string;
-  image_url: string;
-  status: string;
-  total_task_count: number;
-  ongoing_task_count: number;
-  completed_task_count: number;
-}
-
-export interface DroneApiResponse {
-  results: DroneProject[];
-  pagination: {
-    has_next: boolean;
-    has_prev: boolean;
-    next_num: number | null;
-    prev_num: number | null;
-    page: number;
-    per_page: number;
-    total: number;
-  };
-}
+export type { DroneProject, DroneApiResponse };
 
 // Query keys for cache management
 export const droneProjectsQueryKeys = {
@@ -45,6 +22,7 @@ export const droneProjectsQueryKeys = {
  * - Pagination handled internally
  */
 export function useDroneProjects() {
+  const { isLogin } = useAuth();
   return useQuery({
     queryKey: droneProjectsQueryKeys.user(),
     queryFn: async (): Promise<IImageryProject[]> => {
@@ -87,6 +65,7 @@ export function useDroneProjects() {
     gcTime: 30 * 60 * 1000, // 30 minutes - keep in cache (formerly cacheTime)
     refetchOnWindowFocus: true,
     retry: 2,
+    enabled: isLogin,
   });
 }
 
@@ -94,6 +73,7 @@ export function useDroneProjects() {
  * Get the raw Drone project data (without IImageryProject mapping)
  */
 export function useDroneProjectsRaw() {
+  const { isLogin } = useAuth();
   return useQuery({
     queryKey: [...droneProjectsQueryKeys.user(), "raw"],
     queryFn: async (): Promise<DroneProject[]> => {
@@ -127,5 +107,6 @@ export function useDroneProjectsRaw() {
     gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: true,
     retry: 2,
+    enabled: isLogin,
   });
 }

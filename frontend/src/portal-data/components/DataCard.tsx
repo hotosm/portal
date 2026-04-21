@@ -1,5 +1,5 @@
 import Tag from "../../components/shared/Tag";
-import { IDataProject } from "../../portal-mapping/types";
+import { IDataProject } from "../types";
 
 interface DataCardProps {
   project: IDataProject;

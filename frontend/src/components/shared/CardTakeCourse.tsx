@@ -24,10 +24,10 @@ function CardTakeCourse({
       }}
     >
       <div>
-        <p className="font-archivo font-semibold text-xl leading-tight text-white mb-0">
+        <p className="font-bold text-xl leading-tight text-white mb-0">
           {title}
         </p>
-        <p className="font-archivo font-normal text-xl leading-tight text-white">
+        <p className="font-normal text-xl leading-tight text-white">
           {subtitle}
         </p>
       </div>

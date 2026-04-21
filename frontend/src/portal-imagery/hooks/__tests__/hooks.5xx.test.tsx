@@ -16,6 +16,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { useOAMImagery } from "../useOAMImagery";
 import { useDroneProjects } from "../useDroneProjects";
 
+vi.mock("../../../contexts/AuthContext", () => ({
+  useAuth: () => ({ isLogin: true, user: { id: "test-user", email: null, username: null, emailVerified: false }, osmConnection: null, isAuthLoading: false }),
+}));
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------

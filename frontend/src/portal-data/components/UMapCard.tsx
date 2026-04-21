@@ -1,14 +1,11 @@
 import CardProjectTitle from "../../components/shared/CardProjectTitle";
 import Tag from "../../components/shared/Tag";
-import { ChatMapProject } from "../types";
+import type { IUMapProject } from "../../portal-data/types";
 import placeholder from "../../assets/images/placeholder.png";
 
-const ChatMapCard = ({ project }: { project: ChatMapProject }) => {
+const UMapCard = ({ project }: { project: IUMapProject }) => {
   return (
-    <div
-      className="w-full h-full bg-white rounded-xl p-md flex flex-col gap-lg"
-      style={{ boxShadow: "0 0 5px 0 rgba(0, 0, 0, 0.25)" }}
-    >
+    <div className="w-full h-full bg-white rounded-xl shadow-[0_0_14px_rgba(0,0,0,0.2)] p-md flex flex-col gap-lg">
       <div className="flex flex-col gap-sm">
         <div className="relative">
           <img
@@ -32,4 +29,4 @@ const ChatMapCard = ({ project }: { project: ChatMapProject }) => {
   );
 };
 
-export default ChatMapCard;
+export default UMapCard;
