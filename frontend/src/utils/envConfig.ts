@@ -47,13 +47,6 @@ export function getFairModelUrl(modelId: number): string {
 }
 
 /**
- * Get the full URL for a fAIr dataset.
- */
-export function getFairDatasetUrl(datasetId: number): string {
-  return `${getFairBaseUrl()}/datasets/${datasetId}`;
-}
-
-/**
  * uMap frontend URLs per environment.
  */
 const UMAP_URLS: Record<Environment, string> = {

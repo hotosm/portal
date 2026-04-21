@@ -130,15 +130,6 @@ export interface FAIRModel {
   dataset: number | null;
 }
 
-export interface FAIRDataset {
-  id: number;
-  name: string | null;
-  created_at: string | null;
-  last_modified: string | null;
-  source_imagery: string | null;
-  status: number | null;
-  user: FAIRUser | null;
-}
 
 export interface FAIRResponse<T> {
   count: number;
