@@ -1,6 +1,7 @@
 import CardProjectTitle from "../../components/shared/CardProjectTitle";
 import Tag from "../../components/shared/Tag";
 import type { IUMapProject } from "../../portal-data/types";
+import placeholder from "../../assets/images/placeholder.png";
 
 const UMapCard = ({ project }: { project: IUMapProject }) => {
   return (
@@ -11,6 +12,9 @@ const UMapCard = ({ project }: { project: IUMapProject }) => {
             src={project.image}
             alt={project.title}
             className="w-full h-[160px] object-cover"
+            onError={(e) => {
+              e.currentTarget.src = placeholder;
+            }}
           />
           <Tag
             variant={project.status === "draft" ? "neutral" : "success"}

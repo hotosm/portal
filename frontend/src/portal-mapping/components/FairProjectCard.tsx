@@ -1,3 +1,4 @@
+import CardProjectTitle from "../../components/shared/CardProjectTitle";
 import Tag from "../../components/shared/Tag";
 import { IFairProject } from "../types";
 
@@ -7,13 +8,8 @@ interface FairCardProps {
 
 const FairProjectCard = ({ project }: FairCardProps) => {
   return (
-    <a
-      href={project.href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="block h-full group no-underline hover:no-underline"
-    >
-      <div className="w-full h-full bg-white rounded-xl shadow-[0_0_14px_rgba(0,0,0,0.2)] p-md flex flex-col gap-lg">
+    <div className="w-full h-full bg-white rounded-xl shadow-[0_0_14px_rgba(0,0,0,0.2)] p-md flex flex-col gap-lg">
+      <div className="flex flex-col gap-sm">
         <div className="relative">
           <img
             src={project.image}
@@ -27,11 +23,9 @@ const FairProjectCard = ({ project }: FairCardProps) => {
             {project.status}
           </Tag>
         </div>
-        <div>
-          <span className="bold line-clamp-2">{project.title}</span>
-        </div>
+        <CardProjectTitle href={project.href} title={project.title} />
       </div>
-    </a>
+    </div>
   );
 };
 

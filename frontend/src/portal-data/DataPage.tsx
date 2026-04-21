@@ -1,18 +1,17 @@
 import { useState } from "react";
+import exportIcon from "../assets/icons/export.svg";
+import umapIcon from "../assets/icons/umap.svg";
 import CardAddNew from "../components/shared/CardAddNew";
 import CardSkeleton from "../components/shared/CardSkeleton";
 import CardTakeCourse from "../components/shared/CardTakeCourse";
-import Divider from "../components/shared/Divider";
 import PageWrapper from "../components/shared/PageWrapper";
 import Pagination from "../components/shared/Pagination";
 import SectionHeader from "../components/shared/SectionHeader";
-import UMapCard from "./components/UMapCard";
+import SubSectionHeader from "../components/shared/SubSectionHeader";
 import { m } from "../paraglide/messages";
 import ExportCard from "./components/ExportCard";
+import UMapCard from "./components/UMapCard";
 import { useExportJobs, useMyMaps } from "./hooks";
-import SubSectionHeader from "../components/shared/SubSectionHeader";
-import umapIcon from "../assets/icons/umap.svg";
-import exportIcon from "../assets/icons/export.svg";
 
 const CARD_CLASS =
   "w-full md:w-[calc(33.333%_-_var(--hot-spacing-large)*0.667)] lg:w-[calc(25%_-_var(--hot-spacing-large)*0.75)] shrink-0";

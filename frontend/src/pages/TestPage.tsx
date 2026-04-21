@@ -179,13 +179,13 @@ function TestPage() {
           <p>Error loading export jobs: {exportsError.message}</p>
         )}
 
-        {exportJobs && exportJobs.length === 0 && !exportsLoading && (
+        {exportJobs && exportJobs.items.length === 0 && !exportsLoading && (
           <p>No export jobs found.</p>
         )}
 
-        {exportJobs && exportJobs.length > 0 && (
+        {exportJobs && exportJobs.items.length > 0 && (
           <ul style={{ listStyle: "none", padding: 0 }}>
-            {exportJobs.map((job) => (
+            {exportJobs.items.map((job) => (
               <li
                 key={job.id}
                 style={{
