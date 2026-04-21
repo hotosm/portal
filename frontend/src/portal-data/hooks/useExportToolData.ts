@@ -1,9 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { ExportJobsResponse } from "../../types/projectsMap";
-import {
-  type IDataProject,
-  mapExportJobsToDataProjects,
-} from "../types";
+import { type IDataProject, mapExportJobsToDataProjects } from "../types";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface PaginatedResult<T> {
   items: T[];
@@ -12,6 +10,7 @@ interface PaginatedResult<T> {
 
 export function useExportJobs(page = 1, limit = 6) {
   const offset = (page - 1) * limit;
+  const { isLogin } = useAuth();
   return useQuery({
     queryKey: ["export-tool", "jobs", "me", page, limit],
     queryFn: async (): Promise<PaginatedResult<IDataProject>> => {
@@ -39,5 +38,6 @@ export function useExportJobs(page = 1, limit = 6) {
         return { items: [], total: 0 };
       }
     },
+    enabled: isLogin,
   });
 }
