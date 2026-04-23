@@ -6,6 +6,9 @@ import pytest
 import respx
 import httpx
 from httpx import AsyncClient, Response
+from app.core.config import settings
+
+OAM_API_URL = settings.oam_api_url
 
 
 @pytest.mark.asyncio
@@ -50,7 +53,7 @@ async def test_get_imagery_by_user_success(client: AsyncClient):
     }
     
     respx.get(
-        "https://api.openaerialmap.org/meta"
+        f"{OAM_API_URL}/meta"
     ).mock(return_value=Response(200, json=mock_response))
     
     response = await client.get("/api/open-aerial-map/user/6918b688d06a6f5c0a953e2e")
@@ -73,7 +76,7 @@ async def test_get_imagery_by_user_with_custom_params(client: AsyncClient):
     }
     
     respx.get(
-        "https://api.openaerialmap.org/meta"
+        f"{OAM_API_URL}/meta"
     ).mock(return_value=Response(200, json=mock_response))
     
     response = await client.get(
@@ -105,7 +108,7 @@ async def test_get_imagery_by_user_default_params(client: AsyncClient):
         "results": []
     }
     
-    route = respx.get("https://api.openaerialmap.org/meta")
+    route = respx.get(f"{OAM_API_URL}/meta")
     route.mock(return_value=Response(200, json=mock_response))
     
     response = await client.get("/api/open-aerial-map/user/test_user_123")
@@ -137,7 +140,7 @@ async def test_get_imagery_by_user_empty_results(client: AsyncClient):
     }
     
     respx.get(
-        "https://api.openaerialmap.org/meta"
+        f"{OAM_API_URL}/meta"
     ).mock(return_value=Response(200, json=mock_response))
     
     response = await client.get("/api/open-aerial-map/user/nonexistent_user")
@@ -153,7 +156,7 @@ async def test_get_imagery_by_user_empty_results(client: AsyncClient):
 async def test_get_imagery_by_user_http_error(client: AsyncClient):
     """Test handling of HTTP errors from external API."""
     respx.get(
-        "https://api.openaerialmap.org/meta"
+        f"{OAM_API_URL}/meta"
     ).mock(return_value=Response(500, text="Internal Server Error"))
     
     response = await client.get("/api/open-aerial-map/user/test_user")
@@ -167,7 +170,7 @@ async def test_get_imagery_by_user_http_error(client: AsyncClient):
 async def test_get_imagery_by_user_connection_error(client: AsyncClient):
     """Test handling of connection errors to external API."""
     respx.get(
-        "https://api.openaerialmap.org/meta"
+        f"{OAM_API_URL}/meta"
     ).mock(side_effect=httpx.RequestError("Connection failed"))
     
     response = await client.get("/api/open-aerial-map/user/test_user")
@@ -232,7 +235,7 @@ async def test_get_imagery_by_user_response_structure(client: AsyncClient):
     }
     
     respx.get(
-        "https://api.openaerialmap.org/meta"
+        f"{OAM_API_URL}/meta"
     ).mock(return_value=Response(200, json=mock_response))
     
     response = await client.get("/api/open-aerial-map/user/6918b688d06a6f5c0a953e2e")
@@ -272,7 +275,7 @@ async def test_get_imagery_by_user_ordering(client: AsyncClient):
         ]
     }
     
-    route = respx.get("https://api.openaerialmap.org/meta")
+    route = respx.get(f"{OAM_API_URL}/meta")
     route.mock(return_value=Response(200, json=mock_response))
     
     response = await client.get(
@@ -332,7 +335,7 @@ async def test_get_imagery_by_user_multiple_results_structure(client):
     }
 
     respx.get(
-        "https://api.openaerialmap.org/meta"
+        f"{OAM_API_URL}/meta"
     ).mock(return_value=Response(200, json=mock_response))
 
     response = await client.get(
@@ -368,7 +371,7 @@ async def test_get_imagery_by_user_multiple_results_structure(client):
 async def test_get_imagery_by_user_unexpected_error(client: AsyncClient):
     """Test handling of unexpected errors in user endpoint."""
     respx.get(
-        "https://api.openaerialmap.org/meta"
+        f"{OAM_API_URL}/meta"
     ).mock(side_effect=Exception("Unexpected error"))
     
     response = await client.get("/api/open-aerial-map/user/test_user")
@@ -396,7 +399,7 @@ async def test_get_imagery_by_user_with_different_order_fields(client: AsyncClie
     order_fields = ["acquisition_start", "acquisition_end", "uploaded_at", "title", "gsd"]
     
     for field in order_fields:
-        route = respx.get("https://api.openaerialmap.org/meta")
+        route = respx.get(f"{OAM_API_URL}/meta")
         route.mock(return_value=Response(200, json=mock_response))
         
         response = await client.get(
@@ -426,7 +429,7 @@ async def test_get_imagery_by_user_pagination(client: AsyncClient):
         "results": [{"_id": f"id_{i}", "title": f"Image {i}"} for i in range(6, 11)]
     }
     
-    route = respx.get("https://api.openaerialmap.org/meta")
+    route = respx.get(f"{OAM_API_URL}/meta")
     
     # Test page 1
     route.mock(return_value=Response(200, json=mock_page_1))
@@ -458,7 +461,7 @@ async def test_get_imagery_by_user_pagination(client: AsyncClient):
 async def test_get_imagery_by_user_not_found_status(client: AsyncClient):
     """Test handling when external API returns 404."""
     respx.get(
-        "https://api.openaerialmap.org/meta"
+        f"{OAM_API_URL}/meta"
     ).mock(return_value=Response(404, text="User not found"))
     
     response = await client.get("/api/open-aerial-map/user/nonexistent_user_999")
@@ -472,7 +475,7 @@ async def test_get_imagery_by_user_not_found_status(client: AsyncClient):
 async def test_get_imagery_by_user_timeout_error(client: AsyncClient):
     """Test handling of timeout errors."""
     respx.get(
-        "https://api.openaerialmap.org/meta"
+        f"{OAM_API_URL}/meta"
     ).mock(side_effect=httpx.TimeoutException("Request timeout"))
 
     response = await client.get("/api/open-aerial-map/user/test_user")

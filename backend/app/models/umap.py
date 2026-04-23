@@ -100,3 +100,22 @@ class ShowcaseResponse(BaseModel):
     type: str
     features: List[ShowcaseMap]
     total: int
+
+
+class UserMap(BaseModel):
+    """A single map entry from the user's maps."""
+
+    id: int
+    name: str
+    description: Optional[str] = None
+    slug: str
+    url: str
+    modified_at: str
+
+
+class UserMapsResponse(BaseModel):
+    """Response for the /umap/user/maps endpoint."""
+
+    maps: List[UserMap]
+
+

@@ -1,4 +1,4 @@
-import { IImageryProject } from "../imageryProjects";
+import { IImageryProject } from "../types";
 import placeholder from "../../assets/images/placeholder.png";
 import CardProjectTitle from "../../components/shared/CardProjectTitle";
 

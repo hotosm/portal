@@ -92,7 +92,10 @@ services:
       OSM_CLIENT_ID: ${OSM_CLIENT_ID:-}
       OSM_CLIENT_SECRET: ${OSM_CLIENT_SECRET:-}
       OSM_REDIRECT_URI: ${OSM_REDIRECT_URI:-}
-      UMAP_BASE_URL: ${UMAP_BASE_URL:-http://hotosm-umap-app:8000}
+      PORTAL_BASE_URL: ${PORTAL_BASE_URL:-https://portal.hotosm.test}
+      UMAP_BASE_URL: ${UMAP_BASE_URL:-https://umap.hotosm.org}
+      DRONE_TM_BACKEND_URL: ${DRONE_TM_BACKEND_URL:-}
+      FAIR_API_BASE_URL: ${FAIR_API_BASE_URL:-}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:
@@ -100,7 +103,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    command: sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir app --reload-exclude '.venv/*' --reload-exclude 'app/tests/*' --reload-exclude '.pytest_cache/*'"
     profiles:
       - dev
 

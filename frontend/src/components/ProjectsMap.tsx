@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-// import MapboxLanguage from "@mapbox/mapbox-gl-language";
 import mapMarkerSvg from "../assets/images/map-marker.svg";
 import markerTasking from "../assets/images/marker-tasking-manager.svg";
 import markerDroneTasking from "../assets/images/marker-drone-tasking-manager.svg";
@@ -11,15 +10,26 @@ import markerImagery from "../assets/images/marker-imagery.svg";
 import markerUmap from "../assets/images/marker-umap.svg";
 import { ProjectsMapSearchBox } from "./ProjectsMapSearchBox";
 import { ProjectsMapCallout } from "./ProjectsMapCallout";
-import {
-  ProjectsMapResults,
-  ProjectMapFeature,
-} from "../types/projectsMap";
+import { ProjectsMapResults, ProjectMapFeature } from "../types/projectsMap";
 import type { ProjectListData } from "../types/projectsMap/mapCallout";
+
+const ALL_FILTER_TYPES = new Set([
+  "drone-tasking-manager",
+  "imagery",
+  "tasking-manager",
+  "fair",
+  "field",
+  "chatmap",
+  "export",
+  "umap",
+]);
 
 interface ProjectsMapProps {
   mapResults?: ProjectsMapResults;
-  onProjectClick?: (projectId: number | string, data?: ProjectListData | string) => void;
+  onProjectClick?: (
+    projectId: number | string,
+    data?: ProjectListData | string,
+  ) => void;
   selectedProjectId?: number | string | null;
   selectedProduct?: string;
   selectedProjects?: ProjectMapFeature[];
@@ -59,7 +69,7 @@ const DEFAULT_MAP_STYLE = import.meta.env.VITE_MAP_STYLE || {
 const loadImage = async (
   src: string,
   width = 50,
-  height = 50
+  height = 50,
 ): Promise<HTMLImageElement> => {
   return new Promise((resolve, reject) => {
     const img = new Image(width, height);
@@ -72,7 +82,7 @@ const loadImage = async (
 const addMapLayers = (
   map: maplibregl.Map,
   mapResults: ProjectsMapProps["mapResults"],
-  onProjectClick?: (projectId: number | string, product: string) => void
+  onProjectClick?: (projectId: number | string, product: string) => void,
 ) => {
   // Add GeoJSON source with clustering
   map.addSource("projects", {
@@ -226,6 +236,43 @@ export function ProjectsMap({
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+
+  const [enabledFilters, setEnabledFilters] = useState<Set<string>>(
+    () => new Set(ALL_FILTER_TYPES),
+  );
+
+  // Reset closing state when panel opens
+  useEffect(() => {
+    if (
+      selectedProjectId ||
+      (selectedProjects && selectedProjects.length > 0)
+    ) {
+      setIsClosing(false);
+    }
+  }, [selectedProjectId, selectedProjects]);
+
+  const handleClose = useCallback(() => {
+    // If individual project has a backing list, go back instantly (no slide-out)
+    if (selectedProjectId && selectedProjects && selectedProjects.length > 0) {
+      onCloseDetails?.();
+      return;
+    }
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      onCloseDetails?.();
+    }, 300);
+  }, [onCloseDetails, selectedProjectId, selectedProjects]);
+
+  const handleToggleFilter = useCallback((type: string) => {
+    setEnabledFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
+      return next;
+    });
+  }, []);
 
   // Initialize map
   useEffect(() => {
@@ -255,7 +302,8 @@ export function ProjectsMap({
     let lastPos = { x: 0, y: 0 };
 
     canvas.addEventListener("mousedown", (e) => {
-      if (e.button === 2) { // Right mouse button
+      if (e.button === 2) {
+        // Right mouse button
         isRightDragging = true;
         lastPos = { x: e.clientX, y: e.clientY };
         canvas.style.cursor = "grabbing";
@@ -287,17 +335,10 @@ export function ProjectsMap({
     });
 
     map.current.addControl(
-      new maplibregl.AttributionControl({ compact: false })
+      new maplibregl.AttributionControl({ compact: false }),
     );
 
     map.current.addControl(new maplibregl.NavigationControl(), "bottom-right");
-
-    // TODO: Add language control compatible with MapLibre
-    // try {
-    //   map.current.addControl(new MapboxLanguage({ defaultLanguage: "en" }));
-    // } catch (e) {
-    //   console.warn("MapboxLanguage control not compatible with MapLibre", e);
-    // }
 
     map.current.on("load", async () => {
       if (!map.current) return;
@@ -322,7 +363,7 @@ export function ProjectsMap({
             } catch (iconError) {
               console.error(`Failed to load marker icon ${name}:`, iconError);
             }
-          })
+          }),
         );
       } catch (error) {
         console.error("Failed to load marker icons:", error);
@@ -344,25 +385,36 @@ export function ProjectsMap({
         onProjectClick("projects-list", { projects, locationName });
       }
     },
-    [onProjectClick]
+    [onProjectClick],
   );
 
-  // Update map data
+  // Update map data (re-runs when mapResults OR enabledFilters changes)
   useEffect(() => {
     if (!map.current || !mapLoaded) return;
 
-    const source = map.current.getSource(
-      "projects"
-    ) as maplibregl.GeoJSONSource;
+    const raw = mapResults || {
+      type: "FeatureCollection" as const,
+      features: [],
+    };
+    const filteredData = {
+      ...raw,
+      features: raw.features.filter((f) => {
+        const product: string = (f as any).properties?.product ?? "";
+        // Unknown product types always show; known ones respect the filter
+        if (!ALL_FILTER_TYPES.has(product)) return true;
+        return enabledFilters.has(product);
+      }),
+    };
 
+    const source = map.current.getSource(
+      "projects",
+    ) as maplibregl.GeoJSONSource;
     if (source) {
-      // Update existing source
-      source.setData(mapResults || { type: "FeatureCollection", features: [] });
+      source.setData(filteredData);
     } else {
-      // Add layers for the first time
-      addMapLayers(map.current, mapResults, onProjectClick);
+      addMapLayers(map.current, filteredData, onProjectClick);
     }
-  }, [mapResults, mapLoaded, onProjectClick]);
+  }, [mapResults, mapLoaded, onProjectClick, enabledFilters, ALL_FILTER_TYPES]);
 
   // Add zoom event listener for zoom-based project display
   useEffect(() => {
@@ -374,7 +426,7 @@ export function ProjectsMap({
       try {
         const bounds = map.current.getBounds();
         const source = map.current.getSource(
-          "projects"
+          "projects",
         ) as maplibregl.GeoJSONSource;
         if (!source || !source._data) return [];
 
@@ -405,7 +457,7 @@ export function ProjectsMap({
           const center = map.current.getCenter();
           // Create a more user-friendly location name
           const locationName = `this area (${center.lat.toFixed(
-            2
+            2,
           )}°, ${center.lng.toFixed(2)}°)`;
           handleShowProjects(projectsInView, locationName);
         }
@@ -422,22 +474,35 @@ export function ProjectsMap({
   }, [mapLoaded, handleShowProjects]);
 
   return (
-    <div className="relative w-full h-full">
-      <ProjectsMapSearchBox
-        map={map.current}
-        onShowProjects={handleShowProjects}
-      />
+    <div className="relative w-full h-full rounded-xl overflow-hidden">
+      {!selectedProjectId &&
+        !(selectedProjects && selectedProjects.length > 0) && (
+          <ProjectsMapSearchBox
+            map={map.current}
+            onShowProjects={handleShowProjects}
+          />
+        )}
       <div ref={mapContainer} className="w-full h-full overflow-hidden" />
       {(selectedProjectId ||
-        (selectedProjects && selectedProjects.length > 0)) && (
-        <div className="absolute top-0 right-0 h-full bg-white p-lg border border-hot-gray-100 z-10 animate-in w-[250px] sm:w-[340px] slide-in-from-right duration-300 overflow-y-auto">
+        (selectedProjects && selectedProjects.length > 0) ||
+        isClosing) && (
+        <div
+          className={`absolute top-0 right-0 h-full bg-white p-lg border border-hot-gray-100 z-10 w-[250px] sm:w-[340px] duration-300 overflow-hidden flex flex-col ${isClosing ? "animate-out slide-out-to-right" : "animate-in slide-in-from-right"}`}
+          style={{
+            margin: "20px",
+            borderRadius: "20px",
+            height: "calc(100% - 40px)",
+          }}
+        >
           <ProjectsMapCallout
             projectId={selectedProjectId || undefined}
             product={selectedProduct}
             projects={selectedProjects}
             locationName={locationName}
             onProjectClick={onProjectClick}
-            onClose={onCloseDetails || (() => {})}
+            onClose={handleClose}
+            enabledFilters={enabledFilters}
+            onToggleFilter={handleToggleFilter}
           />
         </div>
       )}

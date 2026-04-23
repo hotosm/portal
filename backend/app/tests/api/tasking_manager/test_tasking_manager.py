@@ -6,6 +6,9 @@ import pytest
 import respx
 import httpx
 from httpx import AsyncClient, Response
+from app.core.config import settings
+
+TM_API_URL = settings.tasking_manager_api_url
 
 
 # -------------------------------
@@ -41,7 +44,7 @@ async def test_get_tasking_manager_projects_success(client: AsyncClient):
     }
 
     respx.get(
-        "https://tasking-manager-production-api.hotosm.org/api/v2/projects/"
+        f"{TM_API_URL}/projects/"
     ).mock(return_value=Response(200, json=mock_response))
 
     response = await client.get("/api/tasking-manager/projects")
@@ -72,7 +75,7 @@ async def test_get_tasking_manager_projects_response_structure(client: AsyncClie
     }
 
     respx.get(
-        "https://tasking-manager-production-api.hotosm.org/api/v2/projects/"
+        f"{TM_API_URL}/projects/"
     ).mock(return_value=Response(200, json=mock_response))
 
     response = await client.get("/api/tasking-manager/projects")
@@ -90,7 +93,7 @@ async def test_get_tasking_manager_projects_response_structure(client: AsyncClie
 async def test_get_tasking_manager_projects_http_error(client: AsyncClient):
     """Test handling of HTTP errors from Tasking Manager API."""
     respx.get(
-        "https://tasking-manager-production-api.hotosm.org/api/v2/projects/"
+        f"{TM_API_URL}/projects/"
     ).mock(return_value=Response(500, text="Internal Server Error"))
 
     response = await client.get("/api/tasking-manager/projects")
@@ -104,7 +107,7 @@ async def test_get_tasking_manager_projects_http_error(client: AsyncClient):
 async def test_get_tasking_manager_projects_connection_error(client: AsyncClient):
     """Test handling of connection errors from Tasking Manager API."""
     respx.get(
-        "https://tasking-manager-production-api.hotosm.org/api/v2/projects/"
+        f"{TM_API_URL}/projects/"
     ).mock(side_effect=httpx.RequestError("Connection failed"))
 
     response = await client.get("/api/tasking-manager/projects")
@@ -128,7 +131,7 @@ async def test_get_hotosm_countries_success(client: AsyncClient):
     }
 
     respx.get(
-        "https://tasking-manager-production-api.hotosm.org/api/v2/countries/"
+        f"{TM_API_URL}/countries/"
     ).mock(return_value=Response(200, json=mock_response))
 
     response = await client.get("/api/tasking-manager/countries")
@@ -148,7 +151,7 @@ async def test_get_hotosm_countries_response_structure(client: AsyncClient):
     mock_response = {"tags": ["Argentina"]}
 
     respx.get(
-        "https://tasking-manager-production-api.hotosm.org/api/v2/countries/"
+        f"{TM_API_URL}/countries/"
     ).mock(return_value=Response(200, json=mock_response))
 
     response = await client.get("/api/tasking-manager/countries")
@@ -165,7 +168,7 @@ async def test_get_hotosm_countries_response_structure(client: AsyncClient):
 async def test_get_hotosm_countries_http_error(client: AsyncClient):
     """Test handling of HTTP errors in countries endpoint."""
     respx.get(
-        "https://tasking-manager-production-api.hotosm.org/api/v2/countries/"
+        f"{TM_API_URL}/countries/"
     ).mock(return_value=Response(502, text="Bad Gateway"))
 
     response = await client.get("/api/tasking-manager/countries")
@@ -179,7 +182,7 @@ async def test_get_hotosm_countries_http_error(client: AsyncClient):
 async def test_get_hotosm_countries_connection_error(client: AsyncClient):
     """Test handling of connection errors in countries endpoint."""
     respx.get(
-        "https://tasking-manager-production-api.hotosm.org/api/v2/countries/"
+        f"{TM_API_URL}/countries/"
     ).mock(side_effect=httpx.RequestError("Timeout"))
 
     response = await client.get("/api/tasking-manager/countries")
@@ -210,7 +213,7 @@ async def test_get_tasking_manager_project_by_id_success(client: AsyncClient):
     }
 
     respx.get(
-        "https://tasking-manager-production-api.hotosm.org/api/v2/projects/123/"
+        f"{TM_API_URL}/projects/123/"
     ).mock(return_value=Response(200, json=mock_response))
 
     response = await client.get("/api/tasking-manager/projectid/123")
@@ -240,7 +243,7 @@ async def test_get_tasking_manager_project_by_id_filtered_fields(client: AsyncCl
     }
 
     respx.get(
-        "https://tasking-manager-production-api.hotosm.org/api/v2/projects/456/"
+        f"{TM_API_URL}/projects/456/"
     ).mock(return_value=Response(200, json=mock_response))
 
     response = await client.get("/api/tasking-manager/projectid/456")
@@ -257,7 +260,7 @@ async def test_get_tasking_manager_project_by_id_filtered_fields(client: AsyncCl
 async def test_get_tasking_manager_project_by_id_not_found(client: AsyncClient):
     """Test handling of 404 Not Found error."""
     respx.get(
-        "https://tasking-manager-production-api.hotosm.org/api/v2/projects/999/"
+        f"{TM_API_URL}/projects/999/"
     ).mock(return_value=Response(404, text="Not Found"))
 
     response = await client.get("/api/tasking-manager/projectid/999")
@@ -278,7 +281,7 @@ async def test_get_tasking_manager_project_by_id_invalid_id(client: AsyncClient)
 async def test_get_tasking_manager_project_by_id_connection_error(client: AsyncClient):
     """Test handling of connection errors."""
     respx.get(
-        "https://tasking-manager-production-api.hotosm.org/api/v2/projects/111/"
+        f"{TM_API_URL}/projects/111/"
     ).mock(side_effect=httpx.RequestError("Network error"))
 
     response = await client.get("/api/tasking-manager/projectid/111")
@@ -292,7 +295,7 @@ async def test_get_tasking_manager_project_by_id_connection_error(client: AsyncC
 async def test_get_tasking_manager_project_by_id_unexpected_error(client: AsyncClient):
     """Test handling of unexpected exceptions."""
     respx.get(
-        "https://tasking-manager-production-api.hotosm.org/api/v2/projects/222/"
+        f"{TM_API_URL}/projects/222/"
     ).mock(side_effect=Exception("Unexpected crash"))
 
     response = await client.get("/api/tasking-manager/projectid/222")
