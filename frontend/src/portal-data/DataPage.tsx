@@ -1,14 +1,3 @@
-<<<<<<< HEAD
-import GoToWesiteCTA from "../components/shared/GoToWesiteCTA";
-import PageWrapper from "../components/shared/PageWrapper";
-import PortalPageSkeleton from "../components/shared/PortalPageSkeleton";
-import DataCard from "./components/DataCard";
-import ExportCard from "./components/ExportCard";
-import { useMyModels, useMyDatasets } from "./hooks/useFairData";
-import { useExportJobs } from "./hooks/useExportToolData";
-import DataNoProjects from "./components/DataNoProjects";
-import { getFairBaseUrl } from "../utils/envConfig";
-=======
 import { useState } from "react";
 import exportIcon from "../assets/icons/export.svg";
 import umapIcon from "../assets/icons/umap.svg";
@@ -26,30 +15,10 @@ import { useExportJobs, useMyMaps } from "./hooks";
 
 const CARD_CLASS =
   "w-full md:w-[calc(33.333%_-_var(--hot-spacing-large)*0.667)] lg:w-[calc(25%_-_var(--hot-spacing-large)*0.75)] shrink-0";
->>>>>>> develop
 
 const EXPORTS_PER_PAGE = 6;
 
 function DataPage() {
-<<<<<<< HEAD
-  const { data: models = [], isLoading: modelsLoading } = useMyModels();
-  const { data: sets = [], isLoading: datasetsLoading } = useMyDatasets();
-  const { data: exports = [], isLoading: exportsLoading } = useExportJobs();
-
-  const isLoading = modelsLoading || datasetsLoading || exportsLoading;
-
-  const hasAnyProjects =
-    models.length > 0 || sets.length > 0 || exports.length > 0;
-
-  if (isLoading) {
-    return <PortalPageSkeleton />;
-  }
-
-  if (!hasAnyProjects) {
-    return (
-      <PageWrapper>
-        <DataNoProjects />
-=======
   const [exportsPage, setExportsPage] = useState(1);
   const { data: maps = [], isLoading: mapsLoading } = useMyMaps();
   const { data: exportsData, isLoading: exportsLoading } = useExportJobs(
@@ -162,65 +131,8 @@ function DataPage() {
             </div>
           )}
         </div>
->>>>>>> develop
       </PageWrapper>
-    );
-  }
-
-  return (
-    <PageWrapper>
-      <div className="space-y-xl">
-        <GoToWesiteCTA
-          buttonLink={getFairBaseUrl()}
-          buttonText="fAIr"
-          link2={{
-            label: "Export Tool",
-            url: "https://export.hotosm.org/",
-          }}
-        >
-          <strong>fAIr</strong> and <strong>Export Tool</strong>
-        </GoToWesiteCTA>
-        <div className="bg-hot-gray-50 p-md items-center rounded-lg space-y-xl">
-          {models.length > 0 && (
-            <div>
-              <p className="text-lg ">
-                Your <strong>models</strong>
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-lg">
-                {models.map((project) => {
-                  return <DataCard project={project} />;
-                })}
-              </div>
-            </div>
-          )}
-
-          {sets.length > 0 && (
-            <div>
-              <p className="text-lg ">
-                Your <strong>datasets</strong>
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-lg">
-                {sets.map((project) => {
-                  return <DataCard project={project} />;
-                })}
-              </div>
-            </div>
-          )}
-          {exports.length > 0 && (
-            <div>
-              <p className="text-lg ">
-                Your <strong>exports</strong>
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-lg">
-                {exports.map((project) => {
-                  return <ExportCard key={project.id} project={project} />;
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </PageWrapper>
+    </>
   );
 }
 

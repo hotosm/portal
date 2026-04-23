@@ -1,17 +1,3 @@
-<<<<<<< HEAD
-const ExportCard = ({ project }: any) => {
-  return (
-    <a
-      href={project.href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="block group no-underline hover:no-underline"
-    >
-      <div className="w-full h-full bg-white rounded-lg p-md flex flex-col gap-lg shadow-sm transition-all duration-200 group-hover:shadow-lg group-hover:scale-[1.01]">
-        <div>
-          <p className="bold line-clamp-2">{project.title}</p>
-        </div>
-=======
 import type { IDataProject } from "../types";
 import placeholder from "../../assets/images/placeholder.png";
 import CardProjectTitle from "../../components/shared/CardProjectTitle";
@@ -29,7 +15,6 @@ const ExportCard = ({ project }: { project: IDataProject }) => {
           }}
         />
         <CardProjectTitle href={project.href} title={project.title} />
->>>>>>> develop
       </div>
     </div>
   );
