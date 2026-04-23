@@ -1,7 +1,10 @@
 """Main FastAPI application."""
 
 import asyncio
+import logging
 from contextlib import asynccontextmanager
+
+logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,18 +12,42 @@ from hotosm_auth import AuthConfig
 from hotosm_auth_fastapi import init_auth
 
 from app.api.routes import example, test
+from app.api.routes.drone_tasking_manager.drone_tasking_manager import build_dronetm_cache_key
 from app.api.routes.tasking_manager import tasking_manager
 from app.api.routes.drone_tasking_manager import drone_tasking_manager
 from app.api.routes.open_aerial_map import open_aerial_map
+from app.api.routes.homepage_map import homepage_map
 from app.api.routes.open_aerial_map.open_aerial_map import start_sync_scheduler
 from app.db.models.oam import OAMImage  # noqa: F401 — registers model with Base.metadata
+from app.db.models.map_project import MapProject  # noqa: F401 — registers model with Base.metadata
 from app.api.routes.fair import fair
 from app.api.routes.field_tm import field_tm
 from app.api.routes.umap import umap
 from app.api.routes.export_tool import export_tool
 from app.api.routes.chatmap import chatmap
 from app.core.config import settings
-from app.core.database import check_db_connection
+from app.core.database import AsyncSessionLocal, check_db_connection
+
+def get_homepage_map_sync_interval_seconds() -> int:
+    return settings.homepage_map_sync_interval_hours * 60 * 60
+
+
+async def homepage_map_sync_loop() -> None:
+    """Continuously sync homepage map projects into DB every configured interval."""
+    from app.services import map_projects_service
+
+    while True:
+        try:
+            async with AsyncSessionLocal() as db:
+                counts = await map_projects_service.sync_from_sources(db)
+                logger.info("Homepage map scheduled sync complete (upserted rows): %s", counts)
+        except asyncio.CancelledError:
+            logger.info("Homepage map scheduled sync cancelled")
+            raise
+        except Exception as e:
+            logger.warning("Homepage map scheduled sync failed (non-critical): %s", e)
+
+        await asyncio.sleep(get_homepage_map_sync_interval_seconds())
 
 
 async def preload_cache():
@@ -30,24 +57,23 @@ async def preload_cache():
     from app.api.routes.fair.fair import enrich_fair_centroids_in_background
     from app.core.cache import get_cached, set_cached, DEFAULT_TTL
 
-    print("🚀 Preloading cache in background...")
+    logger.info("Preloading cache in background...")
 
     async def preload_drone_tm():
         """Preload Drone TM centroids from production API."""
         try:
-            # Use production URL directly (same as the endpoint)
-            drone_tm_production_url = "https://dronetm.org/api"
-            # Cache key must match: f"dronetm_centroids_{filter_by_owner}_{search}_{page}_{results_per_page}"
-            # Frontend uses: /api/drone-tasking-manager/projects/centroids?results_per_page=1000
-            cache_key = "dronetm_centroids_False_None_1_1000"
+            drone_tm_url = settings.drone_tm_api_url
+            cache_key = build_dronetm_cache_key(
+                filter_by_owner=False, search=None, page=1, results_per_page=1000
+            )
 
             if get_cached(cache_key):
-                print("✅ Drone TM already cached")
+                logger.info("Drone TM already cached")
                 return
 
             async with httpx.AsyncClient(timeout=60.0, verify=bool(settings.drone_tm_verify_ssl)) as client:
                 response = await client.get(
-                    f"{drone_tm_production_url}/projects/centroids",
+                    f"{drone_tm_url}/projects/centroids",
                     params={"filter_by_owner": "false", "page": 1, "results_per_page": 1000}
                 )
                 response.raise_for_status()
@@ -58,9 +84,9 @@ async def preload_cache():
                     result = data
                 set_cached(cache_key, result, DEFAULT_TTL)
                 results_count = len(result.get("results", [])) if isinstance(result, dict) else "N/A"
-                print(f"✅ Drone TM preload complete: {results_count} projects")
+                logger.info("Drone TM preload complete: %s projects", results_count)
         except Exception as e:
-            print(f"⚠️ Drone TM preload failed (non-critical): {e}")
+            logger.warning("Drone TM preload failed (non-critical): %s", e)
 
     async def initial_oam_sync():
         """Sync OAM data into DB on startup if the table is empty."""
@@ -70,12 +96,12 @@ async def preload_cache():
         try:
             async with AsyncSessionLocal() as db:
                 if await oam_service.is_db_empty(db):
-                    print("📸 OAM DB is empty — running initial sync from OAM API...")
+                    logger.info("OAM DB is empty - running initial sync from OAM API...")
                     await oam_service.sync_from_oam_api(db)
                 else:
-                    print("✅ OAM DB already populated — skipping initial sync")
+                    logger.info("OAM DB already populated - skipping initial sync")
         except Exception as e:
-            print(f"⚠️ OAM initial sync failed (non-critical): {e}")
+            logger.warning("OAM initial sync failed (non-critical): %s", e)
 
     async def preload_fair():
         """Preload fAIr model centroids and enrich with names."""
@@ -83,26 +109,25 @@ async def preload_cache():
             cache_key = "fair_models_centroids"
 
             if get_cached(cache_key):
-                print("✅ fAIr already cached")
+                logger.info("fAIr already cached")
                 # Still run enrichment in case names aren't populated yet
                 asyncio.create_task(enrich_fair_centroids_in_background())
                 return
 
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=30.0, verify=settings.fair_verify_ssl) as client:
                 response = await client.get(
-                    "https://api-prod.fair.hotosm.org/api/v1/models/centroid/",
+                    f"{settings.fair_api_url}/models/centroid/",
                     headers={"accept": "application/json"}
                 )
                 response.raise_for_status()
                 data = response.json()
                 set_cached(cache_key, data, DEFAULT_TTL)
                 features = data.get("features", []) if isinstance(data, dict) else []
-                print(f"✅ fAIr preload complete: {len(features)} models")
+                logger.info("fAIr preload complete: %s models", len(features))
 
-                # Enrich with model names in background
                 asyncio.create_task(enrich_fair_centroids_in_background())
         except Exception as e:
-            print(f"⚠️ fAIr preload failed (non-critical): {e}")
+            logger.warning("fAIr preload failed (non-critical): %s", e)
 
     # Run all preloads in parallel (non-blocking)
     asyncio.create_task(fetch_and_enrich_in_background())  # Tasking Manager
@@ -121,23 +146,30 @@ async def lifespan(app: FastAPI):
 
     Handles startup and shutdown events.
     """
-    # Startup
-    print("Starting up...")
+    logger.info("Starting up...")
 
-    # Initialize authentication from environment variables
-    # This automatically configures JWT issuer validation
-    print("🔧 Loading AuthConfig from environment...")
     auth_config = AuthConfig.from_env()
-    print(f"🔧 AuthConfig loaded: hanko_api_url={auth_config.hanko_api_url}, jwt_issuer={auth_config.jwt_issuer}")
+    logger.info("AuthConfig loaded: hanko_api_url=%s, jwt_issuer=%s", auth_config.hanko_api_url, auth_config.jwt_issuer)
     init_auth(auth_config)
-    print("Authentication initialized")
+    logger.info("Authentication initialized")
 
     # Preload cache in background (non-blocking)
     await preload_cache()
 
+    # Start homepage map sync scheduler as managed FastAPI app task
+    app.state.homepage_map_sync_task = asyncio.create_task(homepage_map_sync_loop())
+
     yield
-    # Shutdown
-    print("Shutting down...")
+
+    homepage_map_sync_task = getattr(app.state, "homepage_map_sync_task", None)
+    if homepage_map_sync_task is not None:
+        homepage_map_sync_task.cancel()
+        try:
+            await homepage_map_sync_task
+        except asyncio.CancelledError:
+            pass
+
+    logger.info("Shutting down...")
 
 
 # Create FastAPI application
@@ -223,6 +255,12 @@ app.include_router(
     open_aerial_map.router,
     prefix=settings.api_v1_prefix,
     tags=["open aerial map"],
+)
+
+app.include_router(
+    homepage_map.router,
+    prefix=settings.api_v1_prefix,
+    tags=["homepage map"],
 )
 
 app.include_router(

@@ -8,7 +8,7 @@ from app.models.export_tool import ExportJobsResponse
 from app.core.cache import get_cached, set_cached, DEFAULT_TTL, SHORT_TTL
 from app.core.config import settings
 
-EXPORT_TOOL_API_BASE_URL = settings.export_tool_api_base_url
+EXPORT_TOOL_API_BASE_URL = settings.export_tool_api_url
 
 router = APIRouter(prefix="/export-tool")
 
@@ -101,7 +101,7 @@ async def get_my_export_jobs(
     if status:
         params["status"] = status
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=10.0) as client:
         try:
             response = await client.get(
                 url,
@@ -110,6 +110,8 @@ async def get_my_export_jobs(
             )
             response.raise_for_status()
             return response.json()
+        except httpx.TimeoutException:
+            raise HTTPException(status_code=504, detail="Export Tool API timed out")
         except httpx.HTTPStatusError as e:
             raise HTTPException(
                 status_code=e.response.status_code,

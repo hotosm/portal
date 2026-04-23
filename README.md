@@ -4,28 +4,6 @@
 
 A centralized web workspace that simplifies access to the HOT (Humanitarian OpenStreetMap Team) Tech Suite ecosystem. Portal provides a unified interface for accessing multiple geospatial tools, managing projects, and streamlining workflows for humanitarian mapping and social change.
 
-## Roadmap
-
-✅ Done
-⚙️ In progress
-
-<!-- prettier-ignore-start -->
-| Status | Feature |
-|:--:| :-- |
-|✅| Website published (portal.hotosm.org)
-|✅| API published (portal.hotosm.org/api/docs)
-|✅| Map for displaying data from all tools
-|✅| HOT Accounts authentication
-|✅| Menu for accessing HOT Tools
-|✅| Language menu
-|✅| Sections for Imagery, Mapping, Field and Data, for showing tools and user's data on each
-|✅| Public integration with all tools
-|✅| User data integration
-|⚙️| Design and UI/UX improvements
-| | Plans (grouping projects from multiple tools)
-| | Links and content to/from Learn & Connect
-| | Public profiles
-
 ## Table of Contents
 
 - [About](#about)
@@ -544,16 +522,18 @@ The API is self-documented using FastAPI's built-in OpenAPI support:
 - `GET /api/health-check` - Detailed health with response times
 - `/api/tasking-manager/projects` - Return all project of Tasking Manager
 - `/api/tasking-manager/countries` - Return all countries of Tasking Manager
-- `/api/tasking-manager/projectid` - ProjectID data of Tasking Manager
+- `/api/tasking-manager/projectid/{project_id}` - ProjectID data of Tasking Manager
 - `/api/tasking-manager/projects/user` - User data of Tasking Manager
 - `/api/drone-tasking-manager/projects?fetch_all=true` - Returns all Drone TM projects without pagination. (Drone Tasking Manager)
 - `/api/drone-tasking-manager/projects` - Return all project of Drone TM (Drone Tasking Manager)
-- `/api/drone-tasking-manager/projects/projectid` - ProjectID data of Drone TM (Drone Tasking Manager)
+- `/api/drone-tasking-manager/projects/{project_id}` - ProjectID data of Drone TM (Drone Tasking Manager)
 - `/api/drone-tasking-manager/projects/user` - Project user data of Drone TM (Drone Tasking Manager)
 - `/api/drone-tasking-manager/projects/centroids` - Get project centroids from the DroneTM API.
 - `/api/open-aerial-map/projects` - Return all project of Open Aerial Map
-- `/api/open-aerial-map/imageid` - ImageID data of Open Aerial Map
-- `/api/open-aerial-map/user/userid` - UserID data of Open Aerial Map
+- `/api/open-aerial-map/projects/all` - Return all OAM imagery (compact snapshot)
+- `/api/open-aerial-map/projects/snapshot` - Return OAM imagery snapshot from DB
+- `/api/open-aerial-map/projects/{image_id}` - ImageID data of Open Aerial Map
+- `/api/open-aerial-map/user/{user_id}` - UserID data of Open Aerial Map
 - `/api/open-aerial-map/user/me` - User data of Open Aerial Map
 - `/api/fair/projects` - Return all project of fAIr
 - `/api/fair/dataset/user/{user_id}` - Get AI models from fAIr API filtered by user ID
@@ -563,14 +543,19 @@ The API is self-documented using FastAPI's built-in OpenAPI support:
 - `/api/fair/model/user/{user_id}` - Returns the user models of fAIr
 - `/api/fair/dataset/user/{user_id}` - Returns the user dataset of fAIr
 - `/api/fair/models/centroid` - Get all centroids of fAIr
+- `DELETE /api/fair/models/centroid/cache` - Invalidate fAIr centroids cache
 - `/api/fair/model/{mid}` - Obtain details of a specific model using the centroid model id of fAIr
 - `/api/field-tm/projects` - Return all project of Field Tasking Manager
-- `/api/field-tm/projectid` - ProjectID data of Field Tasking Manager
-- `/api/umap/{locationid}/{projectid}` - ProjectID data of UMap HOTOSM
-- `/api/umap/user/templates` - UMap HOTOSM user templates information
+- `/api/field-tm/projectid/{project_id}` - ProjectID data of Field Tasking Manager
+- `/api/umap/{location}/{project_id}` - ProjectID data of UMap HOTOSM
 - `/api/umap/user/maps` - UMap HOTOSM user maps information
-- `/api/umap//showcase` - Umap HOTOSM showcase projects
+- `/api/umap/showcase` - Umap HOTOSM showcase projects
+- `/api/chatmap/user/maps` - Authenticated user's ChatMap maps
+- `/api/chatmap/map/{map_id}` - Public ChatMap map by ID
+- `/api/chatmap/map` - Authenticated user's ChatMap (Hanko cookie)
+- `/api/homepage-map/projects/snapshot` - Unified homepage map snapshot (GeoJSON)
 - `/api/export-tool/jobs` - Data jobs of Export Tool
+- `/api/export-tool/jobs/me` - Authenticated user's Export Tool jobs
 - `/api/export-tool/jobs/{job_uid}` - ID of data jobs of Export Tool
 
 ## Contributing
