@@ -9,8 +9,11 @@ import FieldPage from "../portal-field/FieldPage";
 import DataPage from "../portal-data/DataPage";
 import HelpPage from "../pages/HelpPage";
 import TestPage from "../pages/TestPage";
-import PlanPage from "../pages/PlanPage";
 import NotFoundPage from "../pages/NotFoundPage";
+import PlanPage from "../portal-plans/PlanPage";
+import AddPlanPage from "../portal-plans/AddPlanPage";
+import EditPlanPage from "../portal-plans/EditPlanPage";
+import MyPlanPage from "../portal-plans/MyPlanPage";
 
 // Component to handle protected routes
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -106,14 +109,42 @@ export function AppRoutes() {
           </MainNavRoute>
         }
       />
-      <Route
-        path="/:locale/plan"
-        element={
-          <MainNavRoute>
-            <PlanPage />
-          </MainNavRoute>
-        }
-      />
+      <Route path="/:locale/plan">
+        <Route
+          index
+          element={
+            <MainNavRoute>
+              <PlanPage />
+            </MainNavRoute>
+          }
+        />
+        <Route
+          path="new"
+          element={
+            <MainNavRoute>
+              <AddPlanPage />
+            </MainNavRoute>
+          }
+        />
+        <Route path=":planId">
+          <Route
+            index
+            element={
+              <MainNavRoute>
+                <MyPlanPage />
+              </MainNavRoute>
+            }
+          />
+          <Route
+            path="edit"
+            element={
+              <MainNavRoute>
+                <EditPlanPage />
+              </MainNavRoute>
+            }
+          />
+        </Route>
+      </Route>
       <Route
         path="/:locale/help"
         element={

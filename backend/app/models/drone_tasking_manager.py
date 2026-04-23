@@ -3,6 +3,8 @@
 from pydantic import BaseModel
 from typing import List, Optional, Any
 
+from app.models.plan import PlanTag
+
 
 class Geometry(BaseModel):
     type: Optional[str] = None
@@ -73,6 +75,7 @@ class DroneTMProject(BaseModel):
     created_at: Optional[str] = None
     author_id: Optional[str] = None
     is_terrain_follow: Optional[bool] = None
+    plans: List[PlanTag] = []
 
 
 class DroneTMPagination(BaseModel):

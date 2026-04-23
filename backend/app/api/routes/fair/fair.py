@@ -3,12 +3,16 @@
 import asyncio
 import logging
 import httpx
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from app.models.fair import FAIRProjectsResponse, FAIRCentroidsResponse, FAIRModelDetail
-from hotosm_auth_fastapi import CurrentUser
+from hotosm_auth_fastapi import CurrentUser, CurrentUserOptional
 from app.core.cache import get_cached, set_cached, delete_cached, DEFAULT_TTL, LONG_TTL
 from app.core.config import settings
+from app.core.database import get_db
+from app.services import fair_service, plans_service
+from app.services.exceptions import UpstreamUnavailable
 
 # fAIr API Configuration (from .env / environment variables)
 FAIR_API_BASE_URL = settings.fair_api_url
@@ -20,7 +24,7 @@ logger = logging.getLogger(__name__)
 logger.info(f"fAIr API URL: {FAIR_API_BASE_URL} (SSL verify: {FAIR_VERIFY_SSL})")
 
 # Flag to track if background enrichment is running
-_fair_enrichment_in_progress = False
+fair_enrichment_in_progress = False
 
 
 async def fetch_all_fair_model_names() -> dict[int, str]:
@@ -64,12 +68,12 @@ async def fetch_all_fair_model_names() -> dict[int, str]:
 
 async def enrich_fair_centroids_in_background():
     """Background task to fetch all model names and update centroids cache."""
-    global _fair_enrichment_in_progress
+    global fair_enrichment_in_progress
 
-    if _fair_enrichment_in_progress:
+    if fair_enrichment_in_progress:
         return
 
-    _fair_enrichment_in_progress = True
+    fair_enrichment_in_progress = True
     cache_key = "fair_models_centroids"
 
     try:
@@ -105,7 +109,7 @@ async def enrich_fair_centroids_in_background():
     except Exception as e:
         logger.error(f"fAIr background enrichment failed: {e}")
     finally:
-        _fair_enrichment_in_progress = False
+        fair_enrichment_in_progress = False
 
 
 @router.get("/projects", response_model=FAIRProjectsResponse)
@@ -116,6 +120,8 @@ async def get_fair_projects(
     search: Optional[str] = Query(None, description="Search query"),
     ordering: Optional[str] = Query("-created_at", description="Order results by field (prefix with - for descending)"),
     id: Optional[int] = Query(None, description="Filter by model ID"),
+    user: CurrentUserOptional = None,
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     """
     Get AI models from fAIr (AI-assisted mapping) API.
@@ -133,9 +139,18 @@ async def get_fair_projects(
     ```
     """
     cache_key = f"fair_projects_{status}_{limit}_{offset}_{search}_{ordering}_{id}"
+
+    async def enrich(payload: dict) -> dict:
+        results = payload.get("results") or []
+        owner_id = user.id if user is not None else None
+        enriched = await plans_service.enrich_items_with_plans(
+            db, owner_id, "fair", results, "id"
+        )
+        return {**payload, "results": enriched}
+
     cached_data = get_cached(cache_key)
     if cached_data is not None:
-        return cached_data
+        return await enrich(cached_data)
 
     url = f"{FAIR_API_BASE_URL}/model/"
 
@@ -164,7 +179,7 @@ async def get_fair_projects(
             response.raise_for_status()
             data = response.json()
             set_cached(cache_key, data, DEFAULT_TTL)
-            return data
+            return await enrich(data)
         except httpx.HTTPStatusError as e:
             raise HTTPException(
                 status_code=e.response.status_code,
@@ -286,31 +301,15 @@ async def get_fair_model_detail(mid: int) -> dict:
         }
     ```
     """
-    cache_key = f"fair_model_{mid}"
-    cached_data = get_cached(cache_key)
-    if cached_data is not None:
-        return cached_data
-
-    url = f"{FAIR_API_BASE_URL}/model/{mid}/"
-
-    headers = {
-        "accept": "application/json",
-    }
-
-    async with httpx.AsyncClient(timeout=30.0, verify=FAIR_VERIFY_SSL) as client:
-        try:
-            response = await client.get(url, headers=headers)
-            response.raise_for_status()
-            data = response.json()
-            set_cached(cache_key, data, DEFAULT_TTL)
-            return data
-        except httpx.HTTPStatusError as e:
-            raise HTTPException(
-                status_code=e.response.status_code,
-                detail=f"Error from fAIr API: {e.response.text}"
-            )
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+    try:
+        result = await fair_service.fetch_model_by_id(str(mid))
+    except UpstreamUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"fAIr model {mid} not found")
+    return result
 
 
 @router.get("/model/user/{user_id}", response_model=FAIRProjectsResponse)

@@ -5,10 +5,15 @@
 import asyncio
 import logging
 import httpx
-from fastapi import APIRouter, HTTPException, Path, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Path, BackgroundTasks
+from hotosm_auth_fastapi import CurrentUserOptional
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.tasking_manager import ProjectsResponse, Project, CountriesResponse
 from app.core.cache import get_cached, set_cached, LONG_TTL, DEFAULT_TTL
 from app.core.config import settings
+from app.core.database import get_db
+from app.services import plans_service, tasking_manager_service
+from app.services.exceptions import UpstreamUnavailable
 
 
 router = APIRouter(prefix="/tasking-manager")
@@ -17,7 +22,7 @@ logger = logging.getLogger(__name__)
 HOTOSM_API_BASE_URL = settings.tasking_manager_api_url
 
 # Flag to track if background enrichment is running
-_enrichment_in_progress = False
+enrichment_in_progress = False
 
 
 async def fetch_page(client: httpx.AsyncClient, page: int) -> list[dict]:
@@ -75,12 +80,12 @@ def enrich_data_with_names(data: dict, project_names: dict[int, str]) -> dict:
 
 async def fetch_and_enrich_in_background():
     """Background task to fetch all project names and update cache."""
-    global _enrichment_in_progress
+    global enrichment_in_progress
 
-    if _enrichment_in_progress:
+    if enrichment_in_progress:
         return
 
-    _enrichment_in_progress = True
+    enrichment_in_progress = True
     cache_key = "tasking_manager_projects"
     enriched_cache_key = "tasking_manager_projects_enriched"
 
@@ -118,11 +123,15 @@ async def fetch_and_enrich_in_background():
     except Exception as e:
         logger.error(f"Background enrichment failed: {e}")
     finally:
-        _enrichment_in_progress = False
+        enrichment_in_progress = False
 
 
 @router.get("/projects", response_model=ProjectsResponse)
-async def get_tasking_manager_projects(background_tasks: BackgroundTasks) -> dict:
+async def get_tasking_manager_projects(
+    background_tasks: BackgroundTasks,
+    user: CurrentUserOptional = None,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
     """
     Gets all projects from the HOT OSM Tasking Manager.
 
@@ -151,10 +160,18 @@ async def get_tasking_manager_projects(background_tasks: BackgroundTasks) -> dic
     """
     cache_key = "tasking_manager_projects"
 
+    async def enrich(data: dict) -> dict:
+        results = data.get("results") or []
+        owner_id = user.id if user is not None else None
+        enriched = await plans_service.enrich_items_with_plans(
+            db, owner_id, "tasking-manager", results, "projectId"
+        )
+        return {**data, "results": enriched}
+
     # Check cache first - if enriched data exists, return it immediately
     cached_data = get_cached(cache_key)
     if cached_data is not None:
-        return cached_data
+        return await enrich(cached_data)
 
     url = f"{HOTOSM_API_BASE_URL}/projects/"
     params = {"action": "any", "omitMapResults": "false"}
@@ -172,7 +189,7 @@ async def get_tasking_manager_projects(background_tasks: BackgroundTasks) -> dic
             # Schedule background enrichment
             background_tasks.add_task(fetch_and_enrich_in_background)
 
-            return data
+            return await enrich(data)
 
     except httpx.HTTPStatusError as e:
         raise HTTPException(
@@ -270,54 +287,15 @@ async def get_tasking_manager_project_by_id(
         }
         ```
     """
-    cache_key = f"tasking_manager_project_{project_id}"
-    cached_data = get_cached(cache_key)
-    if cached_data is not None:
-        return cached_data
-
-    url = f"{HOTOSM_API_BASE_URL}/projects/{project_id}/"
-
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.get(url)
-            response.raise_for_status()
-            data = response.json()
-
-            # Extract only the keys you care about
-            filtered_data = {
-                "organisationName": data.get("organisationName"),
-                "organisationSlug": data.get("organisationSlug"),
-                "projectInfo": data.get("projectInfo"),
-                "projectInfoLocales": data.get("projectInfoLocales"),
-                "created": data.get("created"),
-                "percentMapped": data.get("percentMapped"),
-                "percentValidated": data.get("percentValidated"),
-                "percentBadImagery": data.get("percentBadImagery"),
-            }
-
-            set_cached(cache_key, filtered_data, DEFAULT_TTL)
-            return filtered_data
-
-    except httpx.HTTPStatusError as e:
-        if e.response.status_code == 404:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Project with ID {project_id} not found",
-            )
-        raise HTTPException(
-            status_code=e.response.status_code,
-            detail=f"Error querying HOT OSM API: {e.response.text}",
-        )
-    except httpx.RequestError as e:
-        raise HTTPException(
-            status_code=503,
-            detail=f"Connection error with HOT OSM API: {str(e)}",
-        )
+        result = await tasking_manager_service.fetch_project_by_id(str(project_id))
+    except UpstreamUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Unexpected error: {str(e)}",
-        )
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"Project with ID {project_id} not found")
+    return result
 
 
 @router.get("/projects/user")

@@ -3,6 +3,8 @@
 from pydantic import BaseModel
 from typing import List, Optional
 
+from app.models.plan import PlanTag
+
 
 class User(BaseModel):
     osm_id: Optional[int] = None
@@ -22,6 +24,7 @@ class FAIRModel(BaseModel):
     status: Optional[int] = None
     base_model: Optional[str] = None
     dataset: Optional[int] = None
+    plans: List[PlanTag] = []
 
 
 class FAIRProjectsResponse(BaseModel):

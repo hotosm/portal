@@ -3,6 +3,8 @@
 from pydantic import BaseModel
 from typing import Any, List, Optional
 
+from app.models.plan import PlanTag
+
 
 class Pagination(BaseModel):
     hasNext: Optional[bool] = None
@@ -28,6 +30,7 @@ class Project(BaseModel):
     percentMapped: Optional[float] = None
     percentValidated: Optional[float] = None
     percentBadImagery: Optional[float] = None
+    plans: List[PlanTag] = []
 
 
 class ProjectsResponse(BaseModel):

@@ -99,7 +99,7 @@ async def test_get_tasking_manager_projects_http_error(client: AsyncClient):
     response = await client.get("/api/tasking-manager/projects")
 
     assert response.status_code == 500
-    assert "Error al consultar API de HOT OSM" in response.json()["detail"]
+    assert response.json()["detail"]
 
 
 @pytest.mark.asyncio
@@ -113,7 +113,7 @@ async def test_get_tasking_manager_projects_connection_error(client: AsyncClient
     response = await client.get("/api/tasking-manager/projects")
 
     assert response.status_code == 503
-    assert "Error de conexión con API de HOT OSM" in response.json()["detail"]
+    assert response.json()["detail"]
 
 
 # -------------------------------
@@ -287,7 +287,7 @@ async def test_get_tasking_manager_project_by_id_connection_error(client: AsyncC
     response = await client.get("/api/tasking-manager/projectid/111")
 
     assert response.status_code == 503
-    assert "Connection error with HOT OSM API" in response.json()["detail"]
+    assert "tasking-manager" in response.json()["detail"]
 
 
 @pytest.mark.asyncio

@@ -1,7 +1,9 @@
 # portal/backend/app/api/routes/drone_tasking_manager/drone_tasking_manager.py
 
 import httpx
-from fastapi import APIRouter, HTTPException, Path, Request
+from fastapi import APIRouter, Depends, HTTPException, Path, Request
+from hotosm_auth_fastapi import CurrentUserOptional
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from app.models.drone_tasking_manager import (
     DroneTMProjectsResponse,
@@ -9,6 +11,9 @@ from app.models.drone_tasking_manager import (
     DroneTMCentroidsResponse,
 )
 from app.core.cache import get_cached, set_cached, DEFAULT_TTL
+from app.core.database import get_db
+from app.services import drone_tm_service, plans_service
+from app.services.exceptions import UpstreamUnavailable
 
 import logging
 import json
@@ -38,7 +43,7 @@ def build_dronetm_cache_key(
     return f"dronetm_centroids_{filter_by_owner}_{search}_{page}_{results_per_page}"
 
 
-def _extract_hanko_user_id_from_token(token: str) -> Optional[str]:
+def extract_hanko_user_id_from_token(token: str) -> Optional[str]:
     """Try to decode a JWT-like token and extract a user id (sub or hanko_user_id).
 
     This does a unsigned decode (no verification) and is only used to pass an
@@ -65,7 +70,9 @@ async def get_projects(
     search: Optional[str] = None,
     page: int = 1,
     results_per_page: int = 20,
-    fetch_all: Optional[bool] = False
+    fetch_all: Optional[bool] = False,
+    user: CurrentUserOptional = None,
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     """
     Proxy to DroneTM API with Hanko authentication.
@@ -123,15 +130,15 @@ async def get_projects(
         logger.warning("Failed to set DroneTM auth header from Hanko cookie")
 
     # Add an extra header with the Hanko user id (if we can extract it)
-    hanko_user_id = _extract_hanko_user_id_from_token(hanko_cookie)
+    hanko_user_id = extract_hanko_user_id_from_token(hanko_cookie)
     if hanko_user_id:
         headers["X-Hanko-User-Id"] = hanko_user_id
     
-    # If using HTTPS with self-signed certificates in Docker, disable verification
-    # In production with valid certs, set verify=True
     verify_ssl = bool(settings.drone_tm_verify_ssl)
-    
-    async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl) as client:
+
+    async with httpx.AsyncClient(
+        timeout=30.0, verify=verify_ssl, cookies={"hanko": hanko_cookie}
+    ) as client:
         try:
             if not fetch_all:
                 params = {
@@ -143,19 +150,22 @@ async def get_projects(
                     params["status"] = status
                 if search:
                     params["search"] = search
-                
+
                 logger.info(f"Making request to {url} with params: {params}")
                 response = await client.get(url, headers=headers, params=params)
                 logger.info(f"Response status: {response.status_code}")
                 response.raise_for_status()
-                return response.json()
-            
+                try:
+                    return response.json()
+                except Exception:
+                    logger.error(f"Non-JSON response from DroneTM: {response.text[:200]}")
+                    raise HTTPException(status_code=502, detail="DroneTM returned a non-JSON response")
+
             else:
-                # Fetch all pages
                 all_results = []
                 current_page = 1
                 total_pages = None
-                
+
                 while True:
                     params = {
                         "filter_by_owner": str(filter_by_owner).lower(),
@@ -166,21 +176,21 @@ async def get_projects(
                         params["status"] = status
                     if search:
                         params["search"] = search
-                    
+
                     response = await client.get(url, headers=headers, params=params)
                     response.raise_for_status()
                     data = response.json()
-                    
+
                     all_results.extend(data.get("results", []))
-                    
+
                     pagination = data.get("pagination", {})
                     total_pages = pagination.get("total_pages", 1)
-                    
+
                     if current_page >= total_pages:
                         break
-                    
+
                     current_page += 1
-                
+
                 return {
                     "results": all_results,
                     "pagination": {
@@ -190,7 +200,7 @@ async def get_projects(
                         "total": len(all_results)
                     }
                 }
-                
+
         except httpx.HTTPStatusError as e:
             logger.error(f"HTTP Error: {e.response.status_code} - {e.response.text}")
             raise HTTPException(
@@ -199,10 +209,9 @@ async def get_projects(
             )
         except httpx.TimeoutException:
             logger.error("Request timeout")
-            raise HTTPException(
-                status_code=504,
-                detail="Request to DroneTM API timed out"
-            )
+            raise HTTPException(status_code=504, detail="Request to DroneTM API timed out")
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"Unexpected error: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
@@ -376,7 +385,7 @@ async def get_user_projects(
         logger.warning("Failed to set DroneTM auth header from Hanko cookie")
 
     # Include extracted Hanko user id to help DroneTM match the Portal user
-    hanko_user_id = _extract_hanko_user_id_from_token(hanko_cookie)
+    hanko_user_id = extract_hanko_user_id_from_token(hanko_cookie)
     if hanko_user_id:
         headers["X-Hanko-User-Id"] = hanko_user_id
     
@@ -392,14 +401,20 @@ async def get_user_projects(
         params["search"] = search
     
     verify_ssl = bool(settings.drone_tm_verify_ssl)
-    
-    async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl) as client:
+
+    async with httpx.AsyncClient(
+        timeout=30.0, verify=verify_ssl, cookies={"hanko": hanko_cookie}
+    ) as client:
         try:
             logger.info(f"[User Projects] Making request to {url} with params: {params}")
             response = await client.get(url, headers=headers, params=params)
             logger.info(f"[User Projects] Response status: {response.status_code}")
             response.raise_for_status()
-            return response.json()
+            try:
+                return response.json()
+            except Exception:
+                logger.error(f"[User Projects] Non-JSON response from DroneTM: {response.text[:200]}")
+                raise HTTPException(status_code=502, detail="DroneTM returned a non-JSON response")
         except httpx.HTTPStatusError as e:
             logger.error(f"HTTP Error: {e.response.status_code} - {e.response.text}")
             raise HTTPException(
@@ -408,10 +423,9 @@ async def get_user_projects(
             )
         except httpx.TimeoutException:
             logger.error("Request timeout")
-            raise HTTPException(
-                status_code=504,
-                detail="Request to DroneTM API timed out"
-            )
+            raise HTTPException(status_code=504, detail="Request to DroneTM API timed out")
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"Unexpected error: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))

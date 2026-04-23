@@ -6,15 +6,20 @@ import PageWrapper from "./PageWrapper";
 
 interface SectionHeaderProps {
   children?: any;
-  buttonLink?: string;
   buttonText?: string;
-  link2?: {
-    label: string;
-    url: string;
-  };
+  buttonLink?: string;
+  onButtonClick?: () => void;
 }
 
-function SectionHeader({ children }: SectionHeaderProps) {
+function SectionHeader({
+  children,
+  buttonText,
+  buttonLink,
+  onButtonClick,
+}: SectionHeaderProps) {
+  const label = buttonText ?? m.getting_started();
+  const isDefault = !buttonText;
+
   return (
     <div
       style={{
@@ -24,9 +29,9 @@ function SectionHeader({ children }: SectionHeaderProps) {
       <PageWrapper>
         <div className="flex flex-col md:flex-row gap-sm w-full justify-between pt-md pb-md items-start md:items-center">
           <div className="text-2xl">{children}</div>
-          <Button>
-            {m.getting_started()}{" "}
-            <Icon className="ml-xs" src={playCircleFill} />
+          <Button href={buttonLink} onClick={onButtonClick}>
+            {label}
+            {isDefault && <Icon className="ml-xs" src={playCircleFill} />}
           </Button>
         </div>
       </PageWrapper>

@@ -3,9 +3,14 @@
 """FMTM API endpoints."""
 
 import httpx
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException, Path
+from hotosm_auth_fastapi import CurrentUserOptional
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.field_tm import FMTMProjectsResponse, FMTMProjectSummary
 from app.core.cache import get_cached, set_cached, DEFAULT_TTL
+from app.core.database import get_db
+from app.services import field_tm_service, plans_service
+from app.services.exceptions import UpstreamUnavailable
 
 router = APIRouter(prefix="/field-tm")
 
@@ -14,7 +19,10 @@ FMTM_API_BASE_URL = "https://api.fmtm.hotosm.org"
 
 
 @router.get("/projects", response_model=FMTMProjectsResponse)
-async def get_fmtm_projects() -> dict:
+async def get_fmtm_projects(
+    user: CurrentUserOptional = None,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
     """
     Gets all project summaries from the FMTM API.
 
@@ -43,9 +51,19 @@ async def get_fmtm_projects() -> dict:
     ```
     """
     cache_key = "fmtm_projects"
+
+    async def enrich(payload: dict) -> dict:
+        projects_block = payload.get("projects") or {}
+        results = projects_block.get("results") or []
+        owner_id = user.id if user is not None else None
+        enriched = await plans_service.enrich_items_with_plans(
+            db, owner_id, "field-tm", results, "id"
+        )
+        return {**payload, "projects": {**projects_block, "results": enriched}}
+
     cached_data = get_cached(cache_key)
     if cached_data is not None:
-        return cached_data
+        return await enrich(cached_data)
 
     url = f"{FMTM_API_BASE_URL}/projects/summaries"
 
@@ -56,7 +74,7 @@ async def get_fmtm_projects() -> dict:
             data = response.json()
             result = {"projects": data}
             set_cached(cache_key, result, DEFAULT_TTL)
-            return result
+            return await enrich(result)
     except httpx.HTTPStatusError as e:
         raise HTTPException(
             status_code=e.response.status_code,
@@ -108,37 +126,12 @@ async def get_fmtm_project_by_id(
         }
     ```
     """
-    cache_key = f"fmtm_project_{project_id}"
-    cached_data = get_cached(cache_key)
-    if cached_data is not None:
-        return cached_data
-
-    url = f"{FMTM_API_BASE_URL}/projects/{project_id}"
-
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.get(url)
-            response.raise_for_status()
-            data = response.json()
-            set_cached(cache_key, data, DEFAULT_TTL)
-            return data
-    except httpx.HTTPStatusError as e:
-        if e.response.status_code == 404:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Project with ID {project_id} not found",
-            )
-        raise HTTPException(
-            status_code=e.response.status_code,
-            detail=f"Error querying FMTM API: {e.response.text}",
-        )
-    except httpx.RequestError as e:
-        raise HTTPException(
-            status_code=503,
-            detail=f"FMTM API connection error: {str(e)}",
-        )
+        result = await field_tm_service.fetch_project_by_id(str(project_id))
+    except UpstreamUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Unexpected error: {str(e)}",
-        )
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"Project with ID {project_id} not found")
+    return result

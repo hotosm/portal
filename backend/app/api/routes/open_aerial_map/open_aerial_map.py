@@ -6,18 +6,20 @@ logger = logging.getLogger(__name__)
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
-from hotosm_auth_fastapi import CurrentUser
+from hotosm_auth_fastapi import CurrentUser, CurrentUserOptional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.cache import DEFAULT_TTL, SHORT_TTL, get_cached, set_cached
 from app.core.database import get_db
+from app.services import open_aerial_map_service
+from app.services.exceptions import UpstreamUnavailable
 from app.models.open_aerial_map import (
     CompactSnapshotResponse,
     ImageryDetailResponse,
     ImageryListResponse,
 )
 from app.core.config import settings
-from app.services import oam_service
+from app.services import oam_service, plans_service
 
 OAM_API_BASE_URL = settings.oam_api_url
 SYNC_INTERVAL = 7 * 24 * 60 * 60  # 1 week in seconds
@@ -71,6 +73,7 @@ start_snapshot_scheduler = start_sync_scheduler
 @router.get("/projects", response_model=ImageryListResponse)
 async def get_imagery_metadata(
     db: AsyncSession = Depends(get_db),
+    user: CurrentUserOptional = None,
     limit: int = Query(10, ge=1, le=100, description="Number of results to return"),
     page: int = Query(1, ge=1, description="Page number"),
     sort: str = Query("desc", regex="^(asc|desc)$", description="Sort order"),
@@ -95,9 +98,17 @@ async def get_imagery_metadata(
         f"oam_projects_{limit}_{page}_{sort}_{bbox}_{has_tiled}_"
         f"{title}_{provider}_{gsd_from}_{gsd_to}_{acquisition_from}_{acquisition_to}"
     )
+    async def _enrich(payload: dict) -> dict:
+        results = payload.get("results") or []
+        owner_id = user.id if user is not None else None
+        enriched = await plans_service.enrich_items_with_plans(
+            db, owner_id, "open-aerial-map", results, "_id"
+        )
+        return {**payload, "results": enriched}
+
     cached = get_cached(cache_key)
     if cached is not None:
-        return cached
+        return await _enrich(cached)
 
     try:
         data = await oam_service.query_images(
@@ -118,7 +129,7 @@ async def get_imagery_metadata(
         raise HTTPException(status_code=500, detail=str(e))
 
     set_cached(cache_key, data, DEFAULT_TTL)
-    return data
+    return await _enrich(data)
 
 
 @router.get("/projects/all", response_model=CompactSnapshotResponse)
@@ -194,22 +205,14 @@ async def get_imagery_by_id(
         set_cached(cache_key, result, DEFAULT_TTL)
         return result
 
-    # Fallback: live OAM API
-    url = f"{OAM_API_BASE_URL}/meta/{image_id}"
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        try:
-            response = await client.get(url)
-            response.raise_for_status()
-            data = response.json()
-            set_cached(cache_key, data, DEFAULT_TTL)
-            return data
-        except httpx.HTTPStatusError as e:
-            raise HTTPException(
-                status_code=e.response.status_code,
-                detail=f"Error from OpenAerialMap API: {e.response.text}",
-            )
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+    # Fallback: live OAM API via shared service
+    try:
+        data = await open_aerial_map_service.fetch_imagery_by_id(image_id)
+    except UpstreamUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    if data is None:
+        raise HTTPException(status_code=404, detail=f"OAM image {image_id} not found")
+    return data
 
 
 @router.get("/user/me", response_model=ImageryListResponse)
