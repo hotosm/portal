@@ -1,6 +1,7 @@
 import CardProjectTitle from "../../components/shared/CardProjectTitle";
 import Tag from "../../components/shared/Tag";
 import { IFairProject } from "../types";
+import placeholder from "../../assets/images/placeholder.png";
 
 interface FairCardProps {
   project: IFairProject;
@@ -15,6 +16,9 @@ const FairProjectCard = ({ project }: FairCardProps) => {
             src={project.image}
             alt={project.title}
             className="w-full h-[147px] object-cover"
+            onError={(e) => {
+              e.currentTarget.src = placeholder;
+            }}
           />
           <Tag
             variant={project.status === "draft" ? "neutral" : "success"}

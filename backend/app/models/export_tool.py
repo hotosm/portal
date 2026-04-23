@@ -4,6 +4,8 @@ from pydantic import BaseModel, ConfigDict
 from typing import List, Optional, Any
 from datetime import datetime
 
+from app.models.plan import PlanTag
+
 
 class ExportJobUser(BaseModel):
     """User information for export job"""
@@ -40,6 +42,7 @@ class ExportJob(BaseModel):
     pinned: Optional[bool] = False
     unfiltered: Optional[bool] = False
     userinfo: Optional[bool] = False
+    plans: List[PlanTag] = []
 
 
 class ExportJobsResponse(BaseModel):

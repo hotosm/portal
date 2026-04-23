@@ -20,11 +20,13 @@ from app.api.routes.homepage_map import homepage_map
 from app.api.routes.open_aerial_map.open_aerial_map import start_sync_scheduler
 from app.db.models.oam import OAMImage  # noqa: F401 — registers model with Base.metadata
 from app.db.models.map_project import MapProject  # noqa: F401 — registers model with Base.metadata
+from app.db.models.plan import Plan, PlanProject  # noqa: F401 — registers models with Base.metadata
 from app.api.routes.fair import fair
 from app.api.routes.field_tm import field_tm
 from app.api.routes.umap import umap
 from app.api.routes.export_tool import export_tool
 from app.api.routes.chatmap import chatmap
+from app.api.routes.plans import plans as plans_route
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal, check_db_connection
 
@@ -291,6 +293,11 @@ app.include_router(
     chatmap.router,
     prefix=settings.api_v1_prefix,
     tags=["chatmap"],
+)
+
+app.include_router(
+    plans_route.router,
+    prefix=settings.api_v1_prefix,
 )
 
 # Include authentication routers (OSM OAuth)

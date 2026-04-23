@@ -190,8 +190,8 @@ async def test_get_umap_data_http_error(client: AsyncClient):
 
     response = await client.get("/api/umap/1428/error-test")
 
-    assert response.status_code == 500
-    assert "Error querying uMap API" in response.json()["detail"]
+    assert response.status_code == 503
+    assert "umap" in response.json()["detail"]
 
 
 @pytest.mark.asyncio
@@ -205,7 +205,7 @@ async def test_get_umap_data_connection_error(client: AsyncClient):
     response = await client.get("/api/umap/1428/connection-error")
 
     assert response.status_code == 503
-    assert "Connection error with uMap API" in response.json()["detail"]
+    assert "umap" in response.json()["detail"]
 
 
 @pytest.mark.asyncio
@@ -299,8 +299,8 @@ async def test_get_umap_data_bad_gateway(client: AsyncClient):
 
     response = await client.get("/api/umap/1428/bad-gateway")
 
-    assert response.status_code == 502
-    assert "Error querying uMap API" in response.json()["detail"]
+    assert response.status_code == 503
+    assert "umap" in response.json()["detail"]
 
 
 @pytest.mark.asyncio

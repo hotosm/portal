@@ -3,6 +3,8 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
+from app.models.plan import PlanTag
+
 
 class Meta(BaseModel):
     provided_by: Optional[str] = None
@@ -45,6 +47,7 @@ class ImageryResult(BaseModel):
     uploaded_at: Optional[str] = None
     meta_uri: Optional[str] = None
     geojson: Optional[GeoJSON] = None
+    plans: List[PlanTag] = []
 
     model_config = {
         "populate_by_name": True

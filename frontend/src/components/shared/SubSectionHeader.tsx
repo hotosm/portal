@@ -2,7 +2,7 @@ import * as m from "../../paraglide/messages";
 import PageWrapper from "./PageWrapper";
 
 interface SubSectionHeaderProps {
-  icon: string;
+  icon?: string;
   title: string;
   toolName: string;
 }
@@ -13,7 +13,7 @@ function SubSectionHeader({ icon, title, toolName }: SubSectionHeaderProps) {
       <PageWrapper>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-sm">
-            <img src={icon} alt="" className="w-8 h-8" />
+            {icon && <img src={icon} alt="" className="w-8 h-8" />}
             <span
               className="text-xl font-semibold"
               dangerouslySetInnerHTML={{ __html: title }}
