@@ -1,94 +1,110 @@
 import CardAddNew from "../components/shared/CardAddNew";
-import CardTakeCourse from "../components/shared/CardTakeCourse";
-import Divider from "../components/shared/Divider";
+import CardSkeleton from "../components/shared/CardSkeleton";
 import PageWrapper from "../components/shared/PageWrapper";
 import SectionHeader from "../components/shared/SectionHeader";
 import ChatMapCard from "./components/ChatMapCard";
-import FieldTMCard from "./components/FieldTMCard";
 import { useChatMapData } from "./hooks/useChatMapData";
+import { m } from "../paraglide/messages";
+import SubSectionHeader from "../components/shared/SubSectionHeader";
+import chatIcon from "../assets/icons/chat.svg";
+import fieldIcon from "../assets/icons/field.svg";
 import { useFieldTMProjects } from "./hooks/useFieldTMProjects";
+import CardTakeCourse from "../components/shared/CardTakeCourse";
+import FieldTMCard from "./components/FieldTMCard";
 
 const CARD_CLASS =
   "w-full md:w-[calc(33.333%_-_var(--hot-spacing-large)*0.667)] lg:w-[calc(25%_-_var(--hot-spacing-large)*0.75)] shrink-0";
 
 function FieldPage() {
-  const { data: fieldProjects = [], isLoading: fieldLoading } =
+  const { data: chatMaps = [], isLoading: isChatMapLoading } = useChatMapData();
+  const { data: fieldMaps = [], isLoading: isFieldLoading } =
     useFieldTMProjects();
-  const { data: chatMaps = [], isLoading: chatmapLoading } = useChatMapData();
-
-  if (fieldLoading || chatmapLoading) {
-    return <p className="flex justify-center items-center pt-10">Loading...</p>;
-  }
 
   return (
     <>
       <SectionHeader>
-        <strong>Local knowledge</strong> from the field
+        <strong>{m.section_field()}</strong>
       </SectionHeader>
+      <SubSectionHeader
+        icon={chatIcon}
+        title={m.field_chat_mapping()}
+        toolName="ChatMap"
+      />
       <PageWrapper>
-        <div className="space-y-xl">
-          {/* Organize field projects */}
-          <div className="flex flex-col gap-sm py-lg">
-            <div>
-              <p className="font-semibold text-xl">
-                <strong>Organize</strong> field projects
-              </p>
-              <p className="text-base">
-                Powered by <strong>Field Tasking Manager</strong>
-              </p>
+        <div className="flex flex-col gap-sm py-lg">
+          <div className="flex flex-wrap gap-lg">
+            <div className={CARD_CLASS}>
+              <CardAddNew
+                title={m.mapping_tm_card_title()}
+                description={m.mapping_tm_card_description()}
+                buttonLabel={m.mapping_tm_card_button()}
+                icon="map"
+              />
             </div>
-            <div className="flex flex-wrap gap-lg">
-              <div className={CARD_CLASS}>
-                <CardAddNew
-                  title="Create"
-                  description="a field mapping project"
-                  buttonLabel="Create a project"
-                  icon="add"
-                />
-              </div>
-              {fieldProjects.map((project) => (
-                <div key={project.id} className={CARD_CLASS}>
-                  <FieldTMCard project={project} />
+            <div className={CARD_CLASS}>
+              <CardAddNew
+                title={m.field_tm_card_title()}
+                description={m.field_tm_card_description()}
+                buttonLabel={m.field_tm_card_button()}
+                icon="add"
+              />
+            </div>
+            {isChatMapLoading
+              ? Array.from({ length: 1 }).map((_, i) => (
+                  <div key={i} className={CARD_CLASS}>
+                    <CardSkeleton linesCount={3} />
+                  </div>
+                ))
+              : chatMaps.map((map) => (
+                  <div key={map.id} className={CARD_CLASS}>
+                    <ChatMapCard project={map} />
+                  </div>
+                ))}
+          </div>
+        </div>
+      </PageWrapper>
+
+      <SubSectionHeader
+        icon={fieldIcon}
+        title={m.field_organized_mapping()}
+        toolName="Field Tasking Manager"
+      />
+
+      <PageWrapper>
+        <div className="flex flex-col gap-sm py-lg">
+          <div className="flex flex-wrap gap-lg">
+            {isFieldLoading ? (
+              Array.from({ length: 1 }).map((_, i) => (
+                <div key={i} className={CARD_CLASS}>
+                  <CardSkeleton linesCount={3} />
                 </div>
-              ))}
+              ))
+            ) : (
+              <>
+                {fieldMaps.map((project) => (
+                  <div key={project.id} className={CARD_CLASS}>
+                    <FieldTMCard project={project} />
+                  </div>
+                ))}
+              </>
+            )}
+            <div className={CARD_CLASS}>
+              <CardTakeCourse
+                title={m.imagery_take_course_title()}
+                subtitle={m.imagery_take_course_subtitle()}
+                href="#"
+              />
             </div>
           </div>
-
-          <Divider />
-
-          {/* Map with social apps */}
-          <div className="flex flex-col gap-sm py-lg">
-            <div>
-              <p className="font-semibold text-xl">
-                <strong>Map</strong> with social apps
-              </p>
-              <p className="text-base">
-                Powered by <strong>ChatMap</strong>
-              </p>
+          {/* {totalPages > 1 && (
+            <div className="mt-lg">
+              <Pagination
+                currentPage={projectsPage}
+                totalPages={totalPages}
+                onPageChange={setProjectsPage}
+              />
             </div>
-            <div className="flex flex-wrap gap-lg">
-              <div className={CARD_CLASS}>
-                <CardAddNew
-                  title="Map"
-                  description="with chats"
-                  buttonLabel="Create a map"
-                  icon="add"
-                />
-              </div>
-              {chatMaps.map((map) => (
-                <div key={map.id} className={CARD_CLASS}>
-                  <ChatMapCard project={map} />
-                </div>
-              ))}
-              <div className={CARD_CLASS}>
-                <CardTakeCourse
-                  title="Take the course"
-                  subtitle="& get your certification"
-                  href="#"
-                />
-              </div>
-            </div>
-          </div>
+          )} */}
         </div>
       </PageWrapper>
     </>

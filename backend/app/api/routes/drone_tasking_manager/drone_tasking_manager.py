@@ -288,7 +288,7 @@ async def get_projects_centroids(
     if search:
         params["search"] = search
 
-    verify_ssl = not DRONE_TM_BACKEND_URL.startswith("https://") or settings.drone_tm_verify_ssl
+    verify_ssl = bool(settings.drone_tm_verify_ssl)
 
     async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl) as client:
         try:
@@ -406,7 +406,7 @@ async def get_user_projects(
     if search:
         params["search"] = search
     
-    verify_ssl = not DRONE_TM_BACKEND_URL.startswith("https://") or settings.drone_tm_verify_ssl
+    verify_ssl = bool(settings.drone_tm_verify_ssl)
     
     async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl) as client:
         try:
@@ -451,12 +451,41 @@ async def get_project_by_id(
         }
     ```
     """
-    try:
-        result = await drone_tm_service.fetch_project_by_id(project_id)
-    except UpstreamUnavailable as e:
-        raise HTTPException(status_code=503, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
-    if result is None:
-        raise HTTPException(status_code=404, detail=f"DroneTM project '{project_id}' not found")
-    return result
+    cache_key = f"dronetm_project_{project_id}"
+    cached_data = get_cached(cache_key)
+    if cached_data is not None:
+        return cached_data
+
+    # Use configured backend URL for public project details endpoint
+    url = f"{DRONE_TM_BACKEND_URL}/projects/{project_id}"
+
+    headers = {
+        "Accept": "application/json",
+    }
+
+    verify_ssl = bool(settings.drone_tm_verify_ssl)
+
+    async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl) as client:
+        try:
+            response = await client.get(url, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+            set_cached(cache_key, data, DEFAULT_TTL)
+            return data
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"DroneTM project '{project_id}' not found"
+                )
+            raise HTTPException(
+                status_code=e.response.status_code,
+                detail=f"Error from DroneTM API: {e.response.text}"
+            )
+        except httpx.TimeoutException:
+            raise HTTPException(
+                status_code=504,
+                detail="Request to DroneTM API timed out"
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))

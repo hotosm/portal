@@ -39,7 +39,7 @@ ENV_DEFAULTS: dict[Environment, dict[str, str]] = {
     Environment.TEST: {
         "hanko_api_url": "https://dev.login.hotosm.org",
         "drone_tm_base_url": "https://dev.drone.hotosm.org",
-        "fair_base_url": "https://fair-dev.hotosm.org/",
+        "fair_base_url": "https://fair-dev.hotosm.org",
         "oam_api_url": "https://api.openaerialmap.org",
         "umap_base_url": "https://umap.hotosm.org",
         "chatmap_base_url": "https://chatmap.hotosm.org",
@@ -78,10 +78,11 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
+        env_ignore_empty=True,
     )
 
     # --- Required ---
-    portal_base_url: str
+    portal_base_url: str | None = None
     database_url: PostgresDsn
     cookie_secret: str
 
@@ -122,8 +123,8 @@ class Settings(BaseSettings):
     # --- Service-specific settings ---
     drone_tm_auth_header: str = "Authorization"
     drone_tm_auth_prefix: str = "Bearer"
-    drone_tm_verify_ssl: bool = False
-    fair_verify_ssl: bool = True
+    drone_tm_verify_ssl: bool | None = None
+    fair_verify_ssl: bool | None = None
     umap_locale: str = "es"
     homepage_map_sync_interval_hours: int = 7
 
@@ -134,7 +135,7 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def detect_env_and_fill_defaults(self) -> "Settings":
-        url = self.portal_base_url.lower()
+        url = (self.portal_base_url or self.hanko_api_url or "").lower()
         if ".test" in url:
             self.detected_environment = Environment.LOCAL
         elif "://dev." in url:
@@ -165,6 +166,13 @@ class Settings(BaseSettings):
                 for suffix in suffixes:
                     base = base.removesuffix(suffix)
                 setattr(self, base_attr, base)
+
+        # SSL verification defaults: disabled on LOCAL/TEST (self-signed certs), enabled on PRODUCTION.
+        prod = self.detected_environment == Environment.PRODUCTION
+        if self.fair_verify_ssl is None:
+            self.fair_verify_ssl = prod
+        if self.drone_tm_verify_ssl is None:
+            self.drone_tm_verify_ssl = False
 
         return self
 

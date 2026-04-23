@@ -1,19 +1,22 @@
-import type { IDataProject } from "../../portal-mapping/types";
+import type { IDataProject } from "../types";
+import placeholder from "../../assets/images/placeholder.png";
+import CardProjectTitle from "../../components/shared/CardProjectTitle";
 
 const ExportCard = ({ project }: { project: IDataProject }) => {
   return (
-    <a
-      href={project.href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="block h-full group no-underline hover:no-underline"
-    >
-      <div className="w-full h-full bg-white rounded-xl p-md flex flex-col gap-lg transition-all duration-200 group-hover:scale-[1.01]" style={{ boxShadow: "0 0 5px 0 rgba(0, 0, 0, 0.25)" }}>
-        <div>
-          <p className="bold line-clamp-2">{project.title}</p>
-        </div>
+    <div className="w-full h-full bg-white rounded-xl shadow-[0_0_14px_rgba(0,0,0,0.2)] p-md flex flex-col gap-lg">
+      <div className="flex flex-col gap-sm">
+        <img
+          src={project.image}
+          alt={project.title}
+          className="w-full h-48 object-cover rounded"
+          onError={(e) => {
+            e.currentTarget.src = placeholder;
+          }}
+        />
+        <CardProjectTitle href={project.href} title={project.title} />
       </div>
-    </a>
+    </div>
   );
 };
 
