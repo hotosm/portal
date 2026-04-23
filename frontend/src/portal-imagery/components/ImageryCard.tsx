@@ -1,5 +1,6 @@
 import { IImageryProject } from "../imageryProjects";
 import placeholder from "../../assets/images/placeholder.png";
+import CardProjectTitle from "../../components/shared/CardProjectTitle";
 
 interface ImageryCardProps {
   project: IImageryProject;
@@ -7,13 +8,8 @@ interface ImageryCardProps {
 
 const ImageryCard = ({ project }: ImageryCardProps) => {
   return (
-    <a
-      href={project.href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="block group no-underline hover:no-underline"
-    >
-      <div className="w-full h-full bg-white rounded-lg p-md flex flex-col gap-lg shadow-sm transition-all duration-200 group-hover:shadow-lg group-hover:scale-[1.01]">
+    <div className="w-full h-full bg-white rounded-xl shadow-[0_0_14px_rgba(0,0,0,0.2)] p-md flex flex-col gap-lg">
+      <div className="flex flex-col gap-sm">
         <img
           src={project.image}
           alt={project.title}
@@ -22,9 +18,9 @@ const ImageryCard = ({ project }: ImageryCardProps) => {
             e.currentTarget.src = placeholder;
           }}
         />
-        <p className="bold">{project.title}</p>
+        <CardProjectTitle title={project.title} href={project.href} />
       </div>
-    </a>
+    </div>
   );
 };
 

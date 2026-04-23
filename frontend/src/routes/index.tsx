@@ -8,11 +8,16 @@ import FieldPage from "../portal-field/FieldPage";
 import DataPage from "../portal-data/DataPage";
 import HelpPage from "../pages/HelpPage";
 import TestPage from "../pages/TestPage";
+<<<<<<< HEAD
 
 // TODO not found page layout
 function NotFoundPage() {
   return <div>Page not found</div>;
 }
+=======
+import PlanPage from "../pages/PlanPage";
+import NotFoundPage from "../pages/NotFoundPage";
+>>>>>>> develop
 
 // Component to handle protected routes
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -87,6 +92,14 @@ export function AppRoutes() {
         element={
           <MainNavRoute>
             <TestPage />
+          </MainNavRoute>
+        }
+      />
+      <Route
+        path="/:locale/plan"
+        element={
+          <MainNavRoute>
+            <PlanPage />
           </MainNavRoute>
         }
       />

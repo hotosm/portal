@@ -1,5 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
+<<<<<<< HEAD
 import type { IImageryProject } from "../imageryProjects";
+=======
+import type { IImageryProject, OAMImageryResult, OAMApiResponse } from "../types";
+import { useAuth } from "../../contexts/AuthContext";
+
+export type { OAMImageryResult, OAMApiResponse };
+>>>>>>> develop
 
 // Get OAM URL from environment
 const OAM_URL = import.meta.env.VITE_OAM_URL || "https://openaerialmap.org";
@@ -50,6 +57,7 @@ export const oamImageryQueryKeys = {
  * - Automatic background refetch on window focus
  */
 export function useOAMImagery() {
+  const { isLogin } = useAuth();
   return useQuery({
     queryKey: oamImageryQueryKeys.user(),
     queryFn: async (): Promise<IImageryProject[]> => {
@@ -86,10 +94,11 @@ export function useOAMImagery() {
         return [];
       }
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 30 * 60 * 1000, // 30 minutes (formerly cacheTime)
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: true,
     retry: 2,
+    enabled: isLogin,
   });
 }
 
@@ -97,6 +106,7 @@ export function useOAMImagery() {
  * Get the raw OAM imagery data (without IImageryProject mapping)
  */
 export function useOAMImageryRaw() {
+  const { isLogin } = useAuth();
   return useQuery({
     queryKey: [...oamImageryQueryKeys.user(), "raw"],
     queryFn: async (): Promise<OAMImageryResult[]> => {
@@ -127,5 +137,6 @@ export function useOAMImageryRaw() {
     gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: true,
     retry: 2,
+    enabled: isLogin,
   });
 }

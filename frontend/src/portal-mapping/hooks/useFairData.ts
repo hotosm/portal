@@ -5,6 +5,7 @@ import {
   type FAIRModel,
   mapModelsToDataProjects,
 } from "../types";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface PaginatedResult<T> {
   items: T[];
@@ -12,6 +13,7 @@ interface PaginatedResult<T> {
 }
 
 export function useMyModels(page = 1, limit = 4) {
+  const { isLogin } = useAuth();
   const offset = (page - 1) * limit;
   return useQuery({
     queryKey: ["fair", "my-models", page, limit],
@@ -36,5 +38,6 @@ export function useMyModels(page = 1, limit = 4) {
         total: data.count,
       };
     },
+    enabled: isLogin,
   });
 }
