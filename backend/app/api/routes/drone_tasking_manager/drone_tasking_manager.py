@@ -357,11 +357,15 @@ async def get_user_projects(
         }
     ```
     """
-    url = f"{DRONE_TM_BACKEND_URL}/projects/"
-    
+    if settings.drone_tm_api_base_url:
+        base_url = settings.drone_tm_api_base_url
+    else:
+        base_url = DRONE_TM_BACKEND_URL
+    url = f"{base_url}/projects/"
+
     # Extract Hanko cookie from the incoming request
     hanko_cookie = request.cookies.get("hanko")
-    
+
     logger.info(f"[User Projects] Hanko cookie present: {bool(hanko_cookie)}")
     logger.info(f"[User Projects] Target URL: {url}")
     
