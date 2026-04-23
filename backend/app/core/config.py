@@ -50,6 +50,7 @@ ENV_DEFAULTS: dict[Environment, dict[str, str]] = {
     Environment.PRODUCTION: {
         "hanko_api_url": "https://login.hotosm.org",
         "drone_tm_base_url": "https://drone.hotosm.org",
+        "drone_tm_api_base_url": "https://api.drone.hotosm.org",
         "fair_base_url": "https://api-prod.fair.hotosm.org",
         "oam_api_url": "https://api.openaerialmap.org",
         "umap_base_url": "https://umap.hotosm.org",
@@ -111,6 +112,9 @@ class Settings(BaseSettings):
     tasking_manager_api_url: str | None = None
     export_tool_base_url: str | None = None
     field_tm_base_url: str | None = None
+
+    # --- Service API URLs (override derived api URLs if set) ---
+    drone_tm_api_base_url: str | None = None
 
     # --- Legacy env vars (override base URLs if set) ---
     drone_tm_backend_url: str | None = None
