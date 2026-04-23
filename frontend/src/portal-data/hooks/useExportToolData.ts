@@ -39,5 +39,6 @@ export function useExportJobs(page = 1, limit = 6) {
       }
     },
     enabled: isLogin,
+    retry: false,
   });
 }

@@ -42,7 +42,7 @@ ENV_DEFAULTS: dict[Environment, dict[str, str]] = {
         "fair_base_url": "https://fair-dev.hotosm.org",
         "oam_api_url": "https://api.openaerialmap.org",
         "umap_base_url": "https://umap.hotosm.org",
-        "chatmap_base_url": "https://chatmap.hotosm.org",
+        "chatmap_base_url": "https://chatmap-dev.hotosm.org/",
         "tasking_manager_api_url": "https://tasking-manager-production-api.hotosm.org/api/v2",
         "export_tool_base_url": "https://export.hotosm.org",
         "field_tm_base_url": "https://field.hotosm.org",

@@ -134,19 +134,11 @@ async def get_projects(
     if hanko_user_id:
         headers["X-Hanko-User-Id"] = hanko_user_id
     
-    # If using HTTPS with self-signed certificates in Docker, disable verification
-    # In production with valid certs, set verify=True
-    verify_ssl = not DRONE_TM_BACKEND_URL.startswith("https://") or settings.drone_tm_verify_ssl
-    
-    async def enrich(payload: dict) -> dict:
-        results = payload.get("results") or []
-        owner_id = user.id if user is not None else None
-        enriched = await plans_service.enrich_items_with_plans(
-            db, owner_id, "drone-tasking-manager", results, "id"
-        )
-        return {**payload, "results": enriched}
+    verify_ssl = bool(settings.drone_tm_verify_ssl)
 
-    async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl) as client:
+    async with httpx.AsyncClient(
+        timeout=30.0, verify=verify_ssl, cookies={"hanko": hanko_cookie}
+    ) as client:
         try:
             if not fetch_all:
                 params = {
@@ -158,19 +150,22 @@ async def get_projects(
                     params["status"] = status
                 if search:
                     params["search"] = search
-                
+
                 logger.info(f"Making request to {url} with params: {params}")
                 response = await client.get(url, headers=headers, params=params)
                 logger.info(f"Response status: {response.status_code}")
                 response.raise_for_status()
-                return await enrich(response.json())
+                try:
+                    return response.json()
+                except Exception:
+                    logger.error(f"Non-JSON response from DroneTM: {response.text[:200]}")
+                    raise HTTPException(status_code=502, detail="DroneTM returned a non-JSON response")
 
             else:
-                # Fetch all pages
                 all_results = []
                 current_page = 1
                 total_pages = None
-                
+
                 while True:
                     params = {
                         "filter_by_owner": str(filter_by_owner).lower(),
@@ -181,22 +176,22 @@ async def get_projects(
                         params["status"] = status
                     if search:
                         params["search"] = search
-                    
+
                     response = await client.get(url, headers=headers, params=params)
                     response.raise_for_status()
                     data = response.json()
-                    
+
                     all_results.extend(data.get("results", []))
-                    
+
                     pagination = data.get("pagination", {})
                     total_pages = pagination.get("total_pages", 1)
-                    
+
                     if current_page >= total_pages:
                         break
-                    
+
                     current_page += 1
-                
-                return await enrich({
+
+                return {
                     "results": all_results,
                     "pagination": {
                         "page": 1,
@@ -204,8 +199,8 @@ async def get_projects(
                         "total_pages": 1,
                         "total": len(all_results)
                     }
-                })
-                
+                }
+
         except httpx.HTTPStatusError as e:
             logger.error(f"HTTP Error: {e.response.status_code} - {e.response.text}")
             raise HTTPException(
@@ -214,10 +209,9 @@ async def get_projects(
             )
         except httpx.TimeoutException:
             logger.error("Request timeout")
-            raise HTTPException(
-                status_code=504,
-                detail="Request to DroneTM API timed out"
-            )
+            raise HTTPException(status_code=504, detail="Request to DroneTM API timed out")
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"Unexpected error: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
@@ -407,14 +401,20 @@ async def get_user_projects(
         params["search"] = search
     
     verify_ssl = bool(settings.drone_tm_verify_ssl)
-    
-    async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl) as client:
+
+    async with httpx.AsyncClient(
+        timeout=30.0, verify=verify_ssl, cookies={"hanko": hanko_cookie}
+    ) as client:
         try:
             logger.info(f"[User Projects] Making request to {url} with params: {params}")
             response = await client.get(url, headers=headers, params=params)
             logger.info(f"[User Projects] Response status: {response.status_code}")
             response.raise_for_status()
-            return response.json()
+            try:
+                return response.json()
+            except Exception:
+                logger.error(f"[User Projects] Non-JSON response from DroneTM: {response.text[:200]}")
+                raise HTTPException(status_code=502, detail="DroneTM returned a non-JSON response")
         except httpx.HTTPStatusError as e:
             logger.error(f"HTTP Error: {e.response.status_code} - {e.response.text}")
             raise HTTPException(
@@ -423,10 +423,9 @@ async def get_user_projects(
             )
         except httpx.TimeoutException:
             logger.error("Request timeout")
-            raise HTTPException(
-                status_code=504,
-                detail="Request to DroneTM API timed out"
-            )
+            raise HTTPException(status_code=504, detail="Request to DroneTM API timed out")
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"Unexpected error: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))

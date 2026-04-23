@@ -140,11 +140,11 @@ export class HotToolMenu extends LitElement {
 
     // Dev environment URLs (testlogin.*)
     const devUrls: Record<string, string> = {
-      'drone': 'https://dronetm.testlogin.hotosm.org',
+      'drone': 'https://dev.drone.hotosm.org',
       'oam': 'https://openaerialmap.org',
       'tasking-manager': 'https://tasks.hotosm.org',
-      'fair': 'https://fair.testlogin.hotosm.org',
-      'field': 'https://fmtm.hotosm.org',
+      'fair': 'https://fair-dev.hotosm.org',
+      'field': 'https://fieldtm.testlogin.hotosm.org',
       'chat-map': 'https://chatmap-dev.hotosm.org',
       'export-tool': 'https://export.testlogin.hotosm.org',
       'umap': 'https://umap.testlogin.hotosm.org',

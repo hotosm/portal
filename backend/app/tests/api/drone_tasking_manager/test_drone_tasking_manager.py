@@ -329,7 +329,11 @@ class TestGetProjectById:
         mock_response = Mock()
         mock_response.status_code = 404
         mock_response.json.return_value = {}
-        mock_response.raise_for_status = Mock()
+        mock_response.raise_for_status = Mock(
+            side_effect=httpx.HTTPStatusError(
+                "404 Not Found", request=Mock(), response=mock_response
+            )
+        )
 
         with patch("httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(

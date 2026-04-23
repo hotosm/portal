@@ -4,6 +4,28 @@
 
 A centralized web workspace that simplifies access to the HOT (Humanitarian OpenStreetMap Team) Tech Suite ecosystem. Portal provides a unified interface for accessing multiple geospatial tools, managing projects, and streamlining workflows for humanitarian mapping and social change.
 
+## Roadmap
+
+✅ Done
+⚙️ In progress
+
+<!-- prettier-ignore-start -->
+| Status | Feature |
+|:--:| :-- |
+|✅| Website published (portal.hotosm.org)
+|✅| API published (portal.hotosm.org/api/docs)
+|✅| Map for displaying data from all tools
+|✅| HOT Accounts authentication
+|✅| Menu for accessing HOT Tools
+|✅| Language menu
+|✅| Sections for Imagery, Mapping, Field and Data, for showing tools and user's data on each
+|✅| Public integration with all tools
+|✅| User data integration
+|⚙️| Design and UI/UX improvements
+| | Plans (grouping projects from multiple tools)
+| | Links and content to/from Learn & Connect
+| | Public profiles
+
 ## Table of Contents
 
 - [About](#about)
