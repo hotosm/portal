@@ -29,12 +29,14 @@ class PlanProjectItem(BaseModel):
 class PlanCreate(BaseModel):
     name: str = Field(..., min_length=1)
     description: Optional[str] = None
+    is_public: bool = False
     projects: list[PlanProjectItem] = []
 
 
 class PlanUpdate(BaseModel):
     name: Optional[str] = Field(default=None, min_length=1)
     description: Optional[str] = None
+    is_public: Optional[bool] = None
     projects: Optional[list[PlanProjectItem]] = None
 
 
@@ -44,6 +46,7 @@ class PlanRead(BaseModel):
     id: str
     name: str
     description: Optional[str]
+    is_public: bool
     projects: list[PlanProjectItem]
     created_at: datetime
     updated_at: datetime
@@ -61,6 +64,7 @@ class PlanReadHydrated(BaseModel):
     id: str
     name: str
     description: Optional[str]
+    is_public: bool
     projects: list[HydratedProjectItem]
     created_at: datetime
     updated_at: datetime

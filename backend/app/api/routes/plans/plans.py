@@ -39,6 +39,18 @@ async def create_plan(
         raise HTTPException(status_code=422, detail=str(e))
 
 
+@router.get("/shared/{plan_id}", response_model=PlanReadHydrated)
+async def get_shared_plan(
+    plan_id: str = Path(..., description="Plan UUID"),
+    db: AsyncSession = Depends(get_db),
+) -> PlanReadHydrated:
+    """Return a public plan hydrated. No auth required. 404 if plan is private or not found."""
+    plan = await plans_service.get_public_plan_hydrated(db, plan_id)
+    if plan is None:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    return plan
+
+
 @router.get("/{plan_id}", response_model=PlanReadHydrated)
 async def get_plan(
     user: CurrentUser,
@@ -59,7 +71,7 @@ async def update_plan(
     plan_id: str = Path(..., description="Plan UUID"),
     db: AsyncSession = Depends(get_db),
 ) -> PlanRead:
-    """Update name/description and/or replace the full projects list."""
+    """Update name/description/is_public and/or replace the full projects list."""
     try:
         plan = await plans_service.update_plan(db, user.id, plan_id, payload)
     except DuplicateProjectError as e:
