@@ -1,73 +1,66 @@
-import { useState } from "react";
-import Button from "../../components/shared/Button";
-import Checkbox from "../../components/shared/Checkbox";
-import CardSkeleton from "../../components/shared/CardSkeleton";
-import { APP_LABELS, useAllUserProjects } from "../hooks";
-import type { ProjectOption } from "../hooks";
-import type { AppName } from "../types";
+import { useState } from 'react'
+import Button from '../../components/shared/Button'
+import CardSkeleton from '../../components/shared/CardSkeleton'
+import Checkbox from '../../components/shared/Checkbox'
+import RichTextEditor from '../../components/shared/RichTextEditor'
+import { APP_LABELS, useAllUserProjects } from '../hooks'
+import type { ProjectOption } from '../hooks'
+import type { AppName } from '../types'
 
 export interface PlanFormValues {
-  name: string;
-  description: string;
-  selectedProjects: { app: AppName; project_id: string }[];
+  name: string
+  description: string
+  selectedProjects: { app: AppName; project_id: string }[]
 }
 
 interface PlanFormProps {
-  initialName?: string;
-  initialDescription?: string;
-  initialProjectKeys?: Set<string>;
-  submitLabel: string;
-  isPending: boolean;
-  onSubmit: (values: PlanFormValues) => Promise<void>;
-  onCancel: () => void;
+  initialName?: string
+  initialDescription?: string
+  initialProjectKeys?: Set<string>
+  submitLabel: string
+  isPending: boolean
+  onSubmit: (values: PlanFormValues) => Promise<void>
+  onCancel: () => void
 }
 
 function projectKey(p: ProjectOption) {
-  return `${p.app}:${p.project_id}`;
+  return `${p.app}:${p.project_id}`
 }
 
 function PlanForm({
-  initialName = "",
-  initialDescription = "",
+  initialName = '',
+  initialDescription = '',
   initialProjectKeys = new Set(),
   submitLabel,
   isPending,
   onSubmit,
   onCancel,
 }: PlanFormProps) {
-  const [name, setName] = useState(initialName);
-  const [description, setDescription] = useState(initialDescription);
-  const [selected, setSelected] = useState<Set<string>>(initialProjectKeys);
-  const { projects, isLoading: projectsLoading } = useAllUserProjects();
+  const [name, setName] = useState(initialName)
+  const [description, setDescription] = useState(initialDescription)
+  const [selected, setSelected] = useState<Set<string>>(initialProjectKeys)
+  const { projects, isLoading: projectsLoading } = useAllUserProjects()
 
   function toggleProject(project: ProjectOption, checked: boolean) {
     setSelected((prev) => {
-      const next = new Set(prev);
-      checked
-        ? next.add(projectKey(project))
-        : next.delete(projectKey(project));
-      return next;
-    });
+      const next = new Set(prev)
+      checked ? next.add(projectKey(project)) : next.delete(projectKey(project))
+      return next
+    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     const selectedProjects = projects
       .filter((p) => selected.has(projectKey(p)))
-      .map(({ app, project_id }) => ({ app, project_id }));
-    await onSubmit({ name, description, selectedProjects });
-  };
+      .map(({ app, project_id }) => ({ app, project_id }))
+    await onSubmit({ name, description, selectedProjects })
+  }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex flex-col gap-lg max-w-lg py-lg"
-    >
+    <form onSubmit={handleSubmit} className="flex flex-col gap-lg max-w-lg py-lg">
       <div className="flex flex-col gap-xs">
-        <label
-          htmlFor="plan-name"
-          className="text-sm font-medium text-hot-gray-700"
-        >
+        <label htmlFor="plan-name" className="text-sm font-medium text-hot-gray-700">
           Name <span className="text-hot-red-600">*</span>
         </label>
         <input
@@ -82,19 +75,14 @@ function PlanForm({
       </div>
 
       <div className="flex flex-col gap-xs">
-        <label
-          htmlFor="plan-description"
-          className="text-sm font-medium text-hot-gray-700"
-        >
+        <label htmlFor="plan-description" className="text-sm font-medium text-hot-gray-700">
           Description
         </label>
-        <textarea
+        <RichTextEditor
           id="plan-description"
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={setDescription}
           placeholder="Optional description"
-          rows={3}
-          className="border border-hot-gray-300 rounded-lg px-md py-sm text-base outline-none focus:border-hot-red-500 resize-none"
         />
       </div>
 
@@ -107,9 +95,7 @@ function PlanForm({
             ))}
           </div>
         ) : projects.length === 0 ? (
-          <p className="text-sm text-hot-gray-400">
-            No projects found across your tools.
-          </p>
+          <p className="text-sm text-hot-gray-400">No projects found across your tools.</p>
         ) : (
           <div className="flex flex-col gap-xs">
             {projects.map((project) => (
@@ -117,14 +103,12 @@ function PlanForm({
                 key={projectKey(project)}
                 checked={selected.has(projectKey(project))}
                 onChange={(e) => {
-                  const el = e.target as HTMLElement & { checked: boolean };
-                  toggleProject(project, el.checked);
+                  const el = e.target as HTMLElement & { checked: boolean }
+                  toggleProject(project, el.checked)
                 }}
               >
-                {project.title}{" "}
-                <span className="text-hot-gray-400">
-                  — {APP_LABELS[project.app]}
-                </span>
+                {project.title}{' '}
+                <span className="text-hot-gray-400">— {APP_LABELS[project.app]}</span>
               </Checkbox>
             ))}
           </div>
@@ -133,7 +117,7 @@ function PlanForm({
 
       <div className="flex items-center gap-md">
         <Button type="submit" disabled={isPending || !name.trim()}>
-          {isPending ? "Saving…" : submitLabel}
+          {isPending ? 'Saving…' : submitLabel}
         </Button>
         <button
           type="button"
@@ -144,7 +128,7 @@ function PlanForm({
         </button>
       </div>
     </form>
-  );
+  )
 }
 
-export default PlanForm;
+export default PlanForm
