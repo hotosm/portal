@@ -16,6 +16,7 @@ dependencies = [
     "hotosm-auth[fastapi]==0.2.9",
     "respx",
     "beautifulsoup4>=4.12.0",
+    "nh3>=0.2.0",
 ]
 
 [project.optional-dependencies]

@@ -497,3 +497,125 @@ async def test_tasking_manager_listing_enrichment(auth_client):
     assert len(by_id[555]["plans"]) == 1
     assert by_id[555]["plans"][0]["name"] == "P"
     assert by_id[999]["plans"] == []
+
+
+# ───────────────────── is_public + /shared endpoint ──────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_create_plan_is_public_default_false(auth_client):
+    client, _ = auth_client
+    resp = await client.post("/api/plans", json={"name": "P", "projects": []})
+    assert resp.status_code == 201
+    assert resp.json()["is_public"] is False
+
+
+@pytest.mark.asyncio
+async def test_create_plan_public(auth_client):
+    client, _ = auth_client
+    resp = await client.post(
+        "/api/plans", json={"name": "P", "is_public": True, "projects": []}
+    )
+    assert resp.status_code == 201
+    assert resp.json()["is_public"] is True
+
+
+@pytest.mark.asyncio
+async def test_patch_plan_toggle_is_public(auth_client):
+    client, _ = auth_client
+    resp = await client.post("/api/plans", json={"name": "P", "projects": []})
+    plan_id = resp.json()["id"]
+
+    resp = await client.patch(f"/api/plans/{plan_id}", json={"is_public": True})
+    assert resp.status_code == 200
+    assert resp.json()["is_public"] is True
+
+    resp = await client.patch(f"/api/plans/{plan_id}", json={"is_public": False})
+    assert resp.status_code == 200
+    assert resp.json()["is_public"] is False
+
+
+@pytest.mark.asyncio
+async def test_shared_endpoint_public_plan(auth_client):
+    client, _ = auth_client
+    resp = await client.post(
+        "/api/plans",
+        json={
+            "name": "Shared Plan",
+            "is_public": True,
+            "projects": [{"app": "tasking-manager", "project_id": "1"}],
+        },
+    )
+    plan_id = resp.json()["id"]
+
+    fetchers = {
+        "tasking-manager": AsyncMock(return_value={"name": "proj"}),
+        "fair": AsyncMock(return_value=None),
+        "field-tm": AsyncMock(return_value=None),
+        "drone-tasking-manager": AsyncMock(return_value=None),
+        "open-aerial-map": AsyncMock(return_value=None),
+        "export-tool": AsyncMock(return_value=None),
+        "umap": AsyncMock(return_value=None),
+    }
+    with patch.dict(plans_service.APP_FETCHERS, fetchers):
+        resp = await client.get(f"/api/plans/shared/{plan_id}")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["id"] == plan_id
+    assert body["is_public"] is True
+    assert body["projects"][0]["upstream"] == {"name": "proj"}
+
+
+@pytest.mark.asyncio
+async def test_shared_endpoint_private_plan(auth_client):
+    client, _ = auth_client
+    resp = await client.post(
+        "/api/plans", json={"name": "Private", "is_public": False, "projects": []}
+    )
+    plan_id = resp.json()["id"]
+
+    resp = await client.get(f"/api/plans/shared/{plan_id}")
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_shared_endpoint_not_found(auth_client):
+    client, _ = auth_client
+    resp = await client.get("/api/plans/shared/nonexistent-uuid")
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_shared_endpoint_no_auth_required(test_db_session):
+    """The /shared endpoint must work without any authenticated user."""
+    user = make_user("owner-id", "owner@example.com")
+
+    async def override_get_db():
+        yield test_db_session
+
+    async def override_current_user():
+        return user
+
+    from hotosm_auth_fastapi.dependencies import get_current_user
+    from app.main import app
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = override_current_user
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post(
+            "/api/plans",
+            json={"name": "Public", "is_public": True, "projects": []},
+        )
+        plan_id = resp.json()["id"]
+
+    app.dependency_overrides.clear()
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as anon_client:
+        resp = await anon_client.get(f"/api/plans/shared/{plan_id}")
+    assert resp.status_code == 200
+    assert resp.json()["id"] == plan_id
+
+    app.dependency_overrides.clear()
