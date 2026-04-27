@@ -291,56 +291,69 @@ class TestGetMyFairModels:
 
     @pytest.mark.asyncio
     async def test_get_my_models_success(self):
-        """Test successful request with mocked authentication"""
-        mock_response_data = {
+        """Test successful request: auth/status resolves osm_id, then /model/ is queried"""
+        auth_status_data = {
+            "authenticated": True,
+            "user": {"osm_id": -654564769, "username": "testuser", "is_real_osm": False},
+        }
+        models_data = {
             "results": [{"id": 1, "name": "My AI Model"}],
-            "count": 1
+            "count": 1,
         }
 
-        mock_response = Mock()
-        mock_response.json.return_value = mock_response_data
-        mock_response.raise_for_status = Mock()
+        mock_auth_response = Mock()
+        mock_auth_response.json.return_value = auth_status_data
+        mock_auth_response.raise_for_status = Mock()
 
-        # Mock request with hanko cookie
+        mock_models_response = Mock()
+        mock_models_response.json.return_value = models_data
+        mock_models_response.raise_for_status = Mock()
+
         mock_request = Mock()
         mock_request.cookies.get.return_value = "test-hanko-jwt"
 
-        # Mock Hanko user
         mock_user = Mock()
         mock_user.id = "test-user-uuid"
 
         with patch("httpx.AsyncClient") as mock_client:
-            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
-                return_value=mock_response
+            mock_http = mock_client.return_value.__aenter__.return_value
+            mock_http.get = AsyncMock(
+                side_effect=[mock_auth_response, mock_models_response]
             )
 
             from app.api.routes.fair.fair import get_my_fair_models
 
             result = await get_my_fair_models(request=mock_request, user=mock_user)
 
-            assert result == mock_response_data
-            mock_client.return_value.__aenter__.return_value.get.assert_called_once()
+            assert result == models_data
+            assert mock_http.get.call_count == 2
 
-            call_args = mock_client.return_value.__aenter__.return_value.get.call_args
-            assert "/model/" in call_args[0][0]
+            # First call: auth/status with hanko cookie
+            auth_call = mock_http.get.call_args_list[0]
+            assert "/auth/status/" in auth_call[0][0]
+            assert "hanko=test-hanko-jwt" in auth_call[1]["headers"]["Cookie"]
 
-            # Verify cookie is forwarded in headers
-            headers = call_args[1]["headers"]
-            assert "Cookie" in headers
-            assert "hanko=test-hanko-jwt" in headers["Cookie"]
-
-            # Verify mine=true is passed
-            params = call_args[1]["params"]
-            assert params["mine"] == "true"
+            # Second call: /model/ with user=osm_id
+            models_call = mock_http.get.call_args_list[1]
+            assert "/model/" in models_call[0][0]
+            assert models_call[1]["params"]["user"] == -654564769
 
     @pytest.mark.asyncio
     async def test_get_my_models_with_params(self):
-        """Test with optional parameters"""
-        mock_response_data = {"results": [], "count": 0}
+        """Test that optional query params are forwarded to /model/"""
+        auth_status_data = {
+            "authenticated": True,
+            "user": {"osm_id": -654564769, "username": "testuser", "is_real_osm": False},
+        }
+        models_data = {"results": [], "count": 0}
 
-        mock_response = Mock()
-        mock_response.json.return_value = mock_response_data
-        mock_response.raise_for_status = Mock()
+        mock_auth_response = Mock()
+        mock_auth_response.json.return_value = auth_status_data
+        mock_auth_response.raise_for_status = Mock()
+
+        mock_models_response = Mock()
+        mock_models_response.json.return_value = models_data
+        mock_models_response.raise_for_status = Mock()
 
         mock_request = Mock()
         mock_request.cookies.get.return_value = "test-hanko-jwt"
@@ -349,8 +362,9 @@ class TestGetMyFairModels:
         mock_user.id = "test-user-uuid"
 
         with patch("httpx.AsyncClient") as mock_client:
-            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
-                return_value=mock_response
+            mock_http = mock_client.return_value.__aenter__.return_value
+            mock_http.get = AsyncMock(
+                side_effect=[mock_auth_response, mock_models_response]
             )
 
             from app.api.routes.fair.fair import get_my_fair_models
@@ -362,20 +376,64 @@ class TestGetMyFairModels:
                 offset=10,
                 search="test",
                 ordering="created_at",
-                id=99
+                id=99,
             )
 
-            assert result == mock_response_data
+            assert result == models_data
 
-            call_args = mock_client.return_value.__aenter__.return_value.get.call_args
-            params = call_args[1]["params"]
-
+            models_call = mock_http.get.call_args_list[1]
+            params = models_call[1]["params"]
             assert params["limit"] == 50
             assert params["offset"] == 10
             assert params["search"] == "test"
             assert params["ordering"] == "created_at"
             assert params["id"] == 99
-            assert params["mine"] == "true"
+            assert params["user"] == -654564769
+
+    @pytest.mark.asyncio
+    async def test_get_my_models_unauthenticated(self):
+        """Test that unauthenticated auth/status returns empty results"""
+        auth_status_data = {"authenticated": False, "user": None}
+
+        mock_auth_response = Mock()
+        mock_auth_response.json.return_value = auth_status_data
+        mock_auth_response.raise_for_status = Mock()
+
+        mock_request = Mock()
+        mock_request.cookies.get.return_value = None
+
+        mock_user = Mock()
+        mock_user.id = "test-user-uuid"
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_http = mock_client.return_value.__aenter__.return_value
+            mock_http.get = AsyncMock(return_value=mock_auth_response)
+
+            from app.api.routes.fair.fair import get_my_fair_models
+
+            result = await get_my_fair_models(request=mock_request, user=mock_user)
+
+            assert result == {"count": 0, "next": None, "previous": None, "results": []}
+            assert mock_http.get.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_get_my_models_auth_status_fails(self):
+        """Test that a failing auth/status call returns empty results gracefully"""
+        mock_request = Mock()
+        mock_request.cookies.get.return_value = "test-hanko-jwt"
+
+        mock_user = Mock()
+        mock_user.id = "test-user-uuid"
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_http = mock_client.return_value.__aenter__.return_value
+            mock_http.get = AsyncMock(side_effect=Exception("connection error"))
+
+            from app.api.routes.fair.fair import get_my_fair_models
+
+            result = await get_my_fair_models(request=mock_request, user=mock_user)
+
+            assert result == {"count": 0, "next": None, "previous": None, "results": []}
 
 
 class TestGetFairModelsCentroids:
