@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import Button from '../../components/shared/Button'
-import CardSkeleton from '../../components/shared/CardSkeleton'
-import Checkbox from '../../components/shared/Checkbox'
 import RichTextEditor from '../../components/shared/RichTextEditor'
+import Tag from '../../components/shared/Tag'
 import { APP_LABELS, useAllUserProjects } from '../hooks'
 import type { ProjectOption } from '../hooks'
 import type { AppName } from '../types'
+import ProjectPickerDialog from './ProjectPickerDialog'
 
 export interface PlanFormValues {
   name: string
@@ -39,7 +39,8 @@ function PlanForm({
   const [name, setName] = useState(initialName)
   const [description, setDescription] = useState(initialDescription)
   const [selected, setSelected] = useState<Set<string>>(initialProjectKeys)
-  const { projects, isLoading: projectsLoading } = useAllUserProjects()
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const { sources, projects, isLoading } = useAllUserProjects()
 
   function toggleProject(project: ProjectOption, checked: boolean) {
     setSelected((prev) => {
@@ -56,6 +57,9 @@ function PlanForm({
       .map(({ app, project_id }) => ({ app, project_id }))
     await onSubmit({ name, description, selectedProjects })
   }
+
+  const selectedTags = projects.filter((p) => selected.has(projectKey(p)))
+  const loadingCount = selected.size - selectedTags.length
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-lg max-w-lg py-lg">
@@ -88,32 +92,41 @@ function PlanForm({
 
       <div className="flex flex-col gap-sm">
         <p className="text-sm font-medium text-hot-gray-700">Projects</p>
-        {projectsLoading ? (
-          <div className="flex flex-col gap-sm">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <CardSkeleton key={i} linesCount={1} />
-            ))}
-          </div>
-        ) : projects.length === 0 ? (
-          <p className="text-sm text-hot-gray-400">No projects found across your tools.</p>
-        ) : (
-          <div className="flex flex-col gap-xs">
-            {projects.map((project) => (
-              <Checkbox
-                key={projectKey(project)}
-                checked={selected.has(projectKey(project))}
-                onChange={(e) => {
-                  const el = e.target as HTMLElement & { checked: boolean }
-                  toggleProject(project, el.checked)
-                }}
+        <Button type="button" appearance="outlined" onClick={() => setDialogOpen(true)}>
+          {selected.size === 0
+            ? 'Select projects…'
+            : `${selected.size} project${selected.size !== 1 ? 's' : ''} selected`}
+        </Button>
+
+        {selected.size > 0 && (
+          <div className="flex flex-wrap gap-xs">
+            {selectedTags.map((p) => (
+              <Tag
+                key={projectKey(p)}
+                size="small"
+                withRemove
+                onWaRemove={() => toggleProject(p, false)}
               >
-                {project.title}{' '}
-                <span className="text-hot-gray-400">— {APP_LABELS[project.app]}</span>
-              </Checkbox>
+                {p.title}
+                <span className="text-hot-gray-400 ml-1">— {APP_LABELS[p.app]}</span>
+              </Tag>
             ))}
+            {isLoading && loadingCount > 0 && (
+              <span className="text-sm text-hot-gray-400 self-center">
+                +{loadingCount} loading…
+              </span>
+            )}
           </div>
         )}
       </div>
+
+      <ProjectPickerDialog
+        open={dialogOpen}
+        selected={selected}
+        sources={sources}
+        onConfirm={(next) => setSelected(next)}
+        onClose={() => setDialogOpen(false)}
+      />
 
       <div className="flex items-center gap-md">
         <Button type="submit" disabled={isPending || !name.trim()}>
