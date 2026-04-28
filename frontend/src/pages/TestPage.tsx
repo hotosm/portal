@@ -19,10 +19,11 @@ function TestPage() {
     error: modelsError,
   } = useMyModels();
   const {
-    data: umapMaps,
+    data: umapMapsData,
     isLoading: umapLoading,
     error: umapError,
   } = useMyMaps();
+  const umapMaps = umapMapsData?.items ?? [];
   const {
     data: exportJobs,
     isLoading: exportsLoading,
