@@ -35,7 +35,7 @@ export function useAllUserProjects() {
   const oam = useOAMImageryRaw();
   const fair = useMyModels(1, 50);
   const fieldTM = useFieldTMProjects();
-  const umap = useMyMaps();
+  const umap = useMyMaps(1, 50);
   const exportJobs = useExportJobs();
 
   const sources: ProjectSource[] = [
@@ -86,7 +86,7 @@ export function useAllUserProjects() {
     {
       app: "umap",
       label: APP_LABELS.umap,
-      projects: (umap.data ?? []).map((p) => ({
+      projects: (umap.data?.items ?? []).map((p) => ({
         app: "umap" as AppName,
         project_id: String(p.id),
         title: p.title,
