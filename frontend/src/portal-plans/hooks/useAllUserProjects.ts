@@ -27,7 +27,7 @@ export function useAllUserProjects() {
   const oam = useOAMImageryRaw();
   const fair = useMyModels(1, 50);
   const fieldTM = useFieldTMProjects();
-  const umap = useMyMaps();
+  const umap = useMyMaps(1, 50);
   const exportJobs = useExportJobs();
 
   const isLoading =
@@ -59,7 +59,7 @@ export function useAllUserProjects() {
       project_id: String(p.id),
       title: p.title,
     })),
-    ...(umap.data ?? []).map((p) => ({
+    ...(umap.data?.items ?? []).map((p) => ({
       app: "umap" as AppName,
       project_id: String(p.id),
       title: p.title,
