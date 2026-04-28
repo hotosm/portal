@@ -1,4 +1,6 @@
+import { Link } from "react-router-dom";
 import hotLogo from "../assets/images/hot-logo.svg";
+import { useLanguage } from "../contexts/LanguageContext";
 
 const categories = [
   {
@@ -20,6 +22,8 @@ const categories = [
 ];
 
 function Footer() {
+  const { currentLanguage } = useLanguage();
+
   return (
     <footer>
       <div className="py-3xl border-t border-gray-100">
@@ -46,10 +50,19 @@ function Footer() {
             alt="HOT Logo"
             className="h-[38px] [filter:brightness(0)_invert(0.4)]"
           />
-          <p className="text-hot-gray-600 text-right m-0 max-w-sm">
-            This is free and open source software, brought to you by the
-            Humanitarian OpenStreetMap Team &amp; friends
-          </p>
+          <div className="flex flex-col items-end gap-xs">
+            <p className="text-hot-gray-600 text-right m-0 max-w-sm">
+              This is free and open source software, brought to you by the
+              Humanitarian OpenStreetMap Team &amp; friends
+            </p>
+            <Link
+              to={`/${currentLanguage}/privacy-policy`}
+              onClick={(e) => e.currentTarget.blur()}
+              className="text-sm text-hot-gray-400 hover:text-hot-gray-600 transition-colors"
+            >
+              Privacy Policy
+            </Link>
+          </div>
         </div>
       </div>
     </footer>
