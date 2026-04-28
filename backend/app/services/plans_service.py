@@ -52,6 +52,7 @@ def plan_to_read(plan: Plan) -> PlanRead:
         id=plan.id,
         name=plan.name,
         description=plan.description,
+        is_public=plan.is_public,
         created_at=plan.created_at,
         updated_at=plan.updated_at,
         projects=[
@@ -105,6 +106,7 @@ async def create_plan(
         owner_id=owner_id,
         name=payload.name,
         description=payload.description,
+        is_public=payload.is_public,
     )
     db.add(plan)
     await db.flush()
@@ -140,6 +142,8 @@ async def update_plan(
         plan.name = payload.name
     if payload.description is not None:
         plan.description = payload.description
+    if payload.is_public is not None:
+        plan.is_public = payload.is_public
 
     if payload.projects is not None:
         check_no_duplicates(payload.projects)
@@ -228,6 +232,36 @@ async def get_plan_hydrated(
         id=plan.id,
         name=plan.name,
         description=plan.description,
+        is_public=plan.is_public,
+        created_at=plan.created_at,
+        updated_at=plan.updated_at,
+        projects=list(hydrated_items),
+    )
+
+
+async def get_public_plan_hydrated(
+    db: AsyncSession, plan_id: str
+) -> PlanReadHydrated | None:
+    """Fetch a plan by ID only if is_public=True. No owner check."""
+    stmt = (
+        select(Plan)
+        .where(Plan.id == plan_id, Plan.is_public.is_(True))
+        .options(selectinload(Plan.projects))
+    )
+    result = await db.execute(stmt)
+    plan = result.scalar_one_or_none()
+    if plan is None:
+        return None
+
+    hydrated_items = await asyncio.gather(
+        *[hydrate_one(row) for row in plan.projects]
+    )
+
+    return PlanReadHydrated(
+        id=plan.id,
+        name=plan.name,
+        description=plan.description,
+        is_public=plan.is_public,
         created_at=plan.created_at,
         updated_at=plan.updated_at,
         projects=list(hydrated_items),

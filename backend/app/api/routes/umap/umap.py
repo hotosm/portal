@@ -73,7 +73,11 @@ def parse_map_links(html: str) -> list[dict]:
 
 
 @router.get("/user/maps")
-async def get_user_maps(request: Request) -> dict:
+async def get_user_maps(
+    request: Request,
+    limit: int = 20,
+    offset: int = 0,
+) -> dict:
     """Fetch the authenticated user's maps from uMap."""
     hanko_cookie = require_hanko(request)
     url = f"{UMAP_BASE_URL}/api/v1/maps/?source=mine"
@@ -85,8 +89,9 @@ async def get_user_maps(request: Request) -> dict:
                 raise HTTPException(status_code=401, detail="uMap authentication failed.")
             response.raise_for_status()
             data = response.json()
-            logger.info(f"[Maps] Found {len(data.get('maps', []))} maps")
-            return data
+            maps = data.get("maps", [])
+            logger.info(f"[Maps] Found {len(maps)} maps")
+            return {"total": len(maps), "maps": maps[offset : offset + limit]}
     except httpx.HTTPStatusError as e:
         raise HTTPException(status_code=e.response.status_code, detail=f"uMap error: {e.response.text}")
     except httpx.RequestError as e:

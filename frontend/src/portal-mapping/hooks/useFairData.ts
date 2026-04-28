@@ -12,7 +12,7 @@ interface PaginatedResult<T> {
   total: number;
 }
 
-export function useMyModels(page = 1, limit = 4) {
+export function useMyModels(page = 1, limit = 20) {
   const { isLogin } = useAuth();
   const offset = (page - 1) * limit;
   return useQuery({

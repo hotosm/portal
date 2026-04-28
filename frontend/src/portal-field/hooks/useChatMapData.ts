@@ -17,7 +17,7 @@ function mapToProject(item: ChatMap): ChatMapProject {
   return {
     id: item.id,
     title: item.name,
-    href: `${getChatMapBaseUrl()}/map/${item.id}`,
+    href: `${getChatMapBaseUrl()}/#map/${item.id}`,
     status: item.sharing === "public" ? "published" : "draft",
     image: placeholderImage,
     count: item.count,

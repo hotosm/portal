@@ -18,10 +18,17 @@ from app.services.exceptions import UpstreamUnavailable
 FAIR_API_BASE_URL = settings.fair_api_url
 FAIR_VERIFY_SSL = settings.fair_verify_ssl
 
+# URL used for user-specific calls (auth/status, me/models).
+# Defaults to FAIR_API_BASE_URL but can be overridden via FAIR_USER_BASE_URL
+# to point at a local fAIr instance while the public map uses production data.
+FAIR_USER_API_URL = settings.fair_user_api_url
+FAIR_USER_VERIFY_SSL = settings.fair_user_verify_ssl
+
 router = APIRouter(prefix="/fair")
 logger = logging.getLogger(__name__)
 
 logger.info(f"fAIr API URL: {FAIR_API_BASE_URL} (SSL verify: {FAIR_VERIFY_SSL})")
+logger.info(f"fAIr user API URL: {FAIR_USER_API_URL} (SSL verify: {FAIR_USER_VERIFY_SSL})")
 
 # Flag to track if background enrichment is running
 fair_enrichment_in_progress = False
@@ -390,8 +397,9 @@ async def get_my_fair_models(
     """
     Get AI models from fAIr API for the authenticated user.
 
-    Forwards Hanko cookie to fAIr API for authentication.
-    fAIr will auto-filter by the authenticated user.
+    Calls fAIr's /auth/status/ with the Hanko cookie to resolve the
+    fAIr-internal user ID (may be synthetic, not a real OSM ID),
+    then queries models filtered by that user ID.
 
     **Authentication**:
     - Requires valid Hanko session (JWT in cookie)
@@ -402,33 +410,45 @@ async def get_my_fair_models(
 
     Example: GET /api/fair/me/models?limit=20&ordering=-created_at
     """
-    # No cache for authenticated user endpoints - data is user-specific
-    url = f"{FAIR_API_BASE_URL}/model/"
-
-    params = {
-        "limit": limit,
-        "offset": offset,
-        "mine": "true",  # Request user-specific filtering
-    }
-
-    if search is not None:
-        params["search"] = search
-    if ordering:
-        params["ordering"] = ordering
-    if id is not None:
-        params["id"] = id
-
-    # Forward hanko cookie for fAIr authentication
     hanko_cookie = request.cookies.get("hanko")
-    headers = {
-        "accept": "application/json",
-    }
-    if hanko_cookie:
-        headers["Cookie"] = f"hanko={hanko_cookie}"
+    cookie_header = {"Cookie": f"hanko={hanko_cookie}"} if hanko_cookie else {}
+    headers = {"accept": "application/json", **cookie_header}
 
-    async with httpx.AsyncClient(timeout=30.0, verify=FAIR_VERIFY_SSL) as client:
+    async with httpx.AsyncClient(timeout=30.0, verify=FAIR_USER_VERIFY_SSL) as client:
         try:
-            response = await client.get(url, params=params, headers=headers)
+            status_response = await client.get(
+                f"{FAIR_USER_API_URL}/auth/status/",
+                headers=headers,
+            )
+            status_response.raise_for_status()
+            status_data = status_response.json()
+        except Exception as e:
+            logger.warning(f"fAIr auth/status/ failed ({FAIR_USER_API_URL}): {e}")
+            return {"count": 0, "next": None, "previous": None, "results": []}
+
+        fair_user = status_data.get("user") or {}
+        fair_user_id = fair_user.get("osm_id")
+        if not status_data.get("authenticated") or fair_user_id is None:
+            return {"count": 0, "next": None, "previous": None, "results": []}
+
+        params = {
+            "limit": limit,
+            "offset": offset,
+            "user": fair_user_id,
+        }
+        if search is not None:
+            params["search"] = search
+        if ordering:
+            params["ordering"] = ordering
+        if id is not None:
+            params["id"] = id
+
+        try:
+            response = await client.get(
+                f"{FAIR_USER_API_URL}/model/",
+                params=params,
+                headers={"accept": "application/json"},
+            )
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:

@@ -17,10 +17,14 @@ const CARD_CLASS =
   "w-full md:w-[calc(33.333%_-_var(--hot-spacing-large)*0.667)] lg:w-[calc(25%_-_var(--hot-spacing-large)*0.75)] shrink-0";
 
 const EXPORTS_PER_PAGE = 6;
+const MAPS_PER_PAGE = 6;
 
 function DataPage() {
+  const [mapsPage, setMapsPage] = useState(1);
   const [exportsPage, setExportsPage] = useState(1);
-  const { data: maps = [], isLoading: mapsLoading } = useMyMaps();
+  const { data: mapsData, isLoading: mapsLoading } = useMyMaps(mapsPage, MAPS_PER_PAGE);
+  const maps = mapsData?.items ?? [];
+  const totalMapPages = Math.ceil((mapsData?.total ?? 0) / MAPS_PER_PAGE);
   const { data: exportsData, isLoading: exportsLoading } = useExportJobs(
     exportsPage,
     EXPORTS_PER_PAGE,
@@ -78,6 +82,15 @@ function DataPage() {
               </>
             )}
           </div>
+          {totalMapPages > 1 && (
+            <div className="mt-lg">
+              <Pagination
+                currentPage={mapsPage}
+                totalPages={totalMapPages}
+                onPageChange={setMapsPage}
+              />
+            </div>
+          )}
         </div>
       </PageWrapper>
 

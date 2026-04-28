@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import CardSkeleton from "../components/shared/CardSkeleton";
+import { RichTextContent } from "../components/shared/RichTextEditor";
 import PageWrapper from "../components/shared/PageWrapper";
 import SectionHeader from "../components/shared/SectionHeader";
 import SubSectionHeader from "../components/shared/SubSectionHeader";
@@ -83,6 +84,12 @@ function MyPlanPage() {
       >
         Plan <strong>{plan.name}</strong>
       </SectionHeader>
+
+      {plan.description && (
+        <PageWrapper>
+          <RichTextContent html={plan.description} className="py-md text-hot-gray-500" />
+        </PageWrapper>
+      )}
 
       {PLAN_SECTIONS.map((section) => {
         const projects = plan.projects.filter((p) =>

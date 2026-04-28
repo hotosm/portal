@@ -28,10 +28,10 @@ ENV_DEFAULTS: dict[Environment, dict[str, str]] = {
     Environment.LOCAL: {
         "hanko_api_url": "https://login.hotosm.test",
         "drone_tm_base_url": "https://drone.hotosm.org",
-        "fair_base_url": "https://api-prod.fair.hotosm.org",
+        "fair_base_url": "https://fair.hotosm.test",
         "oam_api_url": "https://openaerialmap.hotosm.test/api",
-        "umap_base_url": "https://umap.hotosm.org",
-        "chatmap_base_url": "https://chatmap.hotosm.org",
+        "umap_base_url": "https://umap.hotosm.test",
+        "chatmap_base_url": "https://chatmap.hotosm.test",
         "tasking_manager_api_url": "https://tasking-manager-production-api.hotosm.org/api/v2",
         "export_tool_base_url": "https://export-tool.hotosm.test",
         "field_tm_base_url": "https://field.hotosm.test",
@@ -124,6 +124,11 @@ class Settings(BaseSettings):
     chatmap_api_base_url: str | None = None
     oam_stac_api_url: str | None = None
 
+    # fAIr URL for user-specific endpoints (auth/status, me/models).
+    # Defaults to fair_base_url. Override in local dev to point at fair.hotosm.test
+    # while fair_base_url still points at production for the public map.
+    fair_user_base_url: str | None = None
+
     # --- Service-specific settings ---
     drone_tm_auth_header: str = "Authorization"
     drone_tm_auth_prefix: str = "Bearer"
@@ -178,6 +183,10 @@ class Settings(BaseSettings):
         if self.drone_tm_verify_ssl is None:
             self.drone_tm_verify_ssl = False
 
+        # fair_user_base_url falls back to fair_base_url when not set.
+        if not self.fair_user_base_url:
+            self.fair_user_base_url = self.fair_base_url
+
         return self
 
     # --- Computed API URL properties ---
@@ -191,6 +200,16 @@ class Settings(BaseSettings):
     def fair_api_url(self) -> str:
         """fAIr API: base + /api/v1"""
         return f"{self.fair_base_url}/api/v1"
+
+    @property
+    def fair_user_api_url(self) -> str:
+        """fAIr user API: base + /api/v1 (used for auth/status and me/models)."""
+        return f"{self.fair_user_base_url}/api/v1"
+
+    @property
+    def fair_user_verify_ssl(self) -> bool:
+        """SSL verification for fair_user_api_url: auto-disabled for .test domains."""
+        return ".test" not in (self.fair_user_base_url or "").lower()
 
     @property
     def chatmap_api_url(self) -> str:
