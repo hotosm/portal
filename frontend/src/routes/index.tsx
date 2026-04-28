@@ -1,6 +1,7 @@
 import React from "react";
 import { Navigate, Route, Routes, useParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useLanguage } from "../contexts/LanguageContext";
 import HomePage from "../pages/HomePage";
 import WelcomePage from "../pages/WelcomePage";
 import ImageryPage from "../portal-imagery/ImageryPage";
@@ -14,6 +15,7 @@ import PlanPage from "../portal-plans/PlanPage";
 import AddPlanPage from "../portal-plans/AddPlanPage";
 import EditPlanPage from "../portal-plans/EditPlanPage";
 import MyPlanPage from "../portal-plans/MyPlanPage";
+import PrivacyPolicyPage from "../pages/PrivacyPolicyPage";
 
 // Component to handle protected routes
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -31,13 +33,14 @@ const MainNavRoute = ProtectedRoute;
 function HomeRoute() {
   const { isLogin, isAuthLoading } = useAuth();
   const { locale } = useParams<{ locale?: string }>();
+  const { currentLanguage } = useLanguage();
 
   if (isAuthLoading) {
     return null;
   }
 
   if (isLogin) {
-    return <Navigate to={locale ? `/${locale}/welcome` : "/welcome"} replace />;
+    return <Navigate to={`/${locale ?? currentLanguage}/welcome`} replace />;
   }
 
   return <HomePage />;
@@ -52,14 +55,6 @@ export function AppRoutes() {
       {/* Locale-prefixed routes */}
       <Route path="/:locale" element={<HomeRoute />} />
 
-      <Route
-        path="/welcome"
-        element={
-          <ProtectedRoute>
-            <WelcomePage />
-          </ProtectedRoute>
-        }
-      />
       <Route
         path="/:locale/welcome"
         element={
@@ -153,6 +148,8 @@ export function AppRoutes() {
           </MainNavRoute>
         }
       />
+
+      <Route path="/:locale/privacy-policy" element={<PrivacyPolicyPage />} />
 
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
