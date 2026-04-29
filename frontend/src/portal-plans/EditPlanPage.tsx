@@ -39,6 +39,8 @@ function EditPlanPage() {
             initialName={plan.name}
             initialDescription={plan.description ?? ""}
             initialProjectKeys={initialProjectKeys}
+            initialImages={plan.images ?? []}
+            planId={planId}
             submitLabel="Save Changes"
             isPending={isPending}
             onSubmit={async ({ name, description, selectedProjects }) => {

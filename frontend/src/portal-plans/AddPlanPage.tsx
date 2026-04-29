@@ -5,6 +5,20 @@ import { useLanguage } from "../contexts/LanguageContext";
 import PlanForm from "./components/PlanForm";
 import { useCreatePlan } from "./hooks";
 
+async function uploadImages(planId: string, files: File[]): Promise<void> {
+  await Promise.all(
+    files.map((f) => {
+      const form = new FormData();
+      form.append("file", f);
+      return fetch(`/api/plans/${planId}/images`, {
+        method: "POST",
+        credentials: "include",
+        body: form,
+      });
+    }),
+  );
+}
+
 function AddPlanPage() {
   const navigate = useNavigate();
   const { currentLanguage } = useLanguage();
@@ -20,12 +34,15 @@ function AddPlanPage() {
         <PlanForm
           submitLabel="Create Plan"
           isPending={isPending}
-          onSubmit={async ({ name, description, selectedProjects }) => {
-            await createPlan({
+          onSubmit={async ({ name, description, selectedProjects, pendingImages }) => {
+            const plan = await createPlan({
               name,
               description: description || undefined,
               projects: selectedProjects,
             });
+            if (pendingImages.length > 0) {
+              await uploadImages(plan.id, pendingImages);
+            }
             navigate(planListPath);
           }}
           onCancel={() => navigate(planListPath)}

@@ -32,6 +32,15 @@ def _sanitize_html(v: str | None) -> str | None:
     return nh3.clean(v, tags=_ALLOWED_TAGS, attributes=_ALLOWED_ATTRS)
 
 
+class PlanImageRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    url: str
+    display_order: int
+    created_at: datetime
+
+
 class PlanProjectItem(BaseModel):
     app: AppLiteral
     project_id: str
@@ -70,6 +79,7 @@ class PlanRead(BaseModel):
     description: str | None
     is_public: bool
     projects: list[PlanProjectItem]
+    images: list[PlanImageRead] = []
     created_at: datetime
     updated_at: datetime
 
@@ -88,6 +98,7 @@ class PlanReadHydrated(BaseModel):
     description: str | None
     is_public: bool
     projects: list[HydratedProjectItem]
+    images: list[PlanImageRead] = []
     created_at: datetime
     updated_at: datetime
 

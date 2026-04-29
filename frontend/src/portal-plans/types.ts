@@ -27,11 +27,20 @@ export interface PlanUpdate {
   projects?: PlanProjectItem[];
 }
 
+export interface PlanImageRead {
+  id: string;
+  url: string;
+  display_order: number;
+  created_at: string;
+}
+
 export interface PlanRead {
   id: string;
   name: string;
   description: string | null;
+  is_public: boolean;
   projects: PlanProjectItem[];
+  images: PlanImageRead[];
   created_at: string;
   updated_at: string;
 }
@@ -48,7 +57,9 @@ export interface PlanReadHydrated {
   id: string;
   name: string;
   description: string | null;
+  is_public: boolean;
   projects: HydratedProjectItem[];
+  images: PlanImageRead[];
   created_at: string;
   updated_at: string;
 }
