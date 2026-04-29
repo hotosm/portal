@@ -31,5 +31,13 @@ async def fetch_imagery_by_id(image_id: str) -> dict | None:
     except (httpx.RequestError, httpx.HTTPStatusError) as e:
         raise UpstreamUnavailable(f"open-aerial-map: {e}") from e
 
-    set_cached(cache_key, data, DEFAULT_TTL)
-    return data
+    results = data.get("results") or []
+    if not results:
+        return None
+    result = results[0]
+    filtered = {
+        "title": result.get("title"),
+        "thumbnail": (result.get("properties") or {}).get("thumbnail"),
+    }
+    set_cached(cache_key, filtered, DEFAULT_TTL)
+    return filtered

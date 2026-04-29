@@ -15,10 +15,9 @@ UMAP_VERIFY_SSL = os.getenv("UMAP_VERIFY_SSL", "false").lower() == "true"
 
 
 async def fetch_map_by_location(project_id: str) -> dict | None:
-    """Fetch a uMap datalayer.
+    """Fetch a uMap datalayer (GeoJSON). Used by GET /umap/{location}/{project_id}.
 
-    The plan model stores a single project_id string per row. For uMap, that string
-    is packed as "<location>/<project_id>" (both components needed to build the URL).
+    project_id must be packed as "<location>/<datalayer_uuid>".
     """
     if "/" not in project_id:
         return None
@@ -45,3 +44,35 @@ async def fetch_map_by_location(project_id: str) -> dict | None:
 
     set_cached(cache_key, data, DEFAULT_TTL)
     return data
+
+
+async def fetch_map_metadata_by_id(map_id: str) -> dict | None:
+    """Fetch uMap map metadata by numeric map ID. Used for plan hydration.
+
+    Returns {"name": ..., "url": ...} so PlanProjectCard can display the title
+    and build the full map URL via getUmapBaseUrl() + upstream.url.
+    """
+    cache_key = f"umap_map_meta_{map_id}"
+    cached = get_cached(cache_key)
+    if cached is not None:
+        return cached
+
+    url = f"{UMAP_BASE_URL}/api/v1/maps/{map_id}/"
+    try:
+        async with httpx.AsyncClient(
+            timeout=30.0, verify=UMAP_VERIFY_SSL, follow_redirects=True
+        ) as client:
+            response = await client.get(url)
+            if response.status_code in (404, 403):
+                return None
+            response.raise_for_status()
+            data = response.json()
+    except (httpx.RequestError, httpx.HTTPStatusError) as e:
+        raise UpstreamUnavailable(f"umap: {e}") from e
+
+    filtered = {
+        "name": data.get("name"),
+        "url": data.get("url"),
+    }
+    set_cached(cache_key, filtered, DEFAULT_TTL)
+    return filtered
