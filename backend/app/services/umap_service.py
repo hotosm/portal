@@ -46,33 +46,51 @@ async def fetch_map_by_location(project_id: str) -> dict | None:
     return data
 
 
-async def fetch_map_metadata_by_id(map_id: str) -> dict | None:
+async def fetch_map_metadata_by_id(
+    map_id: str, hanko_cookie: str | None = None
+) -> dict | None:
     """Fetch uMap map metadata by numeric map ID. Used for plan hydration.
 
-    Returns {"name": ..., "url": ...} so PlanProjectCard can display the title
-    and build the full map URL via getUmapBaseUrl() + upstream.url.
+    Requires a Hanko cookie; without it returns None immediately.
+    Calls GET /api/v1/maps/?source=mine with the cookie (the only public
+    endpoint that returns map metadata by ID) and filters for map_id.
+    Returns {"name": ..., "url": ...} so PlanProjectCard can build the link.
     """
     cache_key = f"umap_map_meta_{map_id}"
     cached = get_cached(cache_key)
     if cached is not None:
         return cached
 
-    url = f"{UMAP_BASE_URL}/api/v1/maps/{map_id}/"
+    if not hanko_cookie:
+        return None
+
+    url = f"{UMAP_BASE_URL}/api/v1/maps/"
     try:
         async with httpx.AsyncClient(
             timeout=30.0, verify=UMAP_VERIFY_SSL, follow_redirects=True
         ) as client:
-            response = await client.get(url)
-            if response.status_code in (404, 403):
+            response = await client.get(
+                url,
+                params={"source": "mine"},
+                cookies={"hanko": hanko_cookie},
+            )
+            if response.status_code in (401, 403, 404):
                 return None
             response.raise_for_status()
             data = response.json()
     except (httpx.RequestError, httpx.HTTPStatusError) as e:
         raise UpstreamUnavailable(f"umap: {e}") from e
 
+    maps = data.get("maps") or []
+    map_data = next(
+        (m for m in maps if str(m.get("id")) == str(map_id)), None
+    )
+    if not map_data:
+        return None
+
     filtered = {
-        "name": data.get("name"),
-        "url": data.get("url"),
+        "name": map_data.get("name"),
+        "url": map_data.get("url"),
     }
     set_cached(cache_key, filtered, DEFAULT_TTL)
     return filtered

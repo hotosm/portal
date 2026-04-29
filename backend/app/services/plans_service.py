@@ -43,7 +43,6 @@ APP_FETCHERS = {
     "fair": fair_service.fetch_model_by_id,
     "open-aerial-map": open_aerial_map_service.fetch_imagery_by_id,
     "export-tool": export_tool_service.fetch_job_by_uid,
-    "umap": umap_service.fetch_map_metadata_by_id,
 }
 
 
@@ -180,7 +179,38 @@ async def delete_plan(db: AsyncSession, owner_id: str, plan_id: str) -> bool:
     return True
 
 
-async def hydrate_one(row: PlanProject) -> HydratedProjectItem:
+async def hydrate_one(
+    row: PlanProject, hanko_cookie: str | None = None
+) -> HydratedProjectItem:
+    if row.app == "umap":
+        try:
+            upstream = await umap_service.fetch_map_metadata_by_id(
+                row.project_id, hanko_cookie=hanko_cookie
+            )
+        except Exception:
+            return HydratedProjectItem(
+                app=row.app,
+                project_id=row.project_id,
+                data=row.data,
+                upstream=None,
+                error="upstream_unavailable",
+            )
+        if upstream is None:
+            return HydratedProjectItem(
+                app=row.app,
+                project_id=row.project_id,
+                data=row.data,
+                upstream=None,
+                error="not_found",
+            )
+        return HydratedProjectItem(
+            app=row.app,
+            project_id=row.project_id,
+            data=row.data,
+            upstream=upstream,
+            error=None,
+        )
+
     fetcher = APP_FETCHERS.get(row.app)
     if fetcher is None:
         return HydratedProjectItem(
@@ -218,14 +248,14 @@ async def hydrate_one(row: PlanProject) -> HydratedProjectItem:
 
 
 async def get_plan_hydrated(
-    db: AsyncSession, owner_id: str, plan_id: str
+    db: AsyncSession, owner_id: str, plan_id: str, hanko_cookie: str | None = None
 ) -> PlanReadHydrated | None:
     plan = await get_owned_plan(db, owner_id, plan_id)
     if plan is None:
         return None
 
     hydrated_items = await asyncio.gather(
-        *[hydrate_one(row) for row in plan.projects]
+        *[hydrate_one(row, hanko_cookie=hanko_cookie) for row in plan.projects]
     )
 
     return PlanReadHydrated(
@@ -240,7 +270,7 @@ async def get_plan_hydrated(
 
 
 async def get_public_plan_hydrated(
-    db: AsyncSession, plan_id: str
+    db: AsyncSession, plan_id: str, hanko_cookie: str | None = None
 ) -> PlanReadHydrated | None:
     """Fetch a plan by ID only if is_public=True. No owner check."""
     stmt = (
@@ -254,7 +284,7 @@ async def get_public_plan_hydrated(
         return None
 
     hydrated_items = await asyncio.gather(
-        *[hydrate_one(row) for row in plan.projects]
+        *[hydrate_one(row, hanko_cookie=hanko_cookie) for row in plan.projects]
     )
 
     return PlanReadHydrated(

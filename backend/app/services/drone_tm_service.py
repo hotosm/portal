@@ -6,7 +6,7 @@ from app.core.cache import DEFAULT_TTL, get_cached, set_cached
 from app.core.config import settings
 from app.services.exceptions import UpstreamUnavailable
 
-DRONE_TM_BACKEND_URL = settings.drone_tm_api_url
+DRONE_TM_BACKEND_URL = settings.drone_tm_api_base_url or settings.drone_tm_api_url
 
 
 def verify_ssl() -> bool:

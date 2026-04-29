@@ -1,6 +1,6 @@
 """Plans API endpoints — user-owned collections of project references."""
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Request, Response, status
 from hotosm_auth_fastapi import CurrentUser
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -41,11 +41,13 @@ async def create_plan(
 
 @router.get("/shared/{plan_id}", response_model=PlanReadHydrated)
 async def get_shared_plan(
+    request: Request,
     plan_id: str = Path(..., description="Plan UUID"),
     db: AsyncSession = Depends(get_db),
 ) -> PlanReadHydrated:
     """Return a public plan hydrated. No auth required. 404 if plan is private or not found."""
-    plan = await plans_service.get_public_plan_hydrated(db, plan_id)
+    hanko_cookie = request.cookies.get("hanko")
+    plan = await plans_service.get_public_plan_hydrated(db, plan_id, hanko_cookie=hanko_cookie)
     if plan is None:
         raise HTTPException(status_code=404, detail="Plan not found")
     return plan
@@ -53,12 +55,14 @@ async def get_shared_plan(
 
 @router.get("/{plan_id}", response_model=PlanReadHydrated)
 async def get_plan(
+    request: Request,
     user: CurrentUser,
     plan_id: str = Path(..., description="Plan UUID"),
     db: AsyncSession = Depends(get_db),
 ) -> PlanReadHydrated:
     """Return the plan with each project hydrated in parallel from its upstream app."""
-    plan = await plans_service.get_plan_hydrated(db, user.id, plan_id)
+    hanko_cookie = request.cookies.get("hanko")
+    plan = await plans_service.get_plan_hydrated(db, user.id, plan_id, hanko_cookie=hanko_cookie)
     if plan is None:
         raise HTTPException(status_code=404, detail="Plan not found")
     return plan
