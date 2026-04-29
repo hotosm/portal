@@ -192,7 +192,7 @@ async def hydrate_one(row: PlanProject) -> HydratedProjectItem:
         )
     try:
         upstream = await fetcher(row.project_id)
-    except UpstreamUnavailable:
+    except Exception:
         return HydratedProjectItem(
             app=row.app,
             project_id=row.project_id,
