@@ -129,6 +129,12 @@ class Settings(BaseSettings):
     # while fair_base_url still points at production for the public map.
     fair_user_base_url: str | None = None
 
+    # --- S3 / MinIO storage ---
+    s3_endpoint_url: str | None = None
+    s3_bucket_name: str | None = None
+    s3_access_key: str | None = None
+    s3_secret_key: str | None = None
+
     # --- Service-specific settings ---
     drone_tm_auth_header: str = "Authorization"
     drone_tm_auth_prefix: str = "Bearer"
