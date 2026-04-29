@@ -43,7 +43,7 @@ APP_FETCHERS = {
     "fair": fair_service.fetch_model_by_id,
     "open-aerial-map": open_aerial_map_service.fetch_imagery_by_id,
     "export-tool": export_tool_service.fetch_job_by_uid,
-    "umap": umap_service.fetch_map_by_location,
+    "umap": umap_service.fetch_map_metadata_by_id,
 }
 
 

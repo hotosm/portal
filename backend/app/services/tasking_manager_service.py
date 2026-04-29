@@ -27,10 +27,12 @@ async def fetch_project_by_id(project_id: str) -> dict | None:
     except (httpx.RequestError, httpx.HTTPStatusError) as e:
         raise UpstreamUnavailable(f"tasking-manager: {e}") from e
 
+    project_info = data.get("projectInfo") or {}
     filtered = {
+        "name": project_info.get("name"),
         "organisationName": data.get("organisationName"),
         "organisationSlug": data.get("organisationSlug"),
-        "projectInfo": data.get("projectInfo"),
+        "projectInfo": project_info,
         "projectInfoLocales": data.get("projectInfoLocales"),
         "created": data.get("created"),
         "percentMapped": data.get("percentMapped"),
