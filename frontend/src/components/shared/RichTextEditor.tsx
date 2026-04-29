@@ -122,7 +122,10 @@ function RichTextEditor({
       }),
     ],
     editorProps: {
-      ...(id ? { attributes: { id } } : {}),
+      attributes: {
+        ...(id ? { id } : {}),
+        class: "outline-none",
+      },
       // Sanitize HTML on paste before ProseMirror parses it.
       transformPastedHTML(html: string) {
         return sanitizeRteHtml(html);
