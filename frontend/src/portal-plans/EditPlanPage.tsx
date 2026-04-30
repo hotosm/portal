@@ -1,29 +1,31 @@
+import { useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import CardSkeleton from "../components/shared/CardSkeleton";
 import PageWrapper from "../components/shared/PageWrapper";
 import SectionHeader from "../components/shared/SectionHeader";
 import { useLanguage } from "../contexts/LanguageContext";
+import { m } from "../paraglide/messages";
 import PlanForm from "./components/PlanForm";
-import { useMyPlans, useUpdatePlan } from "./hooks";
+import { usePlan, useUpdatePlan } from "./hooks";
 
 function EditPlanPage() {
   const { planId } = useParams<{ planId: string }>();
   const navigate = useNavigate();
   const { currentLanguage } = useLanguage();
-  const { data: plans = [], isLoading } = useMyPlans();
+  const { data: plan, isLoading, isError } = usePlan(planId ?? "");
   const { mutateAsync: updatePlan, isPending } = useUpdatePlan();
 
-  const plan = plans.find((p) => p.id === planId);
   const detailPath = `/${currentLanguage}/plan/${planId}`;
 
-  const initialProjectKeys = new Set(
-    (plan?.projects ?? []).map((p) => `${p.app}:${p.project_id}`),
+  const initialProjectKeys = useMemo(
+    () => new Set((plan?.projects ?? []).map((p) => `${p.app}:${p.project_id}`)),
+    [plan?.projects],
   );
 
   return (
     <>
-      <SectionHeader buttonText="Cancel" onButtonClick={() => navigate(detailPath)}>
-        Plan <strong>{plan?.name ?? "…"}</strong>
+      <SectionHeader buttonText={m.plan_cancel()} onButtonClick={() => navigate(detailPath)}>
+        {m.plan_header()} <strong>{plan?.name ?? "…"}</strong>
       </SectionHeader>
       <PageWrapper>
         {isLoading ? (
@@ -32,8 +34,10 @@ function EditPlanPage() {
               <CardSkeleton key={i} linesCount={1} />
             ))}
           </div>
+        ) : isError ? (
+          <p className="py-xl text-hot-gray-500">{m.plan_load_error()}</p>
         ) : !plan ? (
-          <p className="py-xl text-hot-gray-500">Plan not found.</p>
+          <p className="py-xl text-hot-gray-500">{m.plan_not_found()}</p>
         ) : (
           <PlanForm
             initialName={plan.name}
@@ -41,7 +45,7 @@ function EditPlanPage() {
             initialProjectKeys={initialProjectKeys}
             initialImages={plan.images ?? []}
             planId={planId}
-            submitLabel="Save Changes"
+            submitLabel={m.plan_edit_submit()}
             isPending={isPending}
             onSubmit={async ({ name, description, selectedProjects }) => {
               await updatePlan({

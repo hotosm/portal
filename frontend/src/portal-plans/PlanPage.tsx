@@ -5,6 +5,7 @@ import PageWrapper from "../components/shared/PageWrapper";
 import SectionHeader from "../components/shared/SectionHeader";
 import SubSectionHeader from "../components/shared/SubSectionHeader";
 import { useLanguage } from "../contexts/LanguageContext";
+import { m } from "../paraglide/messages";
 import PlanCard from "./components/PlanCard";
 import { useMyPlans } from "./hooks";
 
@@ -14,19 +15,22 @@ const CARD_CLASS =
 function PlanPage() {
   const navigate = useNavigate();
   const { currentLanguage } = useLanguage();
-  const { data: plans = [], isLoading } = useMyPlans();
+  const { data: plans = [], isLoading, isError } = useMyPlans();
 
   return (
     <>
       <SectionHeader>
-        <strong>Plan</strong>
+        <strong>{m.plan_header()}</strong>
       </SectionHeader>
       <SubSectionHeader
-        title="<strong>Create</strong> a mapping plan"
+        title={`<strong>${m.plan_page_create_title()}</strong> ${m.plan_page_create_description()}`}
         toolName="HOT Tech Suite"
       />
       <PageWrapper>
         <div className="flex flex-col gap-sm py-lg">
+          {isError && (
+            <p className="text-sm text-hot-red-600">{m.plan_list_error()}</p>
+          )}
           <div className="flex flex-wrap gap-lg">
             {isLoading ? (
               Array.from({ length: 3 }).map((_, i) => (
@@ -38,9 +42,9 @@ function PlanPage() {
               <>
                 <div className={CARD_CLASS}>
                   <CardAddNew
-                    title="Create"
-                    description="a mapping plan"
-                    buttonLabel="New Plan"
+                    title={m.plan_page_create_title()}
+                    description={m.plan_page_create_description()}
+                    buttonLabel={m.plan_page_new_button()}
                     icon="add"
                     onButtonClick={() => navigate(`/${currentLanguage}/plan/new`)}
                   />

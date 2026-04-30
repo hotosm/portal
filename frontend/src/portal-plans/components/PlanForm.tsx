@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import Button from '../../components/shared/Button'
 import RichTextEditor from '../../components/shared/RichTextEditor'
 import Tag from '../../components/shared/Tag'
+import { m } from '../../paraglide/messages'
 import { APP_LABELS, useAllUserProjects } from '../hooks'
 import type { ProjectOption } from '../hooks'
 import type { AppName, PlanImageRead } from '../types'
@@ -29,12 +30,12 @@ interface PlanFormProps {
 }
 
 function projectKey(p: ProjectOption) {
-  return `${p.app}:${p.project_id}`
+  return `${p.app}:${p.project_id}`;
 }
 
 function PlanForm({
-  initialName = '',
-  initialDescription = '',
+  initialName = "",
+  initialDescription = "",
   initialProjectKeys = new Set(),
   initialImages = [],
   planId,
@@ -61,10 +62,12 @@ function PlanForm({
 
   function toggleProject(project: ProjectOption, checked: boolean) {
     setSelected((prev) => {
-      const next = new Set(prev)
-      checked ? next.add(projectKey(project)) : next.delete(projectKey(project))
-      return next
-    })
+      const next = new Set(prev);
+      checked
+        ? next.add(projectKey(project))
+        : next.delete(projectKey(project));
+      return next;
+    });
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -102,7 +105,7 @@ function PlanForm({
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     const selectedProjects = projects
       .filter((p) => selected.has(projectKey(p)))
       .map(({ app, project_id }) => ({ app, project_id }))
@@ -114,10 +117,16 @@ function PlanForm({
   const busy = isPending || isUploading || deleteMutation.isPending
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-lg max-w-lg py-lg">
+    <form
+      onSubmit={handleSubmit}
+      className="flex flex-col gap-lg px-0 lg:px-2xl py-lg"
+    >
       <div className="flex flex-col gap-xs">
-        <label htmlFor="plan-name" className="text-sm font-medium text-hot-gray-700">
-          Name <span className="text-hot-red-600">*</span>
+        <label
+          htmlFor="plan-name"
+          className="text-sm font-medium text-hot-gray-700"
+        >
+          {m.plan_form_name_label()} <span className="text-hot-red-600">*</span>
         </label>
         <input
           id="plan-name"
@@ -125,20 +134,23 @@ function PlanForm({
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
-          placeholder="My plan"
+          placeholder={m.plan_form_name_placeholder()}
           className="border border-hot-gray-300 rounded-lg px-md py-sm text-base outline-none focus:border-hot-red-500"
         />
       </div>
 
       <div className="flex flex-col gap-xs">
-        <label htmlFor="plan-description" className="text-sm font-medium text-hot-gray-700">
-          Description
+        <label
+          htmlFor="plan-description"
+          className="text-sm font-medium text-hot-gray-700"
+        >
+          {m.plan_form_description_label()}
         </label>
         <RichTextEditor
           id="plan-description"
           value={description}
           onChange={setDescription}
-          placeholder="Optional description"
+          placeholder={m.plan_form_description_placeholder()}
         />
       </div>
 
@@ -173,12 +185,18 @@ function PlanForm({
         </div>
       </div>
 
-      <div className="flex flex-col gap-sm">
-        <p className="text-sm font-medium text-hot-gray-700">Projects</p>
-        <Button type="button" appearance="outlined" onClick={() => setDialogOpen(true)}>
+      <div className="flex flex-col gap-xs">
+        <span className="text-sm font-medium text-hot-gray-700">
+          {m.plan_form_projects_label()}
+        </span>
+        <Button
+          type="button"
+          appearance="outlined"
+          onClick={() => setDialogOpen(true)}
+        >
           {selected.size === 0
-            ? 'Select projects…'
-            : `${selected.size} project${selected.size !== 1 ? 's' : ''} selected`}
+            ? m.plan_form_select_projects()
+            : `${selected.size} ${selected.size === 1 ? m.plan_form_projects_selected_singular() : m.plan_form_projects_selected_plural()}`}
         </Button>
 
         {selected.size > 0 && (
@@ -191,12 +209,14 @@ function PlanForm({
                 onWaRemove={() => toggleProject(p, false)}
               >
                 {p.title}
-                <span className="text-hot-gray-400 ml-1">— {APP_LABELS[p.app]}</span>
+                <span className="text-hot-gray-400 ml-1">
+                  — {APP_LABELS[p.app]}
+                </span>
               </Tag>
             ))}
             {isLoading && loadingCount > 0 && (
               <span className="text-sm text-hot-gray-400 self-center">
-                +{loadingCount} loading…
+                +{loadingCount} {m.plan_form_loading()}
               </span>
             )}
           </div>
@@ -213,18 +233,18 @@ function PlanForm({
 
       <div className="flex items-center gap-md">
         <Button type="submit" disabled={busy || !name.trim()}>
-          {isPending ? 'Saving…' : submitLabel}
+          {isPending ? m.plan_form_saving() : submitLabel}
         </Button>
         <button
           type="button"
           onClick={onCancel}
           className="text-sm text-hot-gray-500 hover:text-hot-gray-700 underline"
         >
-          Cancel
+          {m.plan_cancel()}
         </button>
       </div>
     </form>
-  )
+  );
 }
 
-export default PlanForm
+export default PlanForm;

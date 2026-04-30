@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import Button from '../../components/shared/Button'
 import Checkbox from '../../components/shared/Checkbox'
 import Dialog from '../../components/shared/Dialog'
+import { m } from '../../paraglide/messages'
 import { APP_LABELS } from '../hooks'
 import type { ProjectSource } from '../hooks'
 import type { AppName } from '../types'
@@ -65,7 +66,7 @@ function ProjectPickerDialog({
   return (
     <Dialog
       open={open}
-      label="Select Projects"
+      label={m.plan_picker_label()}
       onWaHide={onClose}
       style={{ '--width': '560px' } as React.CSSProperties}
     >
@@ -76,7 +77,7 @@ function ProjectPickerDialog({
           appearance={activeApp === 'all' ? 'filled' : 'outlined'}
           onClick={() => setActiveApp('all')}
         >
-          All
+          {m.plan_picker_all()}
         </Button>
         {sources
           .filter((s) => s.isLoading || s.projects.length > 0)
@@ -95,16 +96,16 @@ function ProjectPickerDialog({
 
       <div className="overflow-y-auto max-h-[50vh] flex flex-col gap-md mt-md">
         {allEmpty ? (
-          <p className="text-sm text-hot-gray-400">You have no projects in any connected tool.</p>
+          <p className="text-sm text-hot-gray-400">{m.plan_picker_no_projects()}</p>
         ) : !hasAnyContent ? (
           <p className="text-sm text-hot-gray-400">
-            No {APP_LABELS[activeApp as AppName]} projects found.{' '}
+            {APP_LABELS[activeApp as AppName]} — {m.plan_picker_no_app_projects()}{' '}
             <button
               type="button"
               className="underline hover:text-hot-gray-600"
               onClick={() => setActiveApp('all')}
             >
-              All apps
+              {m.plan_picker_all_apps()}
             </button>
           </p>
         ) : (
@@ -118,13 +119,13 @@ function ProjectPickerDialog({
                   {source.isLoading && (
                     <span className="ml-xs font-normal normal-case tracking-normal text-hot-gray-400">
                       {' '}
-                      — loading…
+                      {m.plan_picker_loading()}
                     </span>
                   )}
                 </p>
                 {source.isError ? (
                   <p className="text-sm text-hot-gray-400">
-                    Could not load {source.label} projects.
+                    {source.label} — {m.plan_picker_error()}
                   </p>
                 ) : source.isLoading ? (
                   <div className="flex flex-col gap-xs">
@@ -160,7 +161,7 @@ function ProjectPickerDialog({
           onClick={onClose}
           className="text-sm text-hot-gray-500 hover:text-hot-gray-700 underline"
         >
-          Cancel
+          {m.plan_cancel()}
         </button>
         <Button
           type="button"
@@ -169,7 +170,7 @@ function ProjectPickerDialog({
             onClose()
           }}
         >
-          Done{localSelected.size > 0 ? ` (${localSelected.size})` : ''}
+          {m.plan_picker_done()}{localSelected.size > 0 ? ` (${localSelected.size})` : ''}
         </Button>
       </div>
     </Dialog>

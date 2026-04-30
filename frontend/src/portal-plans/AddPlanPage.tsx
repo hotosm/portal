@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import PageWrapper from "../components/shared/PageWrapper";
 import SectionHeader from "../components/shared/SectionHeader";
 import { useLanguage } from "../contexts/LanguageContext";
+import { m } from "../paraglide/messages";
 import PlanForm from "./components/PlanForm";
 import { useCreatePlan } from "./hooks";
 
@@ -27,12 +28,12 @@ function AddPlanPage() {
 
   return (
     <>
-      <SectionHeader buttonText="Cancel" onButtonClick={() => navigate(planListPath)}>
-        <strong>New Plan</strong>
+      <SectionHeader buttonText={m.plan_cancel()} onButtonClick={() => navigate(planListPath)}>
+        <strong>{m.plan_add_header()}</strong>
       </SectionHeader>
       <PageWrapper>
         <PlanForm
-          submitLabel="Create Plan"
+          submitLabel={m.plan_add_submit()}
           isPending={isPending}
           onSubmit={async ({ name, description, selectedProjects, pendingImages }) => {
             const plan = await createPlan({

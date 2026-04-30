@@ -24,6 +24,7 @@ export interface PlanCreate {
 export interface PlanUpdate {
   name?: string;
   description?: string;
+  is_public?: boolean;
   projects?: PlanProjectItem[];
 }
 
