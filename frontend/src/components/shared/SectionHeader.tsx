@@ -9,6 +9,7 @@ interface SectionHeaderProps {
   buttonText?: string;
   buttonLink?: string;
   onButtonClick?: () => void;
+  menu?: React.ReactNode;
 }
 
 function SectionHeader({
@@ -16,6 +17,7 @@ function SectionHeader({
   buttonText,
   buttonLink,
   onButtonClick,
+  menu,
 }: SectionHeaderProps) {
   const label = buttonText ?? m.getting_started();
   const isDefault = !buttonText;
@@ -29,10 +31,12 @@ function SectionHeader({
       <PageWrapper>
         <div className="flex flex-col md:flex-row gap-sm w-full justify-between pt-md pb-md items-start md:items-center">
           <div className="text-2xl">{children}</div>
-          <Button href={buttonLink} onClick={onButtonClick}>
-            {label}
-            {isDefault && <Icon className="ml-xs" src={playCircleFill} />}
-          </Button>
+          {menu ?? (
+            <Button href={buttonLink} onClick={onButtonClick}>
+              {label}
+              {isDefault && <Icon className="ml-xs" src={playCircleFill} />}
+            </Button>
+          )}
         </div>
       </PageWrapper>
     </div>

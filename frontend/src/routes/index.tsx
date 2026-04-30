@@ -124,11 +124,7 @@ export function AppRoutes() {
         <Route path=":planId">
           <Route
             index
-            element={
-              <MainNavRoute>
-                <MyPlanPage />
-              </MainNavRoute>
-            }
+            element={<MyPlanPage />}
           />
           <Route
             path="edit"
