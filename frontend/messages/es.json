@@ -163,5 +163,7 @@
   "plan_toast_published": "Plan publicado",
   "plan_toast_unpublished": "Plan despublicado",
   "plan_toast_deleted": "Plan eliminado",
-  "plan_toast_link_copied": "Enlace copiado al portapapeles"
+  "plan_toast_link_copied": "Enlace copiado al portapapeles",
+  "plan_toast_link_copy_error": "Error al copiar el enlace",
+  "plan_toast_share_error": "Error al compartir el plan"
 }

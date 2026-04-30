@@ -11,6 +11,7 @@ export const planQueryKeys = {
   all: ["plans"] as const,
   list: () => [...planQueryKeys.all, "list"] as const,
   detail: (id: string) => [...planQueryKeys.all, "detail", id] as const,
+  public: (id: string) => [...planQueryKeys.detail(id), "public"] as const,
 };
 
 export function useMyPlans() {
@@ -80,6 +81,9 @@ export function useUpdatePlan() {
       queryClient.invalidateQueries({ queryKey: planQueryKeys.list() });
       queryClient.invalidateQueries({ queryKey: planQueryKeys.detail(id) });
     },
+    onError: () => {
+      toast.error(m.plan_toast_update_error());
+    },
   });
 }
 
@@ -105,9 +109,9 @@ export function useDeletePlan() {
   });
 }
 
-export function usePublishPlan(id: string) {
+export function useSharedPlan(id: string) {
   return useQuery({
-    queryKey: [...planQueryKeys.detail(id), "public"],
+    queryKey: planQueryKeys.public(id),
     queryFn: async (): Promise<PlanReadHydrated | null> => {
       const response = await fetch(`/api/plans/shared/${id}`);
       if (response.status === 404) return null;
