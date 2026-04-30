@@ -47,7 +47,7 @@ function PlanForm({
   const [description, setDescription] = useState(initialDescription)
   const [selected, setSelected] = useState<Set<string>>(initialProjectKeys)
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [pendingFiles, setPendingFiles] = useState<File[]>([])
+  const [pendingFiles, setPendingFiles] = useState<{ file: File; previewUrl: string }[]>([])
   const [savedImages, setSavedImages] = useState<PlanImageRead[]>(initialImages)
   const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -55,14 +55,9 @@ function PlanForm({
   const uploadMutation = useUploadPlanImage(planId ?? '')
   const deleteMutation = useDeletePlanImage(planId ?? '')
 
-  const previewImages = pendingFiles.map((f, i) => ({
-    id: `pending-${i}`,
-    url: URL.createObjectURL(f),
-  }))
-
   const displayImages = planId
     ? savedImages.map((img) => ({ id: img.id, url: img.url }))
-    : previewImages
+    : pendingFiles.map((p, i) => ({ id: `pending-${i}`, url: p.previewUrl }))
 
   function toggleProject(project: ProjectOption, checked: boolean) {
     setSelected((prev) => {
@@ -85,7 +80,8 @@ function PlanForm({
           if (fileInputRef.current) fileInputRef.current.value = ''
         })
     } else {
-      setPendingFiles((prev) => [...prev, ...files])
+      const newEntries = files.map((f) => ({ file: f, previewUrl: URL.createObjectURL(f) }))
+      setPendingFiles((prev) => [...prev, ...newEntries])
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
@@ -97,7 +93,11 @@ function PlanForm({
       })
     } else {
       const idx = parseInt(id.replace('pending-', ''), 10)
-      setPendingFiles((prev) => prev.filter((_, i) => i !== idx))
+      setPendingFiles((prev) => {
+        const removed = prev[idx]
+        if (removed) URL.revokeObjectURL(removed.previewUrl)
+        return prev.filter((_, i) => i !== idx)
+      })
     }
   }
 
@@ -106,7 +106,7 @@ function PlanForm({
     const selectedProjects = projects
       .filter((p) => selected.has(projectKey(p)))
       .map(({ app, project_id }) => ({ app, project_id }))
-    await onSubmit({ name, description, selectedProjects, pendingImages: pendingFiles })
+    await onSubmit({ name, description, selectedProjects, pendingImages: pendingFiles.map((p) => p.file) })
   }
 
   const selectedTags = projects.filter((p) => selected.has(projectKey(p)))

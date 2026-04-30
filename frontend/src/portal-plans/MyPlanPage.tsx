@@ -5,6 +5,7 @@ import PageWrapper from "../components/shared/PageWrapper";
 import SectionHeader from "../components/shared/SectionHeader";
 import SubSectionHeader from "../components/shared/SubSectionHeader";
 import PlanProjectCard from "./components/PlanProjectCard";
+import ImageCarousel from "./components/ImageCarousel";
 import { useLanguage } from "../contexts/LanguageContext";
 import { usePlan } from "./hooks";
 import type { AppName } from "./types";
@@ -88,6 +89,14 @@ function MyPlanPage() {
       {plan.description && (
         <PageWrapper>
           <RichTextContent html={plan.description} className="py-md text-hot-gray-500" />
+        </PageWrapper>
+      )}
+
+      {plan.images.length > 0 && (
+        <PageWrapper>
+          <div className="py-md max-w-lg">
+            <ImageCarousel images={plan.images.map((img) => ({ id: img.id, url: img.url }))} />
+          </div>
         </PageWrapper>
       )}
 

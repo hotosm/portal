@@ -134,6 +134,9 @@ class Settings(BaseSettings):
     s3_bucket_name: str | None = None
     s3_access_key: str | None = None
     s3_secret_key: str | None = None
+    # Public base URL for stored image URLs (e.g. https://s3.hotosm.test).
+    # Falls back to s3_endpoint_url when not set (fine for same-host dev without Traefik).
+    s3_public_url: str | None = None
 
     # --- Service-specific settings ---
     drone_tm_auth_header: str = "Authorization"
