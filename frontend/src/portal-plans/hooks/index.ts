@@ -1,3 +1,4 @@
-export { useMyPlans, usePlan, useCreatePlan, useUpdatePlan, planQueryKeys } from './usePlans'
+export { useMyPlans, usePlan, useSharedPlan, useCreatePlan, useUpdatePlan, useDeletePlan, planQueryKeys } from './usePlans'
+export { usePlanMenu } from './usePlanMenu'
 export { useAllUserProjects, APP_LABELS } from './useAllUserProjects'
 export type { ProjectOption, ProjectSource } from './useAllUserProjects'

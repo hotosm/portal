@@ -13,12 +13,10 @@ function getProjectHref(
   app: AppName,
   projectId: string,
   upstream: Record<string, unknown> | null,
-): string {
+): string | null {
   switch (app) {
     case "drone-tasking-manager":
       return `${getDroneTmBaseUrl()}/projects/${projectId}`;
-    case "open-aerial-map":
-      return `https://openaerialmap.org/#/${projectId}`;
     case "tasking-manager":
       return `https://tasks.hotosm.org/projects/${projectId}`;
     case "fair":
@@ -31,8 +29,8 @@ function getProjectHref(
         ? `${getUmapBaseUrl()}${url}`
         : getUmapBaseUrl();
     }
-    case "field-tm":
-      return "#";
+    default:
+      return null;
   }
 }
 
@@ -88,7 +86,11 @@ function PlanProjectCard({ project }: PlanProjectCardProps) {
           </div>
         </div>
 
-        <CardProjectTitle href={href} title={title} />
+        {href ? (
+          <CardProjectTitle href={href} title={title} />
+        ) : (
+          <span className="text-base font-bold">{title}</span>
+        )}
       </div>
     </div>
   );
