@@ -121,6 +121,7 @@ export interface FAIRModel {
   user: FAIRUser | null;
   accuracy: number | null;
   thumbnail_url: string | null;
+  centroid: [number, number] | null;
   name: string | null;
   created_at: string | null;
   last_modified: string | null;
