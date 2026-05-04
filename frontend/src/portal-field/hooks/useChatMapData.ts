@@ -18,9 +18,10 @@ function mapToProject(item: ChatMap): ChatMapProject {
     id: item.id,
     title: item.name,
     href: `${getChatMapBaseUrl()}/#map/${item.id}`,
-    status: item.sharing === "public" ? "published" : "draft",
+    status: item.sharing === "public" ? "published" : "private",
     image: placeholderImage,
     count: item.count,
+    centroid: item.centroid,
   };
 }
 

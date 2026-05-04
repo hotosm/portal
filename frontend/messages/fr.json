@@ -113,6 +113,8 @@
   "plan_list_error": "Une erreur s'est produite lors du chargement de vos plans.",
   "plan_private": "Ce plan est privé.",
   "plan_public_tag": "Public",
+  "plan_private_tag": "Privé",
+  "plan_published_tag": "Publié",
   "plan_page_create_title": "Créer",
   "plan_page_create_description": "un plan de cartographie",
   "plan_page_new_button": "Nouveau plan",

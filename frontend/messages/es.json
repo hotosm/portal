@@ -113,6 +113,8 @@
   "plan_list_error": "Algo salió mal al cargar tus planes.",
   "plan_private": "Este plan es privado.",
   "plan_public_tag": "Público",
+  "plan_private_tag": "Privado",
+  "plan_published_tag": "Publicado",
   "plan_page_create_title": "Crear",
   "plan_page_create_description": "un plan de mapeo",
   "plan_page_new_button": "Nuevo Plan",
