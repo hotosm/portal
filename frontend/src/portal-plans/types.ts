@@ -25,6 +25,7 @@ export interface PlanCreate {
 export interface PlanUpdate {
   name?: string;
   description?: string;
+  is_public?: boolean;
   projects?: PlanProjectItem[];
 }
 
@@ -32,6 +33,7 @@ export interface PlanRead {
   id: string;
   name: string;
   description: string | null;
+  is_public: boolean;
   projects: PlanProjectItem[];
   created_at: string;
   updated_at: string;
@@ -49,6 +51,7 @@ export interface PlanReadHydrated {
   id: string;
   name: string;
   description: string | null;
+  is_public: boolean;
   projects: HydratedProjectItem[];
   created_at: string;
   updated_at: string;

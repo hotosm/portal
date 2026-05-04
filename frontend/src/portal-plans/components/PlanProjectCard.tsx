@@ -75,7 +75,11 @@ function PlanProjectCard({ project }: PlanProjectCardProps) {
           </div>
         </div>
 
-        <CardProjectTitle href={href} title={title} />
+        {href ? (
+          <CardProjectTitle href={href} title={title} />
+        ) : (
+          <span className="text-base font-bold">{title}</span>
+        )}
       </div>
     </div>
   );
