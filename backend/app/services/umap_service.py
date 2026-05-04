@@ -47,7 +47,10 @@ async def fetch_map_by_location(project_id: str) -> dict | None:
 
 
 async def fetch_map_metadata_by_id(
-    map_id: str, hanko_cookie: str | None = None
+    map_id: str,
+    hanko_cookie: str | None = None,
+    *,
+    base_url: str | None = None,
 ) -> dict | None:
     """Fetch uMap map metadata by numeric map ID. Used for plan hydration.
 
@@ -64,7 +67,7 @@ async def fetch_map_metadata_by_id(
     if not hanko_cookie:
         return None
 
-    url = f"{UMAP_BASE_URL}/api/v1/maps/"
+    url = f"{base_url or UMAP_BASE_URL}/api/v1/maps/"
     try:
         async with httpx.AsyncClient(
             timeout=30.0, verify=UMAP_VERIFY_SSL, follow_redirects=True
@@ -94,3 +97,25 @@ async def fetch_map_metadata_by_id(
     }
     set_cached(cache_key, filtered, DEFAULT_TTL)
     return filtered
+
+
+async def fetch_map_by_id(map_id: str, *, base_url: str | None = None) -> dict | None:
+    """Fetch uMap map properties via public geojson endpoint. No auth required.
+
+    Returns the map properties dict (includes 'name') on success, None on 404.
+    Raises UpstreamUnavailable on connection or HTTP errors.
+    """
+    url = f"{base_url or UMAP_BASE_URL}/map/{map_id}/geojson/"
+    try:
+        async with httpx.AsyncClient(
+            timeout=30.0, verify=UMAP_VERIFY_SSL, follow_redirects=True
+        ) as client:
+            response = await client.get(url)
+            if response.status_code == 404:
+                return None
+            response.raise_for_status()
+            data = response.json()
+    except (httpx.RequestError, httpx.HTTPStatusError) as e:
+        raise UpstreamUnavailable(f"umap: {e}") from e
+
+    return data.get("properties")

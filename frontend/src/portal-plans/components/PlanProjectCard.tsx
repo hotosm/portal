@@ -1,38 +1,26 @@
 import placeholder from "../../assets/images/placeholder.png";
 import CardProjectTitle from "../../components/shared/CardProjectTitle";
-import {
-  getDroneTmBaseUrl,
-  getExportToolJobUrl,
-  getFairModelUrl,
-  getUmapBaseUrl,
-} from "../../utils/envConfig";
 import { APP_META } from "../../utils/appMeta";
 import type { HydratedProjectItem, AppName } from "../types";
 
-function getProjectHref(
-  app: AppName,
-  projectId: string,
-  upstream: Record<string, unknown> | null,
-): string {
+function getProjectHref(app: AppName, projectId: string): string {
   switch (app) {
-    case "drone-tasking-manager":
-      return `${getDroneTmBaseUrl()}/projects/${projectId}`;
-    case "open-aerial-map":
-      return `https://openaerialmap.org/#/${projectId}`;
     case "tasking-manager":
       return `https://tasks.hotosm.org/projects/${projectId}`;
-    case "fair":
-      return getFairModelUrl(Number(projectId));
-    case "export-tool":
-      return getExportToolJobUrl(projectId);
-    case "umap": {
-      const url = upstream?.url;
-      return typeof url === "string"
-        ? `${getUmapBaseUrl()}${url}`
-        : getUmapBaseUrl();
-    }
+    case "drone-tasking-manager":
+      return `https://drone.hotosm.org/projects/${projectId}`;
     case "field-tm":
-      return "#";
+      return `https://field.hotosm.org/projects/${projectId}`;
+    case "fair":
+      return `https://fair.hotosm.org/ai-models/${projectId}`;
+    case "export-tool":
+      return `https://export.hotosm.org/v3/exports/${projectId}`;
+    case "open-aerial-map":
+      return `https://map.openaerialmap.org/#/latest/${projectId}`;
+    case "umap":
+      return `https://umap.hotosm.org/m/${projectId}/`;
+    case "chatmap":
+      return `https://chatmap.hotosm.org/#map/${projectId}`;
   }
 }
 
@@ -66,7 +54,6 @@ function PlanProjectCard({ project }: PlanProjectCardProps) {
   const href = getProjectHref(
     project.app,
     project.project_id,
-    project.upstream,
   );
 
   return (

@@ -1,4 +1,5 @@
 export type AppName =
+  | "chatmap"
   | "drone-tasking-manager"
   | "export-tool"
   | "fair"
@@ -51,4 +52,10 @@ export interface PlanReadHydrated {
   projects: HydratedProjectItem[];
   created_at: string;
   updated_at: string;
+}
+
+export interface UrlResolveResponse {
+  app: AppName;
+  project_id: string;
+  upstream: Record<string, unknown> | null;
 }

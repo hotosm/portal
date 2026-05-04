@@ -39,6 +39,7 @@ function PlanForm({
   const [name, setName] = useState(initialName)
   const [description, setDescription] = useState(initialDescription)
   const [selected, setSelected] = useState<Set<string>>(initialProjectKeys)
+  const [extraProjects, setExtraProjects] = useState<ProjectOption[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
   const { sources, projects, isLoading } = useAllUserProjects()
 
@@ -52,13 +53,15 @@ function PlanForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const selectedProjects = projects
+    const allProjects = [...projects, ...extraProjects]
+    const selectedProjects = allProjects
       .filter((p) => selected.has(projectKey(p)))
       .map(({ app, project_id }) => ({ app, project_id }))
     await onSubmit({ name, description, selectedProjects })
   }
 
-  const selectedTags = projects.filter((p) => selected.has(projectKey(p)))
+  const allProjects = [...projects, ...extraProjects]
+  const selectedTags = allProjects.filter((p) => selected.has(projectKey(p)))
   const loadingCount = selected.size - selectedTags.length
 
   return (
@@ -123,8 +126,12 @@ function PlanForm({
       <ProjectPickerDialog
         open={dialogOpen}
         selected={selected}
+        extraProjects={extraProjects}
         sources={sources}
-        onConfirm={(next) => setSelected(next)}
+        onConfirm={(next, nextExtra) => {
+          setSelected(next)
+          setExtraProjects(nextExtra)
+        }}
         onClose={() => setDialogOpen(false)}
       />
 

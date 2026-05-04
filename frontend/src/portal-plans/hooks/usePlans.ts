@@ -1,6 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../contexts/AuthContext";
-import type { PlanCreate, PlanRead, PlanReadHydrated, PlanUpdate } from "../types";
+import type {
+  PlanCreate,
+  PlanRead,
+  PlanReadHydrated,
+  PlanUpdate,
+  UrlResolveResponse,
+} from "../types";
 
 export const planQueryKeys = {
   all: ["plans"] as const,
@@ -72,6 +78,24 @@ export function useUpdatePlan() {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: planQueryKeys.list() });
       queryClient.invalidateQueries({ queryKey: planQueryKeys.detail(id) });
+    },
+  });
+}
+
+export function useResolveProjectUrl() {
+  return useMutation({
+    mutationFn: async (url: string): Promise<UrlResolveResponse> => {
+      const response = await fetch("/api/plans/resolve-url", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.detail ?? `${response.status}`);
+      }
+      return response.json();
     },
   });
 }

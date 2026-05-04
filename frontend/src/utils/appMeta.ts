@@ -1,3 +1,4 @@
+import chatIcon from "../assets/icons/chat.svg";
 import droneIcon from "../assets/icons/drone.svg";
 import oamIcon from "../assets/icons/oam.svg";
 import tmIcon from "../assets/icons/tm.svg";
@@ -8,6 +9,7 @@ import umapIcon from "../assets/icons/umap.svg";
 import type { AppName } from "../portal-plans/types";
 
 export const APP_META: Record<AppName, { label: string; icon: string }> = {
+  chatmap: { label: "ChatMap", icon: chatIcon },
   "drone-tasking-manager": { label: "Drone", icon: droneIcon },
   "open-aerial-map": { label: "Imagery", icon: oamIcon },
   "tasking-manager": { label: "Mapping", icon: tmIcon },

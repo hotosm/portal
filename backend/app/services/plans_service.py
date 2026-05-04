@@ -19,8 +19,11 @@ from app.models.plan import (
     PlanReadHydrated,
     PlanTag,
     PlanUpdate,
+    UrlResolveResponse,
 )
+from app.services import url_resolver
 from app.services import (
+    chatmap_service,
     drone_tm_service,
     export_tool_service,
     fair_service,
@@ -36,6 +39,14 @@ class DuplicateProjectError(ValueError):
     """Raised when a plan payload contains duplicate (app, project_id) entries."""
 
 
+class InvalidUrlError(ValueError):
+    """Raised when a URL does not match any supported app pattern."""
+
+
+class ProjectNotFoundError(ValueError):
+    """Raised when a URL resolves to an app/project_id that does not exist upstream."""
+
+
 APP_FETCHERS = {
     "tasking-manager": tasking_manager_service.fetch_project_by_id,
     "field-tm": field_tm_service.fetch_project_by_id,
@@ -43,6 +54,7 @@ APP_FETCHERS = {
     "fair": fair_service.fetch_model_by_id,
     "open-aerial-map": open_aerial_map_service.fetch_imagery_by_id,
     "export-tool": export_tool_service.fetch_job_by_uid,
+    "chatmap": chatmap_service.fetch_map_by_id,
 }
 
 
@@ -182,10 +194,42 @@ async def delete_plan(db: AsyncSession, owner_id: str, plan_id: str) -> bool:
 async def hydrate_one(
     row: PlanProject, hanko_cookie: str | None = None
 ) -> HydratedProjectItem:
+    if row.app == "chatmap":
+        try:
+            upstream = await chatmap_service.fetch_map_by_id(
+                row.project_id,
+                base_url="https://chatmap.hotosm.org/api/v1",
+                hanko_cookie=hanko_cookie,
+            )
+        except Exception:
+            return HydratedProjectItem(
+                app=row.app,
+                project_id=row.project_id,
+                data=row.data,
+                upstream=None,
+                error="upstream_unavailable",
+            )
+        if upstream is None:
+            return HydratedProjectItem(
+                app=row.app,
+                project_id=row.project_id,
+                data=row.data,
+                upstream=None,
+                error="not_found",
+            )
+        return HydratedProjectItem(
+            app=row.app,
+            project_id=row.project_id,
+            data=row.data,
+            upstream=upstream,
+            error=None,
+        )
+
     if row.app == "umap":
         try:
-            upstream = await umap_service.fetch_map_metadata_by_id(
-                row.project_id, hanko_cookie=hanko_cookie
+            upstream = await umap_service.fetch_map_by_id(
+                row.project_id,
+                base_url="https://umap.hotosm.org",
             )
         except Exception:
             return HydratedProjectItem(
@@ -372,3 +416,50 @@ def attach_plan_tags(
             continue
         item["plans"] = [t.model_dump() for t in tags.get(str(raw_id), [])]
     return items
+
+
+# Canonical production base URLs used only when resolving a user-pasted URL.
+# Plan hydration goes through APP_FETCHERS or explicit special cases, which respect env config.
+_CANONICAL_RESOLVE: dict[str, tuple] = {
+    "drone-tasking-manager": (drone_tm_service.fetch_project_by_id, "https://api.drone.hotosm.org"),
+    "fair": (fair_service.fetch_model_by_id, "https://api-prod.fair.hotosm.org/api/v1"),
+    "export-tool": (export_tool_service.fetch_job_by_uid, "https://export.hotosm.org/api"),
+    "open-aerial-map": (open_aerial_map_service.fetch_imagery_by_id, "https://api.openaerialmap.org"),
+    "umap": (umap_service.fetch_map_by_id, "https://umap.hotosm.org"),
+}
+
+
+async def resolve_project_url(
+    url: str, hanko_cookie: str | None = None
+) -> UrlResolveResponse:
+    """Parse a project URL, verify it exists upstream, and return app/project_id/upstream.
+
+    Raises:
+        InvalidUrlError: URL does not match any supported app pattern.
+        ProjectNotFoundError: URL parses successfully but project does not exist upstream.
+        UpstreamUnavailable: Upstream service is unreachable or returned an error.
+    """
+    parsed = url_resolver.parse_project_url(url)
+    if parsed is None:
+        raise InvalidUrlError(url)
+
+    app, project_id = parsed
+
+    try:
+        if app == "chatmap":
+            upstream = await chatmap_service.fetch_map_by_id(
+                project_id,
+                base_url="https://chatmap.hotosm.org/api/v1",
+                hanko_cookie=hanko_cookie,
+            )
+        elif app in _CANONICAL_RESOLVE:
+            fetcher, canonical_base = _CANONICAL_RESOLVE[app]
+            upstream = await fetcher(project_id, base_url=canonical_base)
+        else:
+            upstream = await APP_FETCHERS[app](project_id)
+    except Exception as e:
+        raise UpstreamUnavailable(app) from e
+
+    if upstream is None:
+        raise ProjectNotFoundError(f"{app}:{project_id}")
+    return UrlResolveResponse(app=app, project_id=project_id, upstream=upstream)

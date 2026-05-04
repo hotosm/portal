@@ -21,6 +21,7 @@ export interface ProjectSource {
 }
 
 export const APP_LABELS: Record<AppName, string> = {
+  chatmap: "ChatMap",
   "drone-tasking-manager": "Drone TM",
   "export-tool": "Export Tool",
   fair: "fAIr",

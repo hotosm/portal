@@ -3,7 +3,8 @@ import Button from '../../components/shared/Button'
 import Checkbox from '../../components/shared/Checkbox'
 import Dialog from '../../components/shared/Dialog'
 import { APP_LABELS } from '../hooks'
-import type { ProjectSource } from '../hooks'
+import type { ProjectOption, ProjectSource } from '../hooks'
+import { useResolveProjectUrl } from '../hooks/usePlans'
 import type { AppName } from '../types'
 
 function projectKey(app: AppName, project_id: string) {
@@ -22,26 +23,35 @@ function CheckboxSkeleton() {
 interface ProjectPickerDialogProps {
   open: boolean
   selected: Set<string>
+  extraProjects: ProjectOption[]
   sources: ProjectSource[]
-  onConfirm: (selected: Set<string>) => void
+  onConfirm: (selected: Set<string>, extraProjects: ProjectOption[]) => void
   onClose: () => void
 }
 
 function ProjectPickerDialog({
   open,
   selected,
+  extraProjects,
   sources,
   onConfirm,
   onClose,
 }: ProjectPickerDialogProps) {
   const [localSelected, setLocalSelected] = useState<Set<string>>(new Set())
+  const [localExtraProjects, setLocalExtraProjects] = useState<ProjectOption[]>([])
   const [activeApp, setActiveApp] = useState<AppName | 'all'>('all')
+  const [urlInput, setUrlInput] = useState('')
+  const [urlError, setUrlError] = useState<string | null>(null)
+  const resolveUrl = useResolveProjectUrl()
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: only sync on open-transition, not on every selected change
   useEffect(() => {
     if (open) {
       setLocalSelected(new Set(selected))
+      setLocalExtraProjects(extraProjects)
       setActiveApp('all')
+      setUrlInput('')
+      setUrlError(null)
     }
   }, [open])
 
@@ -51,6 +61,42 @@ function ProjectPickerDialog({
       next.has(key) ? next.delete(key) : next.add(key)
       return next
     })
+  }
+
+  async function handleAddUrl() {
+    const trimmed = urlInput.trim()
+    if (!trimmed) return
+    setUrlError(null)
+    try {
+      const result = await resolveUrl.mutateAsync(trimmed)
+      const key = projectKey(result.app, result.project_id)
+      if (localSelected.has(key)) {
+        setUrlError('This project is already in your selection.')
+        return
+      }
+      const upstream = result.upstream ?? {}
+      const title =
+        (upstream.name as string | undefined) ??
+        (upstream.title as string | undefined) ??
+        result.project_id
+      setLocalExtraProjects((prev) => [
+        ...prev,
+        { app: result.app, project_id: result.project_id, title },
+      ])
+      setLocalSelected((prev) => new Set(prev).add(key))
+      setUrlInput('')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Unknown error'
+      if (msg.includes('project_not_found')) {
+        setUrlError('Project not found. Check the URL.')
+      } else if (msg.includes('upstream_unavailable')) {
+        setUrlError('Could not reach the service. Try again later.')
+      } else {
+        setUrlError(
+          'URL not recognized. Supported: Tasking Manager, Drone TM, Field TM, fAIr, OAM, Export Tool, uMap.',
+        )
+      }
+    }
   }
 
   const visibleSources = activeApp === 'all' ? sources : sources.filter((s) => s.app === activeApp)
@@ -154,6 +200,39 @@ function ProjectPickerDialog({
         )}
       </div>
 
+      <div className="border-t border-hot-gray-200 pt-md mt-md flex flex-col gap-xs">
+        <p className="text-xs font-semibold text-hot-gray-500 uppercase tracking-wide">
+          Add by URL
+        </p>
+        <div className="flex gap-xs">
+          <input
+            type="url"
+            value={urlInput}
+            onChange={(e) => {
+              setUrlInput(e.target.value)
+              setUrlError(null)
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                handleAddUrl()
+              }
+            }}
+            placeholder="https://tasks.hotosm.org/projects/123"
+            className="flex-1 border border-hot-gray-300 rounded-lg px-sm py-xs text-sm outline-none focus:border-hot-red-500"
+          />
+          <Button
+            type="button"
+            size="small"
+            disabled={!urlInput.trim() || resolveUrl.isPending}
+            onClick={handleAddUrl}
+          >
+            {resolveUrl.isPending ? 'Checking…' : 'Add'}
+          </Button>
+        </div>
+        {urlError && <p className="text-xs text-hot-red-600">{urlError}</p>}
+      </div>
+
       <div slot="footer" className="flex gap-sm justify-end">
         <button
           type="button"
@@ -165,7 +244,7 @@ function ProjectPickerDialog({
         <Button
           type="button"
           onClick={() => {
-            onConfirm(localSelected)
+            onConfirm(localSelected, localExtraProjects)
             onClose()
           }}
         >

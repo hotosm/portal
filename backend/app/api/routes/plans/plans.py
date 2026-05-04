@@ -10,9 +10,12 @@ from app.models.plan import (
     PlanRead,
     PlanReadHydrated,
     PlanUpdate,
+    UrlResolveRequest,
+    UrlResolveResponse,
 )
 from app.services import plans_service
-from app.services.plans_service import DuplicateProjectError
+from app.services.exceptions import UpstreamUnavailable
+from app.services.plans_service import DuplicateProjectError, InvalidUrlError, ProjectNotFoundError
 
 router = APIRouter(prefix="/plans", tags=["plans"])
 
@@ -37,6 +40,29 @@ async def create_plan(
         return await plans_service.create_plan(db, user.id, payload)
     except DuplicateProjectError as e:
         raise HTTPException(status_code=422, detail=str(e))
+
+
+@router.post("/resolve-url", response_model=UrlResolveResponse)
+async def resolve_project_url(
+    payload: UrlResolveRequest,
+    request: Request,
+    user: CurrentUser,
+) -> UrlResolveResponse:
+    """Parse a project URL and confirm the project exists upstream.
+
+    Returns app, project_id, and raw upstream data on success.
+    422 if the URL format is not recognized, 404 if project not found,
+    502 if the upstream service is unreachable.
+    """
+    hanko_cookie = request.cookies.get("hanko")
+    try:
+        return await plans_service.resolve_project_url(payload.url, hanko_cookie=hanko_cookie)
+    except InvalidUrlError:
+        raise HTTPException(status_code=422, detail="URL does not match any supported app")
+    except ProjectNotFoundError:
+        raise HTTPException(status_code=404, detail="project_not_found")
+    except UpstreamUnavailable:
+        raise HTTPException(status_code=502, detail="upstream_unavailable")
 
 
 @router.get("/shared/{plan_id}", response_model=PlanReadHydrated)
