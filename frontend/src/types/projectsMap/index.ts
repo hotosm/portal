@@ -161,6 +161,11 @@ export interface ExportJobUser {
   username: string;
 }
 
+export interface ExportJobGeometry {
+  type: string;
+  coordinates: unknown;
+}
+
 export interface ExportJob {
   id: number;
   uid: string;
@@ -173,6 +178,7 @@ export interface ExportJob {
   created_at: string;
   area: number | null;
   pinned: boolean | null;
+  simplified_geom: ExportJobGeometry | null;
 }
 
 export interface ExportJobsResponse {
