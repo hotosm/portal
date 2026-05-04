@@ -109,11 +109,12 @@ function ProjectPickerDialog({
             </button>
           </p>
         ) : (
-          visibleSources.map((source) => {
+          sources.map((source) => {
             if (!source.isLoading && !source.isError && source.projects.length === 0) return null
+            const hidden = activeApp !== 'all' && source.app !== activeApp
 
             return (
-              <div key={source.app}>
+              <div key={source.app} className={hidden ? 'hidden' : undefined}>
                 <p className="text-xs font-semibold text-hot-gray-500 uppercase tracking-wide mb-xs">
                   {source.label}
                   {source.isLoading && (

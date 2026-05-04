@@ -121,6 +121,7 @@ export interface FAIRModel {
   user: FAIRUser | null;
   accuracy: number | null;
   thumbnail_url: string | null;
+  centroid: [number, number] | null;
   name: string | null;
   created_at: string | null;
   last_modified: string | null;
@@ -160,6 +161,11 @@ export interface ExportJobUser {
   username: string;
 }
 
+export interface ExportJobGeometry {
+  type: string;
+  coordinates: unknown;
+}
+
 export interface ExportJob {
   id: number;
   uid: string;
@@ -172,6 +178,7 @@ export interface ExportJob {
   created_at: string;
   area: number | null;
   pinned: boolean | null;
+  simplified_geom: ExportJobGeometry | null;
 }
 
 export interface ExportJobsResponse {

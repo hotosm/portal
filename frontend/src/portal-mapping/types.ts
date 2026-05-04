@@ -11,6 +11,7 @@ export interface IFairProject {
   status: "draft" | "published";
   image: string;
   accuracy: number | null;
+  centroid: [number, number] | null;
 }
 
 // fAIr status: 0 = published, 1 = draft
@@ -26,6 +27,7 @@ export function mapModelsToDataProjects(models: FAIRModel[]): IFairProject[] {
     status: mapFairStatus(model.status),
     image: model.thumbnail_url || placeholderImage,
     accuracy: model.accuracy !== null ? Math.round(model.accuracy) : null,
+    centroid: model.centroid ?? null,
   }));
 }
 
