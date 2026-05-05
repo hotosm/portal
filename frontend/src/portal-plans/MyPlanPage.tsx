@@ -8,6 +8,7 @@ import PlanMenu from "./components/PlanMenu";
 import PlanShareButton from "./components/PlanShareButton";
 import Tag from "../components/shared/Tag";
 import { useAuth } from "../contexts/AuthContext";
+import { useLanguage } from "../contexts/LanguageContext";
 import { usePlan, useSharedPlan } from "./hooks";
 import { m } from "../paraglide/messages";
 import type { AppName } from "./types";
@@ -19,6 +20,7 @@ const CARD_CLASS =
 function MyPlanPage() {
   const { planId } = useParams<{ planId: string }>();
   const { isLogin, isAuthLoading } = useAuth();
+  const { currentLanguage } = useLanguage();
 
   const {
     data: ownPlan,
@@ -106,6 +108,10 @@ function MyPlanPage() {
   return (
     <>
       <PlanSectionHeader
+        breadcrumbs={[
+          { label: m.plan_header(), href: `/${currentLanguage}/plan` },
+          { label: plan.name },
+        ]}
         menu={
           isOwner ? (
             <PlanMenu plan={plan} />

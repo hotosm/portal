@@ -26,6 +26,11 @@ function EditPlanPage() {
   return (
     <>
       <PlanSectionHeader
+        breadcrumbs={[
+          { label: m.plan_header(), href: `/${currentLanguage}/plan` },
+          { label: plan?.name ?? "…", href: detailPath },
+          { label: m.plan_menu_edit() },
+        ]}
         buttonText={m.plan_cancel()}
         onButtonClick={() => navigate(detailPath)}
       >
