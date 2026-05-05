@@ -2,11 +2,11 @@ import { useNavigate } from "react-router-dom";
 import CardAddNew from "../components/shared/CardAddNew";
 import CardSkeleton from "../components/shared/CardSkeleton";
 import PageWrapper from "../components/shared/PageWrapper";
-import SectionHeader from "../components/shared/SectionHeader";
 import SubSectionHeader from "../components/shared/SubSectionHeader";
 import { useLanguage } from "../contexts/LanguageContext";
 import { m } from "../paraglide/messages";
 import PlanCard from "./components/PlanCard";
+import PlanSectionHeader from "./components/PlanSectionHeader";
 import { useMyPlans } from "./hooks";
 
 const CARD_CLASS =
@@ -19,9 +19,9 @@ function PlanPage() {
 
   return (
     <>
-      <SectionHeader>
+      <PlanSectionHeader>
         <strong>{m.plan_header()}</strong>
-      </SectionHeader>
+      </PlanSectionHeader>
       <SubSectionHeader
         title={`<strong>${m.plan_page_create_title()}</strong> ${m.plan_page_create_description()}`}
         toolName="HOT Tech Suite"
@@ -46,7 +46,9 @@ function PlanPage() {
                     description={m.plan_page_create_description()}
                     buttonLabel={m.plan_page_new_button()}
                     icon="add"
-                    onButtonClick={() => navigate(`/${currentLanguage}/plan/new`)}
+                    onButtonClick={() =>
+                      navigate(`/${currentLanguage}/plan/new`)
+                    }
                   />
                 </div>
                 {plans.map((plan) => (

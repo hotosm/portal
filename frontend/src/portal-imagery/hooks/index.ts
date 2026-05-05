@@ -1,10 +1,6 @@
 // Drone TM hooks
-export {
-  useDroneProjects,
-  useDroneProjectsRaw,
-  droneProjectsQueryKeys,
-} from "./useDroneProjects";
-export type { DroneProject, DroneApiResponse } from "./useDroneProjects";
+export { useDroneProjects } from "./useDroneProjects";
+export type { DroneProject } from "./useDroneProjects";
 
 // OAM hooks
 export {
