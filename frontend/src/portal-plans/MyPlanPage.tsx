@@ -6,6 +6,7 @@ import SectionHeader from "../components/shared/SectionHeader";
 import SubSectionHeader from "../components/shared/SubSectionHeader";
 import PlanProjectCard from "./components/PlanProjectCard";
 import PlanMenu from "./components/PlanMenu";
+import PlanShareButton from "./components/PlanShareButton";
 import Tag from "../components/shared/Tag";
 import { useAuth } from "../contexts/AuthContext";
 import { usePlan, useSharedPlan } from "./hooks";
@@ -29,11 +30,13 @@ function MyPlanPage() {
     data: publicPlan,
     isLoading: publicLoading,
     isError: publicError,
-  } = useSharedPlan(!isLogin ? (planId ?? "") : "");
+  } = useSharedPlan(planId ?? "");
 
-  const plan = isLogin ? ownPlan : publicPlan;
-  const isLoading = isAuthLoading || (isLogin ? ownLoading : publicLoading);
-  const isError = isLogin ? ownError : publicError;
+  const isOwner = isLogin && ownPlan != null;
+  const plan = ownPlan ?? publicPlan;
+  const isLoading =
+    isAuthLoading || ownLoading || (ownPlan === null && publicLoading);
+  const isError = isOwner ? ownError : publicError;
 
   const PLAN_SECTIONS: { title: string; toolName: string; apps: AppName[] }[] =
     [
@@ -102,12 +105,20 @@ function MyPlanPage() {
 
   return (
     <>
-      <SectionHeader menu={isLogin ? <PlanMenu plan={plan} /> : undefined}>
+      <SectionHeader
+        menu={
+          isOwner ? (
+            <PlanMenu plan={plan} />
+          ) : plan.is_public ? (
+            <PlanShareButton plan={plan} />
+          ) : undefined
+        }
+      >
         {m.plan_header()} <strong>{plan.name}</strong>
       </SectionHeader>
 
       <PageWrapper>
-        {plan.is_public && isLogin && (
+        {plan.is_public && isOwner && (
           <Tag variant="neutral" appearance="filled" size="large">
             {m.plan_public_tag()}
           </Tag>
