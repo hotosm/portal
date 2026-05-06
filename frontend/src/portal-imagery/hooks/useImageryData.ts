@@ -2,7 +2,7 @@ import { useDroneProjects } from "./useDroneProjects";
 import { useOAMImagery } from "./useOAMImagery";
 
 // Re-export individual hooks for convenience
-export { useDroneProjects, useDroneProjectsRaw } from "./useDroneProjects";
+export { useDroneProjects } from "./useDroneProjects";
 export { useOAMImagery, useOAMImageryRaw } from "./useOAMImagery";
 
 // Re-export types

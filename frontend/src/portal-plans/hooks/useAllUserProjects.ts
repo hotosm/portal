@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useExportJobs } from "../../portal-data/hooks/useExportToolData";
 import { useMyMaps } from "../../portal-data/hooks/useUMapData";
-import { useDroneProjectsRaw } from "../../portal-imagery/hooks/useDroneProjects";
+import { useDroneProjects } from "../../portal-imagery/hooks/useDroneProjects";
 import { useMyModels } from "../../portal-mapping/hooks/useFairData";
 import type { AppName } from "../types";
 
@@ -32,7 +32,7 @@ export const APP_LABELS: Record<AppName, string> = {
 };
 
 export function useAllUserProjects() {
-  const drone = useDroneProjectsRaw();
+  const drone = useDroneProjects();
   const fair = useMyModels(1, 50);
   const umap = useMyMaps(1, 50);
   const exportJobs = useExportJobs();
@@ -45,7 +45,7 @@ export function useAllUserProjects() {
         projects: (drone.data ?? []).map((p) => ({
           app: "drone-tasking-manager" as AppName,
           project_id: p.id,
-          title: p.name,
+          title: p.title,
         })),
         isLoading: drone.isLoading,
         isError: drone.isError,
