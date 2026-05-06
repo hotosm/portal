@@ -1,10 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import PageWrapper from "../components/shared/PageWrapper";
-import SectionHeader from "../components/shared/SectionHeader";
 import { useLanguage } from "../contexts/LanguageContext";
 import { m } from "../paraglide/messages";
 import PlanForm from "./components/PlanForm";
 import { useCreatePlan } from "./hooks";
+import PlanSectionHeader from "./components/PlanSectionHeader";
 
 function AddPlanPage() {
   const navigate = useNavigate();
@@ -14,9 +14,12 @@ function AddPlanPage() {
 
   return (
     <>
-      <SectionHeader buttonText={m.plan_cancel()} onButtonClick={() => navigate(planListPath)}>
+      <PlanSectionHeader
+        buttonText={m.plan_cancel()}
+        onButtonClick={() => navigate(planListPath)}
+      >
         <strong>{m.plan_add_header()}</strong>
-      </SectionHeader>
+      </PlanSectionHeader>
       <PageWrapper>
         <PlanForm
           submitLabel={m.plan_add_submit()}

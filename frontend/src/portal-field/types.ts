@@ -2,9 +2,10 @@ export interface ChatMapProject {
   id: string;
   title: string;
   href: string;
-  status: "draft" | "published";
+  status: "private" | "published";
   image: string;
   count: number;
+  centroid: [number, number] | null;
 }
 
 export interface FieldTMProject {

@@ -113,6 +113,8 @@
   "plan_list_error": "Something went wrong while loading your plans.",
   "plan_private": "This plan is private.",
   "plan_public_tag": "Public",
+  "plan_private_tag": "Private",
+  "plan_published_tag": "Published",
   "plan_page_create_title": "Create",
   "plan_page_create_description": "a mapping plan",
   "plan_page_new_button": "New Plan",
