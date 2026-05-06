@@ -2,16 +2,18 @@ import { useParams } from "react-router-dom";
 import CardSkeleton from "../components/shared/CardSkeleton";
 import { RichTextContent } from "../components/shared/RichTextEditor";
 import PageWrapper from "../components/shared/PageWrapper";
-import SectionHeader from "../components/shared/SectionHeader";
 import SubSectionHeader from "../components/shared/SubSectionHeader";
 import PlanProjectCard from "./components/PlanProjectCard";
 import ImageCarousel from "./components/ImageCarousel";
 import PlanMenu from "./components/PlanMenu";
+import PlanShareButton from "./components/PlanShareButton";
 import Tag from "../components/shared/Tag";
 import { useAuth } from "../contexts/AuthContext";
+import { useLanguage } from "../contexts/LanguageContext";
 import { usePlan, useSharedPlan } from "./hooks";
 import { m } from "../paraglide/messages";
 import type { AppName } from "./types";
+import PlanSectionHeader from "./components/PlanSectionHeader";
 
 const CARD_CLASS =
   "w-full md:w-[calc(33.333%_-_var(--hot-spacing-large)*0.667)] lg:w-[calc(25%_-_var(--hot-spacing-large)*0.75)] shrink-0";
@@ -19,6 +21,7 @@ const CARD_CLASS =
 function MyPlanPage() {
   const { planId } = useParams<{ planId: string }>();
   const { isLogin, isAuthLoading } = useAuth();
+  const { currentLanguage } = useLanguage();
 
   const {
     data: ownPlan,
@@ -30,11 +33,13 @@ function MyPlanPage() {
     data: publicPlan,
     isLoading: publicLoading,
     isError: publicError,
-  } = useSharedPlan(!isLogin ? (planId ?? "") : "");
+  } = useSharedPlan(planId ?? "");
 
-  const plan = isLogin ? ownPlan : publicPlan;
-  const isLoading = isAuthLoading || (isLogin ? ownLoading : publicLoading);
-  const isError = isLogin ? ownError : publicError;
+  const isOwner = isLogin && ownPlan != null;
+  const plan = ownPlan ?? publicPlan;
+  const isLoading =
+    isAuthLoading || ownLoading || (ownPlan === null && publicLoading);
+  const isError = isOwner ? ownError : publicError;
 
   const PLAN_SECTIONS: { title: string; toolName: string; apps: AppName[] }[] =
     [
@@ -63,9 +68,9 @@ function MyPlanPage() {
   if (isLoading) {
     return (
       <>
-        <SectionHeader>
+        <PlanSectionHeader>
           <strong>{m.plan_header()}</strong>
-        </SectionHeader>
+        </PlanSectionHeader>
         <PageWrapper>
           <div className="flex flex-wrap gap-lg py-lg">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -103,12 +108,24 @@ function MyPlanPage() {
 
   return (
     <>
-      <SectionHeader menu={isLogin ? <PlanMenu plan={plan} /> : undefined}>
+      <PlanSectionHeader
+        breadcrumbs={[
+          { label: m.plan_header(), href: `/${currentLanguage}/plan` },
+          { label: plan.name },
+        ]}
+        menu={
+          isOwner ? (
+            <PlanMenu plan={plan} />
+          ) : plan.is_public ? (
+            <PlanShareButton plan={plan} />
+          ) : undefined
+        }
+      >
         {m.plan_header()} <strong>{plan.name}</strong>
-      </SectionHeader>
+      </PlanSectionHeader>
 
       <PageWrapper>
-        {plan.is_public && isLogin && (
+        {plan.is_public && isOwner && (
           <Tag variant="neutral" appearance="filled" size="large">
             {m.plan_public_tag()}
           </Tag>

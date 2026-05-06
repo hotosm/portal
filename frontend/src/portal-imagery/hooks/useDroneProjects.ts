@@ -11,16 +11,6 @@ export const droneProjectsQueryKeys = {
   user: () => [...droneProjectsQueryKeys.all] as const,
 };
 
-/**
- * Hook to fetch user's Drone TM projects with caching
- *
- * Features:
- * - Automatic caching with React Query
- * - 5 minute stale time (won't refetch if data is fresh)
- * - 30 minute cache time (keeps data in memory)
- * - Automatic background refetch on window focus
- * - Pagination handled internally
- */
 export function useDroneProjects() {
   const { isLogin } = useAuth();
   return useQuery({
@@ -33,7 +23,7 @@ export function useDroneProjects() {
       while (hasNext) {
         const response = await fetch(
           `/api/drone-tasking-manager/projects/user?page=${page}`,
-          { credentials: "include" }
+          { credentials: "include" },
         );
 
         if (!response.ok) {
@@ -41,7 +31,9 @@ export function useDroneProjects() {
             return [];
           }
           const errorText = await response.text();
-          throw new Error(`[${response.status}] Failed to fetch drone projects: ${errorText}`);
+          throw new Error(
+            `[${response.status}] Failed to fetch drone projects: ${errorText}`,
+          );
         }
 
         const data: DroneApiResponse = await response.json();
@@ -63,48 +55,6 @@ export function useDroneProjects() {
     },
     staleTime: 5 * 60 * 1000, // 5 minutes - data considered fresh
     gcTime: 30 * 60 * 1000, // 30 minutes - keep in cache (formerly cacheTime)
-    refetchOnWindowFocus: true,
-    retry: 2,
-    enabled: isLogin,
-  });
-}
-
-/**
- * Get the raw Drone project data (without IImageryProject mapping)
- */
-export function useDroneProjectsRaw() {
-  const { isLogin } = useAuth();
-  return useQuery({
-    queryKey: [...droneProjectsQueryKeys.user(), "raw"],
-    queryFn: async (): Promise<DroneProject[]> => {
-      const allProjects: DroneProject[] = [];
-      let page = 1;
-      let hasNext = true;
-
-      while (hasNext) {
-        const response = await fetch(
-          `/api/drone-tasking-manager/projects/user?page=${page}`,
-          { credentials: "include" }
-        );
-
-        if (!response.ok) {
-          if (response.status === 401 || response.status === 403) {
-            return [];
-          }
-          const errorText = await response.text();
-          throw new Error(`[${response.status}] Failed to fetch drone projects: ${errorText}`);
-        }
-
-        const data: DroneApiResponse = await response.json();
-        allProjects.push(...data.results);
-        hasNext = data.pagination.has_next;
-        page++;
-      }
-
-      return allProjects;
-    },
-    staleTime: 5 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: true,
     retry: 2,
     enabled: isLogin,

@@ -1,6 +1,7 @@
 import { ExportJob } from "../types/projectsMap";
 import placeholderImage from "../assets/images/demo/demo1.png";
 import { getExportToolJobUrl } from "../utils/envConfig";
+import { geomCentroid } from "../utils/osmTiles";
 
 export interface IDataProject {
   id: number | string;
@@ -10,6 +11,7 @@ export interface IDataProject {
   section: "model" | "set" | "export";
   image: string;
   accuracy: number | null;
+  centroid?: [number, number] | null;
 }
 
 export interface IUMapProject {
@@ -30,5 +32,6 @@ export function mapExportJobsToDataProjects(jobs: ExportJob[]): IDataProject[] {
     section: "export" as const,
     image: placeholderImage,
     accuracy: null,
+    centroid: job.simplified_geom ? geomCentroid(job.simplified_geom) : null,
   }));
 }

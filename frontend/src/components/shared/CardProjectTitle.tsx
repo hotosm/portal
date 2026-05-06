@@ -7,11 +7,11 @@ export default function CardProjectTitle({
   title,
   href,
 }: CardProjectTitleProps) {
+  const isExternal = /^https?:\/\//.test(href);
   return (
     <a
       href={href}
-      target="_blank"
-      rel="noopener noreferrer"
+      {...(isExternal && { target: "_blank", rel: "noopener noreferrer" })}
       className="text-base font-bold hover:text-black hover:no-underline"
     >
       {title}
