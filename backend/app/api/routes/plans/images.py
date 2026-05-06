@@ -1,19 +1,22 @@
 """Plan image upload/delete endpoints."""
 
+import io
+
+from PIL import Image
 from sqlalchemy import select, update
 from fastapi import APIRouter, Depends, File, HTTPException, Path, Response, UploadFile, status
-from hotosm_auth_fastapi import CurrentUser
+from hotosm_auth_fastapi import CurrentUser, CurrentUserOptional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.db.models.plan import PlanImage
+from app.db.models.plan import Plan, PlanImage
 from app.models.plan import PlanImageRead
 from app.services import plans_service, s3_service
 
 router = APIRouter(tags=["plan-images"])
 
-_ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+_ALLOWED_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/svg+xml", "image/webp"}
 _MAX_SIZE = 10 * 1024 * 1024  # 10 MB
 
 
@@ -31,15 +34,23 @@ def _image_url(plan_id: str, image_id: str) -> str:
 async def get_plan_image_content(
     plan_id: str = Path(...),
     image_id: str = Path(...),
+    user: CurrentUserOptional = None,
     db: AsyncSession = Depends(get_db),
 ) -> Response:
     _require_s3()
     result = await db.execute(
-        select(PlanImage).where(PlanImage.id == image_id, PlanImage.plan_id == plan_id)
+        select(PlanImage, Plan.is_public, Plan.owner_id)
+        .join(Plan, Plan.id == PlanImage.plan_id)
+        .where(PlanImage.id == image_id, PlanImage.plan_id == plan_id)
     )
-    image = result.scalar_one_or_none()
-    if image is None:
+    row = result.one_or_none()
+    if row is None:
         raise HTTPException(status_code=404, detail="Image not found")
+
+    image, is_public, owner_id = row
+    if not is_public:
+        if user is None or user.id != owner_id:
+            raise HTTPException(status_code=403, detail="Forbidden")
 
     data, content_type = s3_service.get_plan_image(image.s3_key)
     return Response(content=data, media_type=content_type)
@@ -60,13 +71,20 @@ async def upload_plan_image(
     data = await file.read()
     if len(data) > _MAX_SIZE:
         raise HTTPException(status_code=413, detail="File too large (max 10 MB)")
-    await file.seek(0)
 
     plan = await plans_service.get_owned_plan(db, user.id, plan_id)
     if plan is None:
         raise HTTPException(status_code=404, detail="Plan not found")
 
-    s3_key = s3_service.upload_plan_image(file, plan_id)
+    if file.content_type == "image/svg+xml":
+        upload_data, upload_content_type, upload_ext = data, "image/svg+xml", ".svg"
+    else:
+        buf = io.BytesIO()
+        img = Image.open(io.BytesIO(data))
+        img.save(buf, format="WEBP", quality=85)
+        upload_data, upload_content_type, upload_ext = buf.getvalue(), "image/webp", ".webp"
+
+    s3_key = s3_service.upload_plan_image(upload_data, upload_content_type, plan_id, upload_ext)
 
     image = PlanImage(
         plan_id=plan_id,

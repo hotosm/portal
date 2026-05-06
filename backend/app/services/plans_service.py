@@ -3,6 +3,7 @@
 import asyncio
 import copy
 from collections import defaultdict
+from typing import get_args
 
 from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
@@ -33,6 +34,9 @@ from app.services import (
 from app.services.exceptions import UpstreamUnavailable
 
 
+_KNOWN_APPS = frozenset(get_args(AppLiteral))
+
+
 class DuplicateProjectError(ValueError):
     """Raised when a plan payload contains duplicate (app, project_id) entries."""
 
@@ -58,6 +62,7 @@ def plan_to_read(plan: Plan) -> PlanRead:
         projects=[
             PlanProjectItem(app=row.app, project_id=row.project_id, data=row.data)
             for row in plan.projects
+            if row.app in _KNOWN_APPS
         ],
         images=[
             PlanImageRead(

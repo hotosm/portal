@@ -1,10 +1,8 @@
 """S3/MinIO storage for plan images using synchronous boto3."""
 
 import uuid
-from pathlib import Path
 
 import boto3
-from fastapi import UploadFile
 
 from app.core.config import settings
 
@@ -22,16 +20,14 @@ def get_s3_client():
     return boto3.client("s3", **kwargs)
 
 
-def upload_plan_image(file: UploadFile, plan_id: str) -> str:
-    """Upload image to S3. Returns s3_key."""
-    ext = Path(file.filename or "image").suffix.lower() or ".bin"
+def upload_plan_image(data: bytes, content_type: str, plan_id: str, ext: str) -> str:
+    """Upload image bytes to S3. Returns s3_key."""
     s3_key = f"plans/{plan_id}/{uuid.uuid4()}{ext}"
-    data = file.file.read()
     get_s3_client().put_object(
         Bucket=settings.s3_bucket_name,
         Key=s3_key,
         Body=data,
-        ContentType=file.content_type or "application/octet-stream",
+        ContentType=content_type,
     )
     return s3_key
 
