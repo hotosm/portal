@@ -11,7 +11,7 @@ import ProjectPickerDialog from "./ProjectPickerDialog";
 export interface PlanFormValues {
   name: string;
   description: string;
-  selectedProjects: { app: AppName; project_id: string }[];
+  selectedProjects: { app: AppName; project_id: string; data?: Record<string, unknown> | null }[];
 }
 
 interface PlanFormProps {
@@ -57,10 +57,22 @@ function PlanForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const allProjects = [...projects, ...extraProjects]
-    const selectedProjects = allProjects
+    const matched = allProjects
       .filter((p) => selected.has(projectKey(p)))
-      .map(({ app, project_id }) => ({ app, project_id }));
-    await onSubmit({ name, description, selectedProjects });
+      .map(({ app, project_id, upstream }) => ({
+        app,
+        project_id,
+        ...(upstream ? { data: upstream } : {}),
+      }))
+    const matchedKeys = new Set(matched.map((p) => `${p.app}:${p.project_id}`))
+    // Preserve selected projects not present in allProjects (e.g. URL-added apps like ChatMap)
+    const orphans = [...selected]
+      .filter((k) => !matchedKeys.has(k))
+      .map((k) => {
+        const colonIdx = k.indexOf(':')
+        return { app: k.slice(0, colonIdx) as AppName, project_id: k.slice(colonIdx + 1) }
+      })
+    await onSubmit({ name, description, selectedProjects: [...matched, ...orphans] });
   };
 
   const allProjects = [...projects, ...extraProjects]

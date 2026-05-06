@@ -39,6 +39,7 @@ async def fetch_imagery_by_id(image_id: str, *, base_url: str | None = None) -> 
     filtered = {
         "title": result.get("title"),
         "thumbnail": (result.get("properties") or {}).get("thumbnail"),
+        "bbox": result.get("bbox"),
     }
     set_cached(cache_key, filtered, DEFAULT_TTL)
     return filtered

@@ -201,6 +201,14 @@ async def hydrate_one(
                 base_url="https://chatmap.hotosm.org/api/v1",
                 hanko_cookie=hanko_cookie,
             )
+            if upstream is None and hanko_cookie:
+                # Auth may have failed (e.g. local dev Hanko mismatch). Try without auth —
+                # ChatMap maps shared by link return metadata even without credentials.
+                upstream = await chatmap_service.fetch_map_by_id(
+                    row.project_id,
+                    base_url="https://chatmap.hotosm.org/api/v1",
+                    hanko_cookie=None,
+                )
         except Exception:
             return HydratedProjectItem(
                 app=row.app,
@@ -421,12 +429,17 @@ def attach_plan_tags(
 # Canonical production base URLs used only when resolving a user-pasted URL.
 # Plan hydration goes through APP_FETCHERS or explicit special cases, which respect env config.
 _CANONICAL_RESOLVE: dict[str, tuple] = {
+    "field-tm": (field_tm_service.fetch_project_by_id, "https://field.hotosm.org/api/v1"),
     "drone-tasking-manager": (drone_tm_service.fetch_project_by_id, "https://api.drone.hotosm.org"),
     "fair": (fair_service.fetch_model_by_id, "https://api-prod.fair.hotosm.org/api/v1"),
     "export-tool": (export_tool_service.fetch_job_by_uid, "https://export.hotosm.org/api"),
     "open-aerial-map": (open_aerial_map_service.fetch_imagery_by_id, "https://api.openaerialmap.org"),
     "umap": (umap_service.fetch_map_by_id, "https://umap.hotosm.org"),
 }
+
+# ChatMap plan projects always live on chatmap.hotosm.org, so URL resolution
+# always verifies against the production API (requires a valid production Hanko cookie).
+_CHATMAP_RESOLVE_API_URL = "https://chatmap.hotosm.org/api/v1"
 
 
 async def resolve_project_url(
@@ -449,9 +462,20 @@ async def resolve_project_url(
         if app == "chatmap":
             upstream = await chatmap_service.fetch_map_by_id(
                 project_id,
-                base_url="https://chatmap.hotosm.org/api/v1",
+                base_url=_CHATMAP_RESOLVE_API_URL,
                 hanko_cookie=hanko_cookie,
             )
+            if upstream is None and hanko_cookie:
+                # Auth may have failed (e.g. local dev Hanko mismatch). Try without auth —
+                # ChatMap maps shared by link return metadata even without credentials.
+                upstream = await chatmap_service.fetch_map_by_id(
+                    project_id,
+                    base_url=_CHATMAP_RESOLVE_API_URL,
+                    hanko_cookie=None,
+                )
+            # Accept the project reference even if upstream is still None — the project
+            # may be private and only accessible to the owner in production.
+            return UrlResolveResponse(app=app, project_id=project_id, upstream=upstream)
         elif app in _CANONICAL_RESOLVE:
             fetcher, canonical_base = _CANONICAL_RESOLVE[app]
             upstream = await fetcher(project_id, base_url=canonical_base)

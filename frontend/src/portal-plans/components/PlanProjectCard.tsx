@@ -1,9 +1,14 @@
+import { useState, useEffect } from "react";
 import placeholder from "../../assets/images/placeholder.png";
 import CardProjectTitle from "../../components/shared/CardProjectTitle";
 import { APP_META } from "../../utils/appMeta";
 import type { HydratedProjectItem, AppName } from "../types";
 
-function getProjectHref(app: AppName, projectId: string): string {
+function getProjectHref(
+  app: AppName,
+  projectId: string,
+  upstream: Record<string, unknown> | null,
+): string {
   switch (app) {
     case "tasking-manager":
       return `https://tasks.hotosm.org/projects/${projectId}`;
@@ -15,8 +20,15 @@ function getProjectHref(app: AppName, projectId: string): string {
       return `https://fair.hotosm.org/ai-models/${projectId}`;
     case "export-tool":
       return `https://export.hotosm.org/v3/exports/${projectId}`;
-    case "open-aerial-map":
-      return `https://map.openaerialmap.org/#/latest/${projectId}`;
+    case "open-aerial-map": {
+      const bbox = upstream?.bbox;
+      if (Array.isArray(bbox) && bbox.length === 4) {
+        const lng = ((bbox[0] as number) + (bbox[2] as number)) / 2;
+        const lat = ((bbox[1] as number) + (bbox[3] as number)) / 2;
+        return `https://map.openaerialmap.org/#/${lng},${lat},14/latest/${projectId}`;
+      }
+      return `https://map.openaerialmap.org`;
+    }
     case "umap":
       return `https://umap.hotosm.org/m/${projectId}/`;
     case "chatmap":
@@ -27,19 +39,25 @@ function getProjectHref(app: AppName, projectId: string): string {
 function getUpstreamTitle(
   upstream: Record<string, unknown> | null,
   projectId: string,
+  data: Record<string, unknown> | null,
 ): string {
-  if (!upstream) return projectId;
-  const t = upstream.name ?? upstream.title;
+  const src = upstream ?? data;
+  if (!src) return projectId;
+  const t = src.name ?? src.title ?? src.project_name;
   return typeof t === "string" && t ? t : projectId;
 }
 
-function getUpstreamImage(upstream: Record<string, unknown> | null): string {
-  if (!upstream) return placeholder;
+function getUpstreamImage(
+  upstream: Record<string, unknown> | null,
+  data: Record<string, unknown> | null,
+): string {
+  const src = upstream ?? data;
+  if (!src) return placeholder;
   const img =
-    upstream.image_url ??
-    upstream.thumbnail_url ??
-    upstream.thumbnail ??
-    upstream.image;
+    src.image_url ??
+    src.thumbnail_url ??
+    src.thumbnail ??
+    src.image;
   return typeof img === "string" && img ? img : placeholder;
 }
 
@@ -48,12 +66,28 @@ interface PlanProjectCardProps {
 }
 
 function PlanProjectCard({ project }: PlanProjectCardProps) {
+  const [chatmapName, setChatmapName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (project.app !== "chatmap" || project.upstream || project.data) return;
+    fetch(`https://chatmap.hotosm.org/api/v1/map/${project.project_id}`, {
+      credentials: "include",
+      headers: { accept: "application/json" },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: Record<string, unknown> | null) => {
+        if (typeof d?.name === "string" && d.name) setChatmapName(d.name);
+      })
+      .catch(() => {});
+  }, [project.app, project.project_id, project.upstream, project.data]);
+
   const meta = APP_META[project.app];
-  const title = getUpstreamTitle(project.upstream, project.project_id);
-  const image = getUpstreamImage(project.upstream);
+  const title = chatmapName ?? getUpstreamTitle(project.upstream, project.project_id, project.data);
+  const image = getUpstreamImage(project.upstream, project.data);
   const href = getProjectHref(
     project.app,
     project.project_id,
+    project.upstream,
   );
 
   return (

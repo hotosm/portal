@@ -9,6 +9,7 @@ export interface ProjectOption {
   app: AppName;
   project_id: string;
   title: string;
+  upstream?: Record<string, unknown> | null;
 }
 
 export interface ProjectSource {
