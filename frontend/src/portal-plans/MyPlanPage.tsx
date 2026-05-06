@@ -4,6 +4,7 @@ import { RichTextContent } from "../components/shared/RichTextEditor";
 import PageWrapper from "../components/shared/PageWrapper";
 import SubSectionHeader from "../components/shared/SubSectionHeader";
 import PlanProjectCard from "./components/PlanProjectCard";
+import ImageCarousel from "./components/ImageCarousel";
 import PlanMenu from "./components/PlanMenu";
 import PlanShareButton from "./components/PlanShareButton";
 import Tag from "../components/shared/Tag";
@@ -136,6 +137,14 @@ function MyPlanPage() {
           />
         )}
       </PageWrapper>
+
+      {plan.images.length > 0 && (
+        <PageWrapper>
+          <div className="py-md max-w-lg">
+            <ImageCarousel images={plan.images.map((img) => ({ id: img.id, url: img.url }))} />
+          </div>
+        </PageWrapper>
+      )}
 
       {PLAN_SECTIONS.map((section) => {
         const projects = plan.projects.filter((p) =>

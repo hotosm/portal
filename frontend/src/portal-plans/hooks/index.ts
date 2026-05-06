@@ -2,3 +2,4 @@ export { useMyPlans, usePlan, useSharedPlan, useCreatePlan, useUpdatePlan, useDe
 export { usePlanMenu } from './usePlanMenu'
 export { useAllUserProjects, APP_LABELS } from './useAllUserProjects'
 export type { ProjectOption, ProjectSource } from './useAllUserProjects'
+export { useUploadPlanImage, useDeletePlanImage } from './usePlanImages'

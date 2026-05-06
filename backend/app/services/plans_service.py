@@ -9,11 +9,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.db.models.plan import Plan, PlanProject
+from app.db.models.plan import Plan, PlanImage, PlanProject
 from app.models.plan import (
     AppLiteral,
     HydratedProjectItem,
     PlanCreate,
+    PlanImageRead,
     PlanProjectItem,
     PlanRead,
     PlanReadHydrated,
@@ -58,6 +59,15 @@ def plan_to_read(plan: Plan) -> PlanRead:
             PlanProjectItem(app=row.app, project_id=row.project_id, data=row.data)
             for row in plan.projects
         ],
+        images=[
+            PlanImageRead(
+                id=img.id,
+                url=img.url,
+                display_order=img.display_order,
+                created_at=img.created_at,
+            )
+            for img in plan.images
+        ],
     )
 
 
@@ -76,7 +86,7 @@ async def list_plans(db: AsyncSession, owner_id: str) -> list[PlanRead]:
     stmt = (
         select(Plan)
         .where(Plan.owner_id == owner_id)
-        .options(selectinload(Plan.projects))
+        .options(selectinload(Plan.projects), selectinload(Plan.images))
         .order_by(Plan.created_at.desc())
     )
     result = await db.execute(stmt)
@@ -90,7 +100,7 @@ async def get_owned_plan(
     stmt = (
         select(Plan)
         .where(Plan.id == plan_id, Plan.owner_id == owner_id)
-        .options(selectinload(Plan.projects))
+        .options(selectinload(Plan.projects), selectinload(Plan.images))
     )
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
@@ -126,7 +136,7 @@ async def create_plan(
         await db.rollback()
         raise DuplicateProjectError(str(e)) from e
 
-    await db.refresh(plan, attribute_names=["projects"])
+    await db.refresh(plan, attribute_names=["projects", "images"])
     return plan_to_read(plan)
 
 
@@ -166,7 +176,7 @@ async def update_plan(
         await db.rollback()
         raise DuplicateProjectError(str(e)) from e
 
-    await db.refresh(plan, attribute_names=["projects"])
+    await db.refresh(plan, attribute_names=["projects", "images"])
     return plan_to_read(plan)
 
 
@@ -266,6 +276,15 @@ async def get_plan_hydrated(
         created_at=plan.created_at,
         updated_at=plan.updated_at,
         projects=list(hydrated_items),
+        images=[
+            PlanImageRead(
+                id=img.id,
+                url=img.url,
+                display_order=img.display_order,
+                created_at=img.created_at,
+            )
+            for img in plan.images
+        ],
     )
 
 
@@ -276,7 +295,7 @@ async def get_public_plan_hydrated(
     stmt = (
         select(Plan)
         .where(Plan.id == plan_id, Plan.is_public.is_(True))
-        .options(selectinload(Plan.projects))
+        .options(selectinload(Plan.projects), selectinload(Plan.images))
     )
     result = await db.execute(stmt)
     plan = result.scalar_one_or_none()
@@ -295,6 +314,15 @@ async def get_public_plan_hydrated(
         created_at=plan.created_at,
         updated_at=plan.updated_at,
         projects=list(hydrated_items),
+        images=[
+            PlanImageRead(
+                id=img.id,
+                url=img.url,
+                display_order=img.display_order,
+                created_at=img.created_at,
+            )
+            for img in plan.images
+        ],
     )
 
 
