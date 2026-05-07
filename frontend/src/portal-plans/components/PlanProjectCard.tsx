@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import placeholder from "../../assets/images/placeholder.png";
 import CardProjectTitle from "../../components/shared/CardProjectTitle";
 import { APP_META } from "../../utils/appMeta";
+import { osmTileUrl } from "../../utils/osmTiles";
 import type { HydratedProjectItem, AppName } from "../types";
 
 function getProjectHref(
@@ -48,11 +49,22 @@ function getUpstreamTitle(
 }
 
 function getUpstreamImage(
+  app: AppName,
   upstream: Record<string, unknown> | null,
   data: Record<string, unknown> | null,
 ): string {
   const src = upstream ?? data;
   if (!src) return placeholder;
+
+  if (app === "tasking-manager") {
+    const bbox = src.aoiBBOX as [number, number, number, number] | null | undefined;
+    if (Array.isArray(bbox) && bbox.length === 4) {
+      const lat = (bbox[1] + bbox[3]) / 2;
+      const lon = (bbox[0] + bbox[2]) / 2;
+      return osmTileUrl(lat, lon, 10);
+    }
+  }
+
   const img =
     src.image_url ??
     src.thumbnail_url ??
@@ -83,7 +95,7 @@ function PlanProjectCard({ project }: PlanProjectCardProps) {
 
   const meta = APP_META[project.app];
   const title = chatmapName ?? getUpstreamTitle(project.upstream, project.project_id, project.data);
-  const image = getUpstreamImage(project.upstream, project.data);
+  const image = getUpstreamImage(project.app, project.upstream, project.data);
   const href = getProjectHref(
     project.app,
     project.project_id,
