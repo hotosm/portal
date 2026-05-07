@@ -5,19 +5,23 @@ import Tag from "../../components/shared/Tag";
 import { m } from "../../paraglide/messages";
 import { APP_LABELS, useAllUserProjects } from "../hooks";
 import type { ProjectOption } from "../hooks";
-import type { AppName } from "../types";
+import type { AppName, PlanImageRead } from "../types";
 import ProjectPickerDialog from "./ProjectPickerDialog";
+import { usePlanImageUpload } from "../hooks/usePlanImageUpload";
 
 export interface PlanFormValues {
   name: string;
   description: string;
   selectedProjects: { app: AppName; project_id: string }[];
+  pendingImages: File[];
 }
 
 interface PlanFormProps {
   initialName?: string;
   initialDescription?: string;
   initialProjectKeys?: Set<string>;
+  initialImages?: PlanImageRead[];
+  planId?: string;
   submitLabel: string;
   isPending: boolean;
   onSubmit: (values: PlanFormValues) => Promise<void>;
@@ -32,6 +36,8 @@ function PlanForm({
   initialName = "",
   initialDescription = "",
   initialProjectKeys = new Set(),
+  initialImages = [],
+  planId,
   submitLabel,
   isPending,
   onSubmit,
@@ -42,6 +48,15 @@ function PlanForm({
   const [selected, setSelected] = useState<Set<string>>(initialProjectKeys);
   const [dialogOpen, setDialogOpen] = useState(false);
   const { sources, projects, isLoading } = useAllUserProjects();
+  const {
+    displayImages,
+    pendingImages,
+    fileInputRef,
+    isUploading,
+    isDeleting,
+    handleFileChange,
+    handleRemoveImage,
+  } = usePlanImageUpload({ planId, initialImages });
 
   function toggleProject(project: ProjectOption, checked: boolean) {
     setSelected((prev) => {
@@ -58,11 +73,12 @@ function PlanForm({
     const selectedProjects = projects
       .filter((p) => selected.has(projectKey(p)))
       .map(({ app, project_id }) => ({ app, project_id }));
-    await onSubmit({ name, description, selectedProjects });
+    await onSubmit({ name, description, selectedProjects, pendingImages });
   };
 
   const selectedTags = projects.filter((p) => selected.has(projectKey(p)));
   const loadingCount = selected.size - selectedTags.length;
+  const busy = isPending || isUploading || isDeleting;
 
   return (
     <form
@@ -100,6 +116,56 @@ function PlanForm({
           onChange={setDescription}
           placeholder={m.plan_form_description_placeholder()}
         />
+      </div>
+
+      <div className="flex flex-col gap-sm">
+        <p className="text-sm font-medium text-hot-gray-700">Images</p>
+        {displayImages.length > 0 && (
+          <div className="flex flex-wrap gap-sm">
+            {displayImages.map((img) => (
+              <div key={img.id} className="relative w-24 h-24 rounded-lg overflow-hidden group">
+                <img
+                  src={img.url}
+                  alt={`Image ${img.id}`}
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleRemoveImage(img.id)}
+                  className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs"
+                  aria-label="Remove image"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div>
+          <input
+            ref={fileInputRef}
+            id="plan-images"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            multiple
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          <Button
+            type="button"
+            appearance="outlined"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+          >
+            {isUploading ? "Uploading…" : "Add images"}
+          </Button>
+          {displayImages.length > 0 && (
+            <span className="ml-sm text-sm text-hot-gray-400">
+              {displayImages.length} image
+              {displayImages.length !== 1 ? "s" : ""}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col gap-xs">
@@ -149,7 +215,7 @@ function PlanForm({
       />
 
       <div className="flex items-center gap-md">
-        <Button type="submit" disabled={isPending || !name.trim()}>
+        <Button type="submit" disabled={busy || !name.trim()}>
           {isPending ? m.plan_form_saving() : submitLabel}
         </Button>
         <button

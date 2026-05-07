@@ -96,6 +96,10 @@ services:
       UMAP_BASE_URL: ${UMAP_BASE_URL:-https://umap.hotosm.org}
       DRONE_TM_BACKEND_URL: ${DRONE_TM_BACKEND_URL:-}
       FAIR_API_BASE_URL: ${FAIR_API_BASE_URL:-}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-http://minio:9000}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME:-portal-dev}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-minioadmin}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:
@@ -103,7 +107,44 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      minio:
+        condition: service_healthy
     command: sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir app --reload-exclude '.venv/*' --reload-exclude 'app/tests/*' --reload-exclude '.pytest_cache/*'"
+    profiles:
+      - dev
+
+  # MinIO object storage (S3-compatible, dev only)
+  minio:
+    image: quay.io/minio/minio
+    container_name: portal-minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - dev
+
+  # Creates the portal-dev bucket on first run
+  minio-init:
+    image: quay.io/minio/mc
+    container_name: portal-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 minioadmin minioadmin &&
+      mc mb --ignore-existing local/portal-dev &&
+      mc anonymous set public local/portal-dev
+      "
+    restart: "no"
     profiles:
       - dev
 
@@ -156,3 +197,5 @@ services:
 volumes:
   postgres_data:
     name: portal-postgres-data
+  minio_data:
+    name: portal-minio-data

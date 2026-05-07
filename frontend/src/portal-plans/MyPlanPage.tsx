@@ -1,9 +1,12 @@
 import { useParams } from "react-router-dom";
+import { useIsMobile } from "../hooks/useIsMobile";
 import CardSkeleton from "../components/shared/CardSkeleton";
 import { RichTextContent } from "../components/shared/RichTextEditor";
 import PageWrapper from "../components/shared/PageWrapper";
 import SubSectionHeader from "../components/shared/SubSectionHeader";
 import PlanProjectCard from "./components/PlanProjectCard";
+import Carousel from "../components/shared/Carousel";
+import CarouselItem from "../components/shared/CarouselItem";
 import PlanMenu from "./components/PlanMenu";
 import PlanShareButton from "./components/PlanShareButton";
 import Tag from "../components/shared/Tag";
@@ -21,6 +24,7 @@ function MyPlanPage() {
   const { planId } = useParams<{ planId: string }>();
   const { isLogin, isAuthLoading } = useAuth();
   const { currentLanguage } = useLanguage();
+  const isMobile = useIsMobile();
 
   const {
     data: ownPlan,
@@ -136,6 +140,32 @@ function MyPlanPage() {
           />
         )}
       </PageWrapper>
+
+      {plan.images.length > 0 && (
+        <PageWrapper>
+          <Carousel
+            loop
+            mouseDragging
+            navigation
+            pagination
+            slidesPerPage={isMobile ? 1 : 2}
+            slidesPerMove={isMobile ? 1 : 2}
+            className="w-full"
+          >
+            {plan.images.map((img) => (
+              <CarouselItem key={img.id}>
+                <div className="w-full aspect-[4/3] overflow-hidden">
+                  <img
+                    src={img.url}
+                    alt={`Image ${img.id}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </CarouselItem>
+            ))}
+          </Carousel>
+        </PageWrapper>
+      )}
 
       {PLAN_SECTIONS.map((section) => {
         const projects = plan.projects.filter((p) =>

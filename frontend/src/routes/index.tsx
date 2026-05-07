@@ -19,7 +19,11 @@ import PrivacyPolicyPage from "../pages/PrivacyPolicyPage";
 
 // Component to handle protected routes
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isLogin } = useAuth();
+  const { isLogin, isAuthLoading } = useAuth();
+
+  if (isAuthLoading) {
+    return null;
+  }
 
   if (!isLogin) {
     return <Navigate to="/" replace />;
