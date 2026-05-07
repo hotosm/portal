@@ -1,32 +1,31 @@
-import { useRef, useState } from 'react'
-import Button from '../../components/shared/Button'
-import RichTextEditor from '../../components/shared/RichTextEditor'
-import Tag from '../../components/shared/Tag'
-import { m } from '../../paraglide/messages'
-import { APP_LABELS, useAllUserProjects } from '../hooks'
-import type { ProjectOption } from '../hooks'
-import type { AppName, PlanImageRead } from '../types'
-import { useDeletePlanImage, useUploadPlanImage } from '../hooks/usePlanImages'
-import ImageCarousel from './ImageCarousel'
-import ProjectPickerDialog from './ProjectPickerDialog'
+import { useState } from "react";
+import Button from "../../components/shared/Button";
+import RichTextEditor from "../../components/shared/RichTextEditor";
+import Tag from "../../components/shared/Tag";
+import { m } from "../../paraglide/messages";
+import { APP_LABELS, useAllUserProjects } from "../hooks";
+import type { ProjectOption } from "../hooks";
+import type { AppName, PlanImageRead } from "../types";
+import ProjectPickerDialog from "./ProjectPickerDialog";
+import { usePlanImageUpload } from "../hooks/usePlanImageUpload";
 
 export interface PlanFormValues {
-  name: string
-  description: string
-  selectedProjects: { app: AppName; project_id: string }[]
-  pendingImages: File[]
+  name: string;
+  description: string;
+  selectedProjects: { app: AppName; project_id: string }[];
+  pendingImages: File[];
 }
 
 interface PlanFormProps {
-  initialName?: string
-  initialDescription?: string
-  initialProjectKeys?: Set<string>
-  initialImages?: PlanImageRead[]
-  planId?: string
-  submitLabel: string
-  isPending: boolean
-  onSubmit: (values: PlanFormValues) => Promise<void>
-  onCancel: () => void
+  initialName?: string;
+  initialDescription?: string;
+  initialProjectKeys?: Set<string>;
+  initialImages?: PlanImageRead[];
+  planId?: string;
+  submitLabel: string;
+  isPending: boolean;
+  onSubmit: (values: PlanFormValues) => Promise<void>;
+  onCancel: () => void;
 }
 
 function projectKey(p: ProjectOption) {
@@ -44,21 +43,20 @@ function PlanForm({
   onSubmit,
   onCancel,
 }: PlanFormProps) {
-  const [name, setName] = useState(initialName)
-  const [description, setDescription] = useState(initialDescription)
-  const [selected, setSelected] = useState<Set<string>>(initialProjectKeys)
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [pendingFiles, setPendingFiles] = useState<{ file: File; previewUrl: string }[]>([])
-  const [savedImages, setSavedImages] = useState<PlanImageRead[]>(initialImages)
-  const [isUploading, setIsUploading] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const { sources, projects, isLoading } = useAllUserProjects()
-  const uploadMutation = useUploadPlanImage(planId ?? '')
-  const deleteMutation = useDeletePlanImage(planId ?? '')
-
-  const displayImages = planId
-    ? savedImages.map((img) => ({ id: img.id, url: img.url }))
-    : pendingFiles.map((p, i) => ({ id: `pending-${i}`, url: p.previewUrl }))
+  const [name, setName] = useState(initialName);
+  const [description, setDescription] = useState(initialDescription);
+  const [selected, setSelected] = useState<Set<string>>(initialProjectKeys);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const { sources, projects, isLoading } = useAllUserProjects();
+  const {
+    displayImages,
+    pendingImages,
+    fileInputRef,
+    isUploading,
+    isDeleting,
+    handleFileChange,
+    handleRemoveImage,
+  } = usePlanImageUpload({ planId, initialImages });
 
   function toggleProject(project: ProjectOption, checked: boolean) {
     setSelected((prev) => {
@@ -70,51 +68,17 @@ function PlanForm({
     });
   }
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? [])
-    if (files.length === 0) return
-
-    if (planId) {
-      setIsUploading(true)
-      Promise.all(files.map((f) => uploadMutation.mutateAsync(f)))
-        .then((uploaded) => setSavedImages((prev) => [...prev, ...uploaded]))
-        .finally(() => {
-          setIsUploading(false)
-          if (fileInputRef.current) fileInputRef.current.value = ''
-        })
-    } else {
-      const newEntries = files.map((f) => ({ file: f, previewUrl: URL.createObjectURL(f) }))
-      setPendingFiles((prev) => [...prev, ...newEntries])
-      if (fileInputRef.current) fileInputRef.current.value = ''
-    }
-  }
-
-  function handleRemoveImage(id: string) {
-    if (planId) {
-      deleteMutation.mutate(id, {
-        onSuccess: () => setSavedImages((prev) => prev.filter((img) => img.id !== id)),
-      })
-    } else {
-      const idx = parseInt(id.replace('pending-', ''), 10)
-      setPendingFiles((prev) => {
-        const removed = prev[idx]
-        if (removed) URL.revokeObjectURL(removed.previewUrl)
-        return prev.filter((_, i) => i !== idx)
-      })
-    }
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const selectedProjects = projects
       .filter((p) => selected.has(projectKey(p)))
-      .map(({ app, project_id }) => ({ app, project_id }))
-    await onSubmit({ name, description, selectedProjects, pendingImages: pendingFiles.map((p) => p.file) })
-  }
+      .map(({ app, project_id }) => ({ app, project_id }));
+    await onSubmit({ name, description, selectedProjects, pendingImages });
+  };
 
-  const selectedTags = projects.filter((p) => selected.has(projectKey(p)))
-  const loadingCount = selected.size - selectedTags.length
-  const busy = isPending || isUploading || deleteMutation.isPending
+  const selectedTags = projects.filter((p) => selected.has(projectKey(p)));
+  const loadingCount = selected.size - selectedTags.length;
+  const busy = isPending || isUploading || isDeleting;
 
   return (
     <form
@@ -157,7 +121,25 @@ function PlanForm({
       <div className="flex flex-col gap-sm">
         <p className="text-sm font-medium text-hot-gray-700">Images</p>
         {displayImages.length > 0 && (
-          <ImageCarousel images={displayImages} onRemove={handleRemoveImage} />
+          <div className="flex flex-wrap gap-sm">
+            {displayImages.map((img) => (
+              <div key={img.id} className="relative w-24 h-24 rounded-lg overflow-hidden group">
+                <img
+                  src={img.url}
+                  alt={`Image ${img.id}`}
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleRemoveImage(img.id)}
+                  className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs"
+                  aria-label="Remove image"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
         )}
         <div>
           <input
@@ -175,11 +157,12 @@ function PlanForm({
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
           >
-            {isUploading ? 'Uploading…' : 'Add images'}
+            {isUploading ? "Uploading…" : "Add images"}
           </Button>
           {displayImages.length > 0 && (
             <span className="ml-sm text-sm text-hot-gray-400">
-              {displayImages.length} image{displayImages.length !== 1 ? 's' : ''}
+              {displayImages.length} image
+              {displayImages.length !== 1 ? "s" : ""}
             </span>
           )}
         </div>
