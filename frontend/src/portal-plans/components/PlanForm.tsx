@@ -51,6 +51,7 @@ function PlanForm({
   const [description, setDescription] = useState(initialDescription);
   const [selected, setSelected] = useState<Set<string>>(initialProjectKeys);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [extraProjects, setExtraProjects] = useState<ProjectOption[]>([]);
   const { sources, projects, isLoading } = useAllUserProjects();
   const {
     displayImages,
@@ -97,6 +98,7 @@ function PlanForm({
       name,
       description,
       selectedProjects: [...matched, ...orphans],
+      pendingImages,
     });
   };
 
