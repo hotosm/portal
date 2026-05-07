@@ -4,7 +4,8 @@ import { RichTextContent } from "../components/shared/RichTextEditor";
 import PageWrapper from "../components/shared/PageWrapper";
 import SubSectionHeader from "../components/shared/SubSectionHeader";
 import PlanProjectCard from "./components/PlanProjectCard";
-import ImageCarousel from "./components/ImageCarousel";
+import Carousel from "../components/shared/Carousel";
+import CarouselItem from "../components/shared/CarouselItem";
 import PlanMenu from "./components/PlanMenu";
 import PlanShareButton from "./components/PlanShareButton";
 import Tag from "../components/shared/Tag";
@@ -140,9 +141,25 @@ function MyPlanPage() {
 
       {plan.images.length > 0 && (
         <PageWrapper>
-          <div className="py-md max-w-lg">
-            <ImageCarousel images={plan.images.map((img) => ({ id: img.id, url: img.url }))} />
-          </div>
+          <Carousel
+            loop
+            mouseDragging
+            navigation
+            pagination
+            slidesPerPage={2}
+            slidesPerMove={2}
+            className="w-full"
+          >
+            {plan.images.map((img) => (
+              <CarouselItem key={img.id}>
+                <img
+                  src={img.url}
+                  alt={`Image ${img.id}`}
+                  className="w-full h-full object-cover"
+                />
+              </CarouselItem>
+            ))}
+          </Carousel>
         </PageWrapper>
       )}
 
