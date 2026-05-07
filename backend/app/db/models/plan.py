@@ -10,6 +10,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    Integer,
     String,
     Text,
     UniqueConstraint,
@@ -54,6 +55,14 @@ class Plan(Base):
         order_by="PlanProject.added_at",
     )
 
+    images = relationship(
+        "PlanImage",
+        back_populates="plan",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="PlanImage.display_order",
+    )
+
 
 class PlanProject(Base):
     """A reference inside a plan to an external project in one of the 7 apps."""
@@ -80,3 +89,23 @@ class PlanProject(Base):
         ),
         Index("idx_plan_projects_app_project_id", "app", "project_id"),
     )
+
+
+class PlanImage(Base):
+    """An image attached to a plan, stored in S3/MinIO."""
+
+    __tablename__ = "plan_images"
+
+    id = Column(String, primary_key=True, default=uuid_str)
+    plan_id = Column(
+        String,
+        ForeignKey("plans.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    s3_key = Column(String, nullable=False)
+    url = Column(String, nullable=False)
+    display_order = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+    plan = relationship("Plan", back_populates="images")
