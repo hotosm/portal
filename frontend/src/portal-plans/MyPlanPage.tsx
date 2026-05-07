@@ -1,4 +1,5 @@
 import { useParams } from "react-router-dom";
+import { useIsMobile } from "../hooks/useIsMobile";
 import CardSkeleton from "../components/shared/CardSkeleton";
 import { RichTextContent } from "../components/shared/RichTextEditor";
 import PageWrapper from "../components/shared/PageWrapper";
@@ -23,6 +24,7 @@ function MyPlanPage() {
   const { planId } = useParams<{ planId: string }>();
   const { isLogin, isAuthLoading } = useAuth();
   const { currentLanguage } = useLanguage();
+  const isMobile = useIsMobile();
 
   const {
     data: ownPlan,
@@ -146,17 +148,19 @@ function MyPlanPage() {
             mouseDragging
             navigation
             pagination
-            slidesPerPage={2}
-            slidesPerMove={2}
+            slidesPerPage={isMobile ? 1 : 2}
+            slidesPerMove={isMobile ? 1 : 2}
             className="w-full"
           >
             {plan.images.map((img) => (
               <CarouselItem key={img.id}>
-                <img
-                  src={img.url}
-                  alt={`Image ${img.id}`}
-                  className="w-full h-full object-cover"
-                />
+                <div className="w-full aspect-[4/3] overflow-hidden">
+                  <img
+                    src={img.url}
+                    alt={`Image ${img.id}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
               </CarouselItem>
             ))}
           </Carousel>
