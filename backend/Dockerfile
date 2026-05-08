@@ -56,8 +56,10 @@ COPY backend/app ./app
 COPY backend/alembic.ini ./
 COPY backend/alembic ./alembic
 
-# Create non-root user
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+# Create non-root user and uploads directory
+RUN useradd -m -u 1000 appuser && \
+    mkdir -p /app/uploads && \
+    chown -R appuser:appuser /app
 USER appuser
 
 # Expose port
