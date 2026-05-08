@@ -186,7 +186,7 @@ function MyPlanPage() {
                     key={`${project.app}:${project.project_id}`}
                     className={CARD_CLASS}
                   >
-                    <PlanProjectCard project={project} />
+                    <PlanProjectCard project={project} isOwner={isOwner} planId={planId ?? ""} />
                   </div>
                 ))}
               </div>

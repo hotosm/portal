@@ -10,9 +10,12 @@ export type AppName =
 
 export type HydrationError = "not_found" | "upstream_unavailable";
 
+export type ProjectStatus = "in_progress" | "done";
+
 export interface PlanProjectItem {
   app: AppName;
   project_id: string;
+  status?: ProjectStatus;
   data?: Record<string, unknown> | null;
 }
 
@@ -50,6 +53,7 @@ export interface PlanRead {
 export interface HydratedProjectItem {
   app: AppName;
   project_id: string;
+  status: ProjectStatus;
   data: Record<string, unknown> | null;
   upstream: Record<string, unknown> | null;
   error: HydrationError | null;
