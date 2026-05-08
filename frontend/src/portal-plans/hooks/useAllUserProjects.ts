@@ -5,6 +5,13 @@ import { useDroneProjects } from "../../portal-imagery/hooks/useDroneProjects";
 import { useMyModels } from "../../portal-mapping/hooks/useFairData";
 import type { AppName, ProjectOption, ProjectSource } from "../types";
 
+export const FETCHED_APPS = new Set<AppName>([
+  "drone-tasking-manager",
+  "fair",
+  "umap",
+  "export-tool",
+]);
+
 export const APP_LABELS: Record<AppName, string> = {
   chatmap: "ChatMap",
   "drone-tasking-manager": "Drone TM",

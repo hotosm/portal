@@ -23,6 +23,7 @@ interface PlanFormProps {
   initialName?: string;
   initialDescription?: string;
   initialProjectKeys?: Set<string>;
+  initialExtraProjects?: ProjectOption[];
   initialImages?: PlanImageRead[];
   planId?: string;
   submitLabel: string;
@@ -39,6 +40,7 @@ function PlanForm({
   initialName = "",
   initialDescription = "",
   initialProjectKeys = new Set(),
+  initialExtraProjects = [],
   initialImages = [],
   planId,
   submitLabel,
@@ -50,7 +52,7 @@ function PlanForm({
   const [description, setDescription] = useState(initialDescription);
   const [selected, setSelected] = useState<Set<string>>(initialProjectKeys);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [extraProjects, setExtraProjects] = useState<ProjectOption[]>([]);
+  const [extraProjects, setExtraProjects] = useState<ProjectOption[]>(initialExtraProjects);
   const { sources, projects, isLoading } = useAllUserProjects();
   const {
     displayImages,

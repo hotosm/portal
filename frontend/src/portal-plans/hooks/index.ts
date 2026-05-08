@@ -8,5 +8,5 @@ export {
   planQueryKeys,
 } from "./usePlans";
 export { usePlanMenu } from "./usePlanMenu";
-export { useAllUserProjects, APP_LABELS } from "./useAllUserProjects";
+export { useAllUserProjects, APP_LABELS, FETCHED_APPS } from "./useAllUserProjects";
 export { useUploadPlanImage, useDeletePlanImage } from "./usePlanImages";
