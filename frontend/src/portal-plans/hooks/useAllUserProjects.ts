@@ -3,22 +3,7 @@ import { useExportJobs } from "../../portal-data/hooks/useExportToolData";
 import { useMyMaps } from "../../portal-data/hooks/useUMapData";
 import { useDroneProjects } from "../../portal-imagery/hooks/useDroneProjects";
 import { useMyModels } from "../../portal-mapping/hooks/useFairData";
-import type { AppName } from "../types";
-
-export interface ProjectOption {
-  app: AppName;
-  project_id: string;
-  title: string;
-  upstream?: Record<string, unknown> | null;
-}
-
-export interface ProjectSource {
-  app: AppName;
-  label: string;
-  projects: ProjectOption[];
-  isLoading: boolean;
-  isError: boolean;
-}
+import type { AppName, ProjectOption, ProjectSource } from "../types";
 
 export const APP_LABELS: Record<AppName, string> = {
   chatmap: "ChatMap",

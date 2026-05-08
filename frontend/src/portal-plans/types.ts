@@ -71,3 +71,26 @@ export interface UrlResolveResponse {
   project_id: string;
   upstream: Record<string, unknown> | null;
 }
+
+export interface ProjectOption {
+  app: AppName;
+  project_id: string;
+  title: string;
+  upstream?: Record<string, unknown> | null;
+}
+
+export interface ProjectSource {
+  app: AppName;
+  label: string;
+  projects: ProjectOption[];
+  isLoading: boolean;
+  isError: boolean;
+}
+export interface ProjectPickerDialogProps {
+  open: boolean;
+  selected: Set<string>;
+  extraProjects: ProjectOption[];
+  sources: ProjectSource[];
+  onConfirm: (selected: Set<string>, extraProjects: ProjectOption[]) => void;
+  onClose: () => void;
+}

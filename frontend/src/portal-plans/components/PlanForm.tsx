@@ -4,8 +4,7 @@ import RichTextEditor from "../../components/shared/RichTextEditor";
 import Tag from "../../components/shared/Tag";
 import { m } from "../../paraglide/messages";
 import { APP_LABELS, useAllUserProjects } from "../hooks";
-import type { ProjectOption } from "../hooks";
-import type { AppName, PlanImageRead } from "../types";
+import type { AppName, PlanImageRead, ProjectOption } from "../types";
 import ProjectPickerDialog from "./ProjectPickerDialog";
 import { usePlanImageUpload } from "../hooks/usePlanImageUpload";
 
