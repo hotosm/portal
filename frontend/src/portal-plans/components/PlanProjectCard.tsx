@@ -56,6 +56,13 @@ function getUpstreamImage(
   const src = upstream ?? data;
   if (!src) return placeholder;
 
+  if (app === "chatmap") {
+    const centroid = src.centroid as [number, number] | null | undefined;
+    if (Array.isArray(centroid) && centroid.length === 2) {
+      return osmTileUrl(centroid[0], centroid[1], 10);
+    }
+  }
+
   if (app === "tasking-manager") {
     const bbox = src.aoiBBOX as [number, number, number, number] | null | undefined;
     if (Array.isArray(bbox) && bbox.length === 4) {

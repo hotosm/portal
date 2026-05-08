@@ -44,6 +44,23 @@ async def fetch_map_by_id(
     except (httpx.RequestError, httpx.HTTPStatusError) as e:
         raise UpstreamUnavailable(f"chatmap: {e}") from e
 
-    filtered = {"name": data.get("name"), "id": data.get("id")}
+    features = data.get("features") or []
+    coords = [
+        f["geometry"]["coordinates"]
+        for f in features
+        if isinstance(f.get("geometry"), dict)
+        and f["geometry"].get("type") == "Point"
+        and isinstance(f["geometry"].get("coordinates"), list)
+        and len(f["geometry"]["coordinates"]) >= 2
+    ]
+    if coords:
+        centroid: list[float] | None = [
+            sum(c[1] for c in coords) / len(coords),  # lat
+            sum(c[0] for c in coords) / len(coords),  # lon
+        ]
+    else:
+        centroid = None
+
+    filtered = {"name": data.get("name"), "id": data.get("id"), "centroid": centroid}
     set_cached(cache_key, filtered, DEFAULT_TTL)
     return filtered
