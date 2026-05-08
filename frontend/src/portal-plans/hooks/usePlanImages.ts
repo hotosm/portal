@@ -1,4 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { m } from "../../paraglide/messages";
 import type { PlanImageRead } from "../types";
 import { planQueryKeys } from "./usePlans";
 
@@ -21,6 +23,9 @@ export function useUploadPlanImage(planId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: planQueryKeys.detail(planId) });
       queryClient.invalidateQueries({ queryKey: planQueryKeys.list() });
+    },
+    onError: () => {
+      toast.error(m.plan_toast_image_upload_error());
     },
   });
 }
