@@ -10,14 +10,14 @@ FAIR_API_BASE_URL = settings.fair_api_url
 FAIR_VERIFY_SSL = settings.fair_verify_ssl
 
 
-async def fetch_model_by_id(mid: str) -> dict | None:
+async def fetch_model_by_id(mid: str, *, base_url: str | None = None) -> dict | None:
     """Fetch a single fAIr model by id. None on 404, raises UpstreamUnavailable on failure."""
     cache_key = f"fair_model_{mid}"
     cached = get_cached(cache_key)
     if cached is not None:
         return cached
 
-    url = f"{FAIR_API_BASE_URL}/model/{mid}/"
+    url = f"{base_url or FAIR_API_BASE_URL}/model/{mid}/"
     try:
         async with httpx.AsyncClient(timeout=30.0, verify=FAIR_VERIFY_SSL) as client:
             response = await client.get(url, headers={"accept": "application/json"})

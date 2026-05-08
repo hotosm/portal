@@ -4,15 +4,18 @@ import RichTextEditor from "../../components/shared/RichTextEditor";
 import Tag from "../../components/shared/Tag";
 import { m } from "../../paraglide/messages";
 import { APP_LABELS, useAllUserProjects } from "../hooks";
-import type { ProjectOption } from "../hooks";
-import type { AppName, PlanImageRead } from "../types";
+import type { AppName, PlanImageRead, ProjectOption } from "../types";
 import ProjectPickerDialog from "./ProjectPickerDialog";
 import { usePlanImageUpload } from "../hooks/usePlanImageUpload";
 
 export interface PlanFormValues {
   name: string;
   description: string;
-  selectedProjects: { app: AppName; project_id: string }[];
+  selectedProjects: {
+    app: AppName;
+    project_id: string;
+    data?: Record<string, unknown> | null;
+  }[];
   pendingImages: File[];
 }
 
@@ -20,6 +23,7 @@ interface PlanFormProps {
   initialName?: string;
   initialDescription?: string;
   initialProjectKeys?: Set<string>;
+  initialExtraProjects?: ProjectOption[];
   initialImages?: PlanImageRead[];
   planId?: string;
   submitLabel: string;
@@ -36,6 +40,7 @@ function PlanForm({
   initialName = "",
   initialDescription = "",
   initialProjectKeys = new Set(),
+  initialExtraProjects = [],
   initialImages = [],
   planId,
   submitLabel,
@@ -47,6 +52,7 @@ function PlanForm({
   const [description, setDescription] = useState(initialDescription);
   const [selected, setSelected] = useState<Set<string>>(initialProjectKeys);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [extraProjects, setExtraProjects] = useState<ProjectOption[]>(initialExtraProjects);
   const { sources, projects, isLoading } = useAllUserProjects();
   const {
     displayImages,
@@ -70,13 +76,35 @@ function PlanForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const selectedProjects = projects
+    const allProjects = [...projects, ...extraProjects];
+    const matched = allProjects
       .filter((p) => selected.has(projectKey(p)))
-      .map(({ app, project_id }) => ({ app, project_id }));
-    await onSubmit({ name, description, selectedProjects, pendingImages });
+      .map(({ app, project_id, upstream }) => ({
+        app,
+        project_id,
+        ...(upstream ? { data: upstream } : {}),
+      }));
+    const matchedKeys = new Set(matched.map((p) => `${p.app}:${p.project_id}`));
+    // Preserve selected projects not present in allProjects (e.g. URL-added apps like ChatMap)
+    const orphans = [...selected]
+      .filter((k) => !matchedKeys.has(k))
+      .map((k) => {
+        const colonIdx = k.indexOf(":");
+        return {
+          app: k.slice(0, colonIdx) as AppName,
+          project_id: k.slice(colonIdx + 1),
+        };
+      });
+    await onSubmit({
+      name,
+      description,
+      selectedProjects: [...matched, ...orphans],
+      pendingImages,
+    });
   };
 
-  const selectedTags = projects.filter((p) => selected.has(projectKey(p)));
+  const allProjects = [...projects, ...extraProjects];
+  const selectedTags = allProjects.filter((p) => selected.has(projectKey(p)));
   const loadingCount = selected.size - selectedTags.length;
   const busy = isPending || isUploading || isDeleting;
 
@@ -123,7 +151,10 @@ function PlanForm({
         {displayImages.length > 0 && (
           <div className="flex flex-wrap gap-sm">
             {displayImages.map((img) => (
-              <div key={img.id} className="relative w-24 h-24 rounded-lg overflow-hidden group">
+              <div
+                key={img.id}
+                className="relative w-24 h-24 rounded-lg overflow-hidden group"
+              >
                 <img
                   src={img.url}
                   alt={`Image ${img.id}`}
@@ -209,8 +240,12 @@ function PlanForm({
       <ProjectPickerDialog
         open={dialogOpen}
         selected={selected}
+        extraProjects={extraProjects}
         sources={sources}
-        onConfirm={(next) => setSelected(next)}
+        onConfirm={(next, nextExtra) => {
+          setSelected(next);
+          setExtraProjects(nextExtra);
+        }}
         onClose={() => setDialogOpen(false)}
       />
 

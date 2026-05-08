@@ -38,6 +38,7 @@ async def fetch_project_by_id(project_id: str) -> dict | None:
         "percentMapped": data.get("percentMapped"),
         "percentValidated": data.get("percentValidated"),
         "percentBadImagery": data.get("percentBadImagery"),
+        "aoiBBOX": data.get("aoiBBOX"),
     }
     set_cached(cache_key, filtered, DEFAULT_TTL)
     return filtered

@@ -7,6 +7,7 @@ import nh3
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 AppLiteral = Literal[
+    "chatmap",
     "drone-tasking-manager",
     "export-tool",
     "fair",
@@ -106,3 +107,13 @@ class PlanReadHydrated(BaseModel):
 class PlanTag(BaseModel):
     id: str
     name: str
+
+
+class UrlResolveRequest(BaseModel):
+    url: str = Field(..., min_length=1, max_length=2048)
+
+
+class UrlResolveResponse(BaseModel):
+    app: AppLiteral
+    project_id: str
+    upstream: dict | None = None

@@ -58,8 +58,8 @@ function MyPlanPage() {
       },
       {
         title: m.section_field(),
-        toolName: "<em>Field</em> Tasking Manager",
-        apps: ["field-tm"],
+        toolName: "<em>Field</em> Tasking Manager, <em>ChatMap</em>",
+        apps: ["field-tm", "chatmap"],
       },
       {
         title: m.section_data(),

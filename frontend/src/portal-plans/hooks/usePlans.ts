@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "../../contexts/AuthContext";
 import { m } from "../../paraglide/messages";
-import type { PlanCreate, PlanRead, PlanReadHydrated, PlanUpdate } from "../types";
+import type { PlanCreate, PlanRead, PlanReadHydrated, PlanUpdate, UrlResolveResponse } from "../types";
 
 const STALE_TIME = 5 * 60 * 1000;
 const GC_TIME = 30 * 60 * 1000;
@@ -122,6 +122,24 @@ export function useSharedPlan(id: string) {
     gcTime: GC_TIME,
     enabled: !!id,
     retry: 1,
+  });
+}
+
+export function useResolveProjectUrl() {
+  return useMutation({
+    mutationFn: async (url: string): Promise<UrlResolveResponse> => {
+      const response = await fetch("/api/plans/resolve-url", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.detail ?? `${response.status}`);
+      }
+      return response.json();
+    },
   });
 }
 

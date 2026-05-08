@@ -1,4 +1,5 @@
 export type AppName =
+  | "chatmap"
   | "drone-tasking-manager"
   | "export-tool"
   | "fair"
@@ -63,4 +64,33 @@ export interface PlanReadHydrated {
   images: PlanImageRead[];
   created_at: string;
   updated_at: string;
+}
+
+export interface UrlResolveResponse {
+  app: AppName;
+  project_id: string;
+  upstream: Record<string, unknown> | null;
+}
+
+export interface ProjectOption {
+  app: AppName;
+  project_id: string;
+  title: string;
+  upstream?: Record<string, unknown> | null;
+}
+
+export interface ProjectSource {
+  app: AppName;
+  label: string;
+  projects: ProjectOption[];
+  isLoading: boolean;
+  isError: boolean;
+}
+export interface ProjectPickerDialogProps {
+  open: boolean;
+  selected: Set<string>;
+  extraProjects: ProjectOption[];
+  sources: ProjectSource[];
+  onConfirm: (selected: Set<string>, extraProjects: ProjectOption[]) => void;
+  onClose: () => void;
 }

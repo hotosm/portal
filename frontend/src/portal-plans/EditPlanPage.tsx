@@ -5,7 +5,7 @@ import PageWrapper from "../components/shared/PageWrapper";
 import { useLanguage } from "../contexts/LanguageContext";
 import { m } from "../paraglide/messages";
 import PlanForm from "./components/PlanForm";
-import { usePlan, useUpdatePlan } from "./hooks";
+import { usePlan, useUpdatePlan, FETCHED_APPS } from "./hooks";
 import PlanSectionHeader from "./components/PlanSectionHeader";
 
 function EditPlanPage() {
@@ -20,6 +20,22 @@ function EditPlanPage() {
   const initialProjectKeys = useMemo(
     () =>
       new Set((plan?.projects ?? []).map((p) => `${p.app}:${p.project_id}`)),
+    [plan?.projects],
+  );
+
+  const initialExtraProjects = useMemo(
+    () =>
+      (plan?.projects ?? [])
+        .filter((p) => !FETCHED_APPS.has(p.app))
+        .map((p) => ({
+          app: p.app,
+          project_id: p.project_id,
+          title:
+            (p.data?.name as string | undefined) ??
+            (p.data?.title as string | undefined) ??
+            p.project_id,
+          upstream: p.data ?? undefined,
+        })),
     [plan?.projects],
   );
 
@@ -52,6 +68,7 @@ function EditPlanPage() {
             initialName={plan.name}
             initialDescription={plan.description ?? ""}
             initialProjectKeys={initialProjectKeys}
+            initialExtraProjects={initialExtraProjects}
             initialImages={plan.images ?? []}
             planId={planId}
             submitLabel={m.plan_edit_submit()}

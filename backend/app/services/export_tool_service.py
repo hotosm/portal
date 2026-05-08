@@ -9,14 +9,14 @@ from app.services.exceptions import UpstreamUnavailable
 EXPORT_TOOL_API_BASE_URL = settings.export_tool_api_url
 
 
-async def fetch_job_by_uid(uid: str) -> dict | None:
+async def fetch_job_by_uid(uid: str, *, base_url: str | None = None) -> dict | None:
     """Fetch an export job by uid. None on 404, raises UpstreamUnavailable on failure."""
     cache_key = f"export_job_{uid}"
     cached = get_cached(cache_key)
     if cached is not None:
         return cached
 
-    url = f"{EXPORT_TOOL_API_BASE_URL}/jobs/{uid}"
+    url = f"{base_url or EXPORT_TOOL_API_BASE_URL}/jobs/{uid}"
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(url)
