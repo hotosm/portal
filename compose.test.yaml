@@ -43,6 +43,8 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+    volumes:
+      - portal-uploads:/app/uploads
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       - DEBUG=false
@@ -92,3 +94,4 @@ networks:
 
 volumes:
   portal-db:
+  portal-uploads:

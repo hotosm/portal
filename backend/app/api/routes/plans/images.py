@@ -20,11 +20,6 @@ _ALLOWED_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/svg+xml", "imag
 _MAX_SIZE = 10 * 1024 * 1024  # 10 MB
 
 
-def _require_s3() -> None:
-    if not s3_service.is_s3_configured():
-        raise HTTPException(status_code=503, detail="Image storage not configured")
-
-
 def _image_url(plan_id: str, image_id: str) -> str:
     base = (settings.portal_base_url or "").rstrip("/")
     return f"{base}/api/plans/{plan_id}/images/{image_id}/content"
@@ -37,7 +32,6 @@ async def get_plan_image_content(
     user: CurrentUserOptional = None,
     db: AsyncSession = Depends(get_db),
 ) -> Response:
-    _require_s3()
     result = await db.execute(
         select(PlanImage, Plan.is_public, Plan.owner_id)
         .join(Plan, Plan.id == PlanImage.plan_id)
@@ -52,7 +46,10 @@ async def get_plan_image_content(
         if user is None or user.id != owner_id:
             raise HTTPException(status_code=403, detail="Forbidden")
 
-    data, content_type = s3_service.get_plan_image(image.s3_key)
+    if s3_service.is_local_key(image.s3_key):
+        data, content_type = s3_service.get_plan_image_local(image.s3_key)
+    else:
+        data, content_type = s3_service.get_plan_image(image.s3_key)
     return Response(content=data, media_type=content_type)
 
 
@@ -63,8 +60,6 @@ async def upload_plan_image(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
 ) -> PlanImageRead:
-    _require_s3()
-
     if file.content_type not in _ALLOWED_TYPES:
         raise HTTPException(status_code=415, detail="Unsupported image type")
 
@@ -84,7 +79,10 @@ async def upload_plan_image(
         img.save(buf, format="WEBP", quality=85)
         upload_data, upload_content_type, upload_ext = buf.getvalue(), "image/webp", ".webp"
 
-    s3_key = s3_service.upload_plan_image(upload_data, upload_content_type, plan_id, upload_ext)
+    if s3_service.is_s3_configured():
+        s3_key = s3_service.upload_plan_image(upload_data, upload_content_type, plan_id, upload_ext)
+    else:
+        s3_key = s3_service.upload_plan_image_local(upload_data, upload_content_type, plan_id, upload_ext)
 
     image = PlanImage(
         plan_id=plan_id,
@@ -114,8 +112,6 @@ async def delete_plan_image(
     image_id: str = Path(...),
     db: AsyncSession = Depends(get_db),
 ) -> Response:
-    _require_s3()
-
     plan = await plans_service.get_owned_plan(db, user.id, plan_id)
     if plan is None:
         raise HTTPException(status_code=404, detail="Plan not found")
@@ -127,7 +123,10 @@ async def delete_plan_image(
     if image is None:
         raise HTTPException(status_code=404, detail="Image not found")
 
-    s3_service.delete_plan_image(image.s3_key)
+    if s3_service.is_local_key(image.s3_key):
+        s3_service.delete_plan_image_local(image.s3_key)
+    else:
+        s3_service.delete_plan_image(image.s3_key)
     await db.delete(image)
     await db.flush()
 
