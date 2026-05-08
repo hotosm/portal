@@ -43,8 +43,6 @@ function ProjectPickerDialog({
   const [activeApp, setActiveApp] = useState<AppName | 'all'>('all')
   const [urlInput, setUrlInput] = useState('')
   const [urlError, setUrlError] = useState<string | null>(null)
-  const [pendingNameKey, setPendingNameKey] = useState<string | null>(null)
-  const [pendingNameValue, setPendingNameValue] = useState('')
   const resolveUrl = useResolveProjectUrl()
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: only sync on open-transition, not on every selected change
@@ -55,8 +53,6 @@ function ProjectPickerDialog({
       setActiveApp('all')
       setUrlInput('')
       setUrlError(null)
-      setPendingNameKey(null)
-      setPendingNameValue('')
     }
   }, [open])
 
@@ -94,6 +90,11 @@ function ProjectPickerDialog({
           // CORS or network error — fall back to UUID title
         }
       }
+      if (result.app === 'chatmap' && !resolvedUpstream) {
+        setUrlError('This ChatMap project is private. Only public maps or your own private maps can be added.')
+        return
+      }
+
       const upstream = resolvedUpstream ?? {}
       const title =
         (upstream.name as string | undefined) ??
@@ -105,10 +106,6 @@ function ProjectPickerDialog({
       ])
       setLocalSelected((prev) => new Set(prev).add(key))
       setUrlInput('')
-      if (!resolvedUpstream) {
-        setPendingNameKey(key)
-        setPendingNameValue('')
-      }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Unknown error'
       if (msg.includes('project_not_found')) {
@@ -121,21 +118,6 @@ function ProjectPickerDialog({
         )
       }
     }
-  }
-
-  function applyPendingName() {
-    const name = pendingNameValue.trim()
-    if (pendingNameKey && name) {
-      setLocalExtraProjects((prev) =>
-        prev.map((p) =>
-          projectKey(p.app, p.project_id) === pendingNameKey
-            ? { ...p, title: name, upstream: { name } }
-            : p,
-        ),
-      )
-    }
-    setPendingNameKey(null)
-    setPendingNameValue('')
   }
 
   const visibleSources = activeApp === 'all' ? sources : sources.filter((s) => s.app === activeApp)
@@ -271,31 +253,6 @@ function ProjectPickerDialog({
           </Button>
         </div>
         {urlError && <p className="text-xs text-hot-red-600">{urlError}</p>}
-        {pendingNameKey && (
-          <div className="flex flex-col gap-xs pt-xs border-t border-hot-gray-100">
-            <p className="text-xs text-hot-gray-400">
-              Map name not found automatically. Enter a name for this project:
-            </p>
-            <div className="flex gap-xs">
-              <input
-                type="text"
-                value={pendingNameValue}
-                // biome-ignore lint/a11y/noAutofocus: intentional — user just added a project and needs to name it
-                autoFocus
-                onChange={(e) => setPendingNameValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') { e.preventDefault(); applyPendingName() }
-                  if (e.key === 'Escape') { setPendingNameKey(null); setPendingNameValue('') }
-                }}
-                placeholder="e.g. My field map"
-                className="flex-1 border border-hot-gray-300 rounded-lg px-sm py-xs text-sm outline-none focus:border-hot-red-500"
-              />
-              <Button type="button" size="small" onClick={applyPendingName}>
-                {pendingNameValue.trim() ? 'Save' : 'Skip'}
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
 
       <div slot="footer" className="flex gap-sm justify-end">
