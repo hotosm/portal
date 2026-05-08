@@ -40,6 +40,7 @@ function ProjectPickerDialog({
 }: ProjectPickerDialogProps) {
   const [localSelected, setLocalSelected] = useState<Set<string>>(new Set())
   const [localExtraProjects, setLocalExtraProjects] = useState<ProjectOption[]>([])
+  const [listKey, setListKey] = useState(0)
   const [activeApp, setActiveApp] = useState<AppName | 'all'>('all')
   const [urlInput, setUrlInput] = useState('')
   const [urlError, setUrlError] = useState<string | null>(null)
@@ -105,6 +106,7 @@ function ProjectPickerDialog({
         { app: result.app, project_id: result.project_id, title, upstream: resolvedUpstream },
       ])
       setLocalSelected((prev) => new Set(prev).add(key))
+      setListKey((k) => k + 1)
       setUrlInput('')
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Unknown error'
@@ -120,13 +122,24 @@ function ProjectPickerDialog({
     }
   }
 
-  const visibleSources = activeApp === 'all' ? sources : sources.filter((s) => s.app === activeApp)
+  const sourceApps = new Set(sources.map((s) => s.app))
+  const allSources: ProjectSource[] = [
+    ...sources,
+    ...[...new Set(localExtraProjects.map((p) => p.app).filter((a) => !sourceApps.has(a)))].map(
+      (app) => ({ app, label: APP_LABELS[app], projects: [], isLoading: false, isError: false }),
+    ),
+  ]
 
-  const allLoaded = sources.every((s) => !s.isLoading)
-  const allEmpty = allLoaded && sources.every((s) => s.projects.length === 0 && !s.isError)
+  const visibleSources = activeApp === 'all' ? allSources : allSources.filter((s) => s.app === activeApp)
+
+  const allLoaded = allSources.every((s) => !s.isLoading)
+  const allEmpty =
+    allLoaded &&
+    allSources.every((s) => s.projects.length === 0 && !s.isError) &&
+    localExtraProjects.length === 0
 
   const hasAnyContent = visibleSources.some(
-    (s) => s.isLoading || s.isError || s.projects.length > 0
+    (s) => s.isLoading || s.isError || s.projects.length > 0 || localExtraProjects.some((p) => p.app === s.app),
   )
 
   return (
@@ -145,8 +158,8 @@ function ProjectPickerDialog({
         >
           {m.plan_picker_all()}
         </Button>
-        {sources
-          .filter((s) => s.isLoading || s.projects.length > 0)
+        {allSources
+          .filter((s) => s.isLoading || s.projects.length > 0 || localExtraProjects.some((p) => p.app === s.app))
           .map((s) => (
             <Button
               key={s.app}
@@ -160,7 +173,7 @@ function ProjectPickerDialog({
           ))}
       </div>
 
-      <div className="overflow-y-auto max-h-[50vh] flex flex-col gap-md mt-md">
+      <div key={listKey} className="overflow-y-auto max-h-[50vh] flex flex-col gap-md mt-md">
         {allEmpty ? (
           <p className="text-sm text-hot-gray-400">{m.plan_picker_no_projects()}</p>
         ) : !hasAnyContent ? (
@@ -175,8 +188,9 @@ function ProjectPickerDialog({
             </button>
           </p>
         ) : (
-          sources.map((source) => {
-            if (!source.isLoading && !source.isError && source.projects.length === 0) return null
+          allSources.map((source) => {
+            const extras = localExtraProjects.filter((p) => p.app === source.app)
+            if (!source.isLoading && !source.isError && source.projects.length === 0 && extras.length === 0) return null
             const hidden = activeApp !== 'all' && source.app !== activeApp
 
             return (
@@ -202,12 +216,14 @@ function ProjectPickerDialog({
                   </div>
                 ) : (
                   <div className="flex flex-col gap-xs">
-                    {source.projects.map((p) => {
+                    {[...source.projects, ...extras].map((p) => {
                       const key = projectKey(p.app, p.project_id)
+                      const isChecked = localSelected.has(key)
                       return (
                         <Checkbox
                           key={key}
-                          checked={localSelected.has(key)}
+                          checked={isChecked}
+                          defaultChecked={isChecked}
                           onChange={() => toggle(key)}
                         >
                           {p.title}
