@@ -14,6 +14,7 @@ from app.core.base import Base
 from app.db.models.oam import OAMImage  # noqa: F401 — registers model with Base.metadata
 from app.db.models.map_project import MapProject  # noqa: F401 — registers model with Base.metadata
 from app.db.models.map_project_sync_state import MapProjectSyncState  # noqa: F401 — registers model with Base.metadata
+from app.db.models.task import Task  # noqa: F401 — registers model with Base.metadata
 
 
 def _load_database_url_from_dotenv() -> str | None:
