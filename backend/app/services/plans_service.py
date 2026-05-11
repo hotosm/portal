@@ -138,13 +138,14 @@ async def create_plan(
     db.add(plan)
     await db.flush()
 
-    for item in payload.projects:
+    for idx, item in enumerate(payload.projects):
         db.add(
             PlanProject(
                 plan_id=plan.id,
                 app=item.app,
                 project_id=item.project_id,
                 status=item.status,
+                display_order=idx,
                 data=item.data,
             )
         )
@@ -179,13 +180,14 @@ async def update_plan(
             delete(PlanProject).where(PlanProject.plan_id == plan.id)
         )
         await db.flush()
-        for item in payload.projects:
+        for idx, item in enumerate(payload.projects):
             db.add(
                 PlanProject(
                     plan_id=plan.id,
                     app=item.app,
                     project_id=item.project_id,
                     status=item.status,
+                    display_order=idx,
                     data=item.data,
                 )
             )
@@ -320,6 +322,7 @@ async def hydrate_one(
         return HydratedProjectItem(
             app=row.app,
             project_id=row.project_id,
+            status=row.status,
             data=row.data,
             upstream=None,
             error="not_found",
@@ -330,6 +333,7 @@ async def hydrate_one(
         return HydratedProjectItem(
             app=row.app,
             project_id=row.project_id,
+            status=row.status,
             data=row.data,
             upstream=None,
             error="upstream_unavailable",
@@ -338,6 +342,7 @@ async def hydrate_one(
         return HydratedProjectItem(
             app=row.app,
             project_id=row.project_id,
+            status=row.status,
             data=row.data,
             upstream=None,
             error="not_found",
@@ -345,6 +350,7 @@ async def hydrate_one(
     return HydratedProjectItem(
         app=row.app,
         project_id=row.project_id,
+        status=row.status,
         data=row.data,
         upstream=upstream,
         error=None,
