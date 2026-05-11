@@ -3,24 +3,30 @@
 import asyncio
 import copy
 from collections import defaultdict
+from typing import get_args
 
 from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.db.models.plan import Plan, PlanProject
+from app.db.models.plan import Plan, PlanImage, PlanProject
 from app.models.plan import (
     AppLiteral,
     HydratedProjectItem,
     PlanCreate,
+    PlanImageRead,
     PlanProjectItem,
     PlanRead,
     PlanReadHydrated,
     PlanTag,
     PlanUpdate,
+    StatusLiteral,
+    UrlResolveResponse,
 )
+from app.services import url_resolver
 from app.services import (
+    chatmap_service,
     drone_tm_service,
     export_tool_service,
     fair_service,
@@ -32,8 +38,19 @@ from app.services import (
 from app.services.exceptions import UpstreamUnavailable
 
 
+_KNOWN_APPS = frozenset(get_args(AppLiteral))
+
+
 class DuplicateProjectError(ValueError):
     """Raised when a plan payload contains duplicate (app, project_id) entries."""
+
+
+class InvalidUrlError(ValueError):
+    """Raised when a URL does not match any supported app pattern."""
+
+
+class ProjectNotFoundError(ValueError):
+    """Raised when a URL resolves to an app/project_id that does not exist upstream."""
 
 
 APP_FETCHERS = {
@@ -43,6 +60,7 @@ APP_FETCHERS = {
     "fair": fair_service.fetch_model_by_id,
     "open-aerial-map": open_aerial_map_service.fetch_imagery_by_id,
     "export-tool": export_tool_service.fetch_job_by_uid,
+    "chatmap": chatmap_service.fetch_map_by_id,
 }
 
 
@@ -55,8 +73,18 @@ def plan_to_read(plan: Plan) -> PlanRead:
         created_at=plan.created_at,
         updated_at=plan.updated_at,
         projects=[
-            PlanProjectItem(app=row.app, project_id=row.project_id, data=row.data)
+            PlanProjectItem(app=row.app, project_id=row.project_id, status=row.status, data=row.data)
             for row in plan.projects
+            if row.app in _KNOWN_APPS
+        ],
+        images=[
+            PlanImageRead(
+                id=img.id,
+                url=img.url,
+                display_order=img.display_order,
+                created_at=img.created_at,
+            )
+            for img in plan.images
         ],
     )
 
@@ -76,7 +104,7 @@ async def list_plans(db: AsyncSession, owner_id: str) -> list[PlanRead]:
     stmt = (
         select(Plan)
         .where(Plan.owner_id == owner_id)
-        .options(selectinload(Plan.projects))
+        .options(selectinload(Plan.projects), selectinload(Plan.images))
         .order_by(Plan.created_at.desc())
     )
     result = await db.execute(stmt)
@@ -90,7 +118,7 @@ async def get_owned_plan(
     stmt = (
         select(Plan)
         .where(Plan.id == plan_id, Plan.owner_id == owner_id)
-        .options(selectinload(Plan.projects))
+        .options(selectinload(Plan.projects), selectinload(Plan.images))
     )
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
@@ -110,12 +138,14 @@ async def create_plan(
     db.add(plan)
     await db.flush()
 
-    for item in payload.projects:
+    for idx, item in enumerate(payload.projects):
         db.add(
             PlanProject(
                 plan_id=plan.id,
                 app=item.app,
                 project_id=item.project_id,
+                status=item.status,
+                display_order=idx,
                 data=item.data,
             )
         )
@@ -126,7 +156,7 @@ async def create_plan(
         await db.rollback()
         raise DuplicateProjectError(str(e)) from e
 
-    await db.refresh(plan, attribute_names=["projects"])
+    await db.refresh(plan, attribute_names=["projects", "images"])
     return plan_to_read(plan)
 
 
@@ -150,12 +180,14 @@ async def update_plan(
             delete(PlanProject).where(PlanProject.plan_id == plan.id)
         )
         await db.flush()
-        for item in payload.projects:
+        for idx, item in enumerate(payload.projects):
             db.add(
                 PlanProject(
                     plan_id=plan.id,
                     app=item.app,
                     project_id=item.project_id,
+                    status=item.status,
+                    display_order=idx,
                     data=item.data,
                 )
             )
@@ -166,7 +198,7 @@ async def update_plan(
         await db.rollback()
         raise DuplicateProjectError(str(e)) from e
 
-    await db.refresh(plan, attribute_names=["projects"])
+    await db.refresh(plan, attribute_names=["projects", "images"])
     return plan_to_read(plan)
 
 
@@ -179,18 +211,57 @@ async def delete_plan(db: AsyncSession, owner_id: str, plan_id: str) -> bool:
     return True
 
 
+async def set_project_status(
+    db: AsyncSession,
+    owner_id: str,
+    plan_id: str,
+    app: str,
+    ext_project_id: str,
+    new_status: StatusLiteral,
+) -> bool:
+    """Update the status of a single project inside a plan. Returns False if not found."""
+    stmt = (
+        select(PlanProject)
+        .join(Plan, Plan.id == PlanProject.plan_id)
+        .where(
+            Plan.id == plan_id,
+            Plan.owner_id == owner_id,
+            PlanProject.app == app,
+            PlanProject.project_id == ext_project_id,
+        )
+    )
+    result = await db.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is None:
+        return False
+    row.status = new_status
+    await db.flush()
+    return True
+
+
 async def hydrate_one(
     row: PlanProject, hanko_cookie: str | None = None
 ) -> HydratedProjectItem:
-    if row.app == "umap":
+    if row.app == "chatmap":
         try:
-            upstream = await umap_service.fetch_map_metadata_by_id(
-                row.project_id, hanko_cookie=hanko_cookie
+            upstream = await chatmap_service.fetch_map_by_id(
+                row.project_id,
+                base_url="https://chatmap.hotosm.org/api/v1",
+                hanko_cookie=hanko_cookie,
             )
+            if upstream is None and hanko_cookie:
+                # Auth may have failed (e.g. local dev Hanko mismatch). Try without auth —
+                # ChatMap maps shared by link return metadata even without credentials.
+                upstream = await chatmap_service.fetch_map_by_id(
+                    row.project_id,
+                    base_url="https://chatmap.hotosm.org/api/v1",
+                    hanko_cookie=None,
+                )
         except Exception:
             return HydratedProjectItem(
                 app=row.app,
                 project_id=row.project_id,
+                status=row.status,
                 data=row.data,
                 upstream=None,
                 error="upstream_unavailable",
@@ -199,6 +270,7 @@ async def hydrate_one(
             return HydratedProjectItem(
                 app=row.app,
                 project_id=row.project_id,
+                status=row.status,
                 data=row.data,
                 upstream=None,
                 error="not_found",
@@ -206,6 +278,40 @@ async def hydrate_one(
         return HydratedProjectItem(
             app=row.app,
             project_id=row.project_id,
+            status=row.status,
+            data=row.data,
+            upstream=upstream,
+            error=None,
+        )
+
+    if row.app == "umap":
+        try:
+            upstream = await umap_service.fetch_map_by_id(
+                row.project_id,
+                base_url="https://umap.hotosm.org",
+            )
+        except Exception:
+            return HydratedProjectItem(
+                app=row.app,
+                project_id=row.project_id,
+                status=row.status,
+                data=row.data,
+                upstream=None,
+                error="upstream_unavailable",
+            )
+        if upstream is None:
+            return HydratedProjectItem(
+                app=row.app,
+                project_id=row.project_id,
+                status=row.status,
+                data=row.data,
+                upstream=None,
+                error="not_found",
+            )
+        return HydratedProjectItem(
+            app=row.app,
+            project_id=row.project_id,
+            status=row.status,
             data=row.data,
             upstream=upstream,
             error=None,
@@ -216,6 +322,7 @@ async def hydrate_one(
         return HydratedProjectItem(
             app=row.app,
             project_id=row.project_id,
+            status=row.status,
             data=row.data,
             upstream=None,
             error="not_found",
@@ -226,6 +333,7 @@ async def hydrate_one(
         return HydratedProjectItem(
             app=row.app,
             project_id=row.project_id,
+            status=row.status,
             data=row.data,
             upstream=None,
             error="upstream_unavailable",
@@ -234,6 +342,7 @@ async def hydrate_one(
         return HydratedProjectItem(
             app=row.app,
             project_id=row.project_id,
+            status=row.status,
             data=row.data,
             upstream=None,
             error="not_found",
@@ -241,6 +350,7 @@ async def hydrate_one(
     return HydratedProjectItem(
         app=row.app,
         project_id=row.project_id,
+        status=row.status,
         data=row.data,
         upstream=upstream,
         error=None,
@@ -266,6 +376,15 @@ async def get_plan_hydrated(
         created_at=plan.created_at,
         updated_at=plan.updated_at,
         projects=list(hydrated_items),
+        images=[
+            PlanImageRead(
+                id=img.id,
+                url=img.url,
+                display_order=img.display_order,
+                created_at=img.created_at,
+            )
+            for img in plan.images
+        ],
     )
 
 
@@ -276,7 +395,7 @@ async def get_public_plan_hydrated(
     stmt = (
         select(Plan)
         .where(Plan.id == plan_id, Plan.is_public.is_(True))
-        .options(selectinload(Plan.projects))
+        .options(selectinload(Plan.projects), selectinload(Plan.images))
     )
     result = await db.execute(stmt)
     plan = result.scalar_one_or_none()
@@ -295,6 +414,15 @@ async def get_public_plan_hydrated(
         created_at=plan.created_at,
         updated_at=plan.updated_at,
         projects=list(hydrated_items),
+        images=[
+            PlanImageRead(
+                id=img.id,
+                url=img.url,
+                display_order=img.display_order,
+                created_at=img.created_at,
+            )
+            for img in plan.images
+        ],
     )
 
 
@@ -372,3 +500,66 @@ def attach_plan_tags(
             continue
         item["plans"] = [t.model_dump() for t in tags.get(str(raw_id), [])]
     return items
+
+
+# Canonical production base URLs used only when resolving a user-pasted URL.
+# Plan hydration goes through APP_FETCHERS or explicit special cases, which respect env config.
+_CANONICAL_RESOLVE: dict[str, tuple] = {
+    "field-tm": (field_tm_service.fetch_project_by_id, "https://field.hotosm.org/api/v1"),
+    "drone-tasking-manager": (drone_tm_service.fetch_project_by_id, "https://api.drone.hotosm.org"),
+    "fair": (fair_service.fetch_model_by_id, "https://api-prod.fair.hotosm.org/api/v1"),
+    "export-tool": (export_tool_service.fetch_job_by_uid, "https://export.hotosm.org/api"),
+    "open-aerial-map": (open_aerial_map_service.fetch_imagery_by_id, "https://api.openaerialmap.org"),
+    "umap": (umap_service.fetch_map_by_id, "https://umap.hotosm.org"),
+}
+
+# ChatMap plan projects always live on chatmap.hotosm.org, so URL resolution
+# always verifies against the production API (requires a valid production Hanko cookie).
+_CHATMAP_RESOLVE_API_URL = "https://chatmap.hotosm.org/api/v1"
+
+
+async def resolve_project_url(
+    url: str, hanko_cookie: str | None = None
+) -> UrlResolveResponse:
+    """Parse a project URL, verify it exists upstream, and return app/project_id/upstream.
+
+    Raises:
+        InvalidUrlError: URL does not match any supported app pattern.
+        ProjectNotFoundError: URL parses successfully but project does not exist upstream.
+        UpstreamUnavailable: Upstream service is unreachable or returned an error.
+    """
+    parsed = url_resolver.parse_project_url(url)
+    if parsed is None:
+        raise InvalidUrlError(url)
+
+    app, project_id = parsed
+
+    try:
+        if app == "chatmap":
+            upstream = await chatmap_service.fetch_map_by_id(
+                project_id,
+                base_url=_CHATMAP_RESOLVE_API_URL,
+                hanko_cookie=hanko_cookie,
+            )
+            if upstream is None and hanko_cookie:
+                # Auth may have failed (e.g. local dev Hanko mismatch). Try without auth —
+                # ChatMap maps shared by link return metadata even without credentials.
+                upstream = await chatmap_service.fetch_map_by_id(
+                    project_id,
+                    base_url=_CHATMAP_RESOLVE_API_URL,
+                    hanko_cookie=None,
+                )
+            # Accept the project reference even if upstream is still None — the project
+            # may be private and only accessible to the owner in production.
+            return UrlResolveResponse(app=app, project_id=project_id, upstream=upstream)
+        elif app in _CANONICAL_RESOLVE:
+            fetcher, canonical_base = _CANONICAL_RESOLVE[app]
+            upstream = await fetcher(project_id, base_url=canonical_base)
+        else:
+            upstream = await APP_FETCHERS[app](project_id)
+    except Exception as e:
+        raise UpstreamUnavailable(app) from e
+
+    if upstream is None:
+        raise ProjectNotFoundError(f"{app}:{project_id}")
+    return UrlResolveResponse(app=app, project_id=project_id, upstream=upstream)

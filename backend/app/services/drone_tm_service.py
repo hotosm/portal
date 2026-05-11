@@ -9,20 +9,21 @@ from app.services.exceptions import UpstreamUnavailable
 DRONE_TM_BACKEND_URL = settings.drone_tm_api_base_url or settings.drone_tm_api_url
 
 
-def verify_ssl() -> bool:
-    return not DRONE_TM_BACKEND_URL.startswith("https://") or settings.drone_tm_verify_ssl
+def verify_ssl(base_url: str | None = None) -> bool:
+    effective = base_url or DRONE_TM_BACKEND_URL
+    return not effective.startswith("https://") or bool(settings.drone_tm_verify_ssl)
 
 
-async def fetch_project_by_id(project_id: str) -> dict | None:
+async def fetch_project_by_id(project_id: str, *, base_url: str | None = None) -> dict | None:
     """Fetch a single DroneTM project by id. None on 404, raises UpstreamUnavailable on failure."""
     cache_key = f"dronetm_project_{project_id}"
     cached = get_cached(cache_key)
     if cached is not None:
         return cached
 
-    url = f"{DRONE_TM_BACKEND_URL}/projects/{project_id}"
+    url = f"{base_url or DRONE_TM_BACKEND_URL}/projects/{project_id}"
     try:
-        async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl()) as client:
+        async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl(base_url)) as client:
             response = await client.get(url, headers={"Accept": "application/json"})
             if response.status_code == 404:
                 return None

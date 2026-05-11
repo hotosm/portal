@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import type { ProjectStatus } from "./types";
 import CardSkeleton from "../components/shared/CardSkeleton";
 import PageWrapper from "../components/shared/PageWrapper";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -20,6 +21,33 @@ function EditPlanPage() {
   const initialProjectKeys = useMemo(
     () =>
       new Set((plan?.projects ?? []).map((p) => `${p.app}:${p.project_id}`)),
+    [plan?.projects],
+  );
+
+  const initialProjectStatuses = useMemo(
+    () =>
+      Object.fromEntries(
+        (plan?.projects ?? []).map((p) => [
+          `${p.app}:${p.project_id}`,
+          (p.status ?? "in_progress") as ProjectStatus,
+        ]),
+      ),
+    [plan?.projects],
+  );
+
+  const initialExtraProjects = useMemo(
+    () =>
+      (plan?.projects ?? []).map((p) => ({
+        app: p.app,
+        project_id: p.project_id,
+        title:
+          (p.upstream?.name as string | undefined) ??
+          (p.upstream?.title as string | undefined) ??
+          (p.data?.name as string | undefined) ??
+          (p.data?.title as string | undefined) ??
+          p.project_id,
+        upstream: p.upstream ?? p.data ?? undefined,
+      })),
     [plan?.projects],
   );
 
@@ -52,6 +80,10 @@ function EditPlanPage() {
             initialName={plan.name}
             initialDescription={plan.description ?? ""}
             initialProjectKeys={initialProjectKeys}
+            initialProjectStatuses={initialProjectStatuses}
+            initialExtraProjects={initialExtraProjects}
+            initialImages={plan.images ?? []}
+            planId={planId}
             submitLabel={m.plan_edit_submit()}
             isPending={isPending}
             onSubmit={async ({ name, description, selectedProjects }) => {

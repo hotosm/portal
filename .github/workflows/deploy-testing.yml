@@ -64,7 +64,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: latest
+          version: 10
 
       - name: Install frontend dependencies
         working-directory: ./frontend
@@ -145,6 +145,10 @@ jobs:
           OSM_REDIRECT_URI: ${{ secrets.OSM_REDIRECT_URI }}
           ADMIN_EMAILS: ${{ secrets.ADMIN_EMAILS }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          S3_ENDPOINT_URL: ${{ secrets.S3_ENDPOINT_URL }}
+          S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+          S3_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY }}
+          S3_SECRET_KEY: ${{ secrets.S3_SECRET_KEY }}
         run: |
           # Deploy via SSH (using ssh-agent from webfactory/ssh-agent action)
           ssh $EC2_USER@$EC2_HOST << 'EOF'
@@ -166,6 +170,10 @@ jobs:
           OSM_CLIENT_ID=${{ secrets.OSM_CLIENT_ID }}
           OSM_CLIENT_SECRET=${{ secrets.OSM_CLIENT_SECRET }}
           ADMIN_EMAILS=${{ secrets.ADMIN_EMAILS }}
+          S3_ENDPOINT_URL=${{ secrets.S3_ENDPOINT_URL }}
+          S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}
+          S3_ACCESS_KEY=${{ secrets.S3_ACCESS_KEY }}
+          S3_SECRET_KEY=${{ secrets.S3_SECRET_KEY }}
           ENVEOF
             echo "✓ Updated .env"
 

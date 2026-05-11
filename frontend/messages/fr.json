@@ -148,6 +148,9 @@
   "plan_form_loading": "chargement…",
   "plan_form_projects_selected_singular": "projet sélectionné",
   "plan_form_projects_selected_plural": "projets sélectionnés",
+  "plan_form_uploading": "Téléchargement…",
+  "plan_form_add_images": "Ajouter des images",
+  "plan_form_add_projects": "Ajouter des projets",
   "plan_picker_label": "Sélectionner des projets",
   "plan_picker_all": "Tous",
   "plan_picker_no_projects": "Vous n'avez aucun projet dans aucun outil connecté.",
@@ -156,6 +159,11 @@
   "plan_picker_loading": "— chargement…",
   "plan_picker_error": "Impossible de charger les projets.",
   "plan_picker_done": "Terminé",
+  "plan_picker_url_duplicate": "Ce projet est déjà dans votre sélection.",
+  "plan_picker_url_chatmap_private": "Ce projet ChatMap est privé. Seules les cartes publiques ou vos propres cartes privées peuvent être ajoutées.",
+  "plan_picker_url_not_found": "Projet introuvable. Vérifiez l'URL.",
+  "plan_picker_url_service_unavailable": "Impossible de joindre le service. Réessayez plus tard.",
+  "plan_picker_url_not_recognized": "URL non reconnue. Compatible avec : Tasking Manager, Drone TM, Field TM, fAIr, OAM, Export Tool, uMap.",
   "plan_card_projects_singular": "projet",
   "plan_card_projects_plural": "projets",
   "plan_toast_create_error": "Échec de la création du plan",
@@ -167,5 +175,6 @@
   "plan_toast_deleted": "Plan supprimé",
   "plan_toast_link_copied": "Lien copié dans le presse-papiers",
   "plan_toast_link_copy_error": "Échec de la copie du lien",
-  "plan_toast_share_error": "Échec du partage du plan"
+  "plan_toast_share_error": "Échec du partage du plan",
+  "plan_toast_image_upload_error": "Échec du téléchargement de l'image"
 }

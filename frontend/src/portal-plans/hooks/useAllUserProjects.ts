@@ -1,25 +1,21 @@
 import { useMemo } from "react";
 import { useExportJobs } from "../../portal-data/hooks/useExportToolData";
 import { useMyMaps } from "../../portal-data/hooks/useUMapData";
+import { useChatMapData } from "../../portal-field/hooks/useChatMapData";
 import { useDroneProjects } from "../../portal-imagery/hooks/useDroneProjects";
 import { useMyModels } from "../../portal-mapping/hooks/useFairData";
-import type { AppName } from "../types";
+import type { AppName, ProjectOption, ProjectSource } from "../types";
 
-export interface ProjectOption {
-  app: AppName;
-  project_id: string;
-  title: string;
-}
-
-export interface ProjectSource {
-  app: AppName;
-  label: string;
-  projects: ProjectOption[];
-  isLoading: boolean;
-  isError: boolean;
-}
+export const FETCHED_APPS = new Set<AppName>([
+  "chatmap",
+  "drone-tasking-manager",
+  "fair",
+  "umap",
+  "export-tool",
+]);
 
 export const APP_LABELS: Record<AppName, string> = {
+  chatmap: "ChatMap",
   "drone-tasking-manager": "Drone TM",
   "export-tool": "Export Tool",
   fair: "fAIr",
@@ -30,6 +26,7 @@ export const APP_LABELS: Record<AppName, string> = {
 };
 
 export function useAllUserProjects() {
+  const chatmap = useChatMapData();
   const drone = useDroneProjects();
   const fair = useMyModels(1, 50);
   const umap = useMyMaps(1, 50);
@@ -37,6 +34,17 @@ export function useAllUserProjects() {
 
   const sources = useMemo<ProjectSource[]>(
     () => [
+      {
+        app: "chatmap",
+        label: APP_LABELS.chatmap,
+        projects: (chatmap.data ?? []).map((p) => ({
+          app: "chatmap" as AppName,
+          project_id: p.id,
+          title: p.title,
+        })),
+        isLoading: chatmap.isLoading,
+        isError: chatmap.isError,
+      },
       {
         app: "drone-tasking-manager",
         label: APP_LABELS["drone-tasking-manager"],
@@ -83,6 +91,9 @@ export function useAllUserProjects() {
       },
     ],
     [
+      chatmap.data,
+      chatmap.isLoading,
+      chatmap.isError,
       drone.data,
       drone.isLoading,
       drone.isError,

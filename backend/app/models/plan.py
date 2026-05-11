@@ -7,6 +7,7 @@ import nh3
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 AppLiteral = Literal[
+    "chatmap",
     "drone-tasking-manager",
     "export-tool",
     "fair",
@@ -16,6 +17,7 @@ AppLiteral = Literal[
     "umap",
 ]
 
+StatusLiteral = Literal["in_progress", "done"]
 
 HydrationError = Literal["not_found", "upstream_unavailable"]
 
@@ -32,9 +34,19 @@ def _sanitize_html(v: str | None) -> str | None:
     return nh3.clean(v, tags=_ALLOWED_TAGS, attributes=_ALLOWED_ATTRS)
 
 
+class PlanImageRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    url: str
+    display_order: int
+    created_at: datetime
+
+
 class PlanProjectItem(BaseModel):
     app: AppLiteral
     project_id: str
+    status: StatusLiteral = "in_progress"
     data: dict | None = None
 
 
@@ -70,6 +82,7 @@ class PlanRead(BaseModel):
     description: str | None
     is_public: bool
     projects: list[PlanProjectItem]
+    images: list[PlanImageRead] = []
     created_at: datetime
     updated_at: datetime
 
@@ -77,6 +90,7 @@ class PlanRead(BaseModel):
 class HydratedProjectItem(BaseModel):
     app: AppLiteral
     project_id: str
+    status: StatusLiteral = "in_progress"
     data: dict | None = None
     upstream: dict | None = None
     error: HydrationError | None = None
@@ -88,6 +102,7 @@ class PlanReadHydrated(BaseModel):
     description: str | None
     is_public: bool
     projects: list[HydratedProjectItem]
+    images: list[PlanImageRead] = []
     created_at: datetime
     updated_at: datetime
 
@@ -95,3 +110,17 @@ class PlanReadHydrated(BaseModel):
 class PlanTag(BaseModel):
     id: str
     name: str
+
+
+class ProjectStatusUpdate(BaseModel):
+    status: StatusLiteral
+
+
+class UrlResolveRequest(BaseModel):
+    url: str = Field(..., min_length=1, max_length=2048)
+
+
+class UrlResolveResponse(BaseModel):
+    app: AppLiteral
+    project_id: str
+    upstream: dict | None = None

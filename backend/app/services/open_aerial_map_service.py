@@ -9,9 +9,10 @@ from app.services.exceptions import UpstreamUnavailable
 OAM_API_BASE_URL = settings.oam_api_url
 
 
-async def fetch_imagery_by_id(image_id: str) -> dict | None:
-    """Fetch OAM image metadata by id via the live API. None on 404, raises UpstreamUnavailable on failure.
+async def fetch_imagery_by_id(image_id: str, *, base_url: str | None = None) -> dict | None:
+    """Fetch OAM image metadata by id.
 
+    None on 404, raises UpstreamUnavailable on failure.
     Note: this does not consult the local oam_images DB table — hydration of plans
     uses the live API directly so orphan detection works even when local sync is stale.
     """
@@ -20,7 +21,7 @@ async def fetch_imagery_by_id(image_id: str) -> dict | None:
     if cached is not None:
         return cached
 
-    url = f"{OAM_API_BASE_URL}/meta/{image_id}"
+    url = f"{base_url or OAM_API_BASE_URL}/meta/{image_id}"
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(url)
@@ -31,13 +32,14 @@ async def fetch_imagery_by_id(image_id: str) -> dict | None:
     except (httpx.RequestError, httpx.HTTPStatusError) as e:
         raise UpstreamUnavailable(f"open-aerial-map: {e}") from e
 
-    results = data.get("results") or []
-    if not results:
+    raw = data.get("results") or []
+    if not raw:
         return None
-    result = results[0]
+    result = raw if isinstance(raw, dict) else raw[0]
     filtered = {
         "title": result.get("title"),
         "thumbnail": (result.get("properties") or {}).get("thumbnail"),
+        "bbox": result.get("bbox"),
     }
     set_cached(cache_key, filtered, DEFAULT_TTL)
     return filtered
