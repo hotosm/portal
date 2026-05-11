@@ -17,6 +17,7 @@ AppLiteral = Literal[
     "umap",
 ]
 
+StatusLiteral = Literal["in_progress", "done"]
 
 HydrationError = Literal["not_found", "upstream_unavailable"]
 
@@ -45,6 +46,7 @@ class PlanImageRead(BaseModel):
 class PlanProjectItem(BaseModel):
     app: AppLiteral
     project_id: str
+    status: StatusLiteral = "in_progress"
     data: dict | None = None
 
 
@@ -88,6 +90,7 @@ class PlanRead(BaseModel):
 class HydratedProjectItem(BaseModel):
     app: AppLiteral
     project_id: str
+    status: StatusLiteral = "in_progress"
     data: dict | None = None
     upstream: dict | None = None
     error: HydrationError | None = None
@@ -107,6 +110,10 @@ class PlanReadHydrated(BaseModel):
 class PlanTag(BaseModel):
     id: str
     name: str
+
+
+class ProjectStatusUpdate(BaseModel):
+    status: StatusLiteral
 
 
 class UrlResolveRequest(BaseModel):

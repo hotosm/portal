@@ -52,7 +52,7 @@ class Plan(Base):
         back_populates="plan",
         cascade="all, delete-orphan",
         passive_deletes=True,
-        order_by="PlanProject.added_at",
+        order_by="PlanProject.display_order",
     )
 
     images = relationship(
@@ -78,6 +78,8 @@ class PlanProject(Base):
     )
     app = Column(String, nullable=False)
     project_id = Column(String, nullable=False)
+    status = Column(String, nullable=False, default="in_progress")
+    display_order = Column(Integer, nullable=False, default=0)
     data = Column(JSON().with_variant(JSONB, "postgresql"), nullable=True)
     added_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
 
