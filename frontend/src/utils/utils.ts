@@ -16,3 +16,10 @@ export function shortenText(text: string, maxLength: number = 100): string {
 export function projectKey(app: AppName, project_id: string) {
   return `${app}:${project_id}`;
 }
+
+export function formatProjectStatus(status: string): string {
+  return status
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}

@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import placeholder from "../../assets/images/placeholder.png";
 import CardProjectTitle from "../../components/shared/CardProjectTitle";
+import Tag from "../../components/shared/Tag";
 import { APP_META } from "../../utils/appMeta";
 import { osmTileUrl } from "../../utils/osmTiles";
-import { useUpdateProjectStatus } from "../hooks";
-import type { HydratedProjectItem, AppName, ProjectStatus } from "../types";
+import { formatProjectStatus } from "../../utils/utils";
+import type { HydratedProjectItem, AppName } from "../types";
 
 function getProjectHref(
   app: AppName,
@@ -83,43 +84,10 @@ function getUpstreamImage(
 
 interface PlanProjectCardProps {
   project: HydratedProjectItem;
-  isOwner?: boolean;
-  planId?: string;
 }
 
-function StatusDot({
-  status,
-  isOwner,
-  onToggle,
-  isPending,
-}: {
-  status: ProjectStatus;
-  isOwner: boolean;
-  onToggle: () => void;
-  isPending: boolean;
-}) {
-  const colorClass = status === "done" ? "bg-green-500" : "bg-yellow-400";
-  if (isOwner) {
-    return (
-      <button
-        onClick={onToggle}
-        disabled={isPending}
-        title={status === "done" ? "Mark as in progress" : "Mark as done"}
-        className={`w-3 h-3 rounded-full ${colorClass} ${isPending ? "opacity-50" : "hover:ring-2 hover:ring-offset-1 hover:ring-gray-400"} transition-opacity`}
-      />
-    );
-  }
-  return <span className={`w-3 h-3 rounded-full ${colorClass} inline-block`} />;
-}
-
-function PlanProjectCard({ project, isOwner = false, planId = "" }: PlanProjectCardProps) {
+function PlanProjectCard({ project }: PlanProjectCardProps) {
   const [chatmapName, setChatmapName] = useState<string | null>(null);
-  const { mutate: updateStatus, isPending: statusPending } = useUpdateProjectStatus();
-
-  function handleStatusToggle() {
-    const next = project.status === "done" ? "in_progress" : "done";
-    updateStatus({ planId, app: project.app, projectId: project.project_id, status: next });
-  }
 
   useEffect(() => {
     if (project.app !== "chatmap" || project.upstream || project.data) return;
@@ -142,7 +110,6 @@ function PlanProjectCard({ project, isOwner = false, planId = "" }: PlanProjectC
     project.project_id,
     project.upstream,
   );
-
   return (
     <div className="w-full h-full bg-white rounded-xl shadow-[0_0_14px_rgba(0,0,0,0.2)] p-md flex flex-col gap-lg">
       <div className="flex flex-col gap-sm">
@@ -160,14 +127,12 @@ function PlanProjectCard({ project, isOwner = false, planId = "" }: PlanProjectC
               <img src={meta.icon} alt={meta.label} className="w-6 h-6" />
             </div>
           </div>
-          <div className="absolute top-2 right-2">
-            <StatusDot
-              status={project.status}
-              isOwner={isOwner}
-              onToggle={handleStatusToggle}
-              isPending={statusPending}
-            />
-          </div>
+          <Tag
+            variant={project.status === "done" ? "success" : "neutral"}
+            className="absolute top-1 right-1 z-10"
+          >
+            {formatProjectStatus(project.status)}
+          </Tag>
         </div>
 
         {href ? (
