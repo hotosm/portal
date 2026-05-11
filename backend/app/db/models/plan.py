@@ -76,8 +76,9 @@ class PlanProject(Base):
         nullable=False,
         index=True,
     )
-    app = Column(String, nullable=False)
-    project_id = Column(String, nullable=False)
+    app = Column(String, nullable=True)
+    project_id = Column(String, nullable=True)
+    project_exists = Column(Boolean, nullable=False, default=True)
     data = Column(JSON().with_variant(JSONB, "postgresql"), nullable=True)
     added_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
 

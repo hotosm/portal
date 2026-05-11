@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Literal
 
 import nh3
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 AppLiteral = Literal[
     "chatmap",
@@ -43,9 +43,20 @@ class PlanImageRead(BaseModel):
 
 
 class PlanProjectItem(BaseModel):
-    app: AppLiteral
-    project_id: str
+    app: AppLiteral | None = None
+    project_id: str | None = None
+    project_exists: bool = True
     data: dict | None = None
+
+    @model_validator(mode="after")
+    def check_project_fields(self) -> "PlanProjectItem":
+        if self.project_exists:
+            if self.app is None or self.project_id is None:
+                raise ValueError("app and project_id are required when project_exists is True")
+        else:
+            if self.app is not None or self.project_id is not None:
+                raise ValueError("app and project_id must be absent when project_exists is False")
+        return self
 
 
 class PlanCreate(BaseModel):
@@ -86,8 +97,9 @@ class PlanRead(BaseModel):
 
 
 class HydratedProjectItem(BaseModel):
-    app: AppLiteral
-    project_id: str
+    app: AppLiteral | None
+    project_id: str | None
+    project_exists: bool = True
     data: dict | None = None
     upstream: dict | None = None
     error: HydrationError | None = None

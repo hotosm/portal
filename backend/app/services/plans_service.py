@@ -72,9 +72,14 @@ def plan_to_read(plan: Plan) -> PlanRead:
         created_at=plan.created_at,
         updated_at=plan.updated_at,
         projects=[
-            PlanProjectItem(app=row.app, project_id=row.project_id, data=row.data)
+            PlanProjectItem(
+                app=row.app,
+                project_id=row.project_id,
+                project_exists=row.project_exists,
+                data=row.data,
+            )
             for row in plan.projects
-            if row.app in _KNOWN_APPS
+            if not row.project_exists or row.app in _KNOWN_APPS
         ],
         images=[
             PlanImageRead(
@@ -91,6 +96,8 @@ def plan_to_read(plan: Plan) -> PlanRead:
 def check_no_duplicates(items: list[PlanProjectItem]) -> None:
     seen: set[tuple[str, str]] = set()
     for item in items:
+        if not item.project_exists:
+            continue
         key = (item.app, item.project_id)
         if key in seen:
             raise DuplicateProjectError(
@@ -143,6 +150,7 @@ async def create_plan(
                 plan_id=plan.id,
                 app=item.app,
                 project_id=item.project_id,
+                project_exists=item.project_exists,
                 data=item.data,
             )
         )
@@ -209,6 +217,16 @@ async def delete_plan(db: AsyncSession, owner_id: str, plan_id: str) -> bool:
 async def hydrate_one(
     row: PlanProject, hanko_cookie: str | None = None
 ) -> HydratedProjectItem:
+    if not row.project_exists:
+        return HydratedProjectItem(
+            app=row.app,
+            project_id=row.project_id,
+            project_exists=False,
+            data=row.data,
+            upstream=None,
+            error=None,
+        )
+
     if row.app == "chatmap":
         try:
             upstream = await chatmap_service.fetch_map_by_id(
