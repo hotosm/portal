@@ -90,7 +90,7 @@ function toHydrated(
     app: p.app,
     project_id: p.project_id,
     status,
-    data: p.upstream ?? null,
+    data: p.upstream ?? (p.title ? { name: p.title } : null),
     upstream: p.upstream ?? null,
     error: null,
   };
