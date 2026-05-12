@@ -30,6 +30,7 @@ import type {
 import PlanProjectCard from "./PlanProjectCard";
 import ProjectPickerDialog from "./ProjectPickerDialog";
 import { usePlanImageUpload } from "../hooks/usePlanImageUpload";
+import { cardClassNames } from "../../constants/classNames";
 
 export interface PlanFormValues {
   name: string;
@@ -70,9 +71,6 @@ const SECTION_TITLE: Record<string, () => string> = {
   field: m.section_field,
   data: m.section_data,
 };
-
-const CARD_CLASS =
-  "w-full md:w-[calc(33.333%_-_var(--hot-spacing-large)*0.667)] lg:w-[calc(25%_-_var(--hot-spacing-large)*0.75)] shrink-0";
 
 function projectKey(p: ProjectOption) {
   return `${p.app}:${p.project_id}`;
@@ -131,7 +129,7 @@ function SortableCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`${CARD_CLASS} flex flex-col gap-xs`}
+      className={`${cardClassNames} flex flex-col gap-xs`}
     >
       <div className="relative">
         <div

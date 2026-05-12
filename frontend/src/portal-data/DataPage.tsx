@@ -12,9 +12,7 @@ import { m } from "../paraglide/messages";
 import ExportCard from "./components/ExportCard";
 import UMapCard from "./components/UMapCard";
 import { useExportJobs, useMyMaps } from "./hooks";
-
-const CARD_CLASS =
-  "w-full md:w-[calc(33.333%_-_var(--hot-spacing-large)*0.667)] lg:w-[calc(25%_-_var(--hot-spacing-large)*0.75)] shrink-0";
+import { cardClassNames } from "../constants/classNames";
 
 const EXPORTS_PER_PAGE = 6;
 const MAPS_PER_PAGE = 6;
@@ -50,7 +48,7 @@ function DataPage() {
       <PageWrapper>
         <div className="flex flex-col gap-sm py-lg">
           <div className="flex flex-wrap gap-lg">
-            <div className={CARD_CLASS}>
+            <div className={cardClassNames}>
               <CardAddNew
                 title={m.mapping_tm_card_title()}
                 description={m.mapping_tm_card_description()}
@@ -60,13 +58,13 @@ function DataPage() {
             </div>
             {mapsLoading ? (
               Array.from({ length: 1 }).map((_, i) => (
-                <div key={i} className={CARD_CLASS}>
+                <div key={i} className={cardClassNames}>
                   <CardSkeleton linesCount={3} />
                 </div>
               ))
             ) : (
               <>
-                <div className={CARD_CLASS}>
+                <div className={cardClassNames}>
                   <CardAddNew
                     title="Create"
                     description="a mapping project"
@@ -75,7 +73,7 @@ function DataPage() {
                   />
                 </div>
                 {maps.map((map) => (
-                  <div key={map.id} className={CARD_CLASS}>
+                  <div key={map.id} className={cardClassNames}>
                     <UMapCard project={map} />
                   </div>
                 ))}
@@ -105,13 +103,13 @@ function DataPage() {
           <div className="flex flex-wrap gap-lg">
             {exportsLoading ? (
               Array.from({ length: 2 }).map((_, i) => (
-                <div key={i} className={CARD_CLASS}>
+                <div key={i} className={cardClassNames}>
                   <CardSkeleton linesCount={3} />
                 </div>
               ))
             ) : (
               <>
-                <div className={CARD_CLASS}>
+                <div className={cardClassNames}>
                   <CardAddNew
                     title="Export"
                     description="filter and download data in any format"
@@ -120,13 +118,13 @@ function DataPage() {
                   />
                 </div>
                 {exports.map((project) => (
-                  <div key={project.id} className={CARD_CLASS}>
+                  <div key={project.id} className={cardClassNames}>
                     <ExportCard project={project} />
                   </div>
                 ))}
               </>
             )}
-            <div className={CARD_CLASS}>
+            <div className={cardClassNames}>
               <CardTakeCourse
                 title={m.imagery_take_course_title()}
                 subtitle={m.imagery_take_course_subtitle()}
