@@ -142,26 +142,28 @@ function SortableCard({
         <PlanProjectCard project={toHydrated(project, status)} />
       </div>
       <div className="w-full flex justify-between gap-xs">
-        <ButtonGroup label="Project status">
-          <Button
-            pill
-            size="small"
-            variant="neutral"
-            appearance={status === "done" ? "plain" : "filled"}
-            onClick={() => onStatusChange("in_progress")}
-          >
-            {formatProjectStatus("in_progress")}
-          </Button>
-          <Button
-            pill
-            size="small"
-            variant={status === "done" ? "success" : "neutral"}
-            appearance={status === "done" ? "filled" : "plain"}
-            onClick={() => onStatusChange("done")}
-          >
-            {formatProjectStatus("done")}
-          </Button>
-        </ButtonGroup>
+        <div className="border border-hot-gray-200 rounded-lg">
+          <ButtonGroup label="Project status">
+            <Button
+              pill
+              size="small"
+              variant="neutral"
+              appearance={status === "done" ? "plain" : "filled"}
+              onClick={() => onStatusChange("in_progress")}
+            >
+              {formatProjectStatus("in_progress")}
+            </Button>
+            <Button
+              pill
+              size="small"
+              variant={status === "done" ? "success" : "neutral"}
+              appearance={status === "done" ? "filled" : "plain"}
+              onClick={() => onStatusChange("done")}
+            >
+              {formatProjectStatus("done")}
+            </Button>
+          </ButtonGroup>
+        </div>
         <Button
           type="button"
           appearance="plain"
