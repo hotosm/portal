@@ -13,6 +13,7 @@ interface UMapMap {
   slug: string;
   url: string;
   modified_at: string;
+  centroid: [number, number] | null;
 }
 
 interface PaginatedMaps {
@@ -28,6 +29,7 @@ function mapToProject(item: UMapMap): IUMapProject {
     status: "published",
     image: placeholderImage,
     accuracy: 0,
+    centroid: item.centroid ?? null,
   };
 }
 

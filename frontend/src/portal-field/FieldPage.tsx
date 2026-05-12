@@ -10,9 +10,7 @@ import SubSectionHeader from "../components/shared/SubSectionHeader";
 import { m } from "../paraglide/messages";
 import ChatMapCard from "./components/ChatMapCard";
 import { useChatMapData } from "./hooks/useChatMapData";
-
-const CARD_CLASS =
-  "w-full md:w-[calc(33.333%_-_var(--hot-spacing-large)*0.667)] lg:w-[calc(25%_-_var(--hot-spacing-large)*0.75)] shrink-0";
+import { cardClassNames } from "../constants/classNames";
 
 function FieldPage() {
   const { data: chatMaps = [], isLoading: isChatMapLoading } = useChatMapData();
@@ -30,7 +28,7 @@ function FieldPage() {
       <PageWrapper>
         <div className="flex flex-col gap-sm py-lg">
           <div className="flex flex-wrap gap-lg">
-            <div className={CARD_CLASS}>
+            <div className={cardClassNames}>
               <CardAddNew
                 title={m.mapping_tm_card_title()}
                 description={m.mapping_tm_card_description()}
@@ -38,7 +36,7 @@ function FieldPage() {
                 icon="map"
               />
             </div>
-            <div className={CARD_CLASS}>
+            <div className={cardClassNames}>
               <CardAddNew
                 title={m.field_tm_card_title()}
                 description={m.field_tm_card_description()}
@@ -48,12 +46,12 @@ function FieldPage() {
             </div>
             {isChatMapLoading
               ? Array.from({ length: 1 }).map((_, i) => (
-                  <div key={i} className={CARD_CLASS}>
+                  <div key={i} className={cardClassNames}>
                     <CardSkeleton linesCount={3} />
                   </div>
                 ))
               : chatMaps.map((map) => (
-                  <div key={map.id} className={CARD_CLASS}>
+                  <div key={map.id} className={cardClassNames}>
                     <ChatMapCard project={map} />
                   </div>
                 ))}
@@ -72,23 +70,23 @@ function FieldPage() {
           <div className="flex flex-wrap gap-lg">
             {/* {isFieldLoading ? (
               Array.from({ length: 1 }).map((_, i) => (
-                <div key={i} className={CARD_CLASS}>
+                <div key={i} className={cardClassNames}>
                   <CardSkeleton linesCount={3} />
                 </div>
               ))
             ) : (
               <>
                 {fieldMaps.map((project) => (
-                  <div key={project.id} className={CARD_CLASS}>
+                  <div key={project.id} className={cardClassNames}>
                     <FieldTMCard project={project} />
                   </div>
                 ))}
               </>
             )} */}
-            <div className={CARD_CLASS}>
+            <div className={cardClassNames}>
               <CardDataNotAvailable />
             </div>
-            <div className={CARD_CLASS}>
+            <div className={cardClassNames}>
               <CardTakeCourse
                 title={m.imagery_take_course_title()}
                 subtitle={m.imagery_take_course_subtitle()}

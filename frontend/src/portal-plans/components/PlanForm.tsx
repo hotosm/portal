@@ -30,6 +30,7 @@ import type {
 import PlanProjectCard from "./PlanProjectCard";
 import ProjectPickerDialog from "./ProjectPickerDialog";
 import { usePlanImageUpload } from "../hooks/usePlanImageUpload";
+import { cardClassNames } from "../../constants/classNames";
 
 export interface PlanFormValues {
   name: string;
@@ -71,9 +72,6 @@ const SECTION_TITLE: Record<string, () => string> = {
   data: m.section_data,
 };
 
-const CARD_CLASS =
-  "w-full md:w-[calc(33.333%_-_var(--hot-spacing-large)*0.667)] lg:w-[calc(25%_-_var(--hot-spacing-large)*0.75)] shrink-0";
-
 function projectKey(p: ProjectOption) {
   return `${p.app}:${p.project_id}`;
 }
@@ -90,7 +88,7 @@ function toHydrated(
     app: p.app,
     project_id: p.project_id,
     status,
-    data: p.upstream ?? null,
+    data: p.upstream ?? (p.title ? { name: p.title } : null),
     upstream: p.upstream ?? null,
     error: null,
   };
@@ -131,7 +129,7 @@ function SortableCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`${CARD_CLASS} flex flex-col gap-xs`}
+      className={`${cardClassNames} flex flex-col gap-xs`}
     >
       <div className="relative">
         <div
@@ -144,26 +142,28 @@ function SortableCard({
         <PlanProjectCard project={toHydrated(project, status)} />
       </div>
       <div className="w-full flex justify-between gap-xs">
-        <ButtonGroup label="Project status">
-          <Button
-            pill
-            size="small"
-            variant="neutral"
-            appearance={status === "done" ? "plain" : "filled"}
-            onClick={() => onStatusChange("in_progress")}
-          >
-            {formatProjectStatus("in_progress")}
-          </Button>
-          <Button
-            pill
-            size="small"
-            variant={status === "done" ? "success" : "neutral"}
-            appearance={status === "done" ? "filled" : "plain"}
-            onClick={() => onStatusChange("done")}
-          >
-            {formatProjectStatus("done")}
-          </Button>
-        </ButtonGroup>
+        <div className="border border-hot-gray-200 rounded-lg">
+          <ButtonGroup label="Project status">
+            <Button
+              pill
+              size="small"
+              variant="neutral"
+              appearance={status === "done" ? "plain" : "filled"}
+              onClick={() => onStatusChange("in_progress")}
+            >
+              {formatProjectStatus("in_progress")}
+            </Button>
+            <Button
+              pill
+              size="small"
+              variant={status === "done" ? "success" : "neutral"}
+              appearance={status === "done" ? "filled" : "plain"}
+              onClick={() => onStatusChange("done")}
+            >
+              {formatProjectStatus("done")}
+            </Button>
+          </ButtonGroup>
+        </div>
         <Button
           type="button"
           appearance="plain"

@@ -8,9 +8,7 @@ import { m } from "../paraglide/messages";
 import PlanCard from "./components/PlanCard";
 import PlanSectionHeader from "./components/PlanSectionHeader";
 import { useMyPlans } from "./hooks";
-
-const CARD_CLASS =
-  "w-full md:w-[calc(33.333%_-_var(--hot-spacing-large)*0.667)] lg:w-[calc(25%_-_var(--hot-spacing-large)*0.75)] shrink-0";
+import { cardClassNames } from "../constants/classNames";
 
 function PlanPage() {
   const navigate = useNavigate();
@@ -34,13 +32,13 @@ function PlanPage() {
           <div className="flex flex-wrap gap-lg">
             {isLoading ? (
               Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className={CARD_CLASS}>
+                <div key={i} className={cardClassNames}>
                   <CardSkeleton linesCount={3} />
                 </div>
               ))
             ) : (
               <>
-                <div className={CARD_CLASS}>
+                <div className={cardClassNames}>
                   <CardAddNew
                     title={m.plan_page_create_title()}
                     description={m.plan_page_create_description()}
@@ -52,7 +50,7 @@ function PlanPage() {
                   />
                 </div>
                 {plans.map((plan) => (
-                  <div key={plan.id} className={CARD_CLASS}>
+                  <div key={plan.id} className={cardClassNames}>
                     <PlanCard plan={plan} />
                   </div>
                 ))}
