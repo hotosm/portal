@@ -38,34 +38,50 @@ export function AppSourceSection({
           </span>
         )}
       </p>
-      {source.isError ? (
-        <p className="text-sm text-hot-gray-400">
-          {source.label} — {m.plan_picker_error()}
-        </p>
-      ) : source.isLoading ? (
-        <div className="flex flex-col gap-xs">
-          <CheckboxSkeleton />
-          <CheckboxSkeleton />
-          <CheckboxSkeleton />
-        </div>
-      ) : (
-        <div className="flex flex-col gap-xs">
-          {[...source.projects, ...extras].map((p) => {
-            const key = projectKey(p.app, p.project_id);
-            const isChecked = localSelected.has(key);
-            return (
-              <Checkbox
-                key={key}
-                checked={isChecked}
-                defaultChecked={isChecked}
-                onChange={() => toggle(key)}
-              >
-                {p.title}
-              </Checkbox>
-            );
-          })}
-        </div>
-      )}
+      {(() => {
+        const seenKeys = new Set(
+          source.projects.map((p) => projectKey(p.app, p.project_id)),
+        );
+        const uniqueExtras = extras.filter(
+          (e) => !seenKeys.has(projectKey(e.app, e.project_id)),
+        );
+        const allItems = [...source.projects, ...uniqueExtras];
+
+        if (source.isLoading && allItems.length === 0) {
+          return (
+            <div className="flex flex-col gap-xs">
+              <CheckboxSkeleton />
+              <CheckboxSkeleton />
+              <CheckboxSkeleton />
+            </div>
+          );
+        }
+        if (source.isError && allItems.length === 0) {
+          return (
+            <p className="text-sm text-hot-gray-400">
+              {source.label} — {m.plan_picker_error()}
+            </p>
+          );
+        }
+        return (
+          <div className="flex flex-col gap-xs">
+            {allItems.map((p) => {
+              const key = projectKey(p.app, p.project_id);
+              const isChecked = localSelected.has(key);
+              return (
+                <Checkbox
+                  key={key}
+                  checked={isChecked}
+                  defaultChecked={isChecked}
+                  onChange={() => toggle(key)}
+                >
+                  {p.title}
+                </Checkbox>
+              );
+            })}
+          </div>
+        );
+      })()}
     </div>
   );
 }

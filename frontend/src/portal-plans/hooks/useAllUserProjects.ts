@@ -50,7 +50,7 @@ export function useAllUserProjects() {
         label: APP_LABELS["drone-tasking-manager"],
         projects: (drone.data ?? []).map((p) => ({
           app: "drone-tasking-manager" as AppName,
-          project_id: p.id,
+          project_id: p.id.startsWith("drone-") ? p.id.slice("drone-".length) : p.id,
           title: p.title,
         })),
         isLoading: drone.isLoading,
@@ -74,6 +74,7 @@ export function useAllUserProjects() {
           app: "umap" as AppName,
           project_id: String(p.id),
           title: p.title,
+          upstream: { name: p.title, centroid: p.centroid ?? null, href: p.href },
         })),
         isLoading: umap.isLoading,
         isError: umap.isError,

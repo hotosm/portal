@@ -1,12 +1,36 @@
 import { useState } from "react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  arrayMove,
+  rectSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import Button from "../../components/shared/Button";
+import ButtonGroup from "../../components/shared/ButtonGroup";
 import RichTextEditor from "../../components/shared/RichTextEditor";
-import Tag from "../../components/shared/Tag";
 import { m } from "../../paraglide/messages";
-import { APP_LABELS, useAllUserProjects } from "../hooks";
-import type { AppName, PlanImageRead, ProjectOption } from "../types";
+import { formatProjectStatus } from "../../utils/utils";
+import { useAllUserProjects } from "../hooks";
+import type {
+  AppName,
+  HydratedProjectItem,
+  PlanImageRead,
+  ProjectOption,
+  ProjectStatus,
+} from "../types";
+import PlanProjectCard from "./PlanProjectCard";
 import ProjectPickerDialog from "./ProjectPickerDialog";
 import { usePlanImageUpload } from "../hooks/usePlanImageUpload";
+import { cardClassNames } from "../../constants/classNames";
 
 export interface PlanFormValues {
   name: string;
@@ -14,6 +38,7 @@ export interface PlanFormValues {
   selectedProjects: {
     app: AppName;
     project_id: string;
+    status: ProjectStatus;
     data?: Record<string, unknown> | null;
   }[];
   pendingImages: File[];
@@ -23,6 +48,7 @@ interface PlanFormProps {
   initialName?: string;
   initialDescription?: string;
   initialProjectKeys?: Set<string>;
+  initialProjectStatuses?: Record<string, ProjectStatus>;
   initialExtraProjects?: ProjectOption[];
   initialImages?: PlanImageRead[];
   planId?: string;
@@ -32,14 +58,130 @@ interface PlanFormProps {
   onCancel: () => void;
 }
 
+const PLAN_SECTIONS: { titleKey: string; apps: AppName[] }[] = [
+  { titleKey: "imagery", apps: ["drone-tasking-manager", "open-aerial-map"] },
+  { titleKey: "mapping", apps: ["tasking-manager", "fair"] },
+  { titleKey: "field", apps: ["field-tm", "chatmap"] },
+  { titleKey: "data", apps: ["export-tool", "umap"] },
+];
+
+const SECTION_TITLE: Record<string, () => string> = {
+  imagery: m.section_imagery,
+  mapping: m.section_mapping,
+  field: m.section_field,
+  data: m.section_data,
+};
+
 function projectKey(p: ProjectOption) {
   return `${p.app}:${p.project_id}`;
+}
+
+function appFromKey(key: string): AppName {
+  return key.slice(0, key.indexOf(":")) as AppName;
+}
+
+function toHydrated(
+  p: ProjectOption,
+  status: ProjectStatus,
+): HydratedProjectItem {
+  return {
+    app: p.app,
+    project_id: p.project_id,
+    status,
+    data: p.upstream ?? (p.title ? { name: p.title } : null),
+    upstream: p.upstream ?? null,
+    error: null,
+  };
+}
+
+interface SortableCardProps {
+  id: string;
+  project: ProjectOption;
+  status: ProjectStatus;
+  onStatusChange: (s: ProjectStatus) => void;
+  onRemove: () => void;
+}
+
+function SortableCard({
+  id,
+  project,
+  status,
+  onStatusChange,
+  onRemove,
+}: SortableCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`${cardClassNames} flex flex-col gap-xs`}
+    >
+      <div className="relative">
+        <div
+          {...attributes}
+          {...listeners}
+          className="absolute top-1 left-1 z-20 cursor-grab active:cursor-grabbing bg-black/30 text-white rounded px-1 leading-none select-none text-base"
+        >
+          ⠿
+        </div>
+        <PlanProjectCard project={toHydrated(project, status)} />
+      </div>
+      <div className="w-full flex justify-between gap-xs">
+        <div className="border border-hot-gray-200 rounded-lg">
+          <ButtonGroup label="Project status">
+            <Button
+              pill
+              size="small"
+              variant="neutral"
+              appearance={status === "done" ? "plain" : "filled"}
+              onClick={() => onStatusChange("in_progress")}
+            >
+              {formatProjectStatus("in_progress")}
+            </Button>
+            <Button
+              pill
+              size="small"
+              variant={status === "done" ? "success" : "neutral"}
+              appearance={status === "done" ? "filled" : "plain"}
+              onClick={() => onStatusChange("done")}
+            >
+              {formatProjectStatus("done")}
+            </Button>
+          </ButtonGroup>
+        </div>
+        <Button
+          type="button"
+          appearance="plain"
+          size="small"
+          onClick={onRemove}
+        >
+          ✕
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 function PlanForm({
   initialName = "",
   initialDescription = "",
   initialProjectKeys = new Set(),
+  initialProjectStatuses = {},
   initialExtraProjects = [],
   initialImages = [],
   planId,
@@ -51,8 +193,13 @@ function PlanForm({
   const [name, setName] = useState(initialName);
   const [description, setDescription] = useState(initialDescription);
   const [selected, setSelected] = useState<Set<string>>(initialProjectKeys);
+  const [order, setOrder] = useState<string[]>(() => [...initialProjectKeys]);
+  const [statuses, setStatuses] = useState<Record<string, ProjectStatus>>(
+    initialProjectStatuses,
+  );
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [extraProjects, setExtraProjects] = useState<ProjectOption[]>(initialExtraProjects);
+  const [extraProjects, setExtraProjects] =
+    useState<ProjectOption[]>(initialExtraProjects);
   const { sources, projects, isLoading } = useAllUserProjects();
   const {
     displayImages,
@@ -64,49 +211,60 @@ function PlanForm({
     handleRemoveImage,
   } = usePlanImageUpload({ planId, initialImages });
 
-  function toggleProject(project: ProjectOption, checked: boolean) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
+
+  const allProjects = [...extraProjects, ...projects];
+  const projectMap = new Map(allProjects.map((p) => [projectKey(p), p]));
+  const loadingCount = [...selected].filter((k) => !projectMap.has(k)).length;
+  const busy = isPending || isUploading || isDeleting;
+
+  function removeProject(key: string) {
     setSelected((prev) => {
       const next = new Set(prev);
-      checked
-        ? next.add(projectKey(project))
-        : next.delete(projectKey(project));
+      next.delete(key);
+      return next;
+    });
+    setOrder((prev) => prev.filter((k) => k !== key));
+    setStatuses((prev) => {
+      const next = { ...prev };
+      delete next[key];
       return next;
     });
   }
 
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setOrder((prev) =>
+      arrayMove(
+        prev,
+        prev.indexOf(active.id as string),
+        prev.indexOf(over.id as string),
+      ),
+    );
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const allProjects = [...projects, ...extraProjects];
-    const matched = allProjects
-      .filter((p) => selected.has(projectKey(p)))
-      .map(({ app, project_id, upstream }) => ({
-        app,
-        project_id,
-        ...(upstream ? { data: upstream } : {}),
-      }));
-    const matchedKeys = new Set(matched.map((p) => `${p.app}:${p.project_id}`));
-    // Preserve selected projects not present in allProjects (e.g. URL-added apps like ChatMap)
-    const orphans = [...selected]
-      .filter((k) => !matchedKeys.has(k))
+    const selectedProjects = order
+      .filter((k) => selected.has(k))
       .map((k) => {
         const colonIdx = k.indexOf(":");
+        const app = k.slice(0, colonIdx) as AppName;
+        const project_id = k.slice(colonIdx + 1);
+        const status = statuses[k] ?? ("in_progress" as ProjectStatus);
+        const p = projectMap.get(k);
         return {
-          app: k.slice(0, colonIdx) as AppName,
-          project_id: k.slice(colonIdx + 1),
+          app,
+          project_id,
+          status,
+          ...(p?.upstream ? { data: p.upstream } : {}),
         };
       });
-    await onSubmit({
-      name,
-      description,
-      selectedProjects: [...matched, ...orphans],
-      pendingImages,
-    });
+    await onSubmit({ name, description, selectedProjects, pendingImages });
   };
-
-  const allProjects = [...projects, ...extraProjects];
-  const selectedTags = allProjects.filter((p) => selected.has(projectKey(p)));
-  const loadingCount = selected.size - selectedTags.length;
-  const busy = isPending || isUploading || isDeleting;
 
   return (
     <form
@@ -147,7 +305,29 @@ function PlanForm({
       </div>
 
       <div className="flex flex-col gap-sm">
-        <p className="text-sm font-medium text-hot-gray-700">Images</p>
+        <span>
+          <p className="text-sm font-medium text-hot-gray-700">Images</p>
+
+          <div className="flex flex-col">
+            <input
+              ref={fileInputRef}
+              id="plan-images"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              multiple
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <Button
+              type="button"
+              appearance="outlined"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+            >
+              {isUploading ? m.plan_form_uploading() : m.plan_form_add_images()}
+            </Button>
+          </div>
+        </span>
         {displayImages.length > 0 && (
           <div className="flex flex-wrap gap-sm">
             {displayImages.map((img) => (
@@ -172,34 +352,9 @@ function PlanForm({
             ))}
           </div>
         )}
-        <div>
-          <input
-            ref={fileInputRef}
-            id="plan-images"
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            multiple
-            className="hidden"
-            onChange={handleFileChange}
-          />
-          <Button
-            type="button"
-            appearance="outlined"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-          >
-            {isUploading ? "Uploading…" : "Add images"}
-          </Button>
-          {displayImages.length > 0 && (
-            <span className="ml-sm text-sm text-hot-gray-400">
-              {displayImages.length} image
-              {displayImages.length !== 1 ? "s" : ""}
-            </span>
-          )}
-        </div>
       </div>
 
-      <div className="flex flex-col gap-xs">
+      <div className="flex flex-col gap-sm">
         <span className="text-sm font-medium text-hot-gray-700">
           {m.plan_form_projects_label()}
         </span>
@@ -208,33 +363,56 @@ function PlanForm({
           appearance="outlined"
           onClick={() => setDialogOpen(true)}
         >
-          {selected.size === 0
-            ? m.plan_form_select_projects()
-            : `${selected.size} ${selected.size === 1 ? m.plan_form_projects_selected_singular() : m.plan_form_projects_selected_plural()}`}
+          {m.plan_form_add_projects()}
         </Button>
 
-        {selected.size > 0 && (
-          <div className="flex flex-wrap gap-xs">
-            {selectedTags.map((p) => (
-              <Tag
-                key={projectKey(p)}
-                size="small"
-                withRemove
-                onWaRemove={() => toggleProject(p, false)}
-              >
-                {p.title}
-                <span className="text-hot-gray-400 ml-1">
-                  — {APP_LABELS[p.app]}
-                </span>
-              </Tag>
-            ))}
-            {isLoading && loadingCount > 0 && (
-              <span className="text-sm text-hot-gray-400 self-center">
-                +{loadingCount} {m.plan_form_loading()}
-              </span>
-            )}
-          </div>
+        {isLoading && loadingCount > 0 && (
+          <span className="text-sm text-hot-gray-400">
+            +{loadingCount} {m.plan_form_loading()}
+          </span>
         )}
+
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          {PLAN_SECTIONS.map((section) => {
+            const sectionKeys = order.filter(
+              (k) =>
+                selected.has(k) &&
+                section.apps.includes(appFromKey(k)) &&
+                projectMap.has(k),
+            );
+            if (sectionKeys.length === 0) return null;
+            return (
+              <div key={section.titleKey} className="flex flex-col gap-sm">
+                <p className="text-sm font-semibold text-hot-gray-600 border-b border-hot-gray-100 pb-xs">
+                  {SECTION_TITLE[section.titleKey]?.()}
+                </p>
+                <SortableContext
+                  items={sectionKeys}
+                  strategy={rectSortingStrategy}
+                >
+                  <div className="flex flex-wrap gap-lg">
+                    {sectionKeys.map((key) => (
+                      <SortableCard
+                        key={key}
+                        id={key}
+                        project={projectMap.get(key)!}
+                        status={statuses[key] ?? "in_progress"}
+                        onStatusChange={(s) =>
+                          setStatuses((prev) => ({ ...prev, [key]: s }))
+                        }
+                        onRemove={() => removeProject(key)}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </div>
+            );
+          })}
+        </DndContext>
       </div>
 
       <ProjectPickerDialog
@@ -245,6 +423,16 @@ function PlanForm({
         onConfirm={(next, nextExtra) => {
           setSelected(next);
           setExtraProjects(nextExtra);
+          setOrder((prev) => {
+            const preserved = prev.filter((k) => next.has(k));
+            const added = [...next].filter((k) => !prev.includes(k));
+            return [...preserved, ...added];
+          });
+          setStatuses((prev) => {
+            const result: Record<string, ProjectStatus> = {};
+            for (const k of next) result[k] = prev[k] ?? "in_progress";
+            return result;
+          });
         }}
         onClose={() => setDialogOpen(false)}
       />

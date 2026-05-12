@@ -16,9 +16,7 @@ import { usePlan, useSharedPlan } from "./hooks";
 import { m } from "../paraglide/messages";
 import type { AppName } from "./types";
 import PlanSectionHeader from "./components/PlanSectionHeader";
-
-const CARD_CLASS =
-  "w-full md:w-[calc(33.333%_-_var(--hot-spacing-large)*0.667)] lg:w-[calc(25%_-_var(--hot-spacing-large)*0.75)] shrink-0";
+import { cardClassNames } from "../constants/classNames";
 
 function MyPlanPage() {
   const { planId } = useParams<{ planId: string }>();
@@ -77,7 +75,7 @@ function MyPlanPage() {
         <PageWrapper>
           <div className="flex flex-wrap gap-lg py-lg">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className={CARD_CLASS}>
+              <div key={i} className={cardClassNames}>
                 <CardSkeleton hasImage linesCount={2} />
               </div>
             ))}
@@ -154,7 +152,9 @@ function MyPlanPage() {
           >
             {plan.images.map((img) => (
               <CarouselItem key={img.id}>
-                <div className="w-full aspect-[4/3] overflow-hidden">
+                <div
+                  className={`overflow-hidden aspect-[16/9] ${plan.images.length === 1 ? "max-w-2xl mx-auto w-full" : "w-full"}`}
+                >
                   <img
                     src={img.url}
                     alt={`Image ${img.id}`}
@@ -184,7 +184,7 @@ function MyPlanPage() {
                 {projects.map((project) => (
                   <div
                     key={`${project.app}:${project.project_id}`}
-                    className={CARD_CLASS}
+                    className={cardClassNames}
                   >
                     <PlanProjectCard project={project} />
                   </div>

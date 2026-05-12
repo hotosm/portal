@@ -21,6 +21,7 @@ from app.models.plan import (
     PlanReadHydrated,
     PlanTag,
     PlanUpdate,
+    StatusLiteral,
     UrlResolveResponse,
 )
 from app.services import url_resolver
@@ -144,13 +145,15 @@ async def create_plan(
     db.add(plan)
     await db.flush()
 
-    for item in payload.projects:
+    for idx, item in enumerate(payload.projects):
         db.add(
             PlanProject(
                 plan_id=plan.id,
                 app=item.app,
                 project_id=item.project_id,
                 project_exists=item.project_exists,
+                status=item.status,
+                display_order=idx,
                 data=item.data,
             )
         )
@@ -185,12 +188,14 @@ async def update_plan(
             delete(PlanProject).where(PlanProject.plan_id == plan.id)
         )
         await db.flush()
-        for item in payload.projects:
+        for idx, item in enumerate(payload.projects):
             db.add(
                 PlanProject(
                     plan_id=plan.id,
                     app=item.app,
                     project_id=item.project_id,
+                    status=item.status,
+                    display_order=idx,
                     data=item.data,
                 )
             )
@@ -205,11 +210,64 @@ async def update_plan(
     return plan_to_read(plan)
 
 
+async def toggle_project_exists(
+    db: AsyncSession,
+    owner_id: str,
+    plan_id: str,
+    plan_project_id: str,
+) -> bool:
+    """Toggle project_exists on a plan_project row. Returns False if not found."""
+    stmt = (
+        select(PlanProject)
+        .join(Plan, Plan.id == PlanProject.plan_id)
+        .where(
+            Plan.id == plan_id,
+            Plan.owner_id == owner_id,
+            PlanProject.id == plan_project_id,
+        )
+    )
+    result = await db.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is None:
+        return False
+    row.project_exists = not row.project_exists
+    await db.flush()
+    return True
+
+
 async def delete_plan(db: AsyncSession, owner_id: str, plan_id: str) -> bool:
     plan = await get_owned_plan(db, owner_id, plan_id)
     if plan is None:
         return False
     await db.delete(plan)
+    await db.flush()
+    return True
+
+
+async def set_project_status(
+    db: AsyncSession,
+    owner_id: str,
+    plan_id: str,
+    app: str,
+    ext_project_id: str,
+    new_status: StatusLiteral,
+) -> bool:
+    """Update the status of a single project inside a plan. Returns False if not found."""
+    stmt = (
+        select(PlanProject)
+        .join(Plan, Plan.id == PlanProject.plan_id)
+        .where(
+            Plan.id == plan_id,
+            Plan.owner_id == owner_id,
+            PlanProject.app == app,
+            PlanProject.project_id == ext_project_id,
+        )
+    )
+    result = await db.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is None:
+        return False
+    row.status = new_status
     await db.flush()
     return True
 
@@ -246,6 +304,7 @@ async def hydrate_one(
             return HydratedProjectItem(
                 app=row.app,
                 project_id=row.project_id,
+                status=row.status,
                 data=row.data,
                 upstream=None,
                 error="upstream_unavailable",
@@ -254,6 +313,7 @@ async def hydrate_one(
             return HydratedProjectItem(
                 app=row.app,
                 project_id=row.project_id,
+                status=row.status,
                 data=row.data,
                 upstream=None,
                 error="not_found",
@@ -261,6 +321,7 @@ async def hydrate_one(
         return HydratedProjectItem(
             app=row.app,
             project_id=row.project_id,
+            status=row.status,
             data=row.data,
             upstream=upstream,
             error=None,
@@ -276,6 +337,7 @@ async def hydrate_one(
             return HydratedProjectItem(
                 app=row.app,
                 project_id=row.project_id,
+                status=row.status,
                 data=row.data,
                 upstream=None,
                 error="upstream_unavailable",
@@ -284,6 +346,7 @@ async def hydrate_one(
             return HydratedProjectItem(
                 app=row.app,
                 project_id=row.project_id,
+                status=row.status,
                 data=row.data,
                 upstream=None,
                 error="not_found",
@@ -291,6 +354,7 @@ async def hydrate_one(
         return HydratedProjectItem(
             app=row.app,
             project_id=row.project_id,
+            status=row.status,
             data=row.data,
             upstream=upstream,
             error=None,
@@ -301,6 +365,7 @@ async def hydrate_one(
         return HydratedProjectItem(
             app=row.app,
             project_id=row.project_id,
+            status=row.status,
             data=row.data,
             upstream=None,
             error="not_found",
@@ -311,6 +376,7 @@ async def hydrate_one(
         return HydratedProjectItem(
             app=row.app,
             project_id=row.project_id,
+            status=row.status,
             data=row.data,
             upstream=None,
             error="upstream_unavailable",
@@ -319,6 +385,7 @@ async def hydrate_one(
         return HydratedProjectItem(
             app=row.app,
             project_id=row.project_id,
+            status=row.status,
             data=row.data,
             upstream=None,
             error="not_found",
@@ -326,6 +393,7 @@ async def hydrate_one(
     return HydratedProjectItem(
         app=row.app,
         project_id=row.project_id,
+        status=row.status,
         data=row.data,
         upstream=upstream,
         error=None,

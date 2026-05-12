@@ -10,6 +10,7 @@ from app.models.plan import (
     PlanRead,
     PlanReadHydrated,
     PlanUpdate,
+    ProjectStatusUpdate,
     UrlResolveRequest,
     UrlResolveResponse,
 )
@@ -109,6 +110,36 @@ async def update_plan(
     if plan is None:
         raise HTTPException(status_code=404, detail="Plan not found")
     return plan
+
+
+@router.patch("/{plan_id}/projects/{app}/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def update_project_status(
+    payload: ProjectStatusUpdate,
+    user: CurrentUser,
+    plan_id: str = Path(..., description="Plan UUID"),
+    app: str = Path(..., description="App name"),
+    project_id: str = Path(..., description="External project ID"),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Update the status of a single project inside a plan."""
+    ok = await plans_service.set_project_status(db, user.id, plan_id, app, project_id, payload.status)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Plan or project not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.patch("/{plan_id}/projects/{plan_project_id}/toggle-exists", status_code=status.HTTP_204_NO_CONTENT)
+async def toggle_project_exists(
+    user: CurrentUser,
+    plan_id: str = Path(..., description="Plan UUID"),
+    plan_project_id: str = Path(..., description="plan_project UUID"),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Toggle project_exists on a plan_project between true and false."""
+    ok = await plans_service.toggle_project_exists(db, user.id, plan_id, plan_project_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Plan or project not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.delete("/{plan_id}", status_code=status.HTTP_204_NO_CONTENT)

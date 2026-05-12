@@ -5,6 +5,7 @@ export {
   useCreatePlan,
   useUpdatePlan,
   useDeletePlan,
+  useUpdateProjectStatus,
   planQueryKeys,
 } from "./usePlans";
 export { usePlanMenu } from "./usePlanMenu";

@@ -15,7 +15,11 @@ type Environment = "local" | "test" | "production";
 export function getEnvironment(): Environment {
   const hostname = window.location.hostname;
 
-  if (hostname.endsWith(".hotosm.test") || hostname === "localhost" || hostname === "127.0.0.1") {
+  if (
+    hostname.endsWith(".hotosm.test") ||
+    hostname === "localhost" ||
+    hostname === "127.0.0.1"
+  ) {
     return "local";
   }
 
@@ -109,4 +113,17 @@ const DRONE_TM_URLS: Record<Environment, string> = {
  */
 export function getDroneTmBaseUrl(): string {
   return DRONE_TM_URLS[getEnvironment()];
+}
+
+/**
+ * Field Tasking Manager frontend URLs per environment.
+ */
+const FIELD_TM_URLS: Record<Environment, string> = {
+  local: "https://field.hotosm.test",
+  test: "https://fieldtm.testlogin.hotosm.org/",
+  production: "https://field.hotosm.org",
+};
+
+export function getFieldTmBaseUrl(): string {
+  return FIELD_TM_URLS[getEnvironment()];
 }
