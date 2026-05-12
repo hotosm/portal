@@ -15,7 +15,46 @@ import { osmTileUrl } from "../../utils/osmTiles";
 import { formatProjectStatus } from "../../utils/utils";
 import type { HydratedProjectItem, AppName } from "../types";
 
-function getProjectHref(
+function resolveTitle(
+  upstream: Record<string, unknown> | null,
+  projectId: string,
+  data: Record<string, unknown> | null,
+): string {
+  const src = upstream ?? data;
+  if (!src) return projectId;
+  const t = src.name ?? src.title ?? src.project_name;
+  return typeof t === "string" && t ? t : projectId;
+}
+
+function resolveImageUrl(
+  app: AppName,
+  upstream: Record<string, unknown> | null,
+  data: Record<string, unknown> | null,
+): string {
+  if (app === "chatmap" || app === "umap") {
+    const centroid = (upstream?.centroid ?? data?.centroid) as [number, number] | null | undefined;
+    if (Array.isArray(centroid) && centroid.length === 2) {
+      return osmTileUrl(centroid[0], centroid[1], 10);
+    }
+  }
+
+  if (app === "tasking-manager") {
+    const src = upstream ?? data;
+    const bbox = src?.aoiBBOX as [number, number, number, number] | null | undefined;
+    if (Array.isArray(bbox) && bbox.length === 4) {
+      const lat = (bbox[1] + bbox[3]) / 2;
+      const lon = (bbox[0] + bbox[2]) / 2;
+      return osmTileUrl(lat, lon, 10);
+    }
+  }
+
+  const src = upstream ?? data;
+  if (!src) return placeholder;
+  const img = src.image_url ?? src.thumbnail_url ?? src.thumbnail ?? src.image;
+  return typeof img === "string" && img ? img : placeholder;
+}
+
+function resolveHref(
   app: AppName,
   projectId: string,
   upstream: Record<string, unknown> | null,
@@ -33,7 +72,7 @@ function getProjectHref(
     case "export-tool":
       return `${getExportToolBaseUrl()}/v3/exports/${projectId}`;
     case "open-aerial-map": {
-      const bbox = upstream?.bbox;
+      const bbox = (upstream?.bbox ?? data?.bbox) as [number, number, number, number] | null | undefined;
       if (Array.isArray(bbox) && bbox.length === 4) {
         const lng = ((bbox[0] as number) + (bbox[2] as number)) / 2;
         const lat = ((bbox[1] as number) + (bbox[3] as number)) / 2;
@@ -50,54 +89,27 @@ function getProjectHref(
   }
 }
 
-function getUpstreamTitle(
-  upstream: Record<string, unknown> | null,
-  projectId: string,
-  data: Record<string, unknown> | null,
-): string {
-  const src = upstream ?? data;
-  if (!src) return projectId;
-  const t = src.name ?? src.title ?? src.project_name;
-  return typeof t === "string" && t ? t : projectId;
-}
+function usePlanProjectDisplay(project: HydratedProjectItem) {
+  const [chatmapTitle, setChatmapTitle] = useState<string | null>(null);
 
-function getUpstreamImage(
-  app: AppName,
-  upstream: Record<string, unknown> | null,
-  data: Record<string, unknown> | null,
-): string {
-  const src = upstream ?? data;
-  if (!src) return placeholder;
+  useEffect(() => {
+    if (project.app !== "chatmap" || project.upstream || project.data) return;
+    fetch(`${getChatMapBaseUrl()}/api/v1/map/${project.project_id}`, {
+      credentials: "include",
+      headers: { accept: "application/json" },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: Record<string, unknown> | null) => {
+        if (typeof d?.name === "string" && d.name) setChatmapTitle(d.name);
+      })
+      .catch(() => {});
+  }, [project.app, project.project_id, project.upstream, project.data]);
 
-  if (app === "chatmap") {
-    const centroid = src.centroid as [number, number] | null | undefined;
-    if (Array.isArray(centroid) && centroid.length === 2) {
-      return osmTileUrl(centroid[0], centroid[1], 10);
-    }
-  }
-
-  if (app === "umap") {
-    const centroid = (upstream?.centroid ?? data?.centroid) as [number, number] | null | undefined;
-    if (Array.isArray(centroid) && centroid.length === 2) {
-      return osmTileUrl(centroid[0], centroid[1], 10);
-    }
-  }
-
-  if (app === "tasking-manager") {
-    const bbox = src.aoiBBOX as [number, number, number, number] | null | undefined;
-    if (Array.isArray(bbox) && bbox.length === 4) {
-      const lat = (bbox[1] + bbox[3]) / 2;
-      const lon = (bbox[0] + bbox[2]) / 2;
-      return osmTileUrl(lat, lon, 10);
-    }
-  }
-
-  const img =
-    src.image_url ??
-    src.thumbnail_url ??
-    src.thumbnail ??
-    src.image;
-  return typeof img === "string" && img ? img : placeholder;
+  return {
+    title: chatmapTitle ?? resolveTitle(project.upstream, project.project_id, project.data),
+    imageUrl: resolveImageUrl(project.app, project.upstream, project.data),
+    href: resolveHref(project.app, project.project_id, project.upstream, project.data),
+  };
 }
 
 interface PlanProjectCardProps {
@@ -105,36 +117,15 @@ interface PlanProjectCardProps {
 }
 
 function PlanProjectCard({ project }: PlanProjectCardProps) {
-  const [chatmapName, setChatmapName] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (project.app !== "chatmap" || project.upstream || project.data) return;
-    fetch(`https://chatmap.hotosm.org/api/v1/map/${project.project_id}`, {
-      credentials: "include",
-      headers: { accept: "application/json" },
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d: Record<string, unknown> | null) => {
-        if (typeof d?.name === "string" && d.name) setChatmapName(d.name);
-      })
-      .catch(() => {});
-  }, [project.app, project.project_id, project.upstream, project.data]);
-
+  const { title, imageUrl, href } = usePlanProjectDisplay(project);
   const meta = APP_META[project.app];
-  const title = chatmapName ?? getUpstreamTitle(project.upstream, project.project_id, project.data);
-  const image = getUpstreamImage(project.app, project.upstream, project.data);
-  const href = getProjectHref(
-    project.app,
-    project.project_id,
-    project.upstream,
-    project.data,
-  );
+
   return (
     <div className="w-full h-full bg-white rounded-xl shadow-[0_0_14px_rgba(0,0,0,0.2)] p-md flex flex-col gap-lg">
       <div className="flex flex-col gap-sm">
         <div className="relative">
           <img
-            src={image}
+            src={imageUrl}
             alt={title}
             className="w-full h-36 object-cover"
             onError={(e) => {
