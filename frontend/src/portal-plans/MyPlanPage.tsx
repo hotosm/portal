@@ -5,6 +5,7 @@ import { RichTextContent } from "../components/shared/RichTextEditor";
 import PageWrapper from "../components/shared/PageWrapper";
 import SubSectionHeader from "../components/shared/SubSectionHeader";
 import PlanProjectCard from "./components/PlanProjectCard";
+import PlanTaskCard from "./components/PlanTaskCard";
 import Carousel from "../components/shared/Carousel";
 import CarouselItem from "../components/shared/CarouselItem";
 import PlanMenu from "./components/PlanMenu";
@@ -171,7 +172,10 @@ function MyPlanPage() {
         const projects = plan.projects.filter((p) =>
           section.apps.includes(p.app),
         );
-        if (projects.length === 0) return null;
+        const tasks = (plan.tasks ?? []).filter((t) =>
+          section.apps.includes(t.tool),
+        );
+        if (projects.length === 0 && tasks.length === 0) return null;
 
         return (
           <div key={section.title}>
@@ -187,6 +191,11 @@ function MyPlanPage() {
                     className={cardClassNames}
                   >
                     <PlanProjectCard project={project} />
+                  </div>
+                ))}
+                {tasks.map((task) => (
+                  <div key={task.id} className={cardClassNames}>
+                    <PlanTaskCard task={task} />
                   </div>
                 ))}
               </div>

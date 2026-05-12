@@ -42,11 +42,12 @@ function AddPlanPage() {
         <PlanForm
           submitLabel={m.plan_add_submit()}
           isPending={isPending}
-          onSubmit={async ({ name, description, selectedProjects, pendingImages }) => {
+          onSubmit={async ({ name, description, selectedProjects, tasks, pendingImages }) => {
             const plan = await createPlan({
               name,
               description: description || undefined,
               projects: selectedProjects,
+              tasks,
             });
             if (pendingImages.length > 0) {
               try {
