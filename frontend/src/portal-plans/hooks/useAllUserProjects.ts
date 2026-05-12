@@ -74,6 +74,7 @@ export function useAllUserProjects() {
           app: "umap" as AppName,
           project_id: String(p.id),
           title: p.title,
+          upstream: { name: p.title, centroid: p.centroid ?? null, href: p.href },
         })),
         isLoading: umap.isLoading,
         isError: umap.isError,

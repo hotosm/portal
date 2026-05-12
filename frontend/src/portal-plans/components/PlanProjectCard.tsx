@@ -3,6 +3,14 @@ import placeholder from "../../assets/images/placeholder.png";
 import CardProjectTitle from "../../components/shared/CardProjectTitle";
 import Tag from "../../components/shared/Tag";
 import { APP_META } from "../../utils/appMeta";
+import {
+  getChatMapBaseUrl,
+  getDroneTmBaseUrl,
+  getExportToolBaseUrl,
+  getFairBaseUrl,
+  getFieldTmBaseUrl,
+  getUmapBaseUrl,
+} from "../../utils/envConfig";
 import { osmTileUrl } from "../../utils/osmTiles";
 import { formatProjectStatus } from "../../utils/utils";
 import type { HydratedProjectItem, AppName } from "../types";
@@ -11,18 +19,19 @@ function getProjectHref(
   app: AppName,
   projectId: string,
   upstream: Record<string, unknown> | null,
+  data: Record<string, unknown> | null,
 ): string {
   switch (app) {
     case "tasking-manager":
       return `https://tasks.hotosm.org/projects/${projectId}`;
     case "drone-tasking-manager":
-      return `https://drone.hotosm.org/projects/${projectId}`;
+      return `${getDroneTmBaseUrl()}/projects/${projectId}`;
     case "field-tm":
-      return `https://field.hotosm.org/projects/${projectId}`;
+      return `${getFieldTmBaseUrl()}/projects/${projectId}`;
     case "fair":
-      return `https://fair.hotosm.org/ai-models/${projectId}`;
+      return `${getFairBaseUrl()}/ai-models/${projectId}`;
     case "export-tool":
-      return `https://export.hotosm.org/v3/exports/${projectId}`;
+      return `${getExportToolBaseUrl()}/v3/exports/${projectId}`;
     case "open-aerial-map": {
       const bbox = upstream?.bbox;
       if (Array.isArray(bbox) && bbox.length === 4) {
@@ -32,10 +41,12 @@ function getProjectHref(
       }
       return `https://map.openaerialmap.org`;
     }
-    case "umap":
-      return `https://umap.hotosm.org/m/${projectId}/`;
+    case "umap": {
+      const href = (upstream?.href ?? data?.href) as string | null | undefined;
+      return href ?? `${getUmapBaseUrl()}/m/${projectId}/`;
+    }
     case "chatmap":
-      return `https://chatmap.hotosm.org/#map/${projectId}`;
+      return `${getChatMapBaseUrl()}/#map/${projectId}`;
   }
 }
 
@@ -60,6 +71,13 @@ function getUpstreamImage(
 
   if (app === "chatmap") {
     const centroid = src.centroid as [number, number] | null | undefined;
+    if (Array.isArray(centroid) && centroid.length === 2) {
+      return osmTileUrl(centroid[0], centroid[1], 10);
+    }
+  }
+
+  if (app === "umap") {
+    const centroid = (upstream?.centroid ?? data?.centroid) as [number, number] | null | undefined;
     if (Array.isArray(centroid) && centroid.length === 2) {
       return osmTileUrl(centroid[0], centroid[1], 10);
     }
@@ -109,6 +127,7 @@ function PlanProjectCard({ project }: PlanProjectCardProps) {
     project.app,
     project.project_id,
     project.upstream,
+    project.data,
   );
   return (
     <div className="w-full h-full bg-white rounded-xl shadow-[0_0_14px_rgba(0,0,0,0.2)] p-md flex flex-col gap-lg">
