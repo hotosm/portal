@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Button from "../../../components/shared/Button";
 import Dialog from "../../../components/shared/Dialog";
+import Dropdown from "../../../components/shared/Dropdown";
+import DropdownItem from "../../../components/shared/DropdownItem";
 import { m } from "../../../paraglide/messages";
 import { APP_META } from "../../../utils/appMeta";
 import type { AppName } from "../../types";
@@ -13,18 +15,27 @@ interface AddTaskDialogProps {
 
 function AddTaskDialog({ open, onConfirm, onClose }: AddTaskDialogProps) {
   const [title, setTitle] = useState("");
-  const [tool, setTool] = useState<AppName>("drone-tasking-manager");
+  const [tool, setTool] = useState<AppName | "">("");
+  const dropdownWrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = dropdownWrapperRef.current;
+    if (!el) return;
+    const stop = (e: Event) => e.stopPropagation();
+    el.addEventListener("wa-hide", stop);
+    return () => el.removeEventListener("wa-hide", stop);
+  }, []);
 
   useEffect(() => {
     if (open) {
       setTitle("");
-      setTool("drone-tasking-manager");
+      setTool("");
     }
   }, [open]);
 
   function handleConfirm() {
-    if (!title.trim()) return;
-    onConfirm(title.trim(), tool);
+    if (!title.trim() || !tool) return;
+    onConfirm(title.trim(), tool as AppName);
     onClose();
   }
 
@@ -51,18 +62,30 @@ function AddTaskDialog({ open, onConfirm, onClose }: AddTaskDialogProps) {
           />
         </div>
         <div className="flex flex-col gap-xs">
-          <label className="text-sm font-medium text-hot-gray-700">Tool</label>
-          <select
-            value={tool}
-            onChange={(e) => setTool(e.target.value as AppName)}
-            className="border border-hot-gray-300 rounded-lg px-md py-sm text-base outline-none focus:border-hot-red-500 bg-white"
+          <label className="text-sm font-medium text-hot-gray-700">
+            Tool <span className="text-hot-red-600">*</span>
+          </label>
+          <div ref={dropdownWrapperRef}>
+          <Dropdown
+            onSelect={(e: CustomEvent) => setTool(e.detail.item.value as AppName)}
           >
+            <button
+              slot="trigger"
+              type="button"
+              className="w-full flex justify-between items-center border border-hot-gray-300 rounded-lg px-md py-sm text-base bg-white focus:border-hot-red-500 focus:outline-none"
+            >
+              <span className={tool ? "text-hot-gray-900" : "text-hot-gray-400"}>
+                {tool ? APP_META[tool].name : "Select tool"}
+              </span>
+              <span className="text-hot-gray-400">&#x25BE;</span>
+            </button>
             {(Object.keys(APP_META) as AppName[]).map((app) => (
-              <option key={app} value={app}>
-                {APP_META[app].label}
-              </option>
+              <DropdownItem key={app} value={app}>
+                {APP_META[app].name}
+              </DropdownItem>
             ))}
-          </select>
+          </Dropdown>
+          </div>
         </div>
       </div>
       <div slot="footer" className="flex gap-sm justify-end">
@@ -73,7 +96,11 @@ function AddTaskDialog({ open, onConfirm, onClose }: AddTaskDialogProps) {
         >
           {m.plan_cancel()}
         </button>
-        <Button type="button" disabled={!title.trim()} onClick={handleConfirm}>
+        <Button
+          type="button"
+          disabled={!title.trim() || !tool}
+          onClick={handleConfirm}
+        >
           Add task
         </Button>
       </div>
