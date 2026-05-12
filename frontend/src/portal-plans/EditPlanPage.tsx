@@ -83,16 +83,18 @@ function EditPlanPage() {
             initialProjectStatuses={initialProjectStatuses}
             initialExtraProjects={initialExtraProjects}
             initialImages={plan.images ?? []}
+            initialTasks={plan.tasks ?? []}
             planId={planId}
             submitLabel={m.plan_edit_submit()}
             isPending={isPending}
-            onSubmit={async ({ name, description, selectedProjects }) => {
+            onSubmit={async ({ name, description, selectedProjects, tasks }) => {
               await updatePlan({
                 id: planId!,
                 payload: {
                   name,
                   description: description || undefined,
                   projects: selectedProjects,
+                  tasks,
                 },
               });
               navigate(detailPath);
