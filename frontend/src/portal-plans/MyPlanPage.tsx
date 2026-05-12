@@ -154,7 +154,9 @@ function MyPlanPage() {
           >
             {plan.images.map((img) => (
               <CarouselItem key={img.id}>
-                <div className="w-full aspect-[4/3] overflow-hidden">
+                <div
+                  className={`overflow-hidden aspect-[16/9] ${plan.images.length === 1 ? "max-w-2xl mx-auto w-full" : "w-full"}`}
+                >
                   <img
                     src={img.url}
                     alt={`Image ${img.id}`}
