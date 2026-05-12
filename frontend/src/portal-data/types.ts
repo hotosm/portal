@@ -21,6 +21,7 @@ export interface IUMapProject {
   status: "draft" | "published";
   image: string;
   accuracy: number;
+  centroid: [number, number] | null;
 }
 
 export function mapExportJobsToDataProjects(jobs: ExportJob[]): IDataProject[] {

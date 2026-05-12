@@ -111,6 +111,7 @@ class UserMap(BaseModel):
     slug: str
     url: str
     modified_at: str
+    centroid: Optional[list[float]] = None
 
 
 class UserMapsResponse(BaseModel):

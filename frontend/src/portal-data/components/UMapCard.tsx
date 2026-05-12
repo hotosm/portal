@@ -2,14 +2,19 @@ import CardProjectTitle from "../../components/shared/CardProjectTitle";
 import Tag from "../../components/shared/Tag";
 import type { IUMapProject } from "../../portal-data/types";
 import placeholder from "../../assets/images/placeholder.png";
+import { osmTileUrl } from "../../utils/osmTiles";
 
 const UMapCard = ({ project }: { project: IUMapProject }) => {
+  const thumbnailSrc = project.centroid
+    ? osmTileUrl(project.centroid[0], project.centroid[1])
+    : project.image;
+
   return (
     <div className="w-full h-full bg-white rounded-xl shadow-[0_0_14px_rgba(0,0,0,0.2)] p-md flex flex-col gap-lg">
       <div className="flex flex-col gap-sm">
         <div className="relative">
           <img
-            src={project.image}
+            src={thumbnailSrc}
             alt={project.title}
             className="w-full h-[160px] object-cover"
             onError={(e) => {
