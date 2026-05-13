@@ -19,9 +19,9 @@ export function AddByUrlSection({
 }: AddByUrlSectionProps) {
   return (
     <div className="border-t border-hot-gray-200 pt-md mt-md flex flex-col gap-xs">
-      <p className="text-xs font-semibold text-hot-gray-500 uppercase tracking-wide">
-        Add by URL
-      </p>
+      <span className="text-xs font-semibold text-hot-gray-500 uppercase tracking-wide">
+        Or add by URL
+      </span>
       <div className="flex gap-xs">
         <input
           type="url"

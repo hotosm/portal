@@ -90,6 +90,27 @@ export function useAllUserProjects() {
         isLoading: exportJobs.isLoading,
         isError: exportJobs.isError,
       },
+      {
+        app: "tasking-manager",
+        label: APP_LABELS["tasking-manager"],
+        projects: [],
+        isLoading: false,
+        isError: false,
+      },
+      {
+        app: "open-aerial-map",
+        label: APP_LABELS["open-aerial-map"],
+        projects: [],
+        isLoading: false,
+        isError: false,
+      },
+      {
+        app: "field-tm",
+        label: APP_LABELS["field-tm"],
+        projects: [],
+        isLoading: false,
+        isError: false,
+      },
     ],
     [
       chatmap.data,

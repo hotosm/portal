@@ -1,0 +1,65 @@
+import { useState } from "react";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { cardClassNames } from "../../constants/classNames";
+import { useUpdateProjectStatus } from "../hooks";
+import type { HydratedProjectItem, ProjectOption, ProjectStatus } from "../types";
+import PlanProjectCard from "./PlanProjectCard";
+import SelectProjectDialog from "./SelectProjectDialog";
+
+interface SortableViewProjectCardProps {
+  id: string;
+  project: HydratedProjectItem;
+  planId: string;
+  onProjectSelected?: (oldKey: string, project: ProjectOption) => void;
+}
+
+function SortableViewProjectCard({ id, project, planId, onProjectSelected }: SortableViewProjectCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const { mutate: updateStatus } = useUpdateProjectStatus();
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  function handleStatusChange(status: ProjectStatus) {
+    updateStatus({ planId, app: project.app, projectId: project.project_id, status });
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} className={`${cardClassNames} relative`}>
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute top-2 left-2 z-20 cursor-grab active:cursor-grabbing bg-black/30 text-white rounded px-1 leading-none select-none text-base"
+      >
+        ⠿
+      </div>
+      <PlanProjectCard
+        project={project}
+        onStatusChange={project.project_id ? handleStatusChange : undefined}
+        onSelectClick={project.project_id ? undefined : () => setDialogOpen(true)}
+      />
+      {!project.project_id && (
+        <SelectProjectDialog
+          open={dialogOpen}
+          app={project.app}
+          onClose={() => setDialogOpen(false)}
+          onConfirm={(selected) => onProjectSelected?.(id, selected)}
+        />
+      )}
+    </div>
+  );
+}
+
+export default SortableViewProjectCard;

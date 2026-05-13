@@ -10,7 +10,15 @@ export type AppName =
 
 export type HydrationError = "not_found" | "upstream_unavailable";
 
-export type ProjectStatus = "in_progress" | "done";
+export type ProjectStatus = "pending" | "in_progress" | "done" | "task";
+
+export interface PlanTaskItem {
+  id: string;
+  title: string;
+  tool: AppName;
+  status: "pending";
+  display_order?: number;
+}
 
 export interface PlanProjectItem {
   app: AppName;
@@ -23,6 +31,7 @@ export interface PlanCreate {
   name: string;
   description?: string;
   projects?: PlanProjectItem[];
+  tasks?: PlanTaskItem[];
 }
 
 export interface PlanUpdate {
@@ -30,6 +39,7 @@ export interface PlanUpdate {
   description?: string;
   is_public?: boolean;
   projects?: PlanProjectItem[];
+  tasks?: PlanTaskItem[];
 }
 
 export interface PlanImageRead {
@@ -45,6 +55,7 @@ export interface PlanRead {
   description: string | null;
   is_public: boolean;
   projects: PlanProjectItem[];
+  tasks?: PlanTaskItem[];
   images: PlanImageRead[];
   created_at: string;
   updated_at: string;
@@ -65,6 +76,7 @@ export interface PlanReadHydrated {
   description: string | null;
   is_public: boolean;
   projects: HydratedProjectItem[];
+  tasks?: PlanTaskItem[];
   images: PlanImageRead[];
   created_at: string;
   updated_at: string;
