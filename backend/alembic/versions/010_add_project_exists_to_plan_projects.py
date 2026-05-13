@@ -1,8 +1,8 @@
 import sqlalchemy as sa
 from alembic import op
 
-revision = "007_add_project_exists_to_plan_projects"
-down_revision = "006_add_plan_images"
+revision = "010_add_project_exists"
+down_revision = "009_fix_dronetm_proj_id"
 branch_labels = None
 depends_on = None
 
