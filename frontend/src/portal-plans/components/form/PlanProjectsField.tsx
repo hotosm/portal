@@ -18,6 +18,7 @@ import type {
   ProjectStatus,
 } from "../../types";
 import ProjectPickerDialog from "../ProjectPickerDialog";
+import AddTaskDialog from "./AddTaskDialog";
 import SortableCard from "./SortableCard";
 import SortableTaskCard from "./SortableTaskCard";
 
@@ -39,6 +40,11 @@ function appFromKey(key: string): AppName {
   return key.slice(0, key.indexOf(":")) as AppName;
 }
 
+type ActiveDialog =
+  | { sectionKey: string; type: "project"; apps: AppName[] }
+  | { sectionKey: string; type: "task"; apps: AppName[] }
+  | null;
+
 interface PlanProjectsFieldProps {
   order: string[];
   selected: Set<string>;
@@ -53,7 +59,11 @@ interface PlanProjectsFieldProps {
   onProjectRemove: (key: string) => void;
   onStatusChange: (key: string, status: ProjectStatus) => void;
   onTaskRemove: (key: string) => void;
-  onProjectPickerConfirm: (next: Set<string>, nextExtra: ProjectOption[]) => void;
+  onTaskAdded: (title: string, tool: AppName) => void;
+  onProjectPickerConfirm: (
+    next: Set<string>,
+    nextExtra: ProjectOption[],
+  ) => void;
 }
 
 function PlanProjectsField({
@@ -70,33 +80,39 @@ function PlanProjectsField({
   onProjectRemove,
   onStatusChange,
   onTaskRemove,
+  onTaskAdded,
   onProjectPickerConfirm,
 }: PlanProjectsFieldProps) {
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [activeDialog, setActiveDialog] = useState<ActiveDialog>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
 
+  const sectionApps = activeDialog
+    ? new Set(activeDialog.apps)
+    : new Set<AppName>();
+  const filteredSources = sources.filter((s) => sectionApps.has(s.app));
+  const filteredExtras = extraProjects.filter((p) => sectionApps.has(p.app));
+  const otherExtras = extraProjects.filter((p) => !sectionApps.has(p.app));
+
+  function handleSectionProjectConfirm(
+    next: Set<string>,
+    nextSectionExtras: ProjectOption[],
+  ) {
+    onProjectPickerConfirm(next, [...otherExtras, ...nextSectionExtras]);
+    setActiveDialog(null);
+  }
+
   return (
-    <div className="flex flex-col gap-sm">
+    <div className="flex flex-col gap-xl">
       <div className="flex items-center justify-between gap-md">
-        <span className="text-sm font-medium text-hot-gray-700">
-          {m.plan_form_projects_label()}
-        </span>
         {isLoading && loadingCount > 0 && (
           <span className="text-sm text-hot-gray-400">
             +{loadingCount} {m.plan_form_loading()}
           </span>
         )}
       </div>
-      <Button
-        type="button"
-        appearance="outlined"
-        onClick={() => setDialogOpen(true)}
-      >
-        {m.plan_form_add_projects()}
-      </Button>
 
       <DndContext
         sensors={sensors}
@@ -115,55 +131,96 @@ function PlanProjectsField({
               projectMap.has(k)
             );
           });
-          if (sectionKeys.length === 0) return null;
 
           return (
             <div key={section.titleKey} className="flex flex-col gap-sm">
-              <p className="text-sm font-semibold text-hot-gray-600 border-b border-hot-gray-100 pb-xs">
-                {SECTION_TITLE[section.titleKey]?.()}
-              </p>
-              <SortableContext items={sectionKeys} strategy={rectSortingStrategy}>
-                <div className="flex flex-wrap gap-lg">
-                  {sectionKeys.map((key) => {
-                    if (key.startsWith("task:")) {
-                      const task = taskMap.get(key)!;
+              <div className="flex items-center justify-between border-b border-hot-gray-100 pb-xs">
+                <h5>{SECTION_TITLE[section.titleKey]?.()}</h5>
+                <div className="flex items-center gap-xs">
+                  <Button
+                    type="button"
+                    size="small"
+                    appearance="filled"
+                    onClick={() =>
+                      setActiveDialog({
+                        sectionKey: section.titleKey,
+                        type: "project",
+                        apps: section.apps,
+                      })
+                    }
+                  >
+                    {m.plan_form_add_projects()}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="small"
+                    appearance="outlined"
+                    onClick={() =>
+                      setActiveDialog({
+                        sectionKey: section.titleKey,
+                        type: "task",
+                        apps: section.apps,
+                      })
+                    }
+                  >
+                    {m.plan_form_add_task()}
+                  </Button>
+                </div>
+              </div>
+              {sectionKeys.length > 0 && (
+                <SortableContext
+                  items={sectionKeys}
+                  strategy={rectSortingStrategy}
+                >
+                  <div className="flex flex-wrap gap-lg">
+                    {sectionKeys.map((key) => {
+                      if (key.startsWith("task:")) {
+                        const task = taskMap.get(key)!;
+                        return (
+                          <SortableTaskCard
+                            key={key}
+                            id={key}
+                            task={task}
+                            onRemove={() => onTaskRemove(key)}
+                          />
+                        );
+                      }
                       return (
-                        <SortableTaskCard
+                        <SortableCard
                           key={key}
                           id={key}
-                          task={task}
-                          onRemove={() => onTaskRemove(key)}
+                          project={projectMap.get(key)!}
+                          status={statuses[key] ?? "in_progress"}
+                          onStatusChange={(s) => onStatusChange(key, s)}
+                          onRemove={() => onProjectRemove(key)}
                         />
                       );
-                    }
-                    return (
-                      <SortableCard
-                        key={key}
-                        id={key}
-                        project={projectMap.get(key)!}
-                        status={statuses[key] ?? "in_progress"}
-                        onStatusChange={(s) => onStatusChange(key, s)}
-                        onRemove={() => onProjectRemove(key)}
-                      />
-                    );
-                  })}
-                </div>
-              </SortableContext>
+                    })}
+                  </div>
+                </SortableContext>
+              )}
             </div>
           );
         })}
       </DndContext>
 
       <ProjectPickerDialog
-        open={dialogOpen}
+        open={activeDialog?.type === "project"}
         selected={selected}
-        extraProjects={extraProjects}
-        sources={sources}
-        onConfirm={(next, nextExtra) => {
-          onProjectPickerConfirm(next, nextExtra);
-          setDialogOpen(false);
+        extraProjects={filteredExtras}
+        sources={filteredSources}
+        onConfirm={handleSectionProjectConfirm}
+        onClose={() => setActiveDialog(null)}
+      />
+
+      <AddTaskDialog
+        open={activeDialog?.type === "task"}
+        allowedApps={activeDialog?.apps}
+        onConfirm={(title, tool) => {
+          onTaskAdded(title, tool);
+          setActiveDialog(null);
         }}
-        onClose={() => setDialogOpen(false)}
+        onClose={() => setActiveDialog(null)}
       />
     </div>
   );

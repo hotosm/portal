@@ -1,4 +1,15 @@
+import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { SortableContext, rectSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { useIsMobile } from "../hooks/useIsMobile";
 import CardSkeleton from "../components/shared/CardSkeleton";
 import { RichTextContent } from "../components/shared/RichTextEditor";
@@ -6,6 +17,9 @@ import PageWrapper from "../components/shared/PageWrapper";
 import SubSectionHeader from "../components/shared/SubSectionHeader";
 import PlanProjectCard from "./components/PlanProjectCard";
 import PlanTaskCard from "./components/PlanTaskCard";
+import SortableViewProjectCard from "./components/SortableViewProjectCard";
+import CardAddProject from "./components/CardAddProject";
+import ProjectPickerDialog from "./components/ProjectPickerDialog";
 import Carousel from "../components/shared/Carousel";
 import CarouselItem from "../components/shared/CarouselItem";
 import PlanMenu from "./components/PlanMenu";
@@ -13,9 +27,9 @@ import PlanShareButton from "./components/PlanShareButton";
 import Tag from "../components/shared/Tag";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
-import { usePlan, useSharedPlan } from "./hooks";
+import { usePlan, useSharedPlan, useUpdatePlan, useAllUserProjects, planQueryKeys } from "./hooks";
 import { m } from "../paraglide/messages";
-import type { AppName } from "./types";
+import type { AppName, ProjectOption, PlanReadHydrated } from "./types";
 import PlanSectionHeader from "./components/PlanSectionHeader";
 import { cardClassNames } from "../constants/classNames";
 
@@ -39,6 +53,113 @@ function MyPlanPage() {
 
   const isOwner = isLogin && ownPlan != null;
   const plan = ownPlan ?? publicPlan;
+
+  const [projectOrder, setProjectOrder] = useState<string[]>([]);
+  useEffect(() => {
+    if (plan) {
+      setProjectOrder(plan.projects.map((p) => `${p.app}:${p.project_id}`));
+    }
+  }, [plan?.id]);
+
+  const [pickerSection, setPickerSection] = useState<AppName[] | null>(null);
+  const { sources } = useAllUserProjects();
+
+  const { mutate: updatePlan } = useUpdatePlan();
+  const queryClient = useQueryClient();
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
+
+  function handlePickerConfirm(next: Set<string>, _nextExtra: ProjectOption[]) {
+    const newOrder = [
+      ...projectOrder.filter((k) => next.has(k)),
+      ...[...next].filter((k) => !projectOrder.includes(k)),
+    ];
+    setProjectOrder(newOrder);
+    const projects = newOrder.map((k) => {
+      const colonIdx = k.indexOf(":");
+      const app = k.slice(0, colonIdx) as AppName;
+      const project_id = k.slice(colonIdx + 1);
+      const existing = plan!.projects.find(
+        (p) => p.app === app && p.project_id === project_id,
+      );
+      return existing
+        ? { app: existing.app, project_id: existing.project_id, status: existing.status, data: existing.data }
+        : { app, project_id };
+    });
+    updatePlan({ id: plan!.id, payload: { projects } });
+    setPickerSection(null);
+  }
+
+  function handleProjectSelected(oldKey: string, newProject: ProjectOption) {
+    const newKey = `${newProject.app}:${newProject.project_id}`;
+
+    // Optimistically update the cached plan so the re-render triggered by
+    // setProjectOrder below can find the new project via plan.projects.find().
+    queryClient.setQueryData<PlanReadHydrated | null>(
+      planQueryKeys.detail(planId!),
+      (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          projects: old.projects.map((p) =>
+            `${p.app}:${p.project_id}` === oldKey
+              ? {
+                  ...p,
+                  project_id: newProject.project_id,
+                  data: newProject.upstream ?? null,
+                  upstream: newProject.upstream ?? null,
+                }
+              : p,
+          ),
+        };
+      },
+    );
+
+    const newOrder = projectOrder.map((k) => (k === oldKey ? newKey : k));
+    setProjectOrder(newOrder);
+
+    const projects = newOrder.map((k) => {
+      const colonIdx = k.indexOf(":");
+      const app = k.slice(0, colonIdx) as AppName;
+      const project_id = k.slice(colonIdx + 1);
+      if (k === newKey) {
+        return {
+          app,
+          project_id,
+          ...(newProject.upstream ? { data: newProject.upstream } : {}),
+        };
+      }
+      const existing = plan!.projects.find(
+        (p) => p.app === app && p.project_id === project_id,
+      );
+      return existing
+        ? { app: existing.app, project_id: existing.project_id, status: existing.status, data: existing.data }
+        : { app, project_id };
+    });
+    updatePlan({ id: plan!.id, payload: { projects } });
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const newOrder = arrayMove(
+      projectOrder,
+      projectOrder.indexOf(active.id as string),
+      projectOrder.indexOf(over.id as string),
+    );
+    setProjectOrder(newOrder);
+    const projects = newOrder.map((k) => {
+      const colonIdx = k.indexOf(":");
+      const app = k.slice(0, colonIdx) as AppName;
+      const project_id = k.slice(colonIdx + 1);
+      const p = plan!.projects.find(
+        (p) => p.app === app && p.project_id === project_id,
+      )!;
+      return { app: p.app, project_id: p.project_id, status: p.status, data: p.data };
+    });
+    updatePlan({ id: plan!.id, payload: { projects } });
+  }
   const isLoading =
     isAuthLoading || ownLoading || (ownPlan === null && publicLoading);
   const isError = isOwner ? ownError : publicError;
@@ -123,7 +244,7 @@ function MyPlanPage() {
           ) : undefined
         }
       >
-        {m.plan_header()} <strong>{plan.name}</strong>
+        {plan.name}
       </PlanSectionHeader>
 
       <PageWrapper>
@@ -168,41 +289,102 @@ function MyPlanPage() {
         </PageWrapper>
       )}
 
-      {PLAN_SECTIONS.map((section) => {
-        const projects = plan.projects.filter((p) =>
-          section.apps.includes(p.app),
-        );
-        const tasks = (plan.tasks ?? []).filter((t) =>
-          section.apps.includes(t.tool),
-        );
-        if (projects.length === 0 && tasks.length === 0) return null;
+      {(() => {
+        const sections = PLAN_SECTIONS.map((section) => {
+          const sectionProjectKeys = projectOrder.filter((k) => {
+            const app = k.slice(0, k.indexOf(":")) as AppName;
+            return section.apps.includes(app);
+          });
+          const tasks = (plan.tasks ?? []).filter((t) =>
+            section.apps.includes(t.tool),
+          );
+          if (!isOwner && sectionProjectKeys.length === 0 && tasks.length === 0) return null;
+
+          const projectKeySet = new Set(sectionProjectKeys);
+
+          return (
+            <div key={section.title}>
+              <SubSectionHeader
+                title={`<strong>${section.title}</strong>`}
+                toolName={section.toolName}
+              />
+              <PageWrapper>
+                <div className="flex flex-wrap gap-lg py-lg">
+                  {isOwner && (
+                    <div className={cardClassNames}>
+                      <CardAddProject
+                        onButtonClick={() => setPickerSection(section.apps)}
+                      />
+                    </div>
+                  )}
+                  {isOwner ? (
+                    <SortableContext
+                      items={sectionProjectKeys}
+                      strategy={rectSortingStrategy}
+                    >
+                      {sectionProjectKeys.map((key) => {
+                        const colonIdx = key.indexOf(":");
+                        const app = key.slice(0, colonIdx) as AppName;
+                        const project_id = key.slice(colonIdx + 1);
+                        const project = plan.projects.find(
+                          (p) => `${p.app}:${p.project_id}` === key,
+                        ) ?? { app, project_id, status: "in_progress" as const, data: null, upstream: null, error: null };
+                        return (
+                          <SortableViewProjectCard
+                            key={key}
+                            id={key}
+                            project={project}
+                            planId={plan.id}
+                            onProjectSelected={handleProjectSelected}
+                          />
+                        );
+                      })}
+                    </SortableContext>
+                  ) : (
+                    plan.projects
+                      .filter((p) => projectKeySet.has(`${p.app}:${p.project_id}`))
+                      .map((project) => (
+                        <div
+                          key={`${project.app}:${project.project_id}`}
+                          className={cardClassNames}
+                        >
+                          <PlanProjectCard project={project} />
+                        </div>
+                      ))
+                  )}
+                  {tasks.map((task) => (
+                    <div key={task.id} className={cardClassNames}>
+                      <PlanTaskCard task={task} />
+                    </div>
+                  ))}
+                </div>
+              </PageWrapper>
+            </div>
+          );
+        });
+
+        if (!isOwner) return sections;
 
         return (
-          <div key={section.title}>
-            <SubSectionHeader
-              title={`<strong>${section.title}</strong>`}
-              toolName={section.toolName}
-            />
-            <PageWrapper>
-              <div className="flex flex-wrap gap-lg py-lg">
-                {projects.map((project) => (
-                  <div
-                    key={`${project.app}:${project.project_id}`}
-                    className={cardClassNames}
-                  >
-                    <PlanProjectCard project={project} />
-                  </div>
-                ))}
-                {tasks.map((task) => (
-                  <div key={task.id} className={cardClassNames}>
-                    <PlanTaskCard task={task} />
-                  </div>
-                ))}
-              </div>
-            </PageWrapper>
-          </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            {sections}
+          </DndContext>
         );
-      })}
+      })()}
+      {isOwner && pickerSection && (
+        <ProjectPickerDialog
+          open
+          selected={new Set(projectOrder)}
+          extraProjects={[]}
+          sources={sources.filter((s) => pickerSection.includes(s.app))}
+          onConfirm={handlePickerConfirm}
+          onClose={() => setPickerSection(null)}
+        />
+      )}
     </>
   );
 }

@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import placeholder from "../../assets/images/placeholder.png";
 import CardProjectTitle from "../../components/shared/CardProjectTitle";
+import Dropdown from "../../components/shared/Dropdown";
+import DropdownItem from "../../components/shared/DropdownItem";
 import Tag from "../../components/shared/Tag";
 import { APP_META } from "../../utils/appMeta";
 import {
@@ -13,7 +15,13 @@ import {
 } from "../../utils/envConfig";
 import { osmTileUrl } from "../../utils/osmTiles";
 import { formatProjectStatus } from "../../utils/utils";
-import type { HydratedProjectItem, AppName } from "../types";
+import type { HydratedProjectItem, AppName, ProjectStatus } from "../types";
+
+const STATUS_OPTIONS: ProjectStatus[] = ["pending", "in_progress", "done"];
+
+function statusVariant(status: ProjectStatus): "neutral" | "success" {
+  return status === "done" ? "success" : "neutral";
+}
 
 function resolveTitle(
   upstream: Record<string, unknown> | null,
@@ -32,7 +40,10 @@ function resolveImageUrl(
   data: Record<string, unknown> | null,
 ): string {
   if (app === "chatmap" || app === "umap") {
-    const centroid = (upstream?.centroid ?? data?.centroid) as [number, number] | null | undefined;
+    const centroid = (upstream?.centroid ?? data?.centroid) as
+      | [number, number]
+      | null
+      | undefined;
     if (Array.isArray(centroid) && centroid.length === 2) {
       return osmTileUrl(centroid[0], centroid[1], 10);
     }
@@ -40,7 +51,10 @@ function resolveImageUrl(
 
   if (app === "tasking-manager") {
     const src = upstream ?? data;
-    const bbox = src?.aoiBBOX as [number, number, number, number] | null | undefined;
+    const bbox = src?.aoiBBOX as
+      | [number, number, number, number]
+      | null
+      | undefined;
     if (Array.isArray(bbox) && bbox.length === 4) {
       const lat = (bbox[1] + bbox[3]) / 2;
       const lon = (bbox[0] + bbox[2]) / 2;
@@ -72,7 +86,10 @@ function resolveHref(
     case "export-tool":
       return `${getExportToolBaseUrl()}/v3/exports/${projectId}`;
     case "open-aerial-map": {
-      const bbox = (upstream?.bbox ?? data?.bbox) as [number, number, number, number] | null | undefined;
+      const bbox = (upstream?.bbox ?? data?.bbox) as
+        | [number, number, number, number]
+        | null
+        | undefined;
       if (Array.isArray(bbox) && bbox.length === 4) {
         const lng = ((bbox[0] as number) + (bbox[2] as number)) / 2;
         const lat = ((bbox[1] as number) + (bbox[3] as number)) / 2;
@@ -106,19 +123,40 @@ function usePlanProjectDisplay(project: HydratedProjectItem) {
   }, [project.app, project.project_id, project.upstream, project.data]);
 
   return {
-    title: chatmapTitle ?? resolveTitle(project.upstream, project.project_id, project.data),
+    title: !project.project_id
+      ? "Title"
+      : (chatmapTitle ??
+        resolveTitle(project.upstream, project.project_id, project.data)),
     imageUrl: resolveImageUrl(project.app, project.upstream, project.data),
-    href: resolveHref(project.app, project.project_id, project.upstream, project.data),
+    href: resolveHref(
+      project.app,
+      project.project_id,
+      project.upstream,
+      project.data,
+    ),
   };
 }
 
 interface PlanProjectCardProps {
   project: HydratedProjectItem;
+  onStatusChange?: (status: ProjectStatus) => void;
+  onSelectClick?: () => void;
 }
 
-function PlanProjectCard({ project }: PlanProjectCardProps) {
+function PlanProjectCard({ project, onStatusChange, onSelectClick }: PlanProjectCardProps) {
   const { title, imageUrl, href } = usePlanProjectDisplay(project);
   const meta = APP_META[project.app];
+  const [localStatus, setLocalStatus] = useState<ProjectStatus>(project.status);
+
+  useEffect(() => {
+    setLocalStatus(project.status);
+  }, [project.status]);
+
+  function handleStatusSelect(event: CustomEvent) {
+    const status = event.detail.item.value as ProjectStatus;
+    setLocalStatus(status);
+    onStatusChange?.(status);
+  }
 
   return (
     <div className="w-full h-full bg-white rounded-xl shadow-[0_0_14px_rgba(0,0,0,0.2)] p-md flex flex-col gap-lg">
@@ -137,18 +175,49 @@ function PlanProjectCard({ project }: PlanProjectCardProps) {
               <img src={meta.icon} alt={meta.label} className="w-6 h-6" />
             </div>
           </div>
-          <Tag
-            variant={project.status === "done" ? "success" : "neutral"}
-            className="absolute top-1 right-1 z-10"
-          >
-            {formatProjectStatus(project.status)}
-          </Tag>
+          {!project.project_id ? (
+            <button
+              type="button"
+              onClick={onSelectClick}
+              className="absolute top-1 right-1 z-10"
+            >
+              <Tag variant="warning" className="cursor-pointer">
+                Select
+              </Tag>
+            </button>
+          ) : onStatusChange ? (
+            <div className="absolute top-1 right-1 z-10">
+              <Dropdown onSelect={handleStatusSelect}>
+                <Tag
+                  slot="trigger"
+                  variant={statusVariant(localStatus)}
+                  className="cursor-pointer"
+                >
+                  {formatProjectStatus(localStatus)} ▾
+                </Tag>
+                {STATUS_OPTIONS.map((s) => (
+                  <DropdownItem key={s} value={s}>
+                    {formatProjectStatus(s)}
+                  </DropdownItem>
+                ))}
+              </Dropdown>
+            </div>
+          ) : (
+            <Tag
+              variant={statusVariant(project.status)}
+              className="absolute top-1 right-1 z-10"
+            >
+              {formatProjectStatus(project.status)}
+            </Tag>
+          )}
         </div>
 
-        {href ? (
+        {href && project.project_id ? (
           <CardProjectTitle href={href} title={title} />
         ) : (
-          <span className="text-base font-bold">{title}</span>
+          <span className="text-base font-bold line-clamp-2 min-h-[3em]">
+            {title}
+          </span>
         )}
       </div>
     </div>

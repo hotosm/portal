@@ -1,7 +1,7 @@
 import Checkbox from "../../components/shared/Checkbox";
 import { m } from "../../paraglide/messages";
 import { projectKey } from "../../utils/utils";
-import { ProjectOption, ProjectSource } from "../types";
+import type { ProjectOption, ProjectSource } from "../types";
 
 function CheckboxSkeleton() {
   return (
@@ -18,6 +18,10 @@ interface AppSourceSectionProps {
   localSelected: Set<string>;
   toggle: (key: string) => void;
   hidden: boolean;
+  isPendingSelected: boolean;
+  pendingTitle: string;
+  onPendingToggle: () => void;
+  onPendingTitleChange: (title: string) => void;
 }
 
 export function AppSourceSection({
@@ -26,18 +30,13 @@ export function AppSourceSection({
   localSelected,
   toggle,
   hidden,
+  isPendingSelected,
+  pendingTitle,
+  onPendingToggle,
+  onPendingTitleChange,
 }: AppSourceSectionProps) {
   return (
     <div className={hidden ? "hidden" : undefined}>
-      <p className="text-xs font-semibold text-hot-gray-500 uppercase tracking-wide mb-xs">
-        {source.label}
-        {source.isLoading && (
-          <span className="ml-xs font-normal normal-case tracking-normal text-hot-gray-400">
-            {" "}
-            {m.plan_picker_loading()}
-          </span>
-        )}
-      </p>
       {(() => {
         const seenKeys = new Set(
           source.projects.map((p) => projectKey(p.app, p.project_id)),
@@ -56,15 +55,13 @@ export function AppSourceSection({
             </div>
           );
         }
-        if (source.isError && allItems.length === 0) {
-          return (
-            <p className="text-sm text-hot-gray-400">
-              {source.label} — {m.plan_picker_error()}
-            </p>
-          );
-        }
         return (
           <div className="flex flex-col gap-xs">
+            {source.isError && allItems.length === 0 && (
+              <p className="text-sm text-hot-gray-400">
+                {source.label} — {m.plan_picker_error()}
+              </p>
+            )}
             {allItems.map((p) => {
               const key = projectKey(p.app, p.project_id);
               const isChecked = localSelected.has(key);
@@ -79,6 +76,20 @@ export function AppSourceSection({
                 </Checkbox>
               );
             })}
+            <Checkbox checked={isPendingSelected} onChange={onPendingToggle}>
+              {m.plan_picker_pending_option()}
+            </Checkbox>
+            <div className="min-h-3xl">
+              {isPendingSelected && (
+                <input
+                  type="text"
+                  value={pendingTitle}
+                  onChange={(e) => onPendingTitleChange(e.target.value)}
+                  placeholder={m.plan_picker_pending_title()}
+                  className="border border-hot-gray-300 rounded-lg px-md py-xs text-sm bg-white focus:border-hot-red-500 focus:outline-none max-w-full"
+                />
+              )}
+            </div>
           </div>
         );
       })()}

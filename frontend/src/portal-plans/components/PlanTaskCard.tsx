@@ -31,7 +31,6 @@ function PlanTaskCard({ task }: PlanTaskCardProps) {
             </span>
           )}
         </span>
-        <span className="text-sm text-hot-gray-400">{meta.label}</span>
       </div>
     </div>
   );
