@@ -142,6 +142,39 @@ async def toggle_project_exists(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
+@router.patch("/{plan_id}/projects/{plan_project_id}/complete-task", status_code=status.HTTP_204_NO_CONTENT)
+async def complete_task(
+    payload: UrlResolveRequest,
+    request: Request,
+    user: CurrentUser,
+    plan_id: str = Path(..., description="Plan UUID"),
+    plan_project_id: str = Path(..., description="plan_project UUID"),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Resolve URL, set project_exists=False, and store upstream data on the row.
+
+    Only applies to rows where project_exists=True.
+    422 if URL format is unrecognized, 404 if project not found upstream,
+    502 if upstream is unreachable.
+    """
+    hanko_cookie = request.cookies.get("hanko")
+    try:
+        ok = await plans_service.complete_task(
+            db, user.id, plan_id, plan_project_id, payload.url, hanko_cookie=hanko_cookie
+        )
+    except InvalidUrlError:
+        raise HTTPException(status_code=422, detail="URL does not match any supported app")
+    except ProjectNotFoundError:
+        raise HTTPException(status_code=404, detail="project_not_found")
+    except UpstreamUnavailable:
+        raise HTTPException(status_code=502, detail="upstream_unavailable")
+    except DuplicateProjectError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    if not ok:
+        raise HTTPException(status_code=404, detail="Plan or project not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 @router.delete("/{plan_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_plan(
     user: CurrentUser,

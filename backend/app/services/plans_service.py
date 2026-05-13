@@ -235,6 +235,47 @@ async def toggle_project_exists(
     return True
 
 
+async def complete_task(
+    db: AsyncSession,
+    owner_id: str,
+    plan_id: str,
+    plan_project_id: str,
+    url: str,
+    hanko_cookie: str | None = None,
+) -> bool:
+    """Resolve URL, set project_exists=False, and store upstream data+app on the row.
+
+    Only targets rows where project_exists=True. Returns False if not found.
+    Raises InvalidUrlError, ProjectNotFoundError, or UpstreamUnavailable on bad URL.
+    """
+    stmt = (
+        select(PlanProject)
+        .join(Plan, Plan.id == PlanProject.plan_id)
+        .where(
+            Plan.id == plan_id,
+            Plan.owner_id == owner_id,
+            PlanProject.id == plan_project_id,
+            PlanProject.project_exists.is_(True),
+        )
+    )
+    result = await db.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is None:
+        return False
+
+    resolved = await resolve_project_url(url, hanko_cookie=hanko_cookie)
+    row.project_exists = False
+    row.app = resolved.app
+    row.project_id = resolved.project_id
+    row.data = resolved.upstream
+    try:
+        await db.flush()
+    except IntegrityError as e:
+        await db.rollback()
+        raise DuplicateProjectError(str(e)) from e
+    return True
+
+
 async def delete_plan(db: AsyncSession, owner_id: str, plan_id: str) -> bool:
     plan = await get_owned_plan(db, owner_id, plan_id)
     if plan is None:
