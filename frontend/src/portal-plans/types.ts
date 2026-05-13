@@ -10,7 +10,7 @@ export type AppName =
 
 export type HydrationError = "not_found" | "upstream_unavailable";
 
-export type ProjectStatus = "in_progress" | "done";
+export type ProjectStatus = "pending" | "in_progress" | "done" | "task";
 
 export interface PlanTaskItem {
   id: string;

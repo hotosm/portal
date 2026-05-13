@@ -9,11 +9,12 @@ import type { AppName } from "../../types";
 
 interface AddTaskDialogProps {
   open: boolean;
+  allowedApps?: AppName[];
   onConfirm: (title: string, tool: AppName) => void;
   onClose: () => void;
 }
 
-function AddTaskDialog({ open, onConfirm, onClose }: AddTaskDialogProps) {
+function AddTaskDialog({ open, allowedApps, onConfirm, onClose }: AddTaskDialogProps) {
   const [title, setTitle] = useState("");
   const [tool, setTool] = useState<AppName | "">("");
   const dropdownWrapperRef = useRef<HTMLDivElement>(null);
@@ -26,11 +27,14 @@ function AddTaskDialog({ open, onConfirm, onClose }: AddTaskDialogProps) {
     return () => el.removeEventListener("wa-hide", stop);
   }, []);
 
+  const appList = allowedApps ?? (Object.keys(APP_META) as AppName[]);
+
   useEffect(() => {
     if (open) {
       setTitle("");
-      setTool("");
+      setTool(appList.length === 1 ? (appList[0] ?? "") : "");
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   function handleConfirm() {
@@ -79,7 +83,7 @@ function AddTaskDialog({ open, onConfirm, onClose }: AddTaskDialogProps) {
               </span>
               <span className="text-hot-gray-400">&#x25BE;</span>
             </button>
-            {(Object.keys(APP_META) as AppName[]).map((app) => (
+            {appList.map((app) => (
               <DropdownItem key={app} value={app}>
                 {APP_META[app].name}
               </DropdownItem>

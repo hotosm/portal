@@ -12,7 +12,14 @@ interface SortableTaskCardProps {
 }
 
 function SortableTaskCard({ id, task, onRemove }: SortableTaskCardProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -20,7 +27,11 @@ function SortableTaskCard({ id, task, onRemove }: SortableTaskCardProps) {
   };
 
   return (
-    <div ref={setNodeRef} style={style} className={`${cardClassNames} flex flex-col gap-xs`}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`${cardClassNames} flex flex-col gap-md justify-between`}
+    >
       <div className="relative">
         <div
           {...attributes}
@@ -32,7 +43,12 @@ function SortableTaskCard({ id, task, onRemove }: SortableTaskCardProps) {
         <PlanTaskCard task={task} />
       </div>
       <div className="w-full flex justify-end">
-        <Button type="button" appearance="plain" size="small" onClick={onRemove}>
+        <Button
+          type="button"
+          appearance="plain"
+          size="small"
+          onClick={onRemove}
+        >
           ✕
         </Button>
       </div>

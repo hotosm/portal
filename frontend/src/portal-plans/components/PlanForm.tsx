@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { arrayMove } from "@dnd-kit/sortable";
-import type { DragEndEvent } from "@dnd-kit/core";
 import Button from "../../components/shared/Button";
 import { m } from "../../paraglide/messages";
 import { useAllUserProjects } from "../hooks";
@@ -15,8 +13,6 @@ import { usePlanImageUpload } from "../hooks/usePlanImageUpload";
 import PlanNameField from "./form/PlanNameField";
 import PlanDescriptionField from "./form/PlanDescriptionField";
 import PlanImagesField from "./form/PlanImagesField";
-import PlanTasksField from "./form/PlanTasksField";
-import PlanProjectsField from "./form/PlanProjectsField";
 
 export interface PlanFormValues {
   name: string;
@@ -66,19 +62,18 @@ function PlanForm({
 }: PlanFormProps) {
   const [name, setName] = useState(initialName);
   const [description, setDescription] = useState(initialDescription);
-  const [selected, setSelected] = useState<Set<string>>(initialProjectKeys);
-  const [order, setOrder] = useState<string[]>(() => [
+  const [selected] = useState<Set<string>>(initialProjectKeys);
+  const [order] = useState<string[]>(() => [
     ...initialProjectKeys,
     ...initialTasks.map((t) => `task:${t.id}`),
   ]);
-  const [statuses, setStatuses] = useState<Record<string, ProjectStatus>>(
+  const [statuses] = useState<Record<string, ProjectStatus>>(
     initialProjectStatuses,
   );
-  const [tasks, setTasks] = useState<PlanTaskItem[]>(initialTasks);
-  const [extraProjects, setExtraProjects] =
-    useState<ProjectOption[]>(initialExtraProjects);
+  const [tasks] = useState<PlanTaskItem[]>(initialTasks);
+  const [extraProjects] = useState<ProjectOption[]>(initialExtraProjects);
 
-  const { sources, projects, isLoading } = useAllUserProjects();
+  const { projects } = useAllUserProjects();
   const {
     displayImages,
     pendingImages,
@@ -92,10 +87,9 @@ function PlanForm({
   const allProjects = [...extraProjects, ...projects];
   const projectMap = new Map(allProjects.map((p) => [projectKey(p), p]));
   const taskMap = new Map(tasks.map((t) => [`task:${t.id}`, t]));
-  const loadingCount = [...selected].filter((k) => !projectMap.has(k)).length;
   const busy = isPending || isUploading || isDeleting;
 
-  function addTask(title: string, tool: AppName) {
+  /* function addTask(title: string, tool: AppName) {
     const id = crypto.randomUUID();
     setTasks((prev) => [...prev, { id, title, tool, status: "pending" }]);
     setOrder((prev) => [...prev, `task:${id}`]);
@@ -148,10 +142,13 @@ function PlanForm({
     });
     setStatuses((prev) => {
       const result: Record<string, ProjectStatus> = {};
-      for (const k of next) result[k] = prev[k] ?? "in_progress";
+      for (const k of next) {
+        const project_id = k.slice(k.indexOf(":") + 1);
+        result[k] = project_id === "" ? "task" : (prev[k] ?? "in_progress");
+      }
       return result;
     });
-  }
+  } */
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,11 +160,14 @@ function PlanForm({
         const project_id = k.slice(colonIdx + 1);
         const status = statuses[k] ?? ("in_progress" as ProjectStatus);
         const p = projectMap.get(k);
+        const data =
+          p?.upstream ??
+          (project_id === "" && p?.title ? { name: p.title } : null);
         return {
           app,
           project_id,
           status,
-          ...(p?.upstream ? { data: p.upstream } : {}),
+          ...(data ? { data } : {}),
         };
       });
     const submittedTasks = order
@@ -190,6 +190,7 @@ function PlanForm({
       onSubmit={handleSubmit}
       className="flex flex-col gap-lg px-0 lg:px-2xl py-lg"
     >
+      <h3>Plan description</h3>
       <PlanNameField value={name} onChange={setName} />
 
       <PlanDescriptionField value={description} onChange={setDescription} />
@@ -201,8 +202,9 @@ function PlanForm({
         handleFileChange={handleFileChange}
         handleRemoveImage={handleRemoveImage}
       />
-
-      <PlanTasksField onTaskAdded={addTask} />
+      {/* <Divider />
+      <h3>Plan scoope</h3>
+      <p className="max-w-2xl">{m.plan_form_projects_hint()}</p>
 
       <PlanProjectsField
         order={order}
@@ -216,12 +218,15 @@ function PlanForm({
         sources={sources}
         onDragEnd={handleDragEnd}
         onProjectRemove={removeProject}
-        onStatusChange={(key, s) => setStatuses((prev) => ({ ...prev, [key]: s }))}
+        onStatusChange={(key, s) =>
+          setStatuses((prev) => ({ ...prev, [key]: s }))
+        }
         onTaskRemove={removeTask}
+        onTaskAdded={addTask}
         onProjectPickerConfirm={handleProjectPickerConfirm}
       />
-
-      <div className="flex items-center gap-md">
+ */}
+      <div className="flex items-center gap-md pt-2xl">
         <Button type="submit" disabled={busy || !name.trim()}>
           {isPending ? m.plan_form_saving() : submitLabel}
         </Button>

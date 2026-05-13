@@ -62,7 +62,7 @@ function EditPlanPage() {
         buttonText={m.plan_cancel()}
         onButtonClick={() => navigate(detailPath)}
       >
-        {m.plan_header()} <strong>{plan?.name ?? "…"}</strong>
+        {plan?.name ?? "…"}
       </PlanSectionHeader>
       <PageWrapper>
         {isLoading ? (
@@ -87,7 +87,12 @@ function EditPlanPage() {
             planId={planId}
             submitLabel={m.plan_edit_submit()}
             isPending={isPending}
-            onSubmit={async ({ name, description, selectedProjects, tasks }) => {
+            onSubmit={async ({
+              name,
+              description,
+              selectedProjects,
+              tasks,
+            }) => {
               await updatePlan({
                 id: planId!,
                 payload: {
