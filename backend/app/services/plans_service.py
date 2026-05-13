@@ -240,13 +240,16 @@ async def complete_task(
     owner_id: str,
     plan_id: str,
     plan_project_id: str,
-    url: str,
+    url: str | None = None,
+    app: str | None = None,
+    input_project_id: str | None = None,
     hanko_cookie: str | None = None,
 ) -> bool:
-    """Resolve URL, set project_exists=False, and store upstream data+app on the row.
+    """Set project_exists=True and store upstream data+app on the row.
 
-    Only targets rows where project_exists=True. Returns False if not found.
-    Raises InvalidUrlError, ProjectNotFoundError, or UpstreamUnavailable on bad URL.
+    Accepts either a url (resolved via parse+fetch) or a direct app+project_id pair.
+    Only targets rows where project_exists=False. Returns False if not found.
+    Raises InvalidUrlError, ProjectNotFoundError, or UpstreamUnavailable.
     """
     stmt = (
         select(PlanProject)
@@ -255,7 +258,7 @@ async def complete_task(
             Plan.id == plan_id,
             Plan.owner_id == owner_id,
             PlanProject.id == plan_project_id,
-            PlanProject.project_exists.is_(True),
+            PlanProject.project_exists.is_(False),
         )
     )
     result = await db.execute(stmt)
@@ -263,8 +266,11 @@ async def complete_task(
     if row is None:
         return False
 
-    resolved = await resolve_project_url(url, hanko_cookie=hanko_cookie)
-    row.project_exists = False
+    if url is not None:
+        resolved = await resolve_project_url(url, hanko_cookie=hanko_cookie)
+    else:
+        resolved = await _fetch_by_app_project(app, input_project_id, hanko_cookie=hanko_cookie)
+    row.project_exists = True
     row.app = resolved.app
     row.project_id = resolved.project_id
     row.data = resolved.upstream
@@ -602,6 +608,43 @@ _CANONICAL_RESOLVE: dict[str, tuple] = {
 _CHATMAP_RESOLVE_API_URL = "https://chatmap.hotosm.org/api/v1"
 
 
+async def _fetch_by_app_project(
+    app: str,
+    project_id: str,
+    hanko_cookie: str | None = None,
+) -> UrlResolveResponse:
+    """Fetch upstream data for a known app+project_id pair.
+
+    Raises ProjectNotFoundError or UpstreamUnavailable.
+    """
+    try:
+        if app == "chatmap":
+            upstream = await chatmap_service.fetch_map_by_id(
+                project_id,
+                base_url=_CHATMAP_RESOLVE_API_URL,
+                hanko_cookie=hanko_cookie,
+            )
+            if upstream is None and hanko_cookie:
+                upstream = await chatmap_service.fetch_map_by_id(
+                    project_id,
+                    base_url=_CHATMAP_RESOLVE_API_URL,
+                    hanko_cookie=None,
+                )
+            # ChatMap private maps may be inaccessible outside production — accept None.
+            return UrlResolveResponse(app=app, project_id=project_id, upstream=upstream)
+        elif app in _CANONICAL_RESOLVE:
+            fetcher, canonical_base = _CANONICAL_RESOLVE[app]
+            upstream = await fetcher(project_id, base_url=canonical_base)
+        else:
+            upstream = await APP_FETCHERS[app](project_id)
+    except Exception as e:
+        raise UpstreamUnavailable(app) from e
+
+    if upstream is None:
+        raise ProjectNotFoundError(f"{app}:{project_id}")
+    return UrlResolveResponse(app=app, project_id=project_id, upstream=upstream)
+
+
 async def resolve_project_url(
     url: str, hanko_cookie: str | None = None
 ) -> UrlResolveResponse:
@@ -615,35 +658,5 @@ async def resolve_project_url(
     parsed = url_resolver.parse_project_url(url)
     if parsed is None:
         raise InvalidUrlError(url)
-
     app, project_id = parsed
-
-    try:
-        if app == "chatmap":
-            upstream = await chatmap_service.fetch_map_by_id(
-                project_id,
-                base_url=_CHATMAP_RESOLVE_API_URL,
-                hanko_cookie=hanko_cookie,
-            )
-            if upstream is None and hanko_cookie:
-                # Auth may have failed (e.g. local dev Hanko mismatch). Try without auth —
-                # ChatMap maps shared by link return metadata even without credentials.
-                upstream = await chatmap_service.fetch_map_by_id(
-                    project_id,
-                    base_url=_CHATMAP_RESOLVE_API_URL,
-                    hanko_cookie=None,
-                )
-            # Accept the project reference even if upstream is still None — the project
-            # may be private and only accessible to the owner in production.
-            return UrlResolveResponse(app=app, project_id=project_id, upstream=upstream)
-        elif app in _CANONICAL_RESOLVE:
-            fetcher, canonical_base = _CANONICAL_RESOLVE[app]
-            upstream = await fetcher(project_id, base_url=canonical_base)
-        else:
-            upstream = await APP_FETCHERS[app](project_id)
-    except Exception as e:
-        raise UpstreamUnavailable(app) from e
-
-    if upstream is None:
-        raise ProjectNotFoundError(f"{app}:{project_id}")
-    return UrlResolveResponse(app=app, project_id=project_id, upstream=upstream)
+    return await _fetch_by_app_project(app, project_id, hanko_cookie=hanko_cookie)

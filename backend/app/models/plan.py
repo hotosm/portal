@@ -136,3 +136,19 @@ class UrlResolveResponse(BaseModel):
     app: AppLiteral
     project_id: str
     upstream: dict | None = None
+
+
+class CompleteTaskRequest(BaseModel):
+    url: str | None = Field(default=None, min_length=1, max_length=2048)
+    app: AppLiteral | None = None
+    project_id: str | None = None
+
+    @model_validator(mode="after")
+    def check_exactly_one_input(self) -> "CompleteTaskRequest":
+        has_url = self.url is not None
+        has_direct = self.app is not None and self.project_id is not None
+        if not has_url and not has_direct:
+            raise ValueError("Provide either url or app+project_id")
+        if has_url and has_direct:
+            raise ValueError("Provide url or app+project_id, not both")
+        return self

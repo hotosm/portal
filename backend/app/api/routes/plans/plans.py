@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.models.plan import (
+    CompleteTaskRequest,
     PlanCreate,
     PlanRead,
     PlanReadHydrated,
@@ -144,23 +145,30 @@ async def toggle_project_exists(
 
 @router.patch("/{plan_id}/projects/{plan_project_id}/complete-task", status_code=status.HTTP_204_NO_CONTENT)
 async def complete_task(
-    payload: UrlResolveRequest,
+    payload: CompleteTaskRequest,
     request: Request,
     user: CurrentUser,
     plan_id: str = Path(..., description="Plan UUID"),
     plan_project_id: str = Path(..., description="plan_project UUID"),
     db: AsyncSession = Depends(get_db),
 ) -> Response:
-    """Resolve URL, set project_exists=False, and store upstream data on the row.
+    """Set project_exists=True and store upstream data on the row.
 
-    Only applies to rows where project_exists=True.
+    Accepts either url or app+project_id. Only applies to rows where project_exists=False.
     422 if URL format is unrecognized, 404 if project not found upstream,
     502 if upstream is unreachable.
     """
     hanko_cookie = request.cookies.get("hanko")
     try:
         ok = await plans_service.complete_task(
-            db, user.id, plan_id, plan_project_id, payload.url, hanko_cookie=hanko_cookie
+            db,
+            user.id,
+            plan_id,
+            plan_project_id,
+            url=payload.url,
+            app=payload.app,
+            input_project_id=payload.project_id,
+            hanko_cookie=hanko_cookie,
         )
     except InvalidUrlError:
         raise HTTPException(status_code=422, detail="URL does not match any supported app")
