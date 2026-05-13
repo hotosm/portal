@@ -17,7 +17,7 @@ AppLiteral = Literal[
     "umap",
 ]
 
-StatusLiteral = Literal["in_progress", "done"]
+StatusLiteral = Literal["pending", "select", "in_progress", "done"]
 
 HydrationError = Literal["not_found", "upstream_unavailable"]
 
