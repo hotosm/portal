@@ -110,3 +110,9 @@ export interface ProjectPickerDialogProps {
   onConfirm: (selected: Set<string>, extraProjects: ProjectOption[]) => void;
   onClose: () => void;
 }
+
+export interface PlanFormValues {
+  name: string;
+  description: string;
+  pendingImages: File[];
+}

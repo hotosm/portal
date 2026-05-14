@@ -143,7 +143,11 @@ interface PlanProjectCardProps {
   onSelectClick?: () => void;
 }
 
-function PlanProjectCard({ project, onStatusChange, onSelectClick }: PlanProjectCardProps) {
+function PlanProjectCard({
+  project,
+  onStatusChange,
+  onSelectClick,
+}: PlanProjectCardProps) {
   const { title, imageUrl, href } = usePlanProjectDisplay(project);
   const meta = APP_META[project.app];
   const [localStatus, setLocalStatus] = useState<ProjectStatus>(project.status);
@@ -158,69 +162,71 @@ function PlanProjectCard({ project, onStatusChange, onSelectClick }: PlanProject
     onStatusChange?.(status);
   }
 
-  return (
-    <div className="w-full h-full bg-white rounded-xl shadow-[0_0_14px_rgba(0,0,0,0.2)] p-md flex flex-col gap-lg">
-      <div className="flex flex-col gap-sm">
-        <div className="relative">
-          <img
-            src={imageUrl}
-            alt={title}
-            className="w-full h-36 object-cover"
-            onError={(e) => {
-              e.currentTarget.src = placeholder;
-            }}
-          />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md">
-              <img src={meta.icon} alt={meta.label} className="w-6 h-6" />
-            </div>
+  const cardContent = (
+    <div className="flex flex-col gap-sm">
+      <div className="relative">
+        <img
+          src={imageUrl}
+          alt={title}
+          className="w-full h-36 object-cover"
+          onError={(e) => {
+            e.currentTarget.src = placeholder;
+          }}
+        />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md">
+            <img src={meta.icon} alt={meta.label} className="w-6 h-6" />
           </div>
-          {!project.project_id ? (
-            <button
-              type="button"
-              onClick={onSelectClick}
-              className="absolute top-1 right-1 z-10"
-            >
-              <Tag variant="warning" className="cursor-pointer">
-                Select
-              </Tag>
-            </button>
-          ) : onStatusChange ? (
-            <div className="absolute top-1 right-1 z-10">
-              <Dropdown onSelect={handleStatusSelect}>
-                <Tag
-                  slot="trigger"
-                  variant={statusVariant(localStatus)}
-                  className="cursor-pointer"
-                >
-                  {formatProjectStatus(localStatus)} ▾
-                </Tag>
-                {STATUS_OPTIONS.map((s) => (
-                  <DropdownItem key={s} value={s}>
-                    {formatProjectStatus(s)}
-                  </DropdownItem>
-                ))}
-              </Dropdown>
-            </div>
-          ) : (
-            <Tag
-              variant={statusVariant(project.status)}
-              className="absolute top-1 right-1 z-10"
-            >
-              {formatProjectStatus(project.status)}
-            </Tag>
-          )}
         </div>
-
-        {href && project.project_id ? (
-          <CardProjectTitle href={href} title={title} />
+        {!project.project_id ? null : onStatusChange ? (
+          <div className="absolute top-1 right-1 z-10">
+            <Dropdown onSelect={handleStatusSelect}>
+              <Tag
+                slot="trigger"
+                variant={statusVariant(localStatus)}
+                className="cursor-pointer"
+              >
+                {formatProjectStatus(localStatus)} ▾
+              </Tag>
+              {STATUS_OPTIONS.map((s) => (
+                <DropdownItem key={s} value={s}>
+                  {formatProjectStatus(s)}
+                </DropdownItem>
+              ))}
+            </Dropdown>
+          </div>
         ) : (
-          <span className="text-base font-bold line-clamp-2 min-h-[3em]">
-            {title}
-          </span>
+          <Tag
+            variant={statusVariant(project.status)}
+            className="absolute top-1 right-1 z-10"
+          >
+            {formatProjectStatus(project.status)}
+          </Tag>
         )}
       </div>
+
+      {href && project.project_id ? (
+        <CardProjectTitle href={href} title={title} />
+      ) : (
+        <span className="text-base font-bold line-clamp-2 min-h-[3em]">
+          {title}
+        </span>
+      )}
     </div>
+  );
+
+  const cardClassName = `w-full h-full bg-white rounded-xl shadow-[0_0_14px_rgba(0,0,0,0.2)] p-md flex flex-col gap-lg${!project.project_id ? " opacity-50" : ""}`;
+
+  return !project.project_id ? (
+    <button
+      type="button"
+      onClick={onSelectClick}
+      className={`${cardClassName} text-left cursor-pointer`}
+    >
+      {cardContent}
+    </button>
+  ) : (
+    <div className={cardClassName}>{cardContent}</div>
   );
 }
 

@@ -1,6 +1,4 @@
-import { useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import type { ProjectStatus } from "./types";
 import CardSkeleton from "../components/shared/CardSkeleton";
 import PageWrapper from "../components/shared/PageWrapper";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -17,39 +15,6 @@ function EditPlanPage() {
   const { mutateAsync: updatePlan, isPending } = useUpdatePlan();
 
   const detailPath = `/${currentLanguage}/plan/${planId}`;
-
-  const initialProjectKeys = useMemo(
-    () =>
-      new Set((plan?.projects ?? []).map((p) => `${p.app}:${p.project_id}`)),
-    [plan?.projects],
-  );
-
-  const initialProjectStatuses = useMemo(
-    () =>
-      Object.fromEntries(
-        (plan?.projects ?? []).map((p) => [
-          `${p.app}:${p.project_id}`,
-          (p.status ?? "in_progress") as ProjectStatus,
-        ]),
-      ),
-    [plan?.projects],
-  );
-
-  const initialExtraProjects = useMemo(
-    () =>
-      (plan?.projects ?? []).map((p) => ({
-        app: p.app,
-        project_id: p.project_id,
-        title:
-          (p.upstream?.name as string | undefined) ??
-          (p.upstream?.title as string | undefined) ??
-          (p.data?.name as string | undefined) ??
-          (p.data?.title as string | undefined) ??
-          p.project_id,
-        upstream: p.upstream ?? p.data ?? undefined,
-      })),
-    [plan?.projects],
-  );
 
   return (
     <>
@@ -79,27 +44,16 @@ function EditPlanPage() {
           <PlanForm
             initialName={plan.name}
             initialDescription={plan.description ?? ""}
-            initialProjectKeys={initialProjectKeys}
-            initialProjectStatuses={initialProjectStatuses}
-            initialExtraProjects={initialExtraProjects}
             initialImages={plan.images ?? []}
-            initialTasks={plan.tasks ?? []}
             planId={planId}
             submitLabel={m.plan_edit_submit()}
             isPending={isPending}
-            onSubmit={async ({
-              name,
-              description,
-              selectedProjects,
-              tasks,
-            }) => {
+            onSubmit={async ({ name, description }) => {
               await updatePlan({
                 id: planId!,
                 payload: {
                   name,
                   description: description || undefined,
-                  projects: selectedProjects,
-                  tasks,
                 },
               });
               navigate(detailPath);
