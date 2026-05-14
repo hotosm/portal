@@ -109,6 +109,9 @@ function ProjectPickerDialog({
       style={{ "--width": "560px" } as React.CSSProperties}
     >
       <div ref={dropdownWrapperRef} className="mb-md w-full">
+        <label className="text-xs font-semibold text-hot-gray-500 uppercase tracking-wide mb-xs">
+          {m.plan_picker_tool_label()}
+        </label>
         <Dropdown onSelect={(e) => setSelectedTool(e.detail.item.value)}>
           <button
             slot="trigger"

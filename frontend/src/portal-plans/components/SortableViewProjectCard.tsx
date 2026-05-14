@@ -3,18 +3,29 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cardClassNames } from "../../constants/classNames";
 import { useUpdateProjectStatus } from "../hooks";
-import type { HydratedProjectItem, ProjectOption, ProjectStatus } from "../types";
+import type {
+  HydratedProjectItem,
+  ProjectOption,
+  ProjectStatus,
+} from "../types";
 import PlanProjectCard from "./PlanProjectCard";
-import SelectProjectDialog from "./SelectProjectDialog";
+import LinkProjectDialog from "./LinkProjectDialog";
 
 interface SortableViewProjectCardProps {
   id: string;
   project: HydratedProjectItem;
   planId: string;
   onProjectSelected?: (oldKey: string, project: ProjectOption) => void;
+  onProjectDeleted?: (key: string) => void;
 }
 
-function SortableViewProjectCard({ id, project, planId, onProjectSelected }: SortableViewProjectCardProps) {
+function SortableViewProjectCard({
+  id,
+  project,
+  planId,
+  onProjectSelected,
+  onProjectDeleted,
+}: SortableViewProjectCardProps) {
   const {
     attributes,
     listeners,
@@ -33,11 +44,20 @@ function SortableViewProjectCard({ id, project, planId, onProjectSelected }: Sor
   const [dialogOpen, setDialogOpen] = useState(false);
 
   function handleStatusChange(status: ProjectStatus) {
-    updateStatus({ planId, app: project.app, projectId: project.project_id, status });
+    updateStatus({
+      planId,
+      app: project.app,
+      projectId: project.project_id,
+      status,
+    });
   }
 
   return (
-    <div ref={setNodeRef} style={style} className={`${cardClassNames} relative`}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`${cardClassNames} relative`}
+    >
       <div
         {...attributes}
         {...listeners}
@@ -48,13 +68,16 @@ function SortableViewProjectCard({ id, project, planId, onProjectSelected }: Sor
       <PlanProjectCard
         project={project}
         onStatusChange={project.project_id ? handleStatusChange : undefined}
-        onSelectClick={project.project_id ? undefined : () => setDialogOpen(true)}
+        onSelectClick={
+          project.project_id ? undefined : () => setDialogOpen(true)
+        }
       />
       {!project.project_id && (
-        <SelectProjectDialog
+        <LinkProjectDialog
           open={dialogOpen}
           app={project.app}
           onClose={() => setDialogOpen(false)}
+          onDelete={() => onProjectDeleted?.(id)}
           onConfirm={(selected) => onProjectSelected?.(id, selected)}
         />
       )}
