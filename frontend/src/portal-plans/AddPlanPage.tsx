@@ -39,14 +39,18 @@ function AddPlanPage() {
         <strong>{m.plan_add_header()}</strong>
       </PlanSectionHeader>
       <PageWrapper>
+        <h4 className="mb-xs">Create Your Plan</h4>
+        <p>
+          Set the foundation for your goals. <br></br>You'll be able to organize
+          projects here once you're finished.
+        </p>
         <PlanForm
           submitLabel={m.plan_add_submit()}
           isPending={isPending}
-          onSubmit={async ({ name, description, selectedProjects, pendingImages }) => {
+          onSubmit={async ({ name, description, pendingImages }) => {
             const plan = await createPlan({
               name,
               description: description || undefined,
-              projects: selectedProjects,
             });
             if (pendingImages.length > 0) {
               try {
@@ -55,7 +59,7 @@ function AddPlanPage() {
                 toast.error(m.plan_toast_image_upload_error());
               }
             }
-            navigate(planListPath);
+            navigate(`/${currentLanguage}/plan/${plan.id}`);
           }}
           onCancel={() => navigate(planListPath)}
         />

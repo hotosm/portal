@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Button from "../../components/shared/Button";
 import Dialog from "../../components/shared/Dialog";
+import Dropdown from "../../components/shared/Dropdown";
+import DropdownItem from "../../components/shared/DropdownItem";
 import { m } from "../../paraglide/messages";
 import { APP_LABELS } from "../hooks";
 import { useAddProjectByUrl } from "../hooks/useAddProjectByUrl";
+import { projectKey } from "../../utils/utils";
 import type {
   AppName,
   ProjectOption,
@@ -25,7 +28,12 @@ function ProjectPickerDialog({
   const [localExtraProjects, setLocalExtraProjects] = useState<ProjectOption[]>(
     [],
   );
-  const [activeApp, setActiveApp] = useState<AppName | "all">("all");
+  const [selectedTool, setSelectedTool] = useState<string>("");
+  const [pendingApps, setPendingApps] = useState<Set<AppName>>(new Set());
+  const [pendingTitles, setPendingTitles] = useState<Record<string, string>>(
+    {},
+  );
+  const dropdownWrapperRef = useRef<HTMLDivElement>(null);
   const {
     urlInput,
     setUrlInput,
@@ -35,12 +43,22 @@ function ProjectPickerDialog({
     handleAddUrl,
   } = useAddProjectByUrl();
 
+  useEffect(() => {
+    const el = dropdownWrapperRef.current;
+    if (!el) return;
+    const stop = (e: Event) => e.stopPropagation();
+    el.addEventListener("wa-hide", stop);
+    return () => el.removeEventListener("wa-hide", stop);
+  }, []);
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: only sync on open-transition, not on every selected change
   useEffect(() => {
     if (open) {
       setLocalSelected(new Set(selected));
       setLocalExtraProjects(extraProjects);
-      setActiveApp("all");
+      setSelectedTool(sources[0]?.app ?? "");
+      setPendingApps(new Set());
+      setPendingTitles({});
       setUrlInput("");
       setUrlError(null);
     }
@@ -50,6 +68,14 @@ function ProjectPickerDialog({
     setLocalSelected((prev) => {
       const next = new Set(prev);
       next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  }
+
+  function togglePending(app: AppName) {
+    setPendingApps((prev) => {
+      const next = new Set(prev);
+      next.has(app) ? next.delete(app) : next.add(app);
       return next;
     });
   }
@@ -75,25 +101,6 @@ function ProjectPickerDialog({
     })),
   ];
 
-  const visibleSources =
-    activeApp === "all"
-      ? allSources
-      : allSources.filter((s) => s.app === activeApp);
-
-  const allLoaded = allSources.every((s) => !s.isLoading);
-  const allEmpty =
-    allLoaded &&
-    allSources.every((s) => s.projects.length === 0 && !s.isError) &&
-    localExtraProjects.length === 0;
-
-  const hasAnyContent = visibleSources.some(
-    (s) =>
-      s.isLoading ||
-      s.isError ||
-      s.projects.length > 0 ||
-      localExtraProjects.some((p) => p.app === s.app),
-  );
-
   return (
     <Dialog
       open={open}
@@ -101,77 +108,48 @@ function ProjectPickerDialog({
       onWaHide={onClose}
       style={{ "--width": "560px" } as React.CSSProperties}
     >
-      <div className="flex flex-wrap gap-xs">
-        <Button
-          type="button"
-          size="small"
-          appearance={activeApp === "all" ? "filled" : "outlined"}
-          onClick={() => setActiveApp("all")}
-        >
-          {m.plan_picker_all()}
-        </Button>
-        {allSources
-          .filter(
-            (s) =>
-              s.isLoading ||
-              s.projects.length > 0 ||
-              localExtraProjects.some((p) => p.app === s.app),
-          )
-          .map((s) => (
-            <Button
-              key={s.app}
-              type="button"
-              size="small"
-              appearance={activeApp === s.app ? "filled" : "outlined"}
-              onClick={() => setActiveApp(s.app)}
-            >
+      <div ref={dropdownWrapperRef} className="mb-md w-full">
+        <label className="text-xs font-semibold text-hot-gray-500 uppercase tracking-wide mb-xs">
+          {m.plan_picker_tool_label()}
+        </label>
+        <Dropdown onSelect={(e) => setSelectedTool(e.detail.item.value)}>
+          <button
+            slot="trigger"
+            type="button"
+            className="w-full flex justify-between items-center border border-hot-gray-300 rounded-lg px-md py-sm text-base bg-white focus:border-hot-red-500 focus:outline-none"
+          >
+            <span>{allSources.find((s) => s.app === selectedTool)?.label}</span>
+            <span className="text-hot-gray-400">&#x25BE;</span>
+          </button>
+          {allSources.map((s) => (
+            <DropdownItem key={s.app} value={s.app}>
               {s.label}
-            </Button>
+            </DropdownItem>
           ))}
+        </Dropdown>
       </div>
 
       <div className="overflow-y-auto max-h-[50vh] flex flex-col gap-md mt-md">
-        {allEmpty ? (
-          <p className="text-sm text-hot-gray-400">
-            {m.plan_picker_no_projects()}
-          </p>
-        ) : !hasAnyContent ? (
-          <p className="text-sm text-hot-gray-400">
-            {APP_LABELS[activeApp as AppName]} —{" "}
-            {m.plan_picker_no_app_projects()}{" "}
-            <button
-              type="button"
-              className="underline hover:text-hot-gray-600"
-              onClick={() => setActiveApp("all")}
-            >
-              {m.plan_picker_all_apps()}
-            </button>
-          </p>
-        ) : (
-          allSources.map((source) => {
-            const extras = localExtraProjects.filter(
-              (p) => p.app === source.app,
-            );
-            if (
-              !source.isLoading &&
-              !source.isError &&
-              source.projects.length === 0 &&
-              extras.length === 0
-            )
-              return null;
-            const hidden = activeApp !== "all" && source.app !== activeApp;
-            return (
-              <AppSourceSection
-                key={source.app}
-                source={source}
-                extras={extras}
-                localSelected={localSelected}
-                toggle={toggle}
-                hidden={hidden}
-              />
-            );
-          })
-        )}
+        {allSources.map((source) => {
+          const extras = localExtraProjects.filter((p) => p.app === source.app);
+          const hidden = selectedTool !== "" && source.app !== selectedTool;
+          return (
+            <AppSourceSection
+              key={source.app}
+              source={source}
+              extras={extras}
+              localSelected={localSelected}
+              toggle={toggle}
+              hidden={hidden}
+              isPendingSelected={pendingApps.has(source.app)}
+              pendingTitle={pendingTitles[source.app] ?? ""}
+              onPendingToggle={() => togglePending(source.app)}
+              onPendingTitleChange={(title) =>
+                setPendingTitles((prev) => ({ ...prev, [source.app]: title }))
+              }
+            />
+          );
+        })}
       </div>
 
       <AddByUrlSection
@@ -194,12 +172,25 @@ function ProjectPickerDialog({
         <Button
           type="button"
           onClick={() => {
-            onConfirm(localSelected, localExtraProjects);
+            const pendingProjects: ProjectOption[] = [...pendingApps].map(
+              (app) => ({
+                app,
+                project_id: "",
+                title: pendingTitles[app] ?? "",
+              }),
+            );
+            const finalSelected = new Set(localSelected);
+            for (const app of pendingApps) {
+              finalSelected.add(projectKey(app, ""));
+            }
+            onConfirm(finalSelected, [
+              ...localExtraProjects,
+              ...pendingProjects,
+            ]);
             onClose();
           }}
         >
           {m.plan_picker_done()}
-          {localSelected.size > 0 ? ` (${localSelected.size})` : ""}
         </Button>
       </div>
     </Dialog>
