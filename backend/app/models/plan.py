@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Literal
 
 import nh3
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 AppLiteral = Literal[
     "chatmap",
@@ -44,10 +44,21 @@ class PlanImageRead(BaseModel):
 
 
 class PlanProjectItem(BaseModel):
-    app: AppLiteral
-    project_id: str
+    app: AppLiteral | None = None
+    project_id: str | None = None
+    project_exists: bool = True
     status: StatusLiteral = "in_progress"
     data: dict | None = None
+
+    @model_validator(mode="after")
+    def check_project_fields(self) -> "PlanProjectItem":
+        if self.project_exists:
+            if self.app is None or self.project_id is None:
+                raise ValueError("app and project_id are required when project_exists is True")
+        else:
+            if self.app is not None or self.project_id is not None:
+                raise ValueError("app and project_id must be absent when project_exists is False")
+        return self
 
 
 class PlanCreate(BaseModel):
@@ -88,8 +99,9 @@ class PlanRead(BaseModel):
 
 
 class HydratedProjectItem(BaseModel):
-    app: AppLiteral
-    project_id: str
+    app: AppLiteral | None
+    project_id: str | None
+    project_exists: bool = True
     status: StatusLiteral = "in_progress"
     data: dict | None = None
     upstream: dict | None = None
@@ -124,3 +136,19 @@ class UrlResolveResponse(BaseModel):
     app: AppLiteral
     project_id: str
     upstream: dict | None = None
+
+
+class CompleteTaskRequest(BaseModel):
+    url: str | None = Field(default=None, min_length=1, max_length=2048)
+    app: AppLiteral | None = None
+    project_id: str | None = None
+
+    @model_validator(mode="after")
+    def check_exactly_one_input(self) -> "CompleteTaskRequest":
+        has_url = self.url is not None
+        has_direct = self.app is not None and self.project_id is not None
+        if not has_url and not has_direct:
+            raise ValueError("Provide either url or app+project_id")
+        if has_url and has_direct:
+            raise ValueError("Provide url or app+project_id, not both")
+        return self

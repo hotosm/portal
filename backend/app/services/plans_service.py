@@ -73,9 +73,14 @@ def plan_to_read(plan: Plan) -> PlanRead:
         created_at=plan.created_at,
         updated_at=plan.updated_at,
         projects=[
-            PlanProjectItem(app=row.app, project_id=row.project_id, status=row.status, data=row.data)
+            PlanProjectItem(
+                app=row.app,
+                project_id=row.project_id,
+                project_exists=row.project_exists,
+                data=row.data,
+            )
             for row in plan.projects
-            if row.app in _KNOWN_APPS
+            if not row.project_exists or row.app in _KNOWN_APPS
         ],
         images=[
             PlanImageRead(
@@ -92,6 +97,8 @@ def plan_to_read(plan: Plan) -> PlanRead:
 def check_no_duplicates(items: list[PlanProjectItem]) -> None:
     seen: set[tuple[str, str]] = set()
     for item in items:
+        if not item.project_exists:
+            continue
         key = (item.app, item.project_id)
         if key in seen:
             raise DuplicateProjectError(
@@ -144,6 +151,7 @@ async def create_plan(
                 plan_id=plan.id,
                 app=item.app,
                 project_id=item.project_id,
+                project_exists=item.project_exists,
                 status=item.status,
                 display_order=idx,
                 data=item.data,
@@ -202,6 +210,78 @@ async def update_plan(
     return plan_to_read(plan)
 
 
+async def toggle_project_exists(
+    db: AsyncSession,
+    owner_id: str,
+    plan_id: str,
+    plan_project_id: str,
+) -> bool:
+    """Toggle project_exists on a plan_project row. Returns False if not found."""
+    stmt = (
+        select(PlanProject)
+        .join(Plan, Plan.id == PlanProject.plan_id)
+        .where(
+            Plan.id == plan_id,
+            Plan.owner_id == owner_id,
+            PlanProject.id == plan_project_id,
+        )
+    )
+    result = await db.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is None:
+        return False
+    row.project_exists = not row.project_exists
+    await db.flush()
+    return True
+
+
+async def complete_task(
+    db: AsyncSession,
+    owner_id: str,
+    plan_id: str,
+    plan_project_id: str,
+    url: str | None = None,
+    app: str | None = None,
+    input_project_id: str | None = None,
+    hanko_cookie: str | None = None,
+) -> bool:
+    """Set project_exists=True and store upstream data+app on the row.
+
+    Accepts either a url (resolved via parse+fetch) or a direct app+project_id pair.
+    Only targets rows where project_exists=False. Returns False if not found.
+    Raises InvalidUrlError, ProjectNotFoundError, or UpstreamUnavailable.
+    """
+    stmt = (
+        select(PlanProject)
+        .join(Plan, Plan.id == PlanProject.plan_id)
+        .where(
+            Plan.id == plan_id,
+            Plan.owner_id == owner_id,
+            PlanProject.id == plan_project_id,
+            PlanProject.project_exists.is_(False),
+        )
+    )
+    result = await db.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is None:
+        return False
+
+    if url is not None:
+        resolved = await resolve_project_url(url, hanko_cookie=hanko_cookie)
+    else:
+        resolved = await _fetch_by_app_project(app, input_project_id, hanko_cookie=hanko_cookie)
+    row.project_exists = True
+    row.app = resolved.app
+    row.project_id = resolved.project_id
+    row.data = resolved.upstream
+    try:
+        await db.flush()
+    except IntegrityError as e:
+        await db.rollback()
+        raise DuplicateProjectError(str(e)) from e
+    return True
+
+
 async def delete_plan(db: AsyncSession, owner_id: str, plan_id: str) -> bool:
     plan = await get_owned_plan(db, owner_id, plan_id)
     if plan is None:
@@ -242,6 +322,16 @@ async def set_project_status(
 async def hydrate_one(
     row: PlanProject, hanko_cookie: str | None = None
 ) -> HydratedProjectItem:
+    if not row.project_exists:
+        return HydratedProjectItem(
+            app=row.app,
+            project_id=row.project_id,
+            project_exists=False,
+            data=row.data,
+            upstream=None,
+            error=None,
+        )
+
     if row.app == "chatmap":
         try:
             upstream = await chatmap_service.fetch_map_by_id(
@@ -518,6 +608,43 @@ _CANONICAL_RESOLVE: dict[str, tuple] = {
 _CHATMAP_RESOLVE_API_URL = "https://chatmap.hotosm.org/api/v1"
 
 
+async def _fetch_by_app_project(
+    app: str,
+    project_id: str,
+    hanko_cookie: str | None = None,
+) -> UrlResolveResponse:
+    """Fetch upstream data for a known app+project_id pair.
+
+    Raises ProjectNotFoundError or UpstreamUnavailable.
+    """
+    try:
+        if app == "chatmap":
+            upstream = await chatmap_service.fetch_map_by_id(
+                project_id,
+                base_url=_CHATMAP_RESOLVE_API_URL,
+                hanko_cookie=hanko_cookie,
+            )
+            if upstream is None and hanko_cookie:
+                upstream = await chatmap_service.fetch_map_by_id(
+                    project_id,
+                    base_url=_CHATMAP_RESOLVE_API_URL,
+                    hanko_cookie=None,
+                )
+            # ChatMap private maps may be inaccessible outside production — accept None.
+            return UrlResolveResponse(app=app, project_id=project_id, upstream=upstream)
+        elif app in _CANONICAL_RESOLVE:
+            fetcher, canonical_base = _CANONICAL_RESOLVE[app]
+            upstream = await fetcher(project_id, base_url=canonical_base)
+        else:
+            upstream = await APP_FETCHERS[app](project_id)
+    except Exception as e:
+        raise UpstreamUnavailable(app) from e
+
+    if upstream is None:
+        raise ProjectNotFoundError(f"{app}:{project_id}")
+    return UrlResolveResponse(app=app, project_id=project_id, upstream=upstream)
+
+
 async def resolve_project_url(
     url: str, hanko_cookie: str | None = None
 ) -> UrlResolveResponse:
@@ -531,35 +658,5 @@ async def resolve_project_url(
     parsed = url_resolver.parse_project_url(url)
     if parsed is None:
         raise InvalidUrlError(url)
-
     app, project_id = parsed
-
-    try:
-        if app == "chatmap":
-            upstream = await chatmap_service.fetch_map_by_id(
-                project_id,
-                base_url=_CHATMAP_RESOLVE_API_URL,
-                hanko_cookie=hanko_cookie,
-            )
-            if upstream is None and hanko_cookie:
-                # Auth may have failed (e.g. local dev Hanko mismatch). Try without auth —
-                # ChatMap maps shared by link return metadata even without credentials.
-                upstream = await chatmap_service.fetch_map_by_id(
-                    project_id,
-                    base_url=_CHATMAP_RESOLVE_API_URL,
-                    hanko_cookie=None,
-                )
-            # Accept the project reference even if upstream is still None — the project
-            # may be private and only accessible to the owner in production.
-            return UrlResolveResponse(app=app, project_id=project_id, upstream=upstream)
-        elif app in _CANONICAL_RESOLVE:
-            fetcher, canonical_base = _CANONICAL_RESOLVE[app]
-            upstream = await fetcher(project_id, base_url=canonical_base)
-        else:
-            upstream = await APP_FETCHERS[app](project_id)
-    except Exception as e:
-        raise UpstreamUnavailable(app) from e
-
-    if upstream is None:
-        raise ProjectNotFoundError(f"{app}:{project_id}")
-    return UrlResolveResponse(app=app, project_id=project_id, upstream=upstream)
+    return await _fetch_by_app_project(app, project_id, hanko_cookie=hanko_cookie)
