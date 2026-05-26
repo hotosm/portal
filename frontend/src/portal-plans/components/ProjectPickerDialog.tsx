@@ -6,9 +6,9 @@ import DropdownItem from "../../components/shared/DropdownItem";
 import { m } from "../../paraglide/messages";
 import { APP_LABELS } from "../hooks";
 import { useAddProjectByUrl } from "../hooks/useAddProjectByUrl";
-import { projectKey } from "../../utils/utils";
 import type {
   AppName,
+  PendingTaskInput,
   ProjectOption,
   ProjectPickerDialogProps,
   ProjectSource,
@@ -21,6 +21,7 @@ function ProjectPickerDialog({
   selected,
   extraProjects,
   sources,
+  existingTasks,
   onConfirm,
   onClose,
 }: ProjectPickerDialogProps) {
@@ -29,10 +30,9 @@ function ProjectPickerDialog({
     [],
   );
   const [selectedTool, setSelectedTool] = useState<string>("");
-  const [pendingApps, setPendingApps] = useState<Set<AppName>>(new Set());
-  const [pendingTitles, setPendingTitles] = useState<Record<string, string>>(
-    {},
-  );
+  const [localTaskIds, setLocalTaskIds] = useState<Set<string>>(new Set());
+  const [newTasks, setNewTasks] = useState<PendingTaskInput[]>([]);
+  const [newTaskTitle, setNewTaskTitle] = useState<string>("");
   const dropdownWrapperRef = useRef<HTMLDivElement>(null);
   const {
     urlInput,
@@ -51,14 +51,15 @@ function ProjectPickerDialog({
     return () => el.removeEventListener("wa-hide", stop);
   }, []);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: only sync on open-transition, not on every selected change
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only sync on open-transition
   useEffect(() => {
     if (open) {
       setLocalSelected(new Set(selected));
       setLocalExtraProjects(extraProjects);
       setSelectedTool(sources[0]?.app ?? "");
-      setPendingApps(new Set());
-      setPendingTitles({});
+      setLocalTaskIds(new Set(existingTasks.map((t) => t.id)));
+      setNewTasks([]);
+      setNewTaskTitle("");
       setUrlInput("");
       setUrlError(null);
     }
@@ -67,17 +68,30 @@ function ProjectPickerDialog({
   function toggle(key: string) {
     setLocalSelected((prev) => {
       const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   }
 
-  function togglePending(app: AppName) {
-    setPendingApps((prev) => {
+  function toggleTaskId(id: string) {
+    setLocalTaskIds((prev) => {
       const next = new Set(prev);
-      next.has(app) ? next.delete(app) : next.add(app);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
+  }
+
+  function removeNewTask(idx: number) {
+    setNewTasks((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  function addNewTask() {
+    const title = newTaskTitle.trim();
+    if (!title || !selectedTool) return;
+    setNewTasks((prev) => [...prev, { app: selectedTool as AppName, title }]);
+    setNewTaskTitle("");
   }
 
   function onProjectAdded(project: ProjectOption, key: string) {
@@ -132,6 +146,10 @@ function ProjectPickerDialog({
       <div className="overflow-y-auto max-h-[50vh] flex flex-col gap-md mt-md">
         {allSources.map((source) => {
           const extras = localExtraProjects.filter((p) => p.app === source.app);
+          const tasks = existingTasks.filter((t) => t.app === source.app);
+          const newForApp = newTasks
+            .map((t, idx) => ({ title: t.title, app: t.app, idx }))
+            .filter((t) => t.app === source.app);
           const hidden = selectedTool !== "" && source.app !== selectedTool;
           return (
             <AppSourceSection
@@ -141,12 +159,11 @@ function ProjectPickerDialog({
               localSelected={localSelected}
               toggle={toggle}
               hidden={hidden}
-              isPendingSelected={pendingApps.has(source.app)}
-              pendingTitle={pendingTitles[source.app] ?? ""}
-              onPendingToggle={() => togglePending(source.app)}
-              onPendingTitleChange={(title) =>
-                setPendingTitles((prev) => ({ ...prev, [source.app]: title }))
-              }
+              existingTasks={tasks}
+              taskIds={localTaskIds}
+              onToggleTask={toggleTaskId}
+              newTasks={newForApp}
+              onRemoveNewTask={removeNewTask}
             />
           );
         })}
@@ -161,6 +178,38 @@ function ProjectPickerDialog({
         onAdd={() => handleAddUrl({ localSelected, onAdded: onProjectAdded })}
       />
 
+      <div className="border-t border-hot-gray-200 pt-md mt-md flex flex-col gap-xs">
+        <span className="text-xs font-semibold text-hot-gray-500 uppercase tracking-wide">
+          Project doesn't exist yet?
+        </span>
+        <p className="text-xs text-hot-gray-400">
+          Create a task and link it to a real project once you have it.
+        </p>
+        <div className="flex gap-xs">
+          <input
+            type="text"
+            value={newTaskTitle}
+            onChange={(e) => setNewTaskTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addNewTask();
+              }
+            }}
+            placeholder="What needs to be done?"
+            className="flex-1 border border-hot-gray-300 rounded-lg px-sm py-xs text-sm outline-none focus:border-hot-red-500"
+          />
+          <Button
+            type="button"
+            size="small"
+            disabled={!newTaskTitle.trim() || !selectedTool}
+            onClick={addNewTask}
+          >
+            Create
+          </Button>
+        </div>
+      </div>
+
       <div slot="footer" className="flex gap-sm justify-end">
         <button
           type="button"
@@ -172,21 +221,7 @@ function ProjectPickerDialog({
         <Button
           type="button"
           onClick={() => {
-            const pendingProjects: ProjectOption[] = [...pendingApps].map(
-              (app) => ({
-                app,
-                project_id: "",
-                title: pendingTitles[app] ?? "",
-              }),
-            );
-            const finalSelected = new Set(localSelected);
-            for (const app of pendingApps) {
-              finalSelected.add(projectKey(app, ""));
-            }
-            onConfirm(finalSelected, [
-              ...localExtraProjects,
-              ...pendingProjects,
-            ]);
+            onConfirm(localSelected, localExtraProjects, localTaskIds, newTasks);
             onClose();
           }}
         >

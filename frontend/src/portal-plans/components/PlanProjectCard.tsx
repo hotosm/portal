@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
-import placeholder from "../../assets/images/placeholder.png";
-import CardProjectTitle from "../../components/shared/CardProjectTitle";
-import Dropdown from "../../components/shared/Dropdown";
-import DropdownItem from "../../components/shared/DropdownItem";
-import Tag from "../../components/shared/Tag";
-import { APP_META } from "../../utils/appMeta";
+import { useEffect, useState } from 'react'
+import placeholder from '../../assets/images/placeholder.png'
+import CardProjectTitle from '../../components/shared/CardProjectTitle'
+import Dropdown from '../../components/shared/Dropdown'
+import DropdownItem from '../../components/shared/DropdownItem'
+import Tag from '../../components/shared/Tag'
+import { APP_META } from '../../utils/appMeta'
 import {
   getChatMapBaseUrl,
   getDroneTmBaseUrl,
@@ -12,154 +12,141 @@ import {
   getFairBaseUrl,
   getFieldTmBaseUrl,
   getUmapBaseUrl,
-} from "../../utils/envConfig";
-import { osmTileUrl } from "../../utils/osmTiles";
-import { formatProjectStatus } from "../../utils/utils";
-import type { HydratedProjectItem, AppName, ProjectStatus } from "../types";
+} from '../../utils/envConfig'
+import { osmTileUrl } from '../../utils/osmTiles'
+import { formatProjectStatus } from '../../utils/utils'
+import type { AppName, HydratedProjectItem, ProjectStatus } from '../types'
 
-const STATUS_OPTIONS: ProjectStatus[] = ["pending", "in_progress", "done"];
+const STATUS_OPTIONS: ProjectStatus[] = ['pending', 'in_progress', 'done']
 
-function statusVariant(status: ProjectStatus): "neutral" | "success" {
-  return status === "done" ? "success" : "neutral";
+function statusVariant(status: ProjectStatus): 'neutral' | 'success' {
+  return status === 'done' ? 'success' : 'neutral'
 }
 
 function resolveTitle(
   upstream: Record<string, unknown> | null,
   projectId: string,
-  data: Record<string, unknown> | null,
+  data: Record<string, unknown> | null
 ): string {
-  const src = upstream ?? data;
-  if (!src) return projectId;
-  const t = src.name ?? src.title ?? src.project_name;
-  return typeof t === "string" && t ? t : projectId;
+  const src = upstream ?? data
+  if (!src) return projectId
+  const t = src.name ?? src.title ?? src.project_name
+  return typeof t === 'string' && t ? t : projectId
 }
 
 function resolveImageUrl(
   app: AppName,
   upstream: Record<string, unknown> | null,
-  data: Record<string, unknown> | null,
+  data: Record<string, unknown> | null
 ): string {
-  if (app === "chatmap" || app === "umap") {
-    const centroid = (upstream?.centroid ?? data?.centroid) as
-      | [number, number]
-      | null
-      | undefined;
+  if (app === 'chatmap' || app === 'umap') {
+    const centroid = (upstream?.centroid ?? data?.centroid) as [number, number] | null | undefined
     if (Array.isArray(centroid) && centroid.length === 2) {
-      return osmTileUrl(centroid[0], centroid[1], 10);
+      return osmTileUrl(centroid[0], centroid[1], 10)
     }
   }
 
-  if (app === "tasking-manager") {
-    const src = upstream ?? data;
-    const bbox = src?.aoiBBOX as
-      | [number, number, number, number]
-      | null
-      | undefined;
+  if (app === 'tasking-manager') {
+    const src = upstream ?? data
+    const bbox = src?.aoiBBOX as [number, number, number, number] | null | undefined
     if (Array.isArray(bbox) && bbox.length === 4) {
-      const lat = (bbox[1] + bbox[3]) / 2;
-      const lon = (bbox[0] + bbox[2]) / 2;
-      return osmTileUrl(lat, lon, 10);
+      const lat = (bbox[1] + bbox[3]) / 2
+      const lon = (bbox[0] + bbox[2]) / 2
+      return osmTileUrl(lat, lon, 10)
     }
   }
 
-  const src = upstream ?? data;
-  if (!src) return placeholder;
-  const img = src.image_url ?? src.thumbnail_url ?? src.thumbnail ?? src.image;
-  return typeof img === "string" && img ? img : placeholder;
+  const src = upstream ?? data
+  if (!src) return placeholder
+  const img = src.image_url ?? src.thumbnail_url ?? src.thumbnail ?? src.image
+  return typeof img === 'string' && img ? img : placeholder
 }
 
 function resolveHref(
   app: AppName,
   projectId: string,
   upstream: Record<string, unknown> | null,
-  data: Record<string, unknown> | null,
+  data: Record<string, unknown> | null
 ): string {
   switch (app) {
-    case "tasking-manager":
-      return `https://tasks.hotosm.org/projects/${projectId}`;
-    case "drone-tasking-manager":
-      return `${getDroneTmBaseUrl()}/projects/${projectId}`;
-    case "field-tm":
-      return `${getFieldTmBaseUrl()}/projects/${projectId}`;
-    case "fair":
-      return `${getFairBaseUrl()}/ai-models/${projectId}`;
-    case "export-tool":
-      return `${getExportToolBaseUrl()}/v3/exports/${projectId}`;
-    case "open-aerial-map": {
+    case 'tasking-manager':
+      return `https://tasks.hotosm.org/projects/${projectId}`
+    case 'drone-tasking-manager':
+      return `${getDroneTmBaseUrl()}/projects/${projectId}`
+    case 'field-tm':
+      return `${getFieldTmBaseUrl()}/projects/${projectId}`
+    case 'fair':
+      return `${getFairBaseUrl()}/ai-models/${projectId}`
+    case 'export-tool':
+      return `${getExportToolBaseUrl()}/v3/exports/${projectId}`
+    case 'open-aerial-map': {
       const bbox = (upstream?.bbox ?? data?.bbox) as
         | [number, number, number, number]
         | null
-        | undefined;
+        | undefined
       if (Array.isArray(bbox) && bbox.length === 4) {
-        const lng = ((bbox[0] as number) + (bbox[2] as number)) / 2;
-        const lat = ((bbox[1] as number) + (bbox[3] as number)) / 2;
-        return `https://map.openaerialmap.org/#/${lng},${lat},14/latest/${projectId}`;
+        const lng = ((bbox[0] as number) + (bbox[2] as number)) / 2
+        const lat = ((bbox[1] as number) + (bbox[3] as number)) / 2
+        return `https://map.openaerialmap.org/#/${lng},${lat},14/latest/${projectId}`
       }
-      return `https://map.openaerialmap.org`;
+      return `https://map.openaerialmap.org`
     }
-    case "umap": {
-      const href = (upstream?.href ?? data?.href) as string | null | undefined;
-      return href ?? `${getUmapBaseUrl()}/m/${projectId}/`;
+    case 'umap': {
+      const href = (upstream?.href ?? data?.href) as string | null | undefined
+      return href ?? `${getUmapBaseUrl()}/m/${projectId}/`
     }
-    case "chatmap":
-      return `${getChatMapBaseUrl()}/#map/${projectId}`;
+    case 'chatmap':
+      return `${getChatMapBaseUrl()}/#map/${projectId}`
   }
 }
 
 function usePlanProjectDisplay(project: HydratedProjectItem) {
-  const [chatmapTitle, setChatmapTitle] = useState<string | null>(null);
+  const [chatmapTitle, setChatmapTitle] = useState<string | null>(null)
 
   useEffect(() => {
-    if (project.app !== "chatmap" || project.upstream || project.data) return;
+    if (project.app !== 'chatmap' || project.upstream || project.data) return
     fetch(`${getChatMapBaseUrl()}/api/v1/map/${project.project_id}`, {
-      credentials: "include",
-      headers: { accept: "application/json" },
+      credentials: 'include',
+      headers: { accept: 'application/json' },
     })
       .then((r) => (r.ok ? r.json() : null))
       .then((d: Record<string, unknown> | null) => {
-        if (typeof d?.name === "string" && d.name) setChatmapTitle(d.name);
+        if (typeof d?.name === 'string' && d.name) setChatmapTitle(d.name)
       })
-      .catch(() => {});
-  }, [project.app, project.project_id, project.upstream, project.data]);
+      .catch(() => {})
+  }, [project.app, project.project_id, project.upstream, project.data])
 
+  const isTask = !project.project_exists
   return {
-    title: !project.project_id
-      ? "Title"
-      : (chatmapTitle ??
-        resolveTitle(project.upstream, project.project_id, project.data)),
+    title: isTask
+      ? typeof project.data?.title === 'string' && project.data.title
+        ? project.data.title
+        : 'Untitled task'
+      : (chatmapTitle ?? resolveTitle(project.upstream, project.project_id ?? '', project.data)),
     imageUrl: resolveImageUrl(project.app, project.upstream, project.data),
-    href: resolveHref(
-      project.app,
-      project.project_id,
-      project.upstream,
-      project.data,
-    ),
-  };
+    href: resolveHref(project.app, project.project_id ?? '', project.upstream, project.data),
+  }
 }
 
 interface PlanProjectCardProps {
-  project: HydratedProjectItem;
-  onStatusChange?: (status: ProjectStatus) => void;
-  onSelectClick?: () => void;
+  project: HydratedProjectItem
+  onStatusChange?: (status: ProjectStatus) => void
+  onSelectClick?: () => void
 }
 
-function PlanProjectCard({
-  project,
-  onStatusChange,
-  onSelectClick,
-}: PlanProjectCardProps) {
-  const { title, imageUrl, href } = usePlanProjectDisplay(project);
-  const meta = APP_META[project.app];
-  const [localStatus, setLocalStatus] = useState<ProjectStatus>(project.status);
+function PlanProjectCard({ project, onStatusChange, onSelectClick }: PlanProjectCardProps) {
+  const { title, imageUrl, href } = usePlanProjectDisplay(project)
+  const meta = APP_META[project.app]
+  const [localStatus, setLocalStatus] = useState<ProjectStatus>(project.status)
 
   useEffect(() => {
-    setLocalStatus(project.status);
-  }, [project.status]);
+    setLocalStatus(project.status)
+  }, [project.status])
 
   function handleStatusSelect(event: CustomEvent) {
-    const status = event.detail.item.value as ProjectStatus;
-    setLocalStatus(status);
-    onStatusChange?.(status);
+    const status = event.detail.item.value as ProjectStatus
+    setLocalStatus(status)
+    onStatusChange?.(status)
   }
 
   const cardContent = (
@@ -170,7 +157,7 @@ function PlanProjectCard({
           alt={title}
           className="w-full h-36 object-cover"
           onError={(e) => {
-            e.currentTarget.src = placeholder;
+            e.currentTarget.src = placeholder
           }}
         />
         <div className="absolute inset-0 flex items-center justify-center">
@@ -178,14 +165,10 @@ function PlanProjectCard({
             <img src={meta.icon} alt={meta.label} className="w-6 h-6" />
           </div>
         </div>
-        {!project.project_id ? null : onStatusChange ? (
+        {!project.project_exists ? null : onStatusChange ? (
           <div className="absolute top-1 right-1 z-10">
             <Dropdown onSelect={handleStatusSelect}>
-              <Tag
-                slot="trigger"
-                variant={statusVariant(localStatus)}
-                className="cursor-pointer"
-              >
+              <Tag slot="trigger" variant={statusVariant(localStatus)} className="cursor-pointer">
                 {formatProjectStatus(localStatus)} ▾
               </Tag>
               {STATUS_OPTIONS.map((s) => (
@@ -196,28 +179,23 @@ function PlanProjectCard({
             </Dropdown>
           </div>
         ) : (
-          <Tag
-            variant={statusVariant(project.status)}
-            className="absolute top-1 right-1 z-10"
-          >
+          <Tag variant={statusVariant(project.status)} className="absolute top-1 right-1 z-10">
             {formatProjectStatus(project.status)}
           </Tag>
         )}
       </div>
 
-      {href && project.project_id ? (
+      {href && project.project_exists ? (
         <CardProjectTitle href={href} title={title} />
       ) : (
-        <span className="text-base font-bold line-clamp-2 min-h-[3em]">
-          {title}
-        </span>
+        <span className="text-base font-bold line-clamp-2 min-h-[3em]">{title}</span>
       )}
     </div>
-  );
+  )
 
-  const cardClassName = `w-full h-full bg-white rounded-xl shadow-[0_0_14px_rgba(0,0,0,0.2)] p-md flex flex-col gap-lg${!project.project_id ? " opacity-50" : ""}`;
+  const cardClassName = `w-full h-full bg-white rounded-xl shadow-[0_0_14px_rgba(0,0,0,0.2)] p-md flex flex-col gap-lg${!project.project_exists ? ' opacity-50' : ''}`
 
-  return !project.project_id ? (
+  return !project.project_exists ? (
     <button
       type="button"
       onClick={onSelectClick}
@@ -227,7 +205,7 @@ function PlanProjectCard({
     </button>
   ) : (
     <div className={cardClassName}>{cardContent}</div>
-  );
+  )
 }
 
-export default PlanProjectCard;
+export default PlanProjectCard

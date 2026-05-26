@@ -1,22 +1,18 @@
-import { useState } from "react";
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { cardClassNames } from "../../constants/classNames";
-import { useUpdateProjectStatus } from "../hooks";
-import type {
-  HydratedProjectItem,
-  ProjectOption,
-  ProjectStatus,
-} from "../types";
-import PlanProjectCard from "./PlanProjectCard";
-import LinkProjectDialog from "./LinkProjectDialog";
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { useState } from 'react'
+import { cardClassNames } from '../../constants/classNames'
+import { useUpdateProjectStatus } from '../hooks'
+import type { HydratedProjectItem, ProjectOption, ProjectStatus } from '../types'
+import LinkProjectDialog from './LinkProjectDialog'
+import PlanProjectCard from './PlanProjectCard'
 
 interface SortableViewProjectCardProps {
-  id: string;
-  project: HydratedProjectItem;
-  planId: string;
-  onProjectSelected?: (oldKey: string, project: ProjectOption) => void;
-  onProjectDeleted?: (key: string) => void;
+  id: string
+  project: HydratedProjectItem
+  planId: string
+  onProjectSelected?: (oldKey: string, project: ProjectOption) => void
+  onProjectDeleted?: (key: string) => void
 }
 
 function SortableViewProjectCard({
@@ -26,38 +22,30 @@ function SortableViewProjectCard({
   onProjectSelected,
   onProjectDeleted,
 }: SortableViewProjectCardProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+  })
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-  };
+  }
 
-  const { mutate: updateStatus } = useUpdateProjectStatus();
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const { mutate: updateStatus } = useUpdateProjectStatus()
+  const [dialogOpen, setDialogOpen] = useState(false)
 
   function handleStatusChange(status: ProjectStatus) {
+    if (!project.project_id) return
     updateStatus({
       planId,
       app: project.app,
       projectId: project.project_id,
       status,
-    });
+    })
   }
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`${cardClassNames} relative`}
-    >
+    <div ref={setNodeRef} style={style} className={`${cardClassNames} relative`}>
       <div
         {...attributes}
         {...listeners}
@@ -67,12 +55,10 @@ function SortableViewProjectCard({
       </div>
       <PlanProjectCard
         project={project}
-        onStatusChange={project.project_id ? handleStatusChange : undefined}
-        onSelectClick={
-          project.project_id ? undefined : () => setDialogOpen(true)
-        }
+        onStatusChange={project.project_exists ? handleStatusChange : undefined}
+        onSelectClick={project.project_exists ? undefined : () => setDialogOpen(true)}
       />
-      {!project.project_id && (
+      {!project.project_exists && (
         <LinkProjectDialog
           open={dialogOpen}
           app={project.app}
@@ -82,7 +68,7 @@ function SortableViewProjectCard({
         />
       )}
     </div>
-  );
+  )
 }
 
-export default SortableViewProjectCard;
+export default SortableViewProjectCard

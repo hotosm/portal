@@ -181,5 +181,7 @@
   "plan_toast_link_copied": "Link copied to clipboard",
   "plan_toast_link_copy_error": "Failed to copy link",
   "plan_toast_share_error": "Failed to share plan",
-  "plan_toast_image_upload_error": "Failed to upload image"
+  "plan_toast_image_upload_error": "Failed to upload image",
+  "plan_refresh_button": "Update from apps",
+  "plan_refreshing_button": "Updating…"
 }

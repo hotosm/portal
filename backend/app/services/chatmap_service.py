@@ -17,6 +17,7 @@ async def fetch_map_by_id(
     *,
     base_url: str | None = None,
     hanko_cookie: str | None = None,
+    force_refresh: bool = False,
 ) -> dict | None:
     """Fetch a ChatMap map by UUID. None if not found or private/unauthorized.
 
@@ -24,9 +25,10 @@ async def fetch_map_by_id(
     Raises UpstreamUnavailable on connection or server errors.
     """
     cache_key = f"chatmap_map_{map_id}"
-    cached = get_cached(cache_key)
-    if cached is not None:
-        return cached
+    if not force_refresh:
+        cached = get_cached(cache_key)
+        if cached is not None:
+            return cached
 
     url = f"{base_url or CHATMAP_API_URL}/map/{map_id}"
     cookies = {"hanko": hanko_cookie} if hanko_cookie else {}

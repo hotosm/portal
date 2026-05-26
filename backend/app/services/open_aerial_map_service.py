@@ -9,7 +9,12 @@ from app.services.exceptions import UpstreamUnavailable
 OAM_API_BASE_URL = settings.oam_api_url
 
 
-async def fetch_imagery_by_id(image_id: str, *, base_url: str | None = None) -> dict | None:
+async def fetch_imagery_by_id(
+    image_id: str,
+    *,
+    base_url: str | None = None,
+    force_refresh: bool = False,
+) -> dict | None:
     """Fetch OAM image metadata by id.
 
     None on 404, raises UpstreamUnavailable on failure.
@@ -17,9 +22,10 @@ async def fetch_imagery_by_id(image_id: str, *, base_url: str | None = None) -> 
     uses the live API directly so orphan detection works even when local sync is stale.
     """
     cache_key = f"oam_image_{image_id}"
-    cached = get_cached(cache_key)
-    if cached is not None:
-        return cached
+    if not force_refresh:
+        cached = get_cached(cache_key)
+        if cached is not None:
+            return cached
 
     url = f"{base_url or OAM_API_BASE_URL}/meta/{image_id}"
     try:
