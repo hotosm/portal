@@ -9,12 +9,15 @@ from app.services.exceptions import UpstreamUnavailable
 HOTOSM_API_BASE_URL = settings.tasking_manager_api_url
 
 
-async def fetch_project_by_id(project_id: str) -> dict | None:
+async def fetch_project_by_id(
+    project_id: str, *, force_refresh: bool = False
+) -> dict | None:
     """Fetch a single TM project by id. Returns None on 404, raises UpstreamUnavailable on failures."""
     cache_key = f"tasking_manager_project_{project_id}"
-    cached = get_cached(cache_key)
-    if cached is not None:
-        return cached
+    if not force_refresh:
+        cached = get_cached(cache_key)
+        if cached is not None:
+            return cached
 
     url = f"{HOTOSM_API_BASE_URL}/projects/{project_id}/"
     try:

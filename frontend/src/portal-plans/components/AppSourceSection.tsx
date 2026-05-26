@@ -1,7 +1,11 @@
 import Checkbox from "../../components/shared/Checkbox";
 import { m } from "../../paraglide/messages";
 import { projectKey } from "../../utils/utils";
-import type { ProjectOption, ProjectSource } from "../types";
+import type {
+  HydratedProjectItem,
+  ProjectOption,
+  ProjectSource,
+} from "../types";
 
 function CheckboxSkeleton() {
   return (
@@ -18,10 +22,16 @@ interface AppSourceSectionProps {
   localSelected: Set<string>;
   toggle: (key: string) => void;
   hidden: boolean;
-  isPendingSelected: boolean;
-  pendingTitle: string;
-  onPendingToggle: () => void;
-  onPendingTitleChange: (title: string) => void;
+  existingTasks: HydratedProjectItem[];
+  taskIds: Set<string>;
+  onToggleTask: (id: string) => void;
+  newTasks: { title: string; idx: number }[];
+  onRemoveNewTask: (idx: number) => void;
+}
+
+function taskTitle(task: HydratedProjectItem): string {
+  const t = (task.data as { title?: unknown } | null)?.title;
+  return typeof t === "string" && t ? t : "Untitled task";
 }
 
 export function AppSourceSection({
@@ -30,10 +40,11 @@ export function AppSourceSection({
   localSelected,
   toggle,
   hidden,
-  isPendingSelected,
-  pendingTitle,
-  onPendingToggle,
-  onPendingTitleChange,
+  existingTasks,
+  taskIds,
+  onToggleTask,
+  newTasks,
+  onRemoveNewTask,
 }: AppSourceSectionProps) {
   return (
     <div className={hidden ? "hidden" : undefined}>
@@ -45,8 +56,10 @@ export function AppSourceSection({
           (e) => !seenKeys.has(projectKey(e.app, e.project_id)),
         );
         const allItems = [...source.projects, ...uniqueExtras];
+        const hasTasks = existingTasks.length > 0 || newTasks.length > 0;
+        const hasProjects = allItems.length > 0;
 
-        if (source.isLoading && allItems.length === 0) {
+        if (source.isLoading && !hasProjects && !hasTasks) {
           return (
             <div className="flex flex-col gap-xs">
               <CheckboxSkeleton />
@@ -57,10 +70,49 @@ export function AppSourceSection({
         }
         return (
           <div className="flex flex-col gap-xs">
-            {source.isError && allItems.length === 0 && (
+            {source.isError && !hasProjects && (
               <p className="text-sm text-hot-gray-400">
                 {source.label} — {m.plan_picker_error()}
               </p>
+            )}
+            {hasTasks && (
+              <span className="text-xs font-semibold text-hot-gray-400 uppercase tracking-wide">
+                Tasks
+              </span>
+            )}
+            {existingTasks.map((task) => {
+              const isChecked = taskIds.has(task.id);
+              return (
+                <Checkbox
+                  key={`task:${task.id}`}
+                  checked={isChecked}
+                  defaultChecked={isChecked}
+                  onChange={() => onToggleTask(task.id)}
+                >
+                  <span className="italic text-hot-gray-600">
+                    {taskTitle(task)}
+                  </span>
+                </Checkbox>
+              );
+            })}
+            {newTasks.map((t) => (
+              <Checkbox
+                key={`new:${t.idx}`}
+                checked
+                defaultChecked
+                onChange={() => onRemoveNewTask(t.idx)}
+              >
+                <span className="italic text-hot-gray-600">{t.title}</span>
+              </Checkbox>
+            ))}
+            {hasProjects && (
+              <span
+                className={`text-xs font-semibold text-hot-gray-400 uppercase tracking-wide${
+                  hasTasks ? " mt-sm" : ""
+                }`}
+              >
+                Projects
+              </span>
             )}
             {allItems.map((p) => {
               const key = projectKey(p.app, p.project_id);
@@ -76,20 +128,6 @@ export function AppSourceSection({
                 </Checkbox>
               );
             })}
-            <Checkbox checked={isPendingSelected} onChange={onPendingToggle}>
-              {m.plan_picker_pending_option()}
-            </Checkbox>
-            <div className="min-h-3xl">
-              {isPendingSelected && (
-                <input
-                  type="text"
-                  value={pendingTitle}
-                  onChange={(e) => onPendingTitleChange(e.target.value)}
-                  placeholder={m.plan_picker_pending_title()}
-                  className="border border-hot-gray-300 rounded-lg px-md py-xs text-sm bg-white focus:border-hot-red-500 focus:outline-none max-w-full"
-                />
-              )}
-            </div>
           </div>
         );
       })()}

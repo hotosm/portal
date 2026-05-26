@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.db.models.plan import Plan, PlanImage, PlanProject
+from app.db.models.plan import Plan, PlanProject
 from app.models.plan import (
     AppLiteral,
     HydratedProjectItem,
@@ -24,7 +24,6 @@ from app.models.plan import (
     StatusLiteral,
     UrlResolveResponse,
 )
-from app.services import url_resolver
 from app.services import (
     chatmap_service,
     drone_tm_service,
@@ -34,9 +33,9 @@ from app.services import (
     open_aerial_map_service,
     tasking_manager_service,
     umap_service,
+    url_resolver,
 )
 from app.services.exceptions import UpstreamUnavailable
-
 
 _KNOWN_APPS = frozenset(get_args(AppLiteral))
 
@@ -74,9 +73,11 @@ def plan_to_read(plan: Plan) -> PlanRead:
         updated_at=plan.updated_at,
         projects=[
             PlanProjectItem(
+                id=row.id,
                 app=row.app,
                 project_id=row.project_id,
                 project_exists=row.project_exists,
+                status=row.status,
                 data=row.data,
             )
             for row in plan.projects
@@ -194,6 +195,7 @@ async def update_plan(
                     plan_id=plan.id,
                     app=item.app,
                     project_id=item.project_id,
+                    project_exists=item.project_exists,
                     status=item.status,
                     display_order=idx,
                     data=item.data,
@@ -320,7 +322,10 @@ async def set_project_status(
 
 
 async def hydrate_one(
-    row: PlanProject, hanko_cookie: str | None = None
+    row: PlanProject,
+    hanko_cookie: str | None = None,
+    *,
+    force_refresh: bool = False,
 ) -> HydratedProjectItem:
     if not row.project_exists:
         return HydratedProjectItem(
@@ -338,6 +343,7 @@ async def hydrate_one(
                 row.project_id,
                 base_url="https://chatmap.hotosm.org/api/v1",
                 hanko_cookie=hanko_cookie,
+                force_refresh=force_refresh,
             )
             if upstream is None and hanko_cookie:
                 # Auth may have failed (e.g. local dev Hanko mismatch). Try without auth —
@@ -346,6 +352,7 @@ async def hydrate_one(
                     row.project_id,
                     base_url="https://chatmap.hotosm.org/api/v1",
                     hanko_cookie=None,
+                    force_refresh=force_refresh,
                 )
         except Exception:
             return HydratedProjectItem(
@@ -418,7 +425,7 @@ async def hydrate_one(
             error="not_found",
         )
     try:
-        upstream = await fetcher(row.project_id)
+        upstream = await fetcher(row.project_id, force_refresh=force_refresh)
     except Exception:
         return HydratedProjectItem(
             app=row.app,
@@ -448,15 +455,31 @@ async def hydrate_one(
 
 
 async def get_plan_hydrated(
-    db: AsyncSession, owner_id: str, plan_id: str, hanko_cookie: str | None = None
+    db: AsyncSession,
+    owner_id: str,
+    plan_id: str,
+    hanko_cookie: str | None = None,
+    *,
+    refresh: bool = False,
 ) -> PlanReadHydrated | None:
     plan = await get_owned_plan(db, owner_id, plan_id)
     if plan is None:
         return None
 
     hydrated_items = await asyncio.gather(
-        *[hydrate_one(row, hanko_cookie=hanko_cookie) for row in plan.projects]
+        *[
+            hydrate_one(row, hanko_cookie=hanko_cookie, force_refresh=refresh)
+            for row in plan.projects
+        ]
     )
+    for row, item in zip(plan.projects, hydrated_items, strict=True):
+        item.id = row.id
+    if refresh:
+        for row, item in zip(plan.projects, hydrated_items, strict=True):
+            if item.upstream is not None:
+                row.data = item.upstream
+                item.data = item.upstream
+        await db.flush()
 
     return PlanReadHydrated(
         id=plan.id,
@@ -495,6 +518,8 @@ async def get_public_plan_hydrated(
     hydrated_items = await asyncio.gather(
         *[hydrate_one(row, hanko_cookie=hanko_cookie) for row in plan.projects]
     )
+    for row, item in zip(plan.projects, hydrated_items, strict=True):
+        item.id = row.id
 
     return PlanReadHydrated(
         id=plan.id,

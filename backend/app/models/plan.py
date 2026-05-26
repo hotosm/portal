@@ -44,6 +44,7 @@ class PlanImageRead(BaseModel):
 
 
 class PlanProjectItem(BaseModel):
+    id: str | None = None
     app: AppLiteral | None = None
     project_id: str | None = None
     project_exists: bool = True
@@ -56,8 +57,10 @@ class PlanProjectItem(BaseModel):
             if self.app is None or self.project_id is None:
                 raise ValueError("app and project_id are required when project_exists is True")
         else:
-            if self.app is not None or self.project_id is not None:
-                raise ValueError("app and project_id must be absent when project_exists is False")
+            if self.app is None:
+                raise ValueError("app is required when project_exists is False")
+            if self.project_id is not None:
+                raise ValueError("project_id must be absent when project_exists is False")
         return self
 
 
@@ -99,6 +102,7 @@ class PlanRead(BaseModel):
 
 
 class HydratedProjectItem(BaseModel):
+    id: str | None = None
     app: AppLiteral | None
     project_id: str | None
     project_exists: bool = True

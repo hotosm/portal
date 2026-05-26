@@ -86,11 +86,18 @@ async def get_plan(
     request: Request,
     user: CurrentUser,
     plan_id: str = Path(..., description="Plan UUID"),
+    refresh: bool = False,
     db: AsyncSession = Depends(get_db),
 ) -> PlanReadHydrated:
-    """Return the plan with each project hydrated in parallel from its upstream app."""
+    """Return the plan with each project hydrated in parallel from its upstream app.
+
+    Pass ?refresh=true to bypass the in-memory cache and persist the fresh
+    upstream as `data` on each row that resolved successfully.
+    """
     hanko_cookie = request.cookies.get("hanko")
-    plan = await plans_service.get_plan_hydrated(db, user.id, plan_id, hanko_cookie=hanko_cookie)
+    plan = await plans_service.get_plan_hydrated(
+        db, user.id, plan_id, hanko_cookie=hanko_cookie, refresh=refresh
+    )
     if plan is None:
         raise HTTPException(status_code=404, detail="Plan not found")
     return plan
@@ -111,22 +118,6 @@ async def update_plan(
     if plan is None:
         raise HTTPException(status_code=404, detail="Plan not found")
     return plan
-
-
-@router.patch("/{plan_id}/projects/{app}/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def update_project_status(
-    payload: ProjectStatusUpdate,
-    user: CurrentUser,
-    plan_id: str = Path(..., description="Plan UUID"),
-    app: str = Path(..., description="App name"),
-    project_id: str = Path(..., description="External project ID"),
-    db: AsyncSession = Depends(get_db),
-) -> Response:
-    """Update the status of a single project inside a plan."""
-    ok = await plans_service.set_project_status(db, user.id, plan_id, app, project_id, payload.status)
-    if not ok:
-        raise HTTPException(status_code=404, detail="Plan or project not found")
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.patch("/{plan_id}/projects/{plan_project_id}/toggle-exists", status_code=status.HTTP_204_NO_CONTENT)
@@ -178,6 +169,22 @@ async def complete_task(
         raise HTTPException(status_code=502, detail="upstream_unavailable")
     except DuplicateProjectError as e:
         raise HTTPException(status_code=422, detail=str(e))
+    if not ok:
+        raise HTTPException(status_code=404, detail="Plan or project not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.patch("/{plan_id}/projects/{app}/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def update_project_status(
+    payload: ProjectStatusUpdate,
+    user: CurrentUser,
+    plan_id: str = Path(..., description="Plan UUID"),
+    app: str = Path(..., description="App name"),
+    project_id: str = Path(..., description="External project ID"),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Update the status of a single project inside a plan."""
+    ok = await plans_service.set_project_status(db, user.id, plan_id, app, project_id, payload.status)
     if not ok:
         raise HTTPException(status_code=404, detail="Plan or project not found")
     return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -619,3 +619,99 @@ async def test_shared_endpoint_no_auth_required(test_db_session):
     assert resp.json()["id"] == plan_id
 
     app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
+async def test_create_plan_with_task(auth_client):
+    """A task is a project_exists=False row: app set, project_id null, title in data."""
+    client, _ = auth_client
+    resp = await client.post(
+        "/api/plans",
+        json={
+            "name": "P",
+            "projects": [
+                {"app": "tasking-manager", "project_id": "1"},
+                {
+                    "app": "fair",
+                    "project_exists": False,
+                    "data": {"title": "Map the north"},
+                },
+            ],
+        },
+    )
+    assert resp.status_code == 201, resp.text
+    projects = resp.json()["projects"]
+    task = next(p for p in projects if not p["project_exists"])
+    assert task["app"] == "fair"
+    assert task["project_id"] is None
+    assert task["data"] == {"title": "Map the north"}
+    assert task["id"]
+
+
+@pytest.mark.asyncio
+async def test_task_rejects_invalid_fields(auth_client):
+    """A task must carry an app and must not carry a project_id."""
+    client, _ = auth_client
+    # project_id present on a task -> 422
+    resp = await client.post(
+        "/api/plans",
+        json={
+            "name": "P",
+            "projects": [
+                {"app": "fair", "project_exists": False, "project_id": "9"},
+            ],
+        },
+    )
+    assert resp.status_code == 422
+    # app missing on a task -> 422
+    resp = await client.post(
+        "/api/plans",
+        json={
+            "name": "P",
+            "projects": [{"project_exists": False, "data": {"title": "x"}}],
+        },
+    )
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_complete_task_with_app_project_id(auth_client):
+    """complete-task turns a task into a real project and stores upstream data."""
+    client, _ = auth_client
+    resp = await client.post(
+        "/api/plans",
+        json={
+            "name": "P",
+            "projects": [
+                {
+                    "app": "tasking-manager",
+                    "project_exists": False,
+                    "data": {"title": "TODO"},
+                },
+            ],
+        },
+    )
+    plan_id = resp.json()["id"]
+    task_id = resp.json()["projects"][0]["id"]
+
+    fetchers = {
+        "tasking-manager": AsyncMock(return_value={"name": "Real project"}),
+        "fair": AsyncMock(return_value=None),
+        "field-tm": AsyncMock(return_value=None),
+        "drone-tasking-manager": AsyncMock(return_value=None),
+        "open-aerial-map": AsyncMock(return_value=None),
+        "export-tool": AsyncMock(return_value=None),
+        "umap": AsyncMock(return_value=None),
+    }
+    with patch.dict(plans_service.APP_FETCHERS, fetchers):
+        resp = await client.patch(
+            f"/api/plans/{plan_id}/projects/{task_id}/complete-task",
+            json={"app": "tasking-manager", "project_id": "55"},
+        )
+        assert resp.status_code == 204, resp.text
+        resp = await client.get(f"/api/plans/{plan_id}")
+
+    proj = resp.json()["projects"][0]
+    assert proj["project_exists"] is True
+    assert proj["project_id"] == "55"
+    assert proj["upstream"] == {"name": "Real project"}

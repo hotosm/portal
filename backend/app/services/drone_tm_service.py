@@ -14,12 +14,18 @@ def verify_ssl(base_url: str | None = None) -> bool:
     return not effective.startswith("https://") or bool(settings.drone_tm_verify_ssl)
 
 
-async def fetch_project_by_id(project_id: str, *, base_url: str | None = None) -> dict | None:
+async def fetch_project_by_id(
+    project_id: str,
+    *,
+    base_url: str | None = None,
+    force_refresh: bool = False,
+) -> dict | None:
     """Fetch a single DroneTM project by id. None on 404, raises UpstreamUnavailable on failure."""
     cache_key = f"dronetm_project_{project_id}"
-    cached = get_cached(cache_key)
-    if cached is not None:
-        return cached
+    if not force_refresh:
+        cached = get_cached(cache_key)
+        if cached is not None:
+            return cached
 
     url = f"{base_url or DRONE_TM_BACKEND_URL}/projects/{project_id}"
     try:
