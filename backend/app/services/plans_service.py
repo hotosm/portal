@@ -39,6 +39,11 @@ from app.services.exceptions import UpstreamUnavailable
 
 _KNOWN_APPS = frozenset(get_args(AppLiteral))
 
+# Per-fetcher timeout for plan hydration. Lower than the httpx default so a
+# single slow/down upstream cannot block the whole gather and trip Traefik's
+# 30s gateway timeout.
+HYDRATE_FETCHER_TIMEOUT = 8.0
+
 
 class DuplicateProjectError(ValueError):
     """Raised when a plan payload contains duplicate (app, project_id) entries."""
@@ -339,21 +344,36 @@ async def hydrate_one(
 
     if row.app == "chatmap":
         try:
-            upstream = await chatmap_service.fetch_map_by_id(
-                row.project_id,
-                base_url="https://chatmap.hotosm.org/api/v1",
-                hanko_cookie=hanko_cookie,
-                force_refresh=force_refresh,
+            upstream = await asyncio.wait_for(
+                chatmap_service.fetch_map_by_id(
+                    row.project_id,
+                    base_url="https://chatmap.hotosm.org/api/v1",
+                    hanko_cookie=hanko_cookie,
+                    force_refresh=force_refresh,
+                ),
+                timeout=HYDRATE_FETCHER_TIMEOUT,
             )
             if upstream is None and hanko_cookie:
                 # Auth may have failed (e.g. local dev Hanko mismatch). Try without auth —
                 # ChatMap maps shared by link return metadata even without credentials.
-                upstream = await chatmap_service.fetch_map_by_id(
-                    row.project_id,
-                    base_url="https://chatmap.hotosm.org/api/v1",
-                    hanko_cookie=None,
-                    force_refresh=force_refresh,
+                upstream = await asyncio.wait_for(
+                    chatmap_service.fetch_map_by_id(
+                        row.project_id,
+                        base_url="https://chatmap.hotosm.org/api/v1",
+                        hanko_cookie=None,
+                        force_refresh=force_refresh,
+                    ),
+                    timeout=HYDRATE_FETCHER_TIMEOUT,
                 )
+        except asyncio.TimeoutError:
+            return HydratedProjectItem(
+                app=row.app,
+                project_id=row.project_id,
+                status=row.status,
+                data=row.data,
+                upstream=None,
+                error="upstream_timeout",
+            )
         except Exception:
             return HydratedProjectItem(
                 app=row.app,
@@ -383,9 +403,21 @@ async def hydrate_one(
 
     if row.app == "umap":
         try:
-            upstream = await umap_service.fetch_map_by_id(
-                row.project_id,
-                base_url="https://umap.hotosm.org",
+            upstream = await asyncio.wait_for(
+                umap_service.fetch_map_by_id(
+                    row.project_id,
+                    base_url="https://umap.hotosm.org",
+                ),
+                timeout=HYDRATE_FETCHER_TIMEOUT,
+            )
+        except asyncio.TimeoutError:
+            return HydratedProjectItem(
+                app=row.app,
+                project_id=row.project_id,
+                status=row.status,
+                data=row.data,
+                upstream=None,
+                error="upstream_timeout",
             )
         except Exception:
             return HydratedProjectItem(
@@ -425,7 +457,19 @@ async def hydrate_one(
             error="not_found",
         )
     try:
-        upstream = await fetcher(row.project_id, force_refresh=force_refresh)
+        upstream = await asyncio.wait_for(
+            fetcher(row.project_id, force_refresh=force_refresh),
+            timeout=HYDRATE_FETCHER_TIMEOUT,
+        )
+    except asyncio.TimeoutError:
+        return HydratedProjectItem(
+            app=row.app,
+            project_id=row.project_id,
+            status=row.status,
+            data=row.data,
+            upstream=None,
+            error="upstream_timeout",
+        )
     except Exception:
         return HydratedProjectItem(
             app=row.app,

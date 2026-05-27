@@ -26,6 +26,9 @@ export function useMyModels(page = 1, limit = 20) {
         if (response.status === 401 || response.status === 403) {
           return { items: [], total: 0 };
         }
+        if (response.status === 503) {
+          return { items: [], total: 0 };
+        }
         const errorText = await response.text();
         throw new Error(
           `[${response.status}] Failed to fetch fAIr models: ${errorText}`,
@@ -39,5 +42,7 @@ export function useMyModels(page = 1, limit = 20) {
       };
     },
     enabled: isLogin,
+    retry: (failureCount, error) =>
+      failureCount < 1 && !/\[5\d\d\]/.test(String((error as Error)?.message ?? "")),
   });
 }

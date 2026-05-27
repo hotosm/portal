@@ -30,6 +30,9 @@ export function useDroneProjects() {
           if (response.status === 401 || response.status === 403) {
             return [];
           }
+          if (response.status === 503) {
+            return allProjects;
+          }
           const errorText = await response.text();
           throw new Error(
             `[${response.status}] Failed to fetch drone projects: ${errorText}`,
@@ -56,7 +59,8 @@ export function useDroneProjects() {
     staleTime: 5 * 60 * 1000, // 5 minutes - data considered fresh
     gcTime: 30 * 60 * 1000, // 30 minutes - keep in cache (formerly cacheTime)
     refetchOnWindowFocus: true,
-    retry: 2,
+    retry: (failureCount, error) =>
+      failureCount < 1 && !/\[5\d\d\]/.test(String((error as Error)?.message ?? "")),
     enabled: isLogin,
   });
 }

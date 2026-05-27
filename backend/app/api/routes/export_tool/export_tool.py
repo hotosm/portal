@@ -1,5 +1,7 @@
 # portal/backend/app/api/routes/export_tool/export_tool.py
 
+import logging
+
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +13,8 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.services import export_tool_service, plans_service
 from app.services.exceptions import UpstreamUnavailable
+
+logger = logging.getLogger(__name__)
 
 EXPORT_TOOL_API_BASE_URL = settings.export_tool_api_url
 
@@ -125,13 +129,14 @@ async def get_my_export_jobs(
             )
             response.raise_for_status()
             return response.json()
-        except httpx.TimeoutException:
-            raise HTTPException(status_code=504, detail="Export Tool API timed out")
         except httpx.HTTPStatusError as e:
             raise HTTPException(
                 status_code=e.response.status_code,
                 detail=f"Error from HOT Export Tool API: {e.response.text}",
             )
+        except httpx.RequestError as e:
+            logger.warning("Export Tool upstream unavailable: %s", e)
+            raise HTTPException(status_code=503, detail="Export Tool upstream unavailable")
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
