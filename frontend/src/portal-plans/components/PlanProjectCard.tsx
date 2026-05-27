@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import placeholder from '../../assets/images/placeholder.png'
-import CardProjectTitle from '../../components/shared/CardProjectTitle'
 import Dropdown from '../../components/shared/Dropdown'
+import ProjectDialog from './ProjectDialog'
 import DropdownItem from '../../components/shared/DropdownItem'
 import Tag from '../../components/shared/Tag'
 import { APP_META } from '../../utils/appMeta'
@@ -132,12 +132,14 @@ interface PlanProjectCardProps {
   project: HydratedProjectItem
   onStatusChange?: (status: ProjectStatus) => void
   onSelectClick?: () => void
+  onDelete?: () => void
 }
 
-function PlanProjectCard({ project, onStatusChange, onSelectClick }: PlanProjectCardProps) {
+function PlanProjectCard({ project, onStatusChange, onSelectClick, onDelete }: PlanProjectCardProps) {
   const { title, imageUrl, href } = usePlanProjectDisplay(project)
   const meta = APP_META[project.app]
   const [localStatus, setLocalStatus] = useState<ProjectStatus>(project.status)
+  const [dialogOpen, setDialogOpen] = useState(false)
 
   useEffect(() => {
     setLocalStatus(project.status)
@@ -185,8 +187,14 @@ function PlanProjectCard({ project, onStatusChange, onSelectClick }: PlanProject
         )}
       </div>
 
-      {href && project.project_exists ? (
-        <CardProjectTitle href={href} title={title} />
+      {project.project_exists ? (
+        <button
+          type="button"
+          onClick={() => setDialogOpen(true)}
+          className="text-base font-bold hover:text-black line-clamp-2 min-h-[3em] text-left w-full"
+        >
+          {title}
+        </button>
       ) : (
         <span className="text-base font-bold line-clamp-2 min-h-[3em]">{title}</span>
       )}
@@ -195,16 +203,30 @@ function PlanProjectCard({ project, onStatusChange, onSelectClick }: PlanProject
 
   const cardClassName = `w-full h-full bg-white rounded-xl shadow-[0_0_14px_rgba(0,0,0,0.2)] p-md flex flex-col gap-lg${!project.project_exists ? ' opacity-50' : ''}`
 
-  return !project.project_exists ? (
-    <button
-      type="button"
-      onClick={onSelectClick}
-      className={`${cardClassName} text-left cursor-pointer`}
-    >
-      {cardContent}
-    </button>
-  ) : (
-    <div className={cardClassName}>{cardContent}</div>
+  return (
+    <>
+      {project.project_exists && (
+        <ProjectDialog
+          open={dialogOpen}
+          onClose={() => setDialogOpen(false)}
+          title={title}
+          href={href}
+          project={project}
+          onDelete={onDelete}
+        />
+      )}
+      {!project.project_exists ? (
+        <button
+          type="button"
+          onClick={onSelectClick}
+          className={`${cardClassName} text-left cursor-pointer`}
+        >
+          {cardContent}
+        </button>
+      ) : (
+        <div className={cardClassName}>{cardContent}</div>
+      )}
+    </>
   )
 }
 

@@ -178,6 +178,7 @@
   "plan_toast_published": "Plan published",
   "plan_toast_unpublished": "Plan unpublished",
   "plan_toast_deleted": "Plan deleted",
+  "plan_toast_project_removed": "Project removed from plan",
   "plan_toast_link_copied": "Link copied to clipboard",
   "plan_toast_link_copy_error": "Failed to copy link",
   "plan_toast_share_error": "Failed to share plan",
