@@ -209,26 +209,7 @@ function MyPlanPage() {
     isAuthLoading || ownLoading || (ownPlan === null && publicLoading);
   const isError = isOwner ? ownError : publicError;
 
-  if (isLoading) {
-    return (
-      <>
-        <PlanSectionHeader>
-          <strong>{m.plan_header()}</strong>
-        </PlanSectionHeader>
-        <PageWrapper>
-          <div className="flex flex-wrap gap-lg py-lg">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className={cardClassNames}>
-                <CardSkeleton hasImage linesCount={2} />
-              </div>
-            ))}
-          </div>
-        </PageWrapper>
-      </>
-    );
-  }
-
-  if (isError) {
+  if (!isLoading && isError) {
     return (
       <PageWrapper>
         <div className="flex justify-center items-center">
@@ -238,7 +219,7 @@ function MyPlanPage() {
     );
   }
 
-  if (!plan) {
+  if (!isLoading && !plan) {
     return (
       <PageWrapper>
         <div className="flex justify-center items-center">
@@ -251,7 +232,24 @@ function MyPlanPage() {
   }
 
   const sections = PLAN_SECTIONS.map((section) => {
-    const sectionProjects = plan.projects.filter((p) =>
+    if (isLoading) {
+      return (
+        <div key={section.title}>
+          <SubSectionHeader title={`<strong>${section.title}</strong>`} />
+          <PageWrapper>
+            <div className="flex flex-wrap gap-lg py-lg">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className={cardClassNames}>
+                  <CardSkeleton hasImage linesCount={2} />
+                </div>
+              ))}
+            </div>
+          </PageWrapper>
+        </div>
+      );
+    }
+
+    const sectionProjects = plan!.projects.filter((p) =>
       section.apps.includes(p.app),
     );
     if (!isOwner && sectionProjects.length === 0) return null;
@@ -278,7 +276,7 @@ function MyPlanPage() {
                     key={project.id}
                     id={project.id}
                     project={project}
-                    planId={plan.id}
+                    planId={plan!.id}
                     onProjectSelected={handleTaskCompleted}
                     onProjectDeleted={handleProjectDeleted}
                   />
@@ -300,12 +298,16 @@ function MyPlanPage() {
   return (
     <>
       <PlanSectionHeader
-        breadcrumbs={[
-          { label: m.plan_header(), href: `/${currentLanguage}/plan` },
-          { label: plan.name },
-        ]}
+        breadcrumbs={
+          isLoading
+            ? undefined
+            : [
+                { label: m.plan_header(), href: `/${currentLanguage}/plan` },
+                { label: plan!.name },
+              ]
+        }
         menu={
-          isOwner ? (
+          isLoading ? undefined : isOwner ? (
             <div className="flex items-center gap-sm">
               <Button
                 type="button"
@@ -318,54 +320,67 @@ function MyPlanPage() {
                   ? m.plan_refreshing_button()
                   : m.plan_refresh_button()}
               </Button>
-              <PlanMenu plan={plan} />
+              <PlanMenu plan={plan!} />
             </div>
-          ) : plan.is_public ? (
-            <PlanShareButton plan={plan} />
+          ) : plan!.is_public ? (
+            <PlanShareButton plan={plan!} />
           ) : undefined
         }
       >
-        {plan.name}
+        {isLoading ? (
+          <div className="animate-pulse bg-hot-gray-300 rounded h-6 w-48" />
+        ) : (
+          plan!.name
+        )}
       </PlanSectionHeader>
 
       <PageWrapper>
-        {plan.is_public && isOwner && (
-          <Tag variant="neutral" appearance="filled" size="large">
-            {m.plan_public_tag()}
-          </Tag>
-        )}
-        {plan.description && (
-          <RichTextContent html={plan.description} className="py-md" />
-        )}
-
-        {plan.images.length > 0 && (
-          <Carousel
-            loop
-            mouseDragging
-            navigation
-            pagination
-            slidesPerPage={isMobile ? 1 : 2}
-            slidesPerMove={isMobile ? 1 : 2}
-            className="w-full"
-          >
-            {plan.images.map((img) => (
-              <CarouselItem key={img.id}>
-                <div
-                  className={`overflow-hidden aspect-[16/9] ${plan.images.length === 1 ? "max-w-2xl mx-auto w-full" : "w-full"}`}
-                >
-                  <img
-                    src={img.url}
-                    alt={`Image ${img.id}`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              </CarouselItem>
-            ))}
-          </Carousel>
+        {isLoading ? (
+          <div className="animate-pulse space-y-sm py-md">
+            <div className="h-4 bg-hot-gray-300 rounded w-3/4" />
+            <div className="h-4 bg-hot-gray-300 rounded w-full" />
+            <div className="h-4 bg-hot-gray-300 rounded w-1/2" />
+          </div>
+        ) : (
+          <>
+            {plan!.is_public && isOwner && (
+              <Tag variant="neutral" appearance="filled" size="large">
+                {m.plan_public_tag()}
+              </Tag>
+            )}
+            {plan!.description && (
+              <RichTextContent html={plan!.description} className="py-md" />
+            )}
+            {plan!.images.length > 0 && (
+              <Carousel
+                loop
+                mouseDragging
+                navigation
+                pagination
+                slidesPerPage={isMobile ? 1 : 2}
+                slidesPerMove={isMobile ? 1 : 2}
+                className="w-full"
+              >
+                {plan!.images.map((img) => (
+                  <CarouselItem key={img.id}>
+                    <div
+                      className={`overflow-hidden aspect-[16/9] ${plan!.images.length === 1 ? "max-w-2xl mx-auto w-full" : "w-full"}`}
+                    >
+                      <img
+                        src={img.url}
+                        alt={`Image ${img.id}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </CarouselItem>
+                ))}
+              </Carousel>
+            )}
+          </>
         )}
       </PageWrapper>
 
-      {isOwner ? (
+      {!isLoading && isOwner ? (
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -382,14 +397,14 @@ function MyPlanPage() {
           open
           selected={
             new Set(
-              plan.projects
+              plan!.projects
                 .filter((p) => p.project_exists && p.project_id)
                 .map((p) => projectKey(p.app, p.project_id as string)),
             )
           }
           extraProjects={[]}
           sources={sources.filter((s) => pickerSection.includes(s.app))}
-          existingTasks={plan.projects.filter(
+          existingTasks={plan!.projects.filter(
             (p) => !p.project_exists && pickerSection.includes(p.app),
           )}
           onConfirm={handlePickerConfirm}
