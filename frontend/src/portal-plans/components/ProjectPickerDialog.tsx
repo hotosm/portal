@@ -180,10 +180,10 @@ function ProjectPickerDialog({
 
       <div className="border-t border-hot-gray-200 pt-md mt-md flex flex-col gap-xs">
         <span className="text-xs font-semibold text-hot-gray-500 uppercase tracking-wide">
-          Project doesn't exist yet?
+          No project yet?
         </span>
         <p className="text-xs text-hot-gray-400">
-          Create a task and link it to a real project once you have it.
+          Add a to-do now and connect it to a real project later.
         </p>
         <div className="flex gap-xs">
           <input

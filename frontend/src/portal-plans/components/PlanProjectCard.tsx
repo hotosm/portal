@@ -169,7 +169,7 @@ function PlanProjectCard({
   }
 
   const cardContent = (
-    <div className="flex flex-col gap-sm">
+    <div className="flex flex-col gap-sm w-full">
       <div className="relative">
         <img
           src={imageUrl}

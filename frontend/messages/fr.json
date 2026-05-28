@@ -153,7 +153,7 @@
   "plan_form_add_projects": "Ajouter un projet",
   "plan_form_add_task": "Ajouter une tâche",
   "plan_form_projects_hint": "Voici la portée de votre plan. Utilisez les boutons de chaque section pour ajouter des projets et des tâches, glissez-déposez pour les réorganiser, modifiez leur statut ou supprimez ce qui ne correspond pas.",
-  "plan_picker_label": "Gérer les projets de votre plan",
+  "plan_picker_label": "Ajouter des projets à votre plan",
   "plan_picker_tool_label": "Sélectionner un outil",
   "plan_picker_pending_option": "Le projet n'est pas encore créé",
   "plan_picker_pending_title": "Ajoutez une brève description de ce qui doit être fait.",

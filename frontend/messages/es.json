@@ -153,7 +153,7 @@
   "plan_form_add_projects": "Agregar proyecto",
   "plan_form_add_task": "Agregar tarea",
   "plan_form_projects_hint": "Este es el alcance de tu plan. Usá los botones en cada sección para agregar proyectos y tareas, arrastrá y soltá para reordenarlos, cambiá su estado o eliminá lo que no corresponda.",
-  "plan_picker_label": "Gestionar proyectos de tu plan",
+  "plan_picker_label": "Agregar proyectos a tu plan",
   "plan_picker_tool_label": "Seleccionar una herramienta",
   "plan_picker_pending_option": "El proyecto aún no está creado",
   "plan_picker_pending_title": "Añade una breve descripción de lo que hay que hacer.",
