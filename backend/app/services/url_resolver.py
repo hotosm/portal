@@ -12,7 +12,8 @@ _PATTERNS: list[tuple[re.Pattern[str], AppLiteral]] = [
     (re.compile(r"https?://fair\.hotosm\.org/ai-models/(\d+)", re.I), "fair"),
     (re.compile(r"https?://export\.hotosm\.org/v3/exports/([0-9a-f\-]{8,})", re.I), "export-tool"),
     # OAM: https://map.openaerialmap.org/#/{coords}/latest/{hex-id}[?...]
-    (re.compile(r"https?://map\.openaerialmap\.org/#/[^/]+/latest/([0-9a-f]+)", re.I), "open-aerial-map"),
+    #      or /#/{coords}/user/{user-id}/{hex-id}[?...] (logged-in user view)
+    (re.compile(r"https?://map\.openaerialmap\.org/#/[^/]+/(?:latest|user/[0-9a-f]+)/([0-9a-f]+)", re.I), "open-aerial-map"),
     # uMap: https://umap.hotosm.org/{locale}/map/{slug}_{id}[#...]
     (re.compile(r"https?://umap\.hotosm\.org/[a-z]{2,5}/map/[^#/]+_(\d+)", re.I), "umap"),
     # ChatMap: https://chatmap.hotosm.org/#map/{uuid}
