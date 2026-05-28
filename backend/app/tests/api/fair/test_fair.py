@@ -48,7 +48,7 @@ class TestGetFairProjects:
             def val(v):
                 return v.default if hasattr(v, "default") else v
 
-            assert val(params["limit"]) == 20
+            assert val(params["limit"]) == 4
             assert val(params["offset"]) == 0
             assert val(params["ordering"]) == "-created_at"
             assert "status" in params
@@ -126,7 +126,7 @@ class TestGetFairProjects:
 
             assert params["status"] == 0
             assert params["search"] == "AI"
-            assert val(params["limit"]) == 20
+            assert val(params["limit"]) == 4
             assert val(params["offset"]) == 0
             assert val(params["ordering"]) == "-created_at"
             assert val(params["id"]) is None
@@ -215,7 +215,7 @@ class TestGetFairModelsByUser:
                 return v.default if hasattr(v, "default") else v
 
             assert params["user"] == 23470445
-            assert val(params["limit"]) == 20
+            assert val(params["limit"]) == 4
             assert val(params["offset"]) == 0
             assert val(params["ordering"]) == "-created_at"
 

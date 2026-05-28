@@ -8,7 +8,7 @@ _PATTERNS: list[tuple[re.Pattern[str], AppLiteral]] = [
     (re.compile(r"https?://tasks\.hotosm\.org/projects/(\d+)", re.I), "tasking-manager"),
     # Drone TM project IDs can be numeric or slug-based (e.g. "bo-phase-3")
     (re.compile(r"https?://drone\.hotosm\.org/projects/([^/\s?#]+)", re.I), "drone-tasking-manager"),
-    (re.compile(r"https?://field\.hotosm\.org/projects/(\d+)", re.I), "field-tm"),
+    (re.compile(r"https?://(?:field\.hotosm\.org|field\.hotosm\.test|fieldtm\.testlogin\.hotosm\.org)/projects/(\d+)", re.I), "field-tm"),
     (re.compile(r"https?://fair\.hotosm\.org/ai-models/(\d+)", re.I), "fair"),
     (re.compile(r"https?://export\.hotosm\.org/v3/exports/([0-9a-f\-]{8,})", re.I), "export-tool"),
     # OAM: https://map.openaerialmap.org/#/{coords}/latest/{hex-id}[?...]

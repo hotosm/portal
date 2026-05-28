@@ -73,8 +73,10 @@ function resolveHref(
       return `https://tasks.hotosm.org/projects/${projectId}`
     case 'drone-tasking-manager':
       return `${getDroneTmBaseUrl()}/projects/${projectId}`
-    case 'field-tm':
-      return `${getFieldTmBaseUrl()}/projects/${projectId}`
+    case 'field-tm': {
+      const base = (data?.base_url ?? upstream?.base_url ?? getFieldTmBaseUrl()) as string
+      return `${base}/projects/${projectId}`
+    }
     case 'fair':
       return `${getFairBaseUrl()}/ai-models/${projectId}`
     case 'export-tool':

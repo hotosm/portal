@@ -446,6 +446,32 @@ async def hydrate_one(
             error=None,
         )
 
+    if row.app == "field-tm":
+        stored_base = (row.data or {}).get("base_url") if isinstance(row.data, dict) else None
+        try:
+            upstream = await asyncio.wait_for(
+                field_tm_service.fetch_project_by_id(
+                    row.project_id,
+                    base_url=stored_base or None,
+                    force_refresh=force_refresh,
+                ),
+                timeout=HYDRATE_FETCHER_TIMEOUT,
+            )
+        except asyncio.TimeoutError:
+            return HydratedProjectItem(
+                app=row.app, project_id=row.project_id, status=row.status,
+                data=row.data, upstream=None, error="upstream_timeout",
+            )
+        except Exception:
+            return HydratedProjectItem(
+                app=row.app, project_id=row.project_id, status=row.status,
+                data=row.data, upstream=None, error="upstream_unavailable",
+            )
+        return HydratedProjectItem(
+            app=row.app, project_id=row.project_id, status=row.status,
+            data=row.data, upstream=upstream, error=None if upstream else "not_found",
+        )
+
     fetcher = APP_FETCHERS.get(row.app)
     if fetcher is None:
         return HydratedProjectItem(
@@ -664,7 +690,6 @@ def attach_plan_tags(
 # Canonical production base URLs used only when resolving a user-pasted URL.
 # Plan hydration goes through APP_FETCHERS or explicit special cases, which respect env config.
 _CANONICAL_RESOLVE: dict[str, tuple] = {
-    "field-tm": (field_tm_service.fetch_project_by_id, "https://field.hotosm.org/api/v1"),
     "drone-tasking-manager": (drone_tm_service.fetch_project_by_id, "https://api.drone.hotosm.org"),
     "fair": (fair_service.fetch_model_by_id, "https://api-prod.fair.hotosm.org/api/v1"),
     "export-tool": (export_tool_service.fetch_job_by_uid, "https://export.hotosm.org/api"),
@@ -724,8 +749,17 @@ async def resolve_project_url(
         ProjectNotFoundError: URL parses successfully but project does not exist upstream.
         UpstreamUnavailable: Upstream service is unreachable or returned an error.
     """
+    from urllib.parse import urlparse
+
     parsed = url_resolver.parse_project_url(url)
     if parsed is None:
         raise InvalidUrlError(url)
     app, project_id = parsed
+
+    if app == "field-tm":
+        p = urlparse(url)
+        base = f"{p.scheme}://{p.netloc}"
+        upstream = await field_tm_service.fetch_project_by_id(project_id, base_url=base)
+        return UrlResolveResponse(app=app, project_id=project_id, upstream=upstream)
+
     return await _fetch_by_app_project(app, project_id, hanko_cookie=hanko_cookie)
