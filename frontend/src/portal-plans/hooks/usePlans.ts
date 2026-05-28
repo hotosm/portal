@@ -201,7 +201,7 @@ export function useRefreshPlan(id: string) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (): Promise<PlanReadHydrated | null> => {
-      const response = await fetch(`/api/plans/${id}?refresh=true`, {
+      const response = await fetch(`/api/plans/${id}`, {
         credentials: 'include',
       })
       if (response.status === 404) return null
