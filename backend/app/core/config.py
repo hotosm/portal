@@ -112,6 +112,9 @@ class Settings(BaseSettings):
     tasking_manager_api_url: str | None = None
     export_tool_base_url: str | None = None
     field_tm_base_url: str | None = None
+    # Internal container-to-container URL for field-tm (bypasses DNS issues with .test domains).
+    # Set in local dev: http://field-tm-backend-1:8000
+    field_tm_internal_url: str | None = None
 
     # --- Service API URLs (override derived api URLs if set) ---
     drone_tm_api_base_url: str | None = None

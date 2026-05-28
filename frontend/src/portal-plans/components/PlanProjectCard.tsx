@@ -75,17 +75,19 @@ function resolveHref(
   data: Record<string, unknown> | null,
 ): string {
   switch (app) {
-    case "tasking-manager":
-      return `https://tasks.hotosm.org/projects/${projectId}`;
-    case "drone-tasking-manager":
-      return `${getDroneTmBaseUrl()}/projects/${projectId}`;
-    case "field-tm":
-      return `${getFieldTmBaseUrl()}/projects/${projectId}`;
-    case "fair":
-      return `${getFairBaseUrl()}/ai-models/${projectId}`;
-    case "export-tool":
-      return `${getExportToolBaseUrl()}/v3/exports/${projectId}`;
-    case "open-aerial-map": {
+    case 'tasking-manager':
+      return `https://tasks.hotosm.org/projects/${projectId}`
+    case 'drone-tasking-manager':
+      return `${getDroneTmBaseUrl()}/projects/${projectId}`
+    case 'field-tm': {
+      const base = (data?.base_url ?? upstream?.base_url ?? getFieldTmBaseUrl()) as string
+      return `${base}/projects/${projectId}`
+    }
+    case 'fair':
+      return `${getFairBaseUrl()}/ai-models/${projectId}`
+    case 'export-tool':
+      return `${getExportToolBaseUrl()}/v3/exports/${projectId}`
+    case 'open-aerial-map': {
       const bbox = (upstream?.bbox ?? data?.bbox) as
         | [number, number, number, number]
         | null
