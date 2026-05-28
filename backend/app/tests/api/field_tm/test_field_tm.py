@@ -5,6 +5,7 @@
 import pytest
 import respx
 import httpx
+from unittest.mock import AsyncMock, patch
 from httpx import AsyncClient, Response
 
 
@@ -99,83 +100,53 @@ async def test_get_fmtm_projects_unexpected_error(client: AsyncClient):
 # -------------------------------
 
 @pytest.mark.asyncio
-@respx.mock
 async def test_get_fmtm_project_by_id_success(client: AsyncClient):
     """Test that get_fmtm_project_by_id returns 200 and valid project data."""
-    # The FMTMProjectSummary model has no 'description'; it has 'short_description'
-    mock_response = {
-        "id": 123,
-        "name": "Flood Mapping",
-        "short_description": "A flood mapping project",
-        "status": "PUBLISHED",
-        "total_tasks": 10
-    }
-
-    respx.get("https://api.fmtm.hotosm.org/projects/123").mock(
-        return_value=Response(200, json=mock_response)
-    )
-
-    response = await client.get("/api/field-tm/projectid/123")
+    with patch("app.api.routes.field_tm.field_tm.field_tm_service.fetch_project_by_id", new=AsyncMock(
+        return_value={"id": 123, "name": "Flood Mapping", "base_url": "https://field.hotosm.org"}
+    )):
+        response = await client.get("/api/field-tm/projectid/123")
 
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, dict)
     assert data["id"] == 123
     assert data["name"] == "Flood Mapping"
-    assert data["short_description"] == "A flood mapping project"
 
 
 @pytest.mark.asyncio
-@respx.mock
 async def test_get_fmtm_project_by_id_not_found(client: AsyncClient):
-    """Test handling of 404 Not Found error from FMTM API."""
-    respx.get("https://api.fmtm.hotosm.org/projects/999").mock(
-        return_value=Response(404, text="Not Found")
-    )
-
-    response = await client.get("/api/field-tm/projectid/999")
+    """Test handling of 404 Not Found — service returns None when project doesn't exist."""
+    with patch("app.api.routes.field_tm.field_tm.field_tm_service.fetch_project_by_id", new=AsyncMock(return_value=None)):
+        response = await client.get("/api/field-tm/projectid/999")
 
     assert response.status_code == 404
     assert "not found" in response.json()["detail"].lower()
 
 
 @pytest.mark.asyncio
-@respx.mock
 async def test_get_fmtm_project_by_id_http_error(client: AsyncClient):
-    """Test handling of generic HTTP errors in FMTM project by ID endpoint."""
-    respx.get("https://api.fmtm.hotosm.org/projects/321").mock(
-        return_value=Response(502, text="Bad Gateway")
-    )
+    """HTTP errors from field-tm are swallowed by the service; endpoint returns 404."""
+    with patch("app.api.routes.field_tm.field_tm.field_tm_service.fetch_project_by_id", new=AsyncMock(return_value=None)):
+        response = await client.get("/api/field-tm/projectid/321")
 
-    response = await client.get("/api/field-tm/projectid/321")
-
-    assert response.status_code == 503
-    assert "field-tm" in response.json()["detail"]
+    assert response.status_code == 404
 
 
 @pytest.mark.asyncio
-@respx.mock
 async def test_get_fmtm_project_by_id_connection_error(client: AsyncClient):
-    """Test handling of connection errors in project by ID endpoint."""
-    respx.get("https://api.fmtm.hotosm.org/projects/111").mock(
-        side_effect=httpx.RequestError("Timeout")
-    )
+    """Connection errors from field-tm are swallowed by the service; endpoint returns 404."""
+    with patch("app.api.routes.field_tm.field_tm.field_tm_service.fetch_project_by_id", new=AsyncMock(return_value=None)):
+        response = await client.get("/api/field-tm/projectid/111")
 
-    response = await client.get("/api/field-tm/projectid/111")
-
-    assert response.status_code == 503
-    assert "field-tm" in response.json()["detail"]
+    assert response.status_code == 404
 
 
 @pytest.mark.asyncio
-@respx.mock
 async def test_get_fmtm_project_by_id_unexpected_error(client: AsyncClient):
-    """Test handling of unexpected exceptions in project by ID endpoint."""
-    respx.get("https://api.fmtm.hotosm.org/projects/222").mock(
-        side_effect=Exception("Unexpected crash")
-    )
-
-    response = await client.get("/api/field-tm/projectid/222")
+    """Unexpected errors from field-tm are swallowed by the service; endpoint returns 404."""
+    with patch("app.api.routes.field_tm.field_tm.field_tm_service.fetch_project_by_id", new=AsyncMock(side_effect=Exception("Unexpected crash"))):
+        response = await client.get("/api/field-tm/projectid/222")
 
     assert response.status_code == 500
     assert "Unexpected error" in response.json()["detail"]

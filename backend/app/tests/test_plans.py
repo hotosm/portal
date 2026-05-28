@@ -259,14 +259,15 @@ async def test_hydrate_plan_all_ok(auth_client):
     fetchers = {
         "tasking-manager": AsyncMock(return_value={"organisationName": "org1"}),
         "fair": AsyncMock(return_value={"name": "model2"}),
-        "field-tm": AsyncMock(return_value={"name": "proj3"}),
         "drone-tasking-manager": AsyncMock(return_value=None),
         "open-aerial-map": AsyncMock(return_value=None),
         "export-tool": AsyncMock(return_value=None),
         "umap": AsyncMock(return_value=None),
     }
+    from app.services import field_tm_service
     with patch.dict(plans_service.APP_FETCHERS, fetchers):
-        resp = await client.get(f"/api/plans/{plan_id}")
+        with patch.object(field_tm_service, "fetch_project_by_id", new=AsyncMock(return_value={"name": "proj3"})):
+            resp = await client.get(f"/api/plans/{plan_id}")
     assert resp.status_code == 200
     by_app = {p["app"]: p for p in resp.json()["projects"]}
     assert by_app["tasking-manager"]["upstream"] == {"organisationName": "org1"}
