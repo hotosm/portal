@@ -57,6 +57,7 @@ function SortableViewProjectCard({
         project={project}
         onStatusChange={project.project_exists ? handleStatusChange : undefined}
         onSelectClick={project.project_exists ? undefined : () => setDialogOpen(true)}
+        onDelete={project.project_exists ? () => onProjectDeleted?.(id) : undefined}
       />
       {!project.project_exists && (
         <LinkProjectDialog

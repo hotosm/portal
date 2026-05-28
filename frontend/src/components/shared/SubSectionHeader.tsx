@@ -4,7 +4,7 @@ import PageWrapper from "./PageWrapper";
 interface SubSectionHeaderProps {
   icon?: string;
   title: string;
-  toolName: string;
+  toolName?: string;
 }
 
 function SubSectionHeader({ icon, title, toolName }: SubSectionHeaderProps) {
@@ -19,15 +19,17 @@ function SubSectionHeader({ icon, title, toolName }: SubSectionHeaderProps) {
               dangerouslySetInnerHTML={{ __html: title }}
             />
           </div>
-          <span
-            className="text-sm italic"
-            style={{ color: "var(--hot-color-neutral-400, #9ca3af)" }}
-          >
-            {m.by()}{" "}
-            <strong>
-              <span dangerouslySetInnerHTML={{ __html: toolName }} />
-            </strong>
-          </span>
+          {toolName && (
+            <span
+              className="text-sm italic"
+              style={{ color: "var(--hot-color-neutral-400, #9ca3af)" }}
+            >
+              {m.by()}{" "}
+              <strong>
+                <span dangerouslySetInnerHTML={{ __html: toolName }} />
+              </strong>
+            </span>
+          )}
         </div>
       </PageWrapper>
     </div>
