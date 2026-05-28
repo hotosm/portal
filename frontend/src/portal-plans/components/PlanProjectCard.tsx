@@ -244,7 +244,12 @@ function PlanProjectCard({
           title={title}
           href={href}
           project={project}
+          imageUrl={imageUrl}
           onDelete={onDelete}
+          onStatusChange={onStatusChange ? (status) => {
+            setLocalStatus(status);
+            onStatusChange(status);
+          } : undefined}
         />
       )}
       {!project.project_exists ? (

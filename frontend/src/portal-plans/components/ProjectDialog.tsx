@@ -1,9 +1,23 @@
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import placeholder from "../../assets/images/placeholder.png";
 import Button from "../../components/shared/Button";
 import Dialog from "../../components/shared/Dialog";
+import Dropdown from "../../components/shared/Dropdown";
+import DropdownItem from "../../components/shared/DropdownItem";
+import boxArrowUpRight from "../../assets/icons/box-arrow-up-right.svg";
+import Icon from "../../components/shared/Icon";
+import Tag from "../../components/shared/Tag";
 import { m } from "../../paraglide/messages";
 import { APP_META } from "../../utils/appMeta";
-import type { HydratedProjectItem } from "../types";
+import { formatProjectStatus } from "../../utils/utils";
+import type { HydratedProjectItem, ProjectStatus } from "../types";
+
+const STATUS_OPTIONS: ProjectStatus[] = ["pending", "in_progress", "done"];
+
+function statusVariant(status: ProjectStatus): "neutral" | "success" {
+  return status === "done" ? "success" : "neutral";
+}
 
 interface ProjectDialogProps {
   open: boolean;
@@ -11,7 +25,9 @@ interface ProjectDialogProps {
   title: string;
   href: string;
   project: HydratedProjectItem;
+  imageUrl?: string;
   onDelete?: () => void;
+  onStatusChange?: (status: ProjectStatus) => void;
 }
 
 function extractMeta(upstream: Record<string, unknown> | null) {
@@ -45,17 +61,62 @@ function ProjectDialog({
   title,
   href,
   project,
+  imageUrl,
   onDelete,
+  onStatusChange,
 }: ProjectDialogProps) {
   const meta = APP_META[project.app];
   const { createdAt, author } = extractMeta(project.upstream);
+  const [localStatus, setLocalStatus] = useState<ProjectStatus>(project.status);
+
+  useEffect(() => {
+    setLocalStatus(project.status);
+  }, [project.status]);
+
+  function handleStatusSelect(event: CustomEvent) {
+    const status = event.detail.item.value as ProjectStatus;
+    setLocalStatus(status);
+    onStatusChange?.(status);
+  }
 
   return (
     <Dialog open={open} label={title} onWaHide={onClose}>
       <div className="flex flex-col gap-md">
-        <div className="flex items-center gap-sm text-sm text-hot-gray-600">
-          <img src={meta.icon} alt={meta.name} className="w-5 h-5" />
-          <span>{meta.name}</span>
+        <img
+          src={imageUrl ?? placeholder}
+          alt={title}
+          className="w-full h-40 object-cover rounded"
+          onError={(e) => {
+            e.currentTarget.src = placeholder;
+          }}
+        />
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-sm text-sm text-hot-gray-600">
+            <img src={meta.icon} alt={meta.name} className="w-5 h-5" />
+            <span>{meta.name}</span>
+          </div>
+
+          {onStatusChange ? (
+            <Dropdown onSelect={handleStatusSelect}>
+              <Tag
+                slot="trigger"
+                variant={statusVariant(localStatus)}
+                className="cursor-pointer"
+              >
+                {formatProjectStatus(localStatus)} ▾
+              </Tag>
+              {STATUS_OPTIONS.map((s) => (
+                <DropdownItem key={s} value={s}>
+                  {formatProjectStatus(s)}
+                </DropdownItem>
+              ))}
+            </Dropdown>
+          ) : (
+            <Tag variant={statusVariant(localStatus)}>
+              {formatProjectStatus(localStatus)}
+            </Tag>
+          )}
         </div>
 
         {(author || createdAt) && (
@@ -87,11 +148,12 @@ function ProjectDialog({
             }}
             className="text-sm text-hot-gray-500 hover:text-hot-gray-700 underline"
           >
-            Delete
+            Remove from plan
           </button>
         )}
         <Button href={href} target="_blank" rel="noopener noreferrer">
           Open Project
+          <Icon slot="end" src={boxArrowUpRight} label="Opens in new tab" />
         </Button>
       </div>
     </Dialog>
