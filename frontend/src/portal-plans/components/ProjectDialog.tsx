@@ -28,6 +28,7 @@ interface ProjectDialogProps {
   imageUrl?: string;
   onDelete?: () => void;
   onStatusChange?: (status: ProjectStatus) => void;
+  initialStatus?: ProjectStatus;
 }
 
 function extractMeta(upstream: Record<string, unknown> | null) {
@@ -65,14 +66,15 @@ function ProjectDialog({
   imageUrl,
   onDelete,
   onStatusChange,
+  initialStatus,
 }: ProjectDialogProps) {
   const meta = APP_META[project.app];
   const { createdAt, author } = extractMeta(project.upstream);
-  const [localStatus, setLocalStatus] = useState<ProjectStatus>(project.status);
+  const [localStatus, setLocalStatus] = useState<ProjectStatus>(initialStatus ?? project.status);
 
   useEffect(() => {
-    setLocalStatus(project.status);
-  }, [project.status]);
+    setLocalStatus(initialStatus ?? project.status);
+  }, [initialStatus, project.status]);
 
   function handleStatusSelect(event: CustomEvent) {
     const status = event.detail.item.value as ProjectStatus;

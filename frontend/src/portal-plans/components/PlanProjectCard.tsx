@@ -245,6 +245,7 @@ function PlanProjectCard({
           project={project}
           imageUrl={imageUrl}
           onDelete={onDelete}
+          initialStatus={localStatus}
           onStatusChange={onStatusChange ? (status) => {
             setLocalStatus(status);
             onStatusChange(status);
