@@ -187,7 +187,10 @@ function PlanProjectCard({
           </div>
         </div>
         {!project.project_exists ? null : onStatusChange ? (
-          <div className="absolute top-1 right-1 z-10">
+          <div
+            className="absolute top-1 right-1 z-10"
+            onClick={(e) => e.stopPropagation()}
+          >
             <Dropdown onSelect={handleStatusSelect}>
               <Tag
                 slot="trigger"
@@ -216,13 +219,9 @@ function PlanProjectCard({
       {project.project_exists ? (
         <div className="flex flex-col justify-start">
           <span className="text-sm text-hot-gray-600">{meta.name}</span>
-          <button
-            type="button"
-            onClick={() => setDialogOpen(true)}
-            className="block w-full text-left whitespace-normal text-base font-bold hover:text-black"
-          >
+          <span className="block w-full text-left whitespace-normal text-base font-bold">
             <span className="line-clamp-2">{title}</span>
-          </button>
+          </span>
         </div>
       ) : (
         <span className="text-base font-bold whitespace-normal">
@@ -261,7 +260,17 @@ function PlanProjectCard({
           {cardContent}
         </button>
       ) : (
-        <div className={cardClassName}>{cardContent}</div>
+        <div
+          className={`${cardClassName} cursor-pointer`}
+          onClick={() => setDialogOpen(true)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") setDialogOpen(true);
+          }}
+        >
+          {cardContent}
+        </div>
       )}
     </>
   );
