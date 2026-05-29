@@ -14,7 +14,6 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import Button from "../components/shared/Button";
 import CardSkeleton from "../components/shared/CardSkeleton";
 import Carousel from "../components/shared/Carousel";
 import CarouselItem from "../components/shared/CarouselItem";
@@ -41,7 +40,6 @@ import {
   useAllUserProjects,
   useCompleteTask,
   usePlan,
-  useRefreshPlan,
   useSharedPlan,
   useUpdatePlan,
 } from "./hooks";
@@ -99,9 +97,9 @@ function MyPlanPage() {
 
   const { mutate: updatePlan } = useUpdatePlan();
   const { mutate: completeTask } = useCompleteTask(planId ?? "");
-  const { mutate: refreshPlan, isPending: isRefreshing } = useRefreshPlan(
+  /* const { mutate: refreshPlan, isPending: isRefreshing } = useRefreshPlan(
     planId ?? "",
-  );
+  ); */
   const queryClient = useQueryClient();
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
