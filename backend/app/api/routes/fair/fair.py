@@ -414,7 +414,7 @@ async def get_my_fair_models(
     cookie_header = {"Cookie": f"hanko={hanko_cookie}"} if hanko_cookie else {}
     headers = {"accept": "application/json", **cookie_header}
 
-    async with httpx.AsyncClient(timeout=30.0, verify=FAIR_USER_VERIFY_SSL) as client:
+    async with httpx.AsyncClient(timeout=10.0, verify=FAIR_USER_VERIFY_SSL) as client:
         try:
             status_response = await client.get(
                 f"{FAIR_USER_API_URL}/auth/status/",
@@ -456,6 +456,9 @@ async def get_my_fair_models(
                 status_code=e.response.status_code,
                 detail=f"Error from fAIr API: {e.response.text}"
             )
+        except httpx.RequestError as e:
+            logger.warning(f"fAIr /model/ upstream unavailable: {e}")
+            raise HTTPException(status_code=503, detail="fAIr upstream unavailable")
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 

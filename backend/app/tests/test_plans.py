@@ -259,14 +259,15 @@ async def test_hydrate_plan_all_ok(auth_client):
     fetchers = {
         "tasking-manager": AsyncMock(return_value={"organisationName": "org1"}),
         "fair": AsyncMock(return_value={"name": "model2"}),
-        "field-tm": AsyncMock(return_value={"name": "proj3"}),
         "drone-tasking-manager": AsyncMock(return_value=None),
         "open-aerial-map": AsyncMock(return_value=None),
         "export-tool": AsyncMock(return_value=None),
         "umap": AsyncMock(return_value=None),
     }
+    from app.services import field_tm_service
     with patch.dict(plans_service.APP_FETCHERS, fetchers):
-        resp = await client.get(f"/api/plans/{plan_id}")
+        with patch.object(field_tm_service, "fetch_project_by_id", new=AsyncMock(return_value={"name": "proj3"})):
+            resp = await client.get(f"/api/plans/{plan_id}")
     assert resp.status_code == 200
     by_app = {p["app"]: p for p in resp.json()["projects"]}
     assert by_app["tasking-manager"]["upstream"] == {"organisationName": "org1"}
@@ -388,6 +389,9 @@ async def test_orphan_end_to_end_flow(auth_client):
 @pytest.mark.asyncio
 async def test_hydrate_parallelism(auth_client):
     client, _ = auth_client
+    # Use only apps routed through APP_FETCHERS (the generic branch). field-tm,
+    # chatmap and umap have dedicated branches that bypass APP_FETCHERS and would
+    # hit the network, so they are unsuitable for a parallelism mock.
     resp = await client.post(
         "/api/plans",
         json={
@@ -395,24 +399,22 @@ async def test_hydrate_parallelism(auth_client):
             "projects": [
                 {"app": "tasking-manager", "project_id": "1"},
                 {"app": "fair", "project_id": "2"},
-                {"app": "field-tm", "project_id": "3"},
+                {"app": "drone-tasking-manager", "project_id": "3"},
             ],
         },
     )
     plan_id = resp.json()["id"]
 
-    async def slow_fetcher(_id):
+    async def slow_fetcher(_id, **_kwargs):
         await asyncio.sleep(0.2)
         return {"ok": True}
 
     fetchers = {
         "tasking-manager": slow_fetcher,
         "fair": slow_fetcher,
-        "field-tm": slow_fetcher,
-        "drone-tasking-manager": AsyncMock(return_value=None),
+        "drone-tasking-manager": slow_fetcher,
         "open-aerial-map": AsyncMock(return_value=None),
         "export-tool": AsyncMock(return_value=None),
-        "umap": AsyncMock(return_value=None),
     }
     with patch.dict(plans_service.APP_FETCHERS, fetchers):
         loop = asyncio.get_event_loop()

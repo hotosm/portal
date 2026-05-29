@@ -407,7 +407,7 @@ async def get_user_projects(
     verify_ssl = bool(settings.drone_tm_verify_ssl)
 
     async with httpx.AsyncClient(
-        timeout=30.0, verify=verify_ssl, cookies={"hanko": hanko_cookie}
+        timeout=10.0, verify=verify_ssl, cookies={"hanko": hanko_cookie}
     ) as client:
         try:
             logger.info(f"[User Projects] Making request to {url} with params: {params}")
@@ -425,9 +425,9 @@ async def get_user_projects(
                 status_code=e.response.status_code,
                 detail=f"Error from DroneTM API: {e.response.text}"
             )
-        except httpx.TimeoutException:
-            logger.error("Request timeout")
-            raise HTTPException(status_code=504, detail="Request to DroneTM API timed out")
+        except httpx.RequestError as e:
+            logger.warning(f"[User Projects] DroneTM upstream unavailable: {e}")
+            raise HTTPException(status_code=503, detail="DroneTM upstream unavailable")
         except HTTPException:
             raise
         except Exception as e:

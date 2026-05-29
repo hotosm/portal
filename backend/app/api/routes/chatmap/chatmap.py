@@ -27,7 +27,7 @@ async def get_user_maps(
     """
     url = f"{CHATMAP_API_URL}/user/{user.id}/map"
 
-    async with httpx.AsyncClient(timeout=30.0, verify=CHATMAP_VERIFY_SSL) as client:
+    async with httpx.AsyncClient(timeout=10.0, verify=CHATMAP_VERIFY_SSL) as client:
         try:
             response = await client.get(url)
             response.raise_for_status()
@@ -39,6 +39,12 @@ async def get_user_maps(
             raise HTTPException(
                 status_code=e.response.status_code,
                 detail=f"Error from ChatMap API: {e.response.text}",
+            )
+        except httpx.RequestError as e:
+            logger.warning("[ChatMap] upstream unavailable: %s", e)
+            raise HTTPException(
+                status_code=503,
+                detail={"error": "upstream_unavailable", "total": 0, "maps": []},
             )
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
@@ -53,7 +59,7 @@ async def get_chatmap_by_id(
     """
     url = f"{CHATMAP_API_URL}/map/{map_id}"
 
-    async with httpx.AsyncClient(timeout=30.0, verify=CHATMAP_VERIFY_SSL) as client:
+    async with httpx.AsyncClient(timeout=10.0, verify=CHATMAP_VERIFY_SSL) as client:
         try:
             response = await client.get(url)
             response.raise_for_status()
@@ -63,6 +69,9 @@ async def get_chatmap_by_id(
                 status_code=e.response.status_code,
                 detail=f"Error from ChatMap API: {e.response.text}",
             )
+        except httpx.RequestError as e:
+            logger.warning("[ChatMap] upstream unavailable: %s", e)
+            raise HTTPException(status_code=503, detail="ChatMap upstream unavailable")
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
@@ -81,7 +90,7 @@ async def get_my_chatmap(
 
     url = f"{CHATMAP_API_URL}/map"
 
-    async with httpx.AsyncClient(timeout=30.0, verify=CHATMAP_VERIFY_SSL) as client:
+    async with httpx.AsyncClient(timeout=10.0, verify=CHATMAP_VERIFY_SSL) as client:
         try:
             response = await client.get(url, cookies={"hanko": hanko_cookie})
             response.raise_for_status()
@@ -93,5 +102,8 @@ async def get_my_chatmap(
                 status_code=e.response.status_code,
                 detail=f"Error from ChatMap API: {e.response.text}",
             )
+        except httpx.RequestError as e:
+            logger.warning("[ChatMap] upstream unavailable: %s", e)
+            raise HTTPException(status_code=503, detail="ChatMap upstream unavailable")
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))

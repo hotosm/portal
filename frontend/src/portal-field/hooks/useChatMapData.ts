@@ -36,6 +36,8 @@ export function useChatMapData() {
 
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) return [];
+        // Upstream unavailable — render an empty list instead of retrying.
+        if (response.status === 503) return [];
         throw new Error(`[${response.status}] Failed to fetch ChatMap maps`);
       }
 
@@ -45,7 +47,8 @@ export function useChatMapData() {
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: true,
-    retry: 2,
+    retry: (failureCount, error) =>
+      failureCount < 1 && !/\[5\d\d\]/.test(String((error as Error)?.message ?? "")),
     enabled: isLogin,
   });
 }

@@ -86,17 +86,19 @@ async def get_plan(
     request: Request,
     user: CurrentUser,
     plan_id: str = Path(..., description="Plan UUID"),
-    refresh: bool = False,
+    cache: bool = False,
     db: AsyncSession = Depends(get_db),
 ) -> PlanReadHydrated:
     """Return the plan with each project hydrated in parallel from its upstream app.
 
-    Pass ?refresh=true to bypass the in-memory cache and persist the fresh
-    upstream as `data` on each row that resolved successfully.
+    Hydration hits each upstream live by default. Pass ?cache=true to serve
+    from the in-memory cache instead. A live hydration also persists the fresh
+    upstream as `data` on each row that resolved successfully, so a cached or
+    failed read can still fall back to the last known snapshot.
     """
     hanko_cookie = request.cookies.get("hanko")
     plan = await plans_service.get_plan_hydrated(
-        db, user.id, plan_id, hanko_cookie=hanko_cookie, refresh=refresh
+        db, user.id, plan_id, hanko_cookie=hanko_cookie, refresh=not cache
     )
     if plan is None:
         raise HTTPException(status_code=404, detail="Plan not found")

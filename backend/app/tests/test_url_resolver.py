@@ -46,6 +46,16 @@ from app.services.url_resolver import parse_project_url
             "open-aerial-map",
             "abcdef1234567890abcdef12",
         ),
+        (
+            "https://map.openaerialmap.org/#/-18.720703125,18.562947442888312,3/user/6a04609fcc972f0164bdd7e5/6a04633ecc972f0164bdda20?_k=t0jvz6",
+            "open-aerial-map",
+            "6a04633ecc972f0164bdda20",
+        ),
+        (
+            "https://map.openaerialmap.org/#/0,0,3/user/aabbccddeeff00112233aabb/112233aabbccddeeff001122",
+            "open-aerial-map",
+            "112233aabbccddeeff001122",
+        ),
         # --- umap ---
         (
             "https://umap.hotosm.org/es/map/test-portal_2675#16/-34.572928/-58.430572",
@@ -88,8 +98,10 @@ def test_valid_urls(url: str, expected_app: str, expected_id: str) -> None:
         # missing ID
         "https://drone.hotosm.org/projects/",
         "https://fair.hotosm.org/ai-models/",
-        # OAM missing /latest/ segment
+        # OAM missing /latest/ or /user/ segment
         "https://map.openaerialmap.org/#/0,0,3/abc123",
+        # OAM /user/ path but non-hex user id
+        "https://map.openaerialmap.org/#/0,0,3/user/not-a-hex-id/6a04633ecc972f0164bdda20",
         # umap missing _{id}
         "https://umap.hotosm.org/es/map/no-number-here",
         # chatmap missing uuid
