@@ -113,3 +113,8 @@ hotosm-tool-menu {
   background: transparent;
   opacity: 0.8;
 }
+
+.rte-editor {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
