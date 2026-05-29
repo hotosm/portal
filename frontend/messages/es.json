@@ -184,5 +184,9 @@
   "plan_toast_share_error": "Error al compartir el plan",
   "plan_toast_image_upload_error": "Error al subir la imagen",
   "plan_refresh_button": "Actualizar con apps",
-  "plan_refreshing_button": "Actualizando…"
+  "plan_refreshing_button": "Actualizando…",
+  "plan_project_missing_badge": "No encontrado",
+  "plan_project_unavailable_badge": "No disponible",
+  "plan_project_missing_label": "Este proyecto ya no existe en la app de origen.",
+  "plan_project_remove_button": "Quitar del plan"
 }
