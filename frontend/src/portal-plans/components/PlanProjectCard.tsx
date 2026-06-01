@@ -15,6 +15,7 @@ import {
 } from "../../utils/envConfig";
 import { osmTileUrl } from "../../utils/osmTiles";
 import { formatProjectStatus } from "../../utils/utils";
+import { m } from "../../paraglide/messages";
 import type { AppName, HydratedProjectItem, ProjectStatus } from "../types";
 
 const STATUS_OPTIONS: ProjectStatus[] = ["pending", "in_progress", "done"];
@@ -160,6 +161,15 @@ function PlanProjectCard({
   const [localStatus, setLocalStatus] = useState<ProjectStatus>(project.status);
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  // The upstream app confirmed (404) that this project no longer exists.
+  const missing = project.project_exists && project.error === "not_found";
+  // The upstream app could not be reached, so existence is unknown — do not
+  // offer to remove it, it may still exist once the app recovers.
+  const unavailable =
+    project.project_exists &&
+    (project.error === "upstream_unavailable" ||
+      project.error === "upstream_timeout");
+
   useEffect(() => {
     setLocalStatus(project.status);
   }, [project.status]);
@@ -176,7 +186,7 @@ function PlanProjectCard({
         <img
           src={imageUrl}
           alt={title}
-          className="w-full h-36 object-cover"
+          className={`w-full h-36 object-cover${missing ? " grayscale opacity-60" : ""}`}
           onError={(e) => {
             e.currentTarget.src = placeholder;
           }}
@@ -186,8 +196,21 @@ function PlanProjectCard({
             <img src={meta.icon} alt={meta.label} className="w-6 h-6" />
           </div>
         </div>
+        {missing && (
+          <span className="absolute bottom-1 left-1 z-10 bg-red-600 text-white text-xs font-medium px-2 py-0.5 rounded">
+            {m.plan_project_missing_badge()}
+          </span>
+        )}
+        {unavailable && (
+          <span className="absolute bottom-1 left-1 z-10 bg-hot-gray-600 text-white text-xs font-medium px-2 py-0.5 rounded">
+            {m.plan_project_unavailable_badge()}
+          </span>
+        )}
         {!project.project_exists ? null : onStatusChange ? (
-          <div className="absolute top-1 right-1 z-10">
+          <div
+            className="absolute top-1 right-1 z-10"
+            onClick={(e) => e.stopPropagation()}
+          >
             <Dropdown onSelect={handleStatusSelect}>
               <Tag
                 slot="trigger"
@@ -214,15 +237,34 @@ function PlanProjectCard({
       </div>
 
       {project.project_exists ? (
-        <div className="flex flex-col justify-start">
+        <div className="flex flex-col justify-start gap-xs">
           <span className="text-sm text-hot-gray-600">{meta.name}</span>
-          <button
-            type="button"
-            onClick={() => setDialogOpen(true)}
-            className="block w-full text-left whitespace-normal text-base font-bold hover:text-black"
-          >
-            <span className="line-clamp-2">{title}</span>
-          </button>
+          {missing ? (
+            <>
+              <span className="block whitespace-normal text-base font-bold text-hot-gray-600 line-through line-clamp-2">
+                {title}
+              </span>
+              <p className="text-sm text-red-700">
+                {m.plan_project_missing_label()}
+              </p>
+              {onDelete && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete();
+                  }}
+                  className="self-start text-sm font-medium text-red-700 underline hover:text-red-800"
+                >
+                  {m.plan_project_remove_button()}
+                </button>
+              )}
+            </>
+          ) : (
+            <span className="block w-full text-left whitespace-normal text-base font-bold">
+              <span className="line-clamp-2">{title}</span>
+            </span>
+          )}
         </div>
       ) : (
         <span className="text-base font-bold whitespace-normal">
@@ -246,6 +288,7 @@ function PlanProjectCard({
           project={project}
           imageUrl={imageUrl}
           onDelete={onDelete}
+          initialStatus={localStatus}
           onStatusChange={onStatusChange ? (status) => {
             setLocalStatus(status);
             onStatusChange(status);
@@ -261,7 +304,17 @@ function PlanProjectCard({
           {cardContent}
         </button>
       ) : (
-        <div className={cardClassName}>{cardContent}</div>
+        <div
+          className={`${cardClassName} cursor-pointer`}
+          onClick={() => setDialogOpen(true)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") setDialogOpen(true);
+          }}
+        >
+          {cardContent}
+        </div>
       )}
     </>
   );

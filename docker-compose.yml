@@ -56,6 +56,10 @@ services:
       FAIR_API_BASE_URL: ${FAIR_API_BASE_URL:-}
       FAIR_VERIFY_SSL: ${FAIR_VERIFY_SSL:-}
       UMAP_BASE_URL: ${UMAP_BASE_URL:-https://umap.hotosm.org}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME:-}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:

@@ -85,17 +85,17 @@ function LinkProjectDialog({
         onAdd={handleAddUrl}
       />
 
-      <div slot="footer" className="flex gap-sm justify-end">
-        <button
-          type="button"
+      <div slot="footer" className="flex gap-sm justify-between w-full">
+        <Button
+          appearance="outlined"
+          variant="danger"
           onClick={() => {
             onDelete?.();
             onClose();
           }}
-          className="text-sm text-hot-gray-500 hover:text-hot-gray-700 underline"
         >
           Delete
-        </button>
+        </Button>
         <Button
           type="button"
           disabled={!selected}

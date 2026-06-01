@@ -8,7 +8,10 @@ export type AppName =
   | 'tasking-manager'
   | 'umap'
 
-export type HydrationError = 'not_found' | 'upstream_unavailable'
+export type HydrationError =
+  | 'not_found'
+  | 'upstream_unavailable'
+  | 'upstream_timeout'
 
 export type ProjectStatus = 'pending' | 'in_progress' | 'done' | 'task'
 

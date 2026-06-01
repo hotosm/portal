@@ -45,9 +45,10 @@ export const MAIN_MENU_ITEMS: MenuItem[] = [
   {
     id: "learn",
     label: () => "Learn",
-    href: "/learn",
+    href: "https://learn.hotosm.org",
     requiresAuth: false,
     icon: "patch-check",
+    external: true
   },
 ];
 

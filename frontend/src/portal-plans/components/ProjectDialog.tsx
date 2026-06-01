@@ -28,12 +28,14 @@ interface ProjectDialogProps {
   imageUrl?: string;
   onDelete?: () => void;
   onStatusChange?: (status: ProjectStatus) => void;
+  initialStatus?: ProjectStatus;
 }
 
 function extractMeta(upstream: Record<string, unknown> | null) {
   if (!upstream) return { createdAt: null, author: null };
 
-  const rawDate = upstream.created_at ?? upstream.created ?? upstream.uploaded_at;
+  const rawDate =
+    upstream.created_at ?? upstream.created ?? upstream.uploaded_at;
   const createdAt =
     typeof rawDate === "string" && rawDate
       ? new Date(rawDate).toLocaleDateString(undefined, {
@@ -64,14 +66,15 @@ function ProjectDialog({
   imageUrl,
   onDelete,
   onStatusChange,
+  initialStatus,
 }: ProjectDialogProps) {
   const meta = APP_META[project.app];
   const { createdAt, author } = extractMeta(project.upstream);
-  const [localStatus, setLocalStatus] = useState<ProjectStatus>(project.status);
+  const [localStatus, setLocalStatus] = useState<ProjectStatus>(initialStatus ?? project.status);
 
   useEffect(() => {
-    setLocalStatus(project.status);
-  }, [project.status]);
+    setLocalStatus(initialStatus ?? project.status);
+  }, [initialStatus, project.status]);
 
   function handleStatusSelect(event: CustomEvent) {
     const status = event.detail.item.value as ProjectStatus;
@@ -137,19 +140,19 @@ function ProjectDialog({
         )}
       </div>
 
-      <div slot="footer" className="flex gap-sm justify-end">
+      <div slot="footer" className="flex gap-sm justify-between w-full">
         {onDelete && (
-          <button
-            type="button"
+          <Button
+            variant="danger"
+            appearance="outlined"
             onClick={() => {
               onDelete();
               onClose();
               toast.success(m.plan_toast_project_removed());
             }}
-            className="text-sm text-hot-gray-500 hover:text-hot-gray-700 underline"
           >
             Remove from plan
-          </button>
+          </Button>
         )}
         <Button href={href} target="_blank" rel="noopener noreferrer">
           Open Project

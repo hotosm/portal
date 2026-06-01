@@ -184,5 +184,9 @@
   "plan_toast_share_error": "Échec du partage du plan",
   "plan_toast_image_upload_error": "Échec du téléchargement de l'image",
   "plan_refresh_button": "Mettre à jour depuis les apps",
-  "plan_refreshing_button": "Mise à jour…"
+  "plan_refreshing_button": "Mise à jour…",
+  "plan_project_missing_badge": "Introuvable",
+  "plan_project_unavailable_badge": "Indisponible",
+  "plan_project_missing_label": "Ce projet n'existe plus dans l'application source.",
+  "plan_project_remove_button": "Retirer du plan"
 }
