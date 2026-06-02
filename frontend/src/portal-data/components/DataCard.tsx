@@ -28,7 +28,7 @@ const DataCard = ({ project }: DataCardProps) => {
           </Tag>
         </div>
         <div>
-          <p className="bold line-clamp-2">{project.title}</p>
+          <p className="bold line-clamp-2 break-words">{project.title}</p>
           {project.accuracy !== null && (
             <strong className="text-sm text-gray-600">
               Accuracy: {project.accuracy}%

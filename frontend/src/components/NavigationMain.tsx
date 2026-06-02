@@ -25,6 +25,38 @@ function NavigationMain({ onLinkClick }: NavigationMainProps) {
     <div className="flex gap-sm flex-col lg:flex-row">
       {visibleItems.map((item) => {
         const isActive = isActiveItem(item.href);
+        const linkContent = (
+          <span className="flex items-center gap-2xs">
+            {item.icon && (
+              <>
+                {/* @ts-ignore */}
+                <wa-icon
+                  class="nav-icon-regular"
+                  library="bootstrap"
+                  name={item.icon}
+                  style={{ fontSize: "16px" }}
+                />
+              </>
+            )}
+            {item.label()}
+          </span>
+        );
+
+        if (item.external) {
+          return (
+            <a
+              key={item.id}
+              className="nav-main-link text-hot-gray-800 hover:no-underline text-sm px-sm py-xs"
+              href={item.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={onLinkClick}
+            >
+              {linkContent}
+            </a>
+          );
+        }
+
         const localizedHref = `/${currentLanguage}${item.href}`;
         return (
           <NavLink
@@ -35,20 +67,7 @@ function NavigationMain({ onLinkClick }: NavigationMainProps) {
             to={localizedHref}
             onClick={onLinkClick}
           >
-            <span className="flex items-center gap-2xs">
-              {item.icon && (
-                <>
-                  {/* @ts-ignore */}
-                  <wa-icon
-                    class="nav-icon-regular"
-                    library="bootstrap"
-                    name={item.icon}
-                    style={{ fontSize: "16px" }}
-                  />
-                </>
-              )}
-              {item.label()}
-            </span>
+            {linkContent}
           </NavLink>
         );
       })}

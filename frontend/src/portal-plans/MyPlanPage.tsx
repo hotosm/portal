@@ -204,7 +204,7 @@ function MyPlanPage() {
   }
 
   const isLoading =
-    isAuthLoading || ownLoading || (ownPlan === null && publicLoading);
+    isAuthLoading || ownLoading || (ownPlan == null && publicLoading);
   const isError = isOwner ? ownError : publicError;
 
   if (!isLoading && isError) {
@@ -342,7 +342,7 @@ function MyPlanPage() {
         ) : (
           <>
             {plan!.is_public && isOwner && (
-              <Tag variant="neutral" appearance="filled" size="large">
+              <Tag variant="neutral" appearance="filled" size="large" className="mb-[10px]">
                 {m.plan_public_tag()}
               </Tag>
             )}

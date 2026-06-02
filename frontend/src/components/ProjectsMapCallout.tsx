@@ -130,7 +130,7 @@ function IndividualProjectCallout({
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0">
-        <p className="text-xl leading-tight font-semibold mb-3">
+        <p className="text-xl leading-tight font-semibold mb-3 break-words">
           {projectData.name}
         </p>
 
@@ -145,7 +145,7 @@ function IndividualProjectCallout({
         )}
 
         {projectData.description && (
-          <div className="text-sm text-hot-gray-600 mb-3">
+          <div className="text-sm text-hot-gray-600 mb-3 break-words">
             <ReactMarkdown>{shortenText(projectData.description)}</ReactMarkdown>
           </div>
         )}
