@@ -204,7 +204,7 @@ function MyPlanPage() {
   }
 
   const isLoading =
-    isAuthLoading || ownLoading || (ownPlan === null && publicLoading);
+    isAuthLoading || ownLoading || (ownPlan == null && publicLoading);
   const isError = isOwner ? ownError : publicError;
 
   if (!isLoading && isError) {
