@@ -3,10 +3,11 @@
 import httpx
 
 from app.core.cache import DEFAULT_TTL, get_cached, set_cached
-from app.core.config import settings
 from app.services.exceptions import UpstreamUnavailable
 
-OAM_API_BASE_URL = settings.oam_api_url
+# Always use the public OAM API for individual image lookups (plan hydration,
+# URL resolution). settings.oam_api_url is for the local STAC sync (oam_service.py).
+_OAM_PUBLIC_API = "https://api.openaerialmap.org"
 
 
 async def fetch_imagery_by_id(
@@ -20,14 +21,18 @@ async def fetch_imagery_by_id(
     None on 404, raises UpstreamUnavailable on failure.
     Note: this does not consult the local oam_images DB table — hydration of plans
     uses the live API directly so orphan detection works even when local sync is stale.
+
+    image_id may be a compound "{user_id}:{image_id}" (produced by url_resolver for
+    /user/ URLs). Only the image_id portion is used for the API call.
     """
+    image_id = image_id.split(":")[-1]
     cache_key = f"oam_image_{image_id}"
     if not force_refresh:
         cached = get_cached(cache_key)
         if cached is not None:
             return cached
 
-    url = f"{base_url or OAM_API_BASE_URL}/meta/{image_id}"
+    url = f"{base_url or _OAM_PUBLIC_API}/meta/{image_id}"
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(url)

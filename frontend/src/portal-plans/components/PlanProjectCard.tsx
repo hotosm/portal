@@ -96,7 +96,11 @@ function resolveHref(
       if (Array.isArray(bbox) && bbox.length === 4) {
         const lng = ((bbox[0] as number) + (bbox[2] as number)) / 2;
         const lat = ((bbox[1] as number) + (bbox[3] as number)) / 2;
-        return `https://map.openaerialmap.org/#/${lng},${lat},14/latest/${projectId}`;
+        const parts = projectId.split(':');
+        const oamPath = parts.length === 2
+          ? `user/${parts[0]}/${parts[1]}`
+          : `latest/${projectId}`;
+        return `https://map.openaerialmap.org/#/${lng},${lat},14/${oamPath}`;
       }
       return `https://map.openaerialmap.org`;
     }

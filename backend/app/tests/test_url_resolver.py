@@ -49,12 +49,12 @@ from app.services.url_resolver import parse_project_url
         (
             "https://map.openaerialmap.org/#/-18.720703125,18.562947442888312,3/user/6a04609fcc972f0164bdd7e5/6a04633ecc972f0164bdda20?_k=t0jvz6",
             "open-aerial-map",
-            "6a04633ecc972f0164bdda20",
+            "6a04609fcc972f0164bdd7e5:6a04633ecc972f0164bdda20",
         ),
         (
             "https://map.openaerialmap.org/#/0,0,3/user/aabbccddeeff00112233aabb/112233aabbccddeeff001122",
             "open-aerial-map",
-            "112233aabbccddeeff001122",
+            "aabbccddeeff00112233aabb:112233aabbccddeeff001122",
         ),
         # --- umap ---
         (
