@@ -12,7 +12,7 @@ export default function CardProjectTitle({
     <a
       href={href}
       {...(isExternal && { target: "_blank", rel: "noopener noreferrer" })}
-      className="text-base font-bold hover:text-black hover:no-underline line-clamp-2 min-h-[3em]"
+      className="text-base font-bold hover:text-black hover:no-underline line-clamp-2 min-h-[3em] break-words"
     >
       {title}
     </a>
