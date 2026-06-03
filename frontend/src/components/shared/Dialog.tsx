@@ -6,6 +6,7 @@ import WaDialog from '@awesome.me/webawesome/dist/react/dialog/index.js'
 export interface DialogProps extends React.ComponentProps<typeof WaDialog> {
   children?: React.ReactNode
   open?: boolean
+  onWaRequestClose?: (e: Event) => void
 }
 
 function Dialog({ children, ...props }: DialogProps) {

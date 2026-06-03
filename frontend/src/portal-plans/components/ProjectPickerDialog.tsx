@@ -119,6 +119,7 @@ function ProjectPickerDialog({
     <Dialog
       open={open}
       label={m.plan_picker_label()}
+      onWaRequestClose={(e: Event) => { if (isPending) e.preventDefault(); }}
       onWaHide={onClose}
       style={{ "--width": "560px" } as React.CSSProperties}
     >
@@ -214,12 +215,14 @@ function ProjectPickerDialog({
         <button
           type="button"
           onClick={onClose}
-          className="text-sm text-hot-gray-500 hover:text-hot-gray-700 underline"
+          disabled={isPending}
+          className="text-sm text-hot-gray-500 hover:text-hot-gray-700 underline disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {m.plan_cancel()}
         </button>
         <Button
           type="button"
+          disabled={isPending}
           onClick={() => {
             onConfirm(localSelected, localExtraProjects, localTaskIds, newTasks);
             onClose();
