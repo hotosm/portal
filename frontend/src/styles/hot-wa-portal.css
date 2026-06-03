@@ -87,3 +87,18 @@ wa-card::part(base) {
     transform: none;
   }
 }
+
+wa-breadcrumb {
+  overflow: hidden;
+}
+
+wa-breadcrumb-item[aria-current="page"] {
+  min-width: 0;
+  overflow: hidden;
+}
+
+wa-breadcrumb-item[aria-current="page"]::part(label) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
