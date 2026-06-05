@@ -30,19 +30,19 @@ function FieldPage() {
           <div className="flex flex-wrap gap-lg">
             <div className={cardClassNames}>
               <CardAddNew
-                title={m.mapping_tm_card_title()}
-                description={m.mapping_tm_card_description()}
-                buttonLabel={m.mapping_tm_card_button()}
-                icon="map"
-              />
-            </div>
-            <div className={cardClassNames}>
-              <CardAddNew
                 title={m.field_tm_card_title()}
                 description={m.field_tm_card_description()}
                 buttonLabel={m.field_tm_card_button()}
                 icon="add"
+                buttonHref="https://chatmap.hotosm.org"
               />
+              <div className={cardClassNames}>
+                <CardTakeCourse
+                  title={m.imagery_take_course_title()}
+                  subtitle={m.imagery_take_course_subtitle()}
+                  href="https://learn.hotosm.org/course/learn-chatmap"
+                />
+              </div>
             </div>
             {isChatMapLoading
               ? Array.from({ length: 1 }).map((_, i) => (
@@ -83,16 +83,23 @@ function FieldPage() {
                 ))}
               </>
             )} */}
-            <div className={cardClassNames}>
-              <CardDataNotAvailable />
-            </div>
-            <div className={cardClassNames}>
+              <CardAddNew
+                title={m.field_tm_card_title()}
+                description={m.field_tm_card_description()}
+                buttonLabel={m.field_tm_card_button()}
+                icon="add"
+                buttonHref="https://field.hotosm.org"
+              />
+              <div className={cardClassNames}>
+                <CardDataNotAvailable />
+              </div>
+            {/* <div className={cardClassNames}>
               <CardTakeCourse
                 title={m.imagery_take_course_title()}
                 subtitle={m.imagery_take_course_subtitle()}
                 href="#"
               />
-            </div>
+            </div> */}
           </div>
           {/* {totalPages > 1 && (
             <div className="mt-lg">

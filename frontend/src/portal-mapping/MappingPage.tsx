@@ -45,6 +45,7 @@ function MappingPage() {
                 description={m.mapping_tm_card_description()}
                 buttonLabel={m.mapping_tm_card_button()}
                 icon="map"
+                buttonHref="https://tasks.hotosm.org"
               />
             </div>
             <div className={cardClassNames}>
@@ -74,9 +75,10 @@ function MappingPage() {
                 <div className={cardClassNames}>
                   <CardAddNew
                     title={m.mapping_fair_card_title()}
-                    description={m.mapping_fair_card_description()}
+                    description={m.mapping_tm_card_description()}
                     buttonLabel={m.mapping_tm_card_button()}
                     icon="map"
+                    buttonHref="https://fair.hotosm.org"
                   />
                 </div>
                 {/* we only show models for the moment, no datasets */}
@@ -87,13 +89,14 @@ function MappingPage() {
                 ))}
               </>
             )}
-            <div className={cardClassNames}>
+            <CardDataNotAvailable />
+            {/* <div className={cardClassNames}>
               <CardTakeCourse
                 title={m.imagery_take_course_title()}
                 subtitle={m.imagery_take_course_subtitle()}
                 href="#"
               />
-            </div>
+            </div> */}
           </div>
           {totalPages > 1 && (
             <div className="mt-lg">

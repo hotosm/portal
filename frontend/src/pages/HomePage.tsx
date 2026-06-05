@@ -43,26 +43,6 @@ function HomePage() {
             <span className="text-2xl md:text-3xl leading-tight">
               <strong>{m.home_workflow_header()}</strong>
             </span>
-            <span>
-              <span
-                className="p-xs md:p-md leading-normal text-2xl md:text-2xl text-white rounded-md"
-                style={{
-                  background:
-                    "linear-gradient(172.711deg, #d73f3f 8.4%, #459ba0 92.3%)",
-                }}
-              >
-                <strong>{m.home_workflow_header_hightlight()}</strong>
-              </span>
-            </span>
-            <span className="text-lg md:text-xl leading-tight text-center">
-              <span
-                dangerouslySetInnerHTML={{ __html: m.home_workflow_p1() }}
-              />
-              <br />
-              <span
-                dangerouslySetInnerHTML={{ __html: m.home_workflow_p2() }}
-              />
-            </span>
           </div>
 
           <Carousel
@@ -93,10 +73,10 @@ function HomePage() {
               className="text-lg md:text-xl leading-tight max-w-3xl"
               dangerouslySetInnerHTML={{ __html: m.home_create_p() }}
             />
-            <Button size="large" onClick={() => (window.location.href = "#")}>
+            <Button size="large" href="/plan" >
               {m.home_create_cta()}
             </Button>
-            <Button appearance="plain" className="accent-link-button">
+            <Button appearance="plain" className="accent-link-button" href="https://learn.hotosm.org" target="_blank">
               {m.home_create_cta_secondary()}
             </Button>
           </div>

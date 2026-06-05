@@ -49,12 +49,12 @@ function PlanSectionHeader({
         )}
         <div className={`flex flex-col md:flex-row gap-sm w-full justify-between pb-md items-start md:items-center ${breadcrumbs && breadcrumbs.length > 0 ? "" : "pt-md"}`}>
           <div className="text-2xl break-words min-w-0 w-full md:w-auto">{children}</div>
-          {menu ?? (
+          {/* {menu ?? (
             <Button href={buttonLink} onClick={onButtonClick}>
               {label}
               {isDefault && <Icon className="ml-xs" src={playCircleFill} />}
             </Button>
-          )}
+          )} */}
         </div>
       </PageWrapper>
     </div>

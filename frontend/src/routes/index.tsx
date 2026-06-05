@@ -44,7 +44,7 @@ function HomeRoute() {
   }
 
   if (isLogin) {
-    return <Navigate to={`/${locale ?? currentLanguage}/welcome`} replace />;
+    return <Navigate to={`/${locale ?? currentLanguage}/plan`} replace />;
   }
 
   return <HomePage />;

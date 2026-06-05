@@ -30,11 +30,11 @@ function Footer() {
         <div className="container grid grid-cols-2 sm:grid-cols-4 gap-2xl">
           {categories.map((category) => (
             <div key={category.name}>
-              <p className="text-xl font-bold mb-md">{category.name}</p>
+              <p className="text-lg font-bold mb-md">{category.name}</p>
               <ul className="list-none p-0 m-0 flex flex-col">
                 {category.tools.map((tool) => (
                   <li key={tool}>
-                    <span className="text-lg">{tool}</span>
+                    <span className="text-base">{tool}</span>
                   </li>
                 ))}
               </ul>
