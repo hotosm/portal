@@ -30,11 +30,11 @@ function Footer() {
         <div className="container grid grid-cols-2 sm:grid-cols-4 gap-2xl">
           {categories.map((category) => (
             <div key={category.name}>
-              <p className="text-xl font-bold mb-md">{category.name}</p>
+              <p className="text-lg font-bold mb-md">{category.name}</p>
               <ul className="list-none p-0 m-0 flex flex-col">
                 {category.tools.map((tool) => (
                   <li key={tool}>
-                    <span className="text-lg">{tool}</span>
+                    <span className="text-base">{tool}</span>
                   </li>
                 ))}
               </ul>
@@ -51,7 +51,7 @@ function Footer() {
             className="h-[38px] [filter:brightness(0)_invert(0.4)]"
           />
           <div className="flex flex-col items-end gap-xs">
-            <p className="text-hot-gray-600 text-right m-0 max-w-sm">
+            <p className="text-xs text-hot-gray-600 text-right m-0 max-w-sm">
               This is free and open source software, brought to you by the
               Humanitarian OpenStreetMap Team &amp; friends
             </p>

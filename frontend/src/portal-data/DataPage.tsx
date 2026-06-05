@@ -3,7 +3,8 @@ import exportIcon from "../assets/icons/export.svg";
 import umapIcon from "../assets/icons/umap.svg";
 import CardAddNew from "../components/shared/CardAddNew";
 import CardSkeleton from "../components/shared/CardSkeleton";
-import CardTakeCourse from "../components/shared/CardTakeCourse";
+// import CardTakeCourse from "../components/shared/CardTakeCourse";
+import CardDataNotAvailable from "../components/shared/CardDataNotAvailable";
 import PageWrapper from "../components/shared/PageWrapper";
 import Pagination from "../components/shared/Pagination";
 import SectionHeader from "../components/shared/SectionHeader";
@@ -48,14 +49,6 @@ function DataPage() {
       <PageWrapper>
         <div className="flex flex-col gap-sm py-lg">
           <div className="flex flex-wrap gap-lg">
-            <div className={cardClassNames}>
-              <CardAddNew
-                title={m.mapping_tm_card_title()}
-                description={m.mapping_tm_card_description()}
-                buttonLabel={m.mapping_tm_card_button()}
-                icon="map"
-              />
-            </div>
             {mapsLoading ? (
               Array.from({ length: 1 }).map((_, i) => (
                 <div key={i} className={cardClassNames}>
@@ -70,6 +63,7 @@ function DataPage() {
                     description="a mapping project"
                     buttonLabel="New project"
                     icon="add"
+                    buttonHref="https://umap.hotosm.org/en/map/new/"
                   />
                 </div>
                 {maps.map((map) => (
@@ -115,6 +109,7 @@ function DataPage() {
                     description="filter and download data in any format"
                     buttonLabel="Create new export"
                     icon="add"
+                    buttonHref="https://export.hotosm.org"
                   />
                 </div>
                 {exports.map((project) => (
@@ -125,11 +120,12 @@ function DataPage() {
               </>
             )}
             <div className={cardClassNames}>
-              <CardTakeCourse
+              <CardDataNotAvailable />
+              {/* <CardTakeCourse
                 title={m.imagery_take_course_title()}
                 subtitle={m.imagery_take_course_subtitle()}
                 href="#"
-              />
+              /> */}
             </div>
           </div>
           {totalExportPages > 1 && (

@@ -22,7 +22,6 @@ function PlanPage() {
       </PlanSectionHeader>
       <SubSectionHeader
         title={`<strong>${m.plan_page_create_title()}</strong> ${m.plan_page_create_description()}`}
-        toolName="HOT Tech Suite"
       />
       <PageWrapper>
         <div className="flex flex-col gap-sm py-lg">

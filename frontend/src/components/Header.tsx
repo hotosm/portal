@@ -23,7 +23,7 @@ function Header() {
           )}
           <Link
             to={`/${currentLanguage}/`}
-            className="flex items-center gap-xl hover:no-underline"
+            className="flex items-center gap-lg hover:no-underline"
           >
             <img src={hotLogo} alt="HOT Logo" className="w-8 h-8" />
 

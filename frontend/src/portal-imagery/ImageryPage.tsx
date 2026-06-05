@@ -45,6 +45,7 @@ function ImageryPage() {
                     description={m.imagery_drone_card_description()}
                     buttonLabel={m.imagery_drone_card_button()}
                     icon="add"
+                    buttonHref={"https://drone.hotosm.org/create-project"}
                   />
                 </div>
                 {droneProjects.map((project) => (
@@ -58,7 +59,7 @@ function ImageryPage() {
               <CardTakeCourse
                 title={m.imagery_take_course_title()}
                 subtitle={m.imagery_take_course_subtitle()}
-                href="#"
+                href="https://learn.hotosm.org/course/drone-tasking-manager"
               />
             </div>
           </div>
@@ -79,6 +80,7 @@ function ImageryPage() {
                 description={m.imagery_oam_card_description()}
                 buttonLabel={m.imagery_oam_card_button()}
                 icon="explore"
+                buttonHref="https://map.openaerialmap.org"
               />
             </div>
             <div className={cardClassNames}>

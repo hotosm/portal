@@ -18,12 +18,14 @@ interface CardAddNewProps {
   buttonLabel: string;
   icon: CardIcon;
   onButtonClick?: () => void;
+  buttonHref?: string;
 }
 
 function CardAddNew({
   title,
   description,
   buttonLabel,
+  buttonHref,
   icon,
   onButtonClick,
 }: CardAddNewProps) {
@@ -33,7 +35,7 @@ function CardAddNew({
         <h3 className="font-bold text-xl leading-tight mb-1">{title}</h3>
         <p className="text-lg">{description}</p>
       </div>
-      <Button className="self-start" onClick={onButtonClick}>
+      <Button className="self-start" onClick={onButtonClick} href={buttonHref} target="_blank">
         {icon && <Icon slot="start" src={ICONS[icon]} label="" />}
         {buttonLabel}
       </Button>

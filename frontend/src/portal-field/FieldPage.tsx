@@ -3,7 +3,6 @@ import fieldIcon from "../assets/icons/field.svg";
 import CardAddNew from "../components/shared/CardAddNew";
 import CardDataNotAvailable from "../components/shared/CardDataNotAvailable";
 import CardSkeleton from "../components/shared/CardSkeleton";
-import CardTakeCourse from "../components/shared/CardTakeCourse";
 import PageWrapper from "../components/shared/PageWrapper";
 import SectionHeader from "../components/shared/SectionHeader";
 import SubSectionHeader from "../components/shared/SubSectionHeader";
@@ -30,18 +29,11 @@ function FieldPage() {
           <div className="flex flex-wrap gap-lg">
             <div className={cardClassNames}>
               <CardAddNew
-                title={m.mapping_tm_card_title()}
-                description={m.mapping_tm_card_description()}
-                buttonLabel={m.mapping_tm_card_button()}
-                icon="map"
-              />
-            </div>
-            <div className={cardClassNames}>
-              <CardAddNew
                 title={m.field_tm_card_title()}
                 description={m.field_tm_card_description()}
                 buttonLabel={m.field_tm_card_button()}
                 icon="add"
+                buttonHref="https://chatmap.hotosm.org"
               />
             </div>
             {isChatMapLoading
@@ -87,10 +79,12 @@ function FieldPage() {
               <CardDataNotAvailable />
             </div>
             <div className={cardClassNames}>
-              <CardTakeCourse
-                title={m.imagery_take_course_title()}
-                subtitle={m.imagery_take_course_subtitle()}
-                href="#"
+              <CardAddNew
+                title={m.field_tm_card_title()}
+                description={m.field_tm_card_description()}
+                buttonLabel={m.field_tm_card_button()}
+                icon="add"
+                buttonHref="https://field.hotosm.org"
               />
             </div>
           </div>
