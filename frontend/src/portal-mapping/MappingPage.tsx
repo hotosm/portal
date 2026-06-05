@@ -89,7 +89,9 @@ function MappingPage() {
                 ))}
               </>
             )}
-            <CardDataNotAvailable />
+            <div className={cardClassNames}>
+              <CardDataNotAvailable />
+            </div>
             {/* <div className={cardClassNames}>
               <CardTakeCourse
                 title={m.imagery_take_course_title()}
