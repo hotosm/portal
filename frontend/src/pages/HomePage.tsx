@@ -1,12 +1,28 @@
+import { useNavigate } from "react-router-dom";
 import Button from "../components/shared/Button";
 import Carousel from "../components/shared/Carousel";
 import CarouselItem from "../components/shared/CarouselItem";
 import { carouselItems } from "../constants/carouselItems";
+import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { m } from "../paraglide/messages";
 
 function HomePage() {
-  const { currentLanguage: _currentLanguage } = useLanguage(); // subscribe to force re-render on language change
+  const { currentLanguage } = useLanguage();
+  const { isLogin } = useAuth();
+  const navigate = useNavigate();
+
+  const planPath = `/${currentLanguage}/plan`;
+
+  function handlePlanClick() {
+    if (isLogin) {
+      navigate(planPath);
+      return;
+    }
+    const returnTo = `${window.location.origin}${planPath}`;
+    const hankoUrl = window.HANKO_URL || "https://login.hotosm.org";
+    window.location.href = `${hankoUrl}/app?return_to=${encodeURIComponent(returnTo)}&lang=${currentLanguage}`;
+  }
 
   return (
     <div
@@ -73,7 +89,7 @@ function HomePage() {
               className="text-lg md:text-xl leading-tight max-w-3xl"
               dangerouslySetInnerHTML={{ __html: m.home_create_p() }}
             />
-            <Button size="large" href="/plan" >
+            <Button size="large" onClick={handlePlanClick}>
               {m.home_create_cta()}
             </Button>
             <Button appearance="plain" className="accent-link-button" href="https://learn.hotosm.org" target="_blank">
