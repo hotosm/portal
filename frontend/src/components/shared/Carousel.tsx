@@ -99,7 +99,6 @@ function Carousel({
   return (
     <WaCarousel
       onWaSlideChange={handleSlideChange}
-      navigation={count > 2}
       className={className}
       style={style}
       {...props}
