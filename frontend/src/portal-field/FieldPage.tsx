@@ -29,14 +29,6 @@ function FieldPage() {
           <div className="flex flex-wrap gap-lg">
             <div className={cardClassNames}>
               <CardAddNew
-                title={m.mapping_tm_card_title()}
-                description={m.mapping_tm_card_description()}
-                buttonLabel={m.mapping_tm_card_button()}
-                icon="map"
-              />
-            </div>
-            <div className={cardClassNames}>
-              <CardAddNew
                 title={m.field_tm_card_title()}
                 description={m.field_tm_card_description()}
                 buttonLabel={m.field_tm_card_button()}
