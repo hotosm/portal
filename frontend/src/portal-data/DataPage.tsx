@@ -3,7 +3,7 @@ import exportIcon from "../assets/icons/export.svg";
 import umapIcon from "../assets/icons/umap.svg";
 import CardAddNew from "../components/shared/CardAddNew";
 import CardSkeleton from "../components/shared/CardSkeleton";
-import CardTakeCourse from "../components/shared/CardTakeCourse";
+// import CardTakeCourse from "../components/shared/CardTakeCourse";
 import CardDataNotAvailable from "../components/shared/CardDataNotAvailable";
 import PageWrapper from "../components/shared/PageWrapper";
 import Pagination from "../components/shared/Pagination";

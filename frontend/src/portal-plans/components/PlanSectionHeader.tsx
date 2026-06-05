@@ -1,9 +1,9 @@
 import * as m from "../../paraglide/messages";
-import playCircleFill from "../../assets/icons/play-circle-fill.svg?url";
-import Button from "../../components/shared/Button";
+// import playCircleFill from "../../assets/icons/play-circle-fill.svg?url";
+// import Button from "../../components/shared/Button";
 import Breadcrumb from "../../components/shared/Breadcrumb";
 import BreadcrumbItem from "../../components/shared/BreadcrumbItem";
-import Icon from "../../components/shared/Icon";
+// import Icon from "../../components/shared/Icon";
 import PageWrapper from "../../components/shared/PageWrapper";
 
 export interface BreadcrumbItemDef {

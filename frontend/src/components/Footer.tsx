@@ -51,7 +51,7 @@ function Footer() {
             className="h-[38px] [filter:brightness(0)_invert(0.4)]"
           />
           <div className="flex flex-col items-end gap-xs">
-            <p className="text-hot-gray-600 text-right m-0 max-w-sm">
+            <p className="text-xs text-hot-gray-600 text-right m-0 max-w-sm">
               This is free and open source software, brought to you by the
               Humanitarian OpenStreetMap Team &amp; friends
             </p>
