@@ -97,9 +97,6 @@ function MyPlanPage() {
 
   const { mutate: updatePlan } = useUpdatePlan();
   const { mutate: completeTask } = useCompleteTask(planId ?? "");
-  /* const { mutate: refreshPlan, isPending: isRefreshing } = useRefreshPlan(
-    planId ?? "",
-  ); */
   const queryClient = useQueryClient();
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),

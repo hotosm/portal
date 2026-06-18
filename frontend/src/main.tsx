@@ -51,7 +51,7 @@ function Root() {
           <LanguageProvider>
             <AuthProvider>
               <Toaster richColors position="bottom-right" />
-              <AppContent />
+              <App />
             </AuthProvider>
           </LanguageProvider>
         </QueryClientProvider>
@@ -60,9 +60,6 @@ function Root() {
   )
 }
 
-function AppContent() {
-  return <App />
-}
 
 const rootElement = document.getElementById('root')!
 const root = createRoot(rootElement)
