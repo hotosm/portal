@@ -10,7 +10,7 @@ import { m } from "../paraglide/messages";
 import PlanProjectCard from "./components/PlanProjectCard";
 import PlanSectionHeader from "./components/PlanSectionHeader";
 import PlanShareButton from "./components/PlanShareButton";
-import { PLAN_SECTIONS } from "./contstants";
+import { PLAN_SECTIONS } from "./constants";
 import type { PlanReadHydrated } from "./types";
 
 interface Props {

@@ -29,7 +29,7 @@ import PlanMenu from "./components/PlanMenu";
 import PlanSectionHeader from "./components/PlanSectionHeader";
 import ProjectPickerDialog from "./components/ProjectPickerDialog";
 import SortableViewProjectCard from "./components/SortableViewProjectCard";
-import { PLAN_SECTIONS } from "./contstants";
+import { PLAN_SECTIONS } from "./constants";
 import {
   planQueryKeys,
   useAllUserProjects,

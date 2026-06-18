@@ -6,7 +6,7 @@ import { cardClassNames } from "../constants/classNames";
 import { useAuth } from "../contexts/AuthContext";
 import { m } from "../paraglide/messages";
 import PlanSectionHeader from "./components/PlanSectionHeader";
-import { PLAN_SECTIONS } from "./contstants";
+import { PLAN_SECTIONS } from "./constants";
 import { usePlan, useSharedPlan } from "./hooks";
 import { OwnedPlanView } from "./OwnedPlanView";
 import { SharedPlanView } from "./SharedPlanView";
