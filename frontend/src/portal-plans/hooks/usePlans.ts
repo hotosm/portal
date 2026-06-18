@@ -197,28 +197,6 @@ export function useCompleteTask(planId: string) {
   })
 }
 
-export function useRefreshPlan(id: string) {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: async (): Promise<PlanReadHydrated | null> => {
-      const response = await fetch(`/api/plans/${id}`, {
-        credentials: 'include',
-      })
-      if (response.status === 404) return null
-      if (!response.ok) {
-        throw new Error(`[${response.status}] Failed to refresh plan`)
-      }
-      return response.json()
-    },
-    onSuccess: (data) => {
-      if (data) queryClient.setQueryData(planQueryKeys.detail(id), data)
-    },
-    onError: () => {
-      toast.error(m.plan_toast_update_error())
-    },
-  })
-}
-
 export function useResolveProjectUrl() {
   return useMutation({
     mutationFn: async (url: string): Promise<UrlResolveResponse> => {

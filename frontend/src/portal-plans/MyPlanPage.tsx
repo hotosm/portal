@@ -307,17 +307,6 @@ function MyPlanPage() {
         menu={
           isLoading ? undefined : isOwner ? (
             <div className="flex items-center gap-sm">
-              {/* <Button
-                type="button"
-                appearance="outlined"
-                size="small"
-                onClick={() => refreshPlan()}
-                disabled={isRefreshing}
-              >
-                {isRefreshing
-                  ? m.plan_refreshing_button()
-                  : m.plan_refresh_button()}
-              </Button> */}
               <PlanMenu plan={plan!} />
             </div>
           ) : plan!.is_public ? (
