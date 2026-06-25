@@ -3,6 +3,7 @@
 import httpx
 
 from app.core.cache import DEFAULT_TTL, get_cached, set_cached
+from app.core.http import DEFAULT_TIMEOUT, make_client
 from app.services.exceptions import UpstreamUnavailable
 
 # Always use the public OAM API for individual image lookups (plan hydration,
@@ -34,7 +35,7 @@ async def fetch_imagery_by_id(
 
     url = f"{base_url or _OAM_PUBLIC_API}/meta/{image_id}"
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with make_client(timeout=DEFAULT_TIMEOUT) as client:
             response = await client.get(url)
             if response.status_code == 404:
                 return None

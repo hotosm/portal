@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.cache import DEFAULT_TTL, SHORT_TTL, get_cached, set_cached
 from app.core.database import get_db
+from app.core.http import DEFAULT_TIMEOUT, make_client
 from app.services import open_aerial_map_service
 from app.services.exceptions import UpstreamUnavailable
 from app.models.open_aerial_map import (
@@ -257,7 +258,7 @@ async def get_my_imagery(
         "sort": sort,
     }
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with make_client(timeout=DEFAULT_TIMEOUT) as client:
         try:
             response = await client.get(url, params=params)
             response.raise_for_status()
@@ -293,7 +294,7 @@ async def get_imagery_by_user(
         "sort": sort,
     }
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with make_client(timeout=DEFAULT_TIMEOUT) as client:
         try:
             response = await client.get(url, params=params)
             response.raise_for_status()

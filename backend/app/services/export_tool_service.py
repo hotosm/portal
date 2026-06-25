@@ -4,6 +4,7 @@ import httpx
 
 from app.core.cache import SHORT_TTL, get_cached, set_cached
 from app.core.config import settings
+from app.core.http import DEFAULT_TIMEOUT, make_client
 from app.services.exceptions import UpstreamUnavailable
 
 EXPORT_TOOL_API_BASE_URL = settings.export_tool_api_url
@@ -24,7 +25,7 @@ async def fetch_job_by_uid(
 
     url = f"{base_url or EXPORT_TOOL_API_BASE_URL}/jobs/{uid}"
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with make_client(timeout=DEFAULT_TIMEOUT) as client:
             response = await client.get(url)
             if response.status_code == 404:
                 return None

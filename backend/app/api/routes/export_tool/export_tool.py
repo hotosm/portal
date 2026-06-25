@@ -8,9 +8,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from hotosm_auth_fastapi import CurrentUser, CurrentUserOptional
 from app.models.export_tool import ExportJobsResponse
-from app.core.cache import get_cached, set_cached, DEFAULT_TTL, SHORT_TTL
+from app.core.cache import get_cached, set_cached, SHORT_TTL
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.http import DEFAULT_TIMEOUT, QUICK_TIMEOUT, make_client
 from app.services import export_tool_service, plans_service
 from app.services.exceptions import UpstreamUnavailable
 
@@ -72,7 +73,7 @@ async def get_export_jobs(
     if region:
         params["region"] = region
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with make_client(timeout=DEFAULT_TIMEOUT) as client:
         try:
             response = await client.get(url, params=params)
             response.raise_for_status()
@@ -120,7 +121,7 @@ async def get_my_export_jobs(
     if status:
         params["status"] = status
 
-    async with httpx.AsyncClient(timeout=10.0) as client:
+    async with make_client(timeout=QUICK_TIMEOUT) as client:
         try:
             response = await client.get(
                 url,

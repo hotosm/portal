@@ -1,17 +1,15 @@
 """uMap service: reusable fetch-by-location/id with caching."""
 
-import os
-
 import httpx
 
 from app.core.cache import DEFAULT_TTL, get_cached, set_cached
 from app.core.config import settings
+from app.core.http import DEFAULT_TIMEOUT, make_client
 from app.services.exceptions import UpstreamUnavailable
 
 UMAP_BASE_URL = settings.umap_base_url
 UMAP_LOCALE = "en"
 UMAP_API_BASE_URL = f"{UMAP_BASE_URL}/{UMAP_LOCALE}/datalayer"
-UMAP_VERIFY_SSL = os.getenv("UMAP_VERIFY_SSL", "false").lower() == "true"
 
 
 async def fetch_map_by_location(project_id: str) -> dict | None:
@@ -31,8 +29,8 @@ async def fetch_map_by_location(project_id: str) -> dict | None:
 
     url = f"{UMAP_API_BASE_URL}/{location}/{real_project_id}/"
     try:
-        async with httpx.AsyncClient(
-            timeout=30.0, verify=UMAP_VERIFY_SSL, follow_redirects=True
+        async with make_client(
+            timeout=DEFAULT_TIMEOUT, verify=settings.umap_verify_ssl, follow_redirects=True
         ) as client:
             response = await client.get(url)
             if response.status_code == 404:
@@ -69,8 +67,8 @@ async def fetch_map_metadata_by_id(
 
     url = f"{base_url or UMAP_BASE_URL}/api/v1/maps/"
     try:
-        async with httpx.AsyncClient(
-            timeout=30.0, verify=UMAP_VERIFY_SSL, follow_redirects=True
+        async with make_client(
+            timeout=DEFAULT_TIMEOUT, verify=settings.umap_verify_ssl, follow_redirects=True
         ) as client:
             response = await client.get(
                 url,
@@ -107,8 +105,8 @@ async def fetch_map_by_id(map_id: str, *, base_url: str | None = None) -> dict |
     """
     url = f"{base_url or UMAP_BASE_URL}/map/{map_id}/geojson/"
     try:
-        async with httpx.AsyncClient(
-            timeout=30.0, verify=UMAP_VERIFY_SSL, follow_redirects=True
+        async with make_client(
+            timeout=DEFAULT_TIMEOUT, verify=settings.umap_verify_ssl, follow_redirects=True
         ) as client:
             response = await client.get(url)
             if response.status_code == 404:

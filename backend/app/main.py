@@ -55,7 +55,7 @@ async def homepage_map_sync_loop() -> None:
 
 async def preload_cache():
     """Preload cache with frequently accessed data on startup."""
-    import httpx
+    from app.core.http import DEFAULT_TIMEOUT, SLOW_TIMEOUT, make_client
     from app.api.routes.tasking_manager.tasking_manager import fetch_and_enrich_in_background
     from app.api.routes.fair.fair import enrich_fair_centroids_in_background
     from app.core.cache import get_cached, set_cached, DEFAULT_TTL
@@ -74,7 +74,7 @@ async def preload_cache():
                 logger.info("Drone TM already cached")
                 return
 
-            async with httpx.AsyncClient(timeout=60.0, verify=bool(settings.drone_tm_verify_ssl)) as client:
+            async with make_client(timeout=SLOW_TIMEOUT, verify=bool(settings.drone_tm_verify_ssl)) as client:
                 response = await client.get(
                     f"{drone_tm_url}/projects/centroids",
                     params={"filter_by_owner": "false", "page": 1, "results_per_page": 1000}
@@ -117,7 +117,7 @@ async def preload_cache():
                 asyncio.create_task(enrich_fair_centroids_in_background())
                 return
 
-            async with httpx.AsyncClient(timeout=30.0, verify=settings.fair_verify_ssl) as client:
+            async with make_client(timeout=DEFAULT_TIMEOUT, verify=settings.fair_verify_ssl) as client:
                 response = await client.get(
                     f"{settings.fair_api_url}/models/centroid/",
                     headers={"accept": "application/json"}

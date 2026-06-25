@@ -1,14 +1,13 @@
-import os
 import logging
 import httpx
 from fastapi import APIRouter, HTTPException, Path, Request
 from hotosm_auth_fastapi import CurrentUser
 from app.core.config import settings
+from app.core.http import QUICK_TIMEOUT, make_client
 
 logger = logging.getLogger(__name__)
 
 CHATMAP_API_URL = settings.chatmap_api_url
-CHATMAP_VERIFY_SSL = os.getenv("CHATMAP_VERIFY_SSL", "false").lower() == "true"
 
 router = APIRouter(prefix="/chatmap")
 
@@ -27,7 +26,7 @@ async def get_user_maps(
     """
     url = f"{CHATMAP_API_URL}/user/{user.id}/map"
 
-    async with httpx.AsyncClient(timeout=10.0, verify=CHATMAP_VERIFY_SSL) as client:
+    async with make_client(timeout=QUICK_TIMEOUT, verify=settings.chatmap_verify_ssl) as client:
         try:
             response = await client.get(url)
             response.raise_for_status()
@@ -59,7 +58,7 @@ async def get_chatmap_by_id(
     """
     url = f"{CHATMAP_API_URL}/map/{map_id}"
 
-    async with httpx.AsyncClient(timeout=10.0, verify=CHATMAP_VERIFY_SSL) as client:
+    async with make_client(timeout=QUICK_TIMEOUT, verify=settings.chatmap_verify_ssl) as client:
         try:
             response = await client.get(url)
             response.raise_for_status()
@@ -90,7 +89,7 @@ async def get_my_chatmap(
 
     url = f"{CHATMAP_API_URL}/map"
 
-    async with httpx.AsyncClient(timeout=10.0, verify=CHATMAP_VERIFY_SSL) as client:
+    async with make_client(timeout=QUICK_TIMEOUT, verify=settings.chatmap_verify_ssl) as client:
         try:
             response = await client.get(url, cookies={"hanko": hanko_cookie})
             response.raise_for_status()

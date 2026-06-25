@@ -12,8 +12,7 @@ from app.models.drone_tasking_manager import (
 )
 from app.core.cache import get_cached, set_cached, DEFAULT_TTL
 from app.core.database import get_db
-from app.services import drone_tm_service, plans_service
-from app.services.exceptions import UpstreamUnavailable
+from app.core.http import DEFAULT_TIMEOUT, QUICK_TIMEOUT, make_client
 
 import logging
 import json
@@ -136,8 +135,8 @@ async def get_projects(
     
     verify_ssl = bool(settings.drone_tm_verify_ssl)
 
-    async with httpx.AsyncClient(
-        timeout=30.0, verify=verify_ssl, cookies={"hanko": hanko_cookie}
+    async with make_client(
+        timeout=DEFAULT_TIMEOUT, verify=verify_ssl, cookies={"hanko": hanko_cookie}
     ) as client:
         try:
             if not fetch_all:
@@ -284,7 +283,7 @@ async def get_projects_centroids(
 
     verify_ssl = bool(settings.drone_tm_verify_ssl)
 
-    async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl) as client:
+    async with make_client(timeout=DEFAULT_TIMEOUT, verify=verify_ssl) as client:
         try:
             logger.info(f"[Centroids] Making request to {url} with params: {params}")
             response = await client.get(url, headers=headers, params=params)
@@ -406,8 +405,8 @@ async def get_user_projects(
     
     verify_ssl = bool(settings.drone_tm_verify_ssl)
 
-    async with httpx.AsyncClient(
-        timeout=10.0, verify=verify_ssl, cookies={"hanko": hanko_cookie}
+    async with make_client(
+        timeout=QUICK_TIMEOUT, verify=verify_ssl, cookies={"hanko": hanko_cookie}
     ) as client:
         try:
             logger.info(f"[User Projects] Making request to {url} with params: {params}")
@@ -468,7 +467,7 @@ async def get_project_by_id(
 
     verify_ssl = bool(settings.drone_tm_verify_ssl)
 
-    async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl) as client:
+    async with make_client(timeout=DEFAULT_TIMEOUT, verify=verify_ssl) as client:
         try:
             response = await client.get(url, headers=headers)
             response.raise_for_status()

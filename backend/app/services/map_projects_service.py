@@ -13,6 +13,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.http import SYNC_TIMEOUT, make_client
 from app.db.models.map_project import MapProject
 from app.db.models.map_project_sync_state import MapProjectSyncState
 from app.db.models.oam import OAMImage
@@ -539,9 +540,9 @@ async def sync_from_sources(db: AsyncSession) -> dict[str, int]:
     }
 
     async with (
-        httpx.AsyncClient(timeout=90.0, verify=True) as default_client,
-        httpx.AsyncClient(timeout=90.0, verify=settings.drone_tm_verify_ssl) as drone_client,
-        httpx.AsyncClient(timeout=90.0, verify=settings.fair_verify_ssl) as fair_client,
+        make_client(timeout=SYNC_TIMEOUT) as default_client,
+        make_client(timeout=SYNC_TIMEOUT, verify=settings.drone_tm_verify_ssl) as drone_client,
+        make_client(timeout=SYNC_TIMEOUT, verify=settings.fair_verify_ssl) as fair_client,
     ):
         tm_result, drone_result, fair_result, umap_result, chatmap_result = await asyncio.gather(
             fetch_tasking_manager_rows(default_client),

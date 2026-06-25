@@ -6,11 +6,9 @@ import pytest
 import respx
 from unittest.mock import Mock, AsyncMock, patch
 import httpx
-from datetime import datetime
 from httpx import AsyncClient
 
 from app.api.routes.export_tool.export_tool import EXPORT_TOOL_API_BASE_URL
-from app.models.export_tool import ExportJobsResponse, ExportJob, ExportJobUser
 
 # Use the configured URL for mocking (matches whatever .env sets)
 BASE_URL = EXPORT_TOOL_API_BASE_URL
@@ -300,7 +298,7 @@ class TestMyExportJobs:
 
             from app.api.routes.export_tool.export_tool import get_my_export_jobs
 
-            result = await get_my_export_jobs(
+            await get_my_export_jobs(
                 request=mock_request,
                 user=mock_user,
                 limit=10,

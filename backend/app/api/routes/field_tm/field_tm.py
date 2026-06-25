@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.field_tm import FMTMProjectsResponse, FMTMProjectSummary
 from app.core.cache import get_cached, set_cached, DEFAULT_TTL
 from app.core.database import get_db
+from app.core.http import DEFAULT_TIMEOUT, make_client
 from app.services import field_tm_service, plans_service
 from app.services.exceptions import UpstreamUnavailable
 
@@ -68,7 +69,7 @@ async def get_fmtm_projects(
     url = f"{FMTM_API_BASE_URL}/projects/summaries"
 
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with make_client(timeout=DEFAULT_TIMEOUT) as client:
             response = await client.get(url)
             response.raise_for_status()
             data = response.json()

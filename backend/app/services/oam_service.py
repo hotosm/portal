@@ -4,15 +4,14 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional
 
-import httpx
-
 logger = logging.getLogger(__name__)
-from geoalchemy2.functions import ST_GeomFromText, ST_Intersects, ST_MakeEnvelope
-from sqlalchemy import asc, desc, func, select, text
+from geoalchemy2.functions import ST_Intersects, ST_MakeEnvelope
+from sqlalchemy import asc, desc, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.http import BULK_TIMEOUT, make_client
 from app.db.models.oam import OAMImage
 
 OAM_API_BASE_URL = settings.oam_api_url
@@ -100,7 +99,7 @@ async def sync_from_oam_api(db: AsyncSession) -> int:
     url = f"{OAM_API_BASE_URL}/meta"
     params = {"limit": 99999, "sort": "desc"}
 
-    async with httpx.AsyncClient(timeout=120.0) as client:
+    async with make_client(timeout=BULK_TIMEOUT) as client:
         response = await client.get(url, params=params)
         response.raise_for_status()
         data = response.json()

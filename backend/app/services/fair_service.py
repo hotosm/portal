@@ -4,6 +4,7 @@ import httpx
 
 from app.core.cache import DEFAULT_TTL, get_cached, set_cached
 from app.core.config import settings
+from app.core.http import DEFAULT_TIMEOUT, make_client
 from app.services.exceptions import UpstreamUnavailable
 
 FAIR_API_BASE_URL = settings.fair_api_url
@@ -25,7 +26,7 @@ async def fetch_model_by_id(
 
     url = f"{base_url or FAIR_API_BASE_URL}/model/{mid}/"
     try:
-        async with httpx.AsyncClient(timeout=30.0, verify=FAIR_VERIFY_SSL) as client:
+        async with make_client(timeout=DEFAULT_TIMEOUT, verify=FAIR_VERIFY_SSL) as client:
             response = await client.get(url, headers={"accept": "application/json"})
             if response.status_code == 404:
                 return None

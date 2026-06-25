@@ -3,7 +3,7 @@
 """Pydantic models for uMap API responses."""
 
 from pydantic import BaseModel, ConfigDict
-from typing import Any, List, Optional, Union
+from typing import List, Optional, Union
 
 
 class UMapOptions(BaseModel):

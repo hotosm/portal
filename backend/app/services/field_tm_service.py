@@ -2,10 +2,9 @@
 
 import re
 
-import httpx
-
 from app.core.cache import DEFAULT_TTL, get_cached, set_cached
 from app.core.config import settings
+from app.core.http import SHORT_TIMEOUT, make_client
 
 _TITLE_RE = re.compile(r"<title>\s*(.+?)\s*-\s*Field Tasking Manager\s*</title>", re.I)
 
@@ -35,7 +34,7 @@ async def fetch_project_by_id(
 
     url = f"{fetch_base}/projects/{project_id}"
     try:
-        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+        async with make_client(timeout=SHORT_TIMEOUT, follow_redirects=True) as client:
             response = await client.get(url)
             if response.status_code == 404:
                 return None

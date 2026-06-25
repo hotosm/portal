@@ -146,6 +146,8 @@ class Settings(BaseSettings):
     drone_tm_auth_prefix: str = "Bearer"
     drone_tm_verify_ssl: bool | None = None
     fair_verify_ssl: bool | None = None
+    chatmap_verify_ssl: bool = False
+    umap_verify_ssl: bool = False
     umap_locale: str = "es"
     homepage_map_sync_interval_hours: int = 7
 

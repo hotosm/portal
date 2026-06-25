@@ -4,6 +4,7 @@ import httpx
 
 from app.core.cache import DEFAULT_TTL, get_cached, set_cached
 from app.core.config import settings
+from app.core.http import DEFAULT_TIMEOUT, make_client
 from app.services.exceptions import UpstreamUnavailable
 
 HOTOSM_API_BASE_URL = settings.tasking_manager_api_url
@@ -21,7 +22,7 @@ async def fetch_project_by_id(
 
     url = f"{HOTOSM_API_BASE_URL}/projects/{project_id}/"
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with make_client(timeout=DEFAULT_TIMEOUT) as client:
             response = await client.get(url)
             if response.status_code == 404:
                 return None

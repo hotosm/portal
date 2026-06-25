@@ -12,6 +12,7 @@ from app.models.tasking_manager import ProjectsResponse, Project, CountriesRespo
 from app.core.cache import get_cached, set_cached, LONG_TTL, DEFAULT_TTL
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.http import BULK_TIMEOUT, DEFAULT_TIMEOUT, make_client
 from app.services import plans_service, tasking_manager_service
 from app.services.exceptions import UpstreamUnavailable
 
@@ -92,7 +93,7 @@ async def fetch_and_enrich_in_background():
     try:
         logger.info("Starting background enrichment of Tasking Manager projects...")
 
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with make_client(timeout=BULK_TIMEOUT) as client:
             # Get base data from cache or fetch it
             base_data = get_cached(cache_key)
             if not base_data:
@@ -177,7 +178,7 @@ async def get_tasking_manager_projects(
     params = {"action": "any", "omitMapResults": "false"}
 
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with make_client(timeout=DEFAULT_TIMEOUT) as client:
             # Fetch initial response with mapResults (fast, single request)
             response = await client.get(url, params=params)
             response.raise_for_status()
@@ -243,7 +244,7 @@ async def get_hotosm_countries() -> dict:
     url = f"{HOTOSM_API_BASE_URL}/countries/"
 
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with make_client(timeout=DEFAULT_TIMEOUT) as client:
             response = await client.get(url)
             response.raise_for_status()
             data = response.json()
@@ -338,7 +339,7 @@ async def get_user_projects() -> dict:
     }
 
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with make_client(timeout=DEFAULT_TIMEOUT) as client:
             response = await client.get(url, params=params, headers=headers)
             response.raise_for_status()
             data = response.json()

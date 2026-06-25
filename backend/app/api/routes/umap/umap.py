@@ -2,7 +2,6 @@
 
 """uMap API endpoints."""
 
-import os
 import re
 import logging
 import httpx
@@ -13,6 +12,7 @@ from app.models.umap import (
 )
 from app.core.cache import get_cached, set_cached, DEFAULT_TTL
 from app.core.config import settings
+from app.core.http import DEFAULT_TIMEOUT, make_client
 from app.services import umap_service
 from app.services.exceptions import UpstreamUnavailable
 
@@ -24,7 +24,6 @@ UMAP_BASE_URL = settings.umap_base_url
 UMAP_LOCALE = "en"
 UMAP_API_BASE_URL = f"{UMAP_BASE_URL}/{UMAP_LOCALE}/datalayer"
 UMAP_SHOWCASE_URL = f"{UMAP_BASE_URL}/{UMAP_LOCALE}/showcase/"
-UMAP_VERIFY_SSL = os.getenv("UMAP_VERIFY_SSL", "false").lower() == "true"
 
 MAP_LINK_RE = re.compile(
     r'<a\s[^>]*href="(/(?:[a-z]{2}/)?map/([^/?#"]+_(\d+)))"[^>]*>\s*([^<]+?)\s*</a>',
@@ -33,7 +32,7 @@ MAP_LINK_RE = re.compile(
 
 
 def umap_client() -> httpx.AsyncClient:
-    return httpx.AsyncClient(timeout=30.0, verify=UMAP_VERIFY_SSL, follow_redirects=True)
+    return make_client(timeout=DEFAULT_TIMEOUT, verify=settings.umap_verify_ssl, follow_redirects=True)
 
 
 def require_hanko(request: Request) -> str:
@@ -112,11 +111,7 @@ async def get_showcase() -> ShowcaseResponse:
         return cached_data
 
     try:
-        async with httpx.AsyncClient(
-            timeout=30.0,
-            verify=UMAP_VERIFY_SSL,
-            follow_redirects=True,
-        ) as client:
+        async with umap_client() as client:
             response = await client.get(UMAP_SHOWCASE_URL)
             response.raise_for_status()
             data = response.json()

@@ -1,15 +1,13 @@
 """ChatMap service: fetch map metadata by UUID for plan hydration and URL resolution."""
 
-import os
-
 import httpx
 
 from app.core.cache import DEFAULT_TTL, get_cached, set_cached
 from app.core.config import settings
+from app.core.http import DEFAULT_TIMEOUT, make_client
 from app.services.exceptions import UpstreamUnavailable
 
 CHATMAP_API_URL = settings.chatmap_api_url
-CHATMAP_VERIFY_SSL = os.getenv("CHATMAP_VERIFY_SSL", "false").lower() == "true"
 
 
 async def fetch_map_by_id(
@@ -33,8 +31,8 @@ async def fetch_map_by_id(
     url = f"{base_url or CHATMAP_API_URL}/map/{map_id}"
     cookies = {"hanko": hanko_cookie} if hanko_cookie else {}
     try:
-        async with httpx.AsyncClient(
-            timeout=30.0, verify=CHATMAP_VERIFY_SSL, follow_redirects=True
+        async with make_client(
+            timeout=DEFAULT_TIMEOUT, verify=settings.chatmap_verify_ssl, follow_redirects=True
         ) as client:
             response = await client.get(
                 url, headers={"accept": "application/json"}, cookies=cookies

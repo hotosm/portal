@@ -1,6 +1,5 @@
 # portal/backend/app/api/routes/fair/fair.py
 
-import asyncio
 import logging
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -8,9 +7,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from app.models.fair import FAIRProjectsResponse, FAIRCentroidsResponse, FAIRModelDetail
 from hotosm_auth_fastapi import CurrentUser, CurrentUserOptional
-from app.core.cache import get_cached, set_cached, delete_cached, DEFAULT_TTL, LONG_TTL
+from app.core.cache import get_cached, set_cached, delete_cached, DEFAULT_TTL
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.http import DEFAULT_TIMEOUT, QUICK_TIMEOUT, SLOW_TIMEOUT, make_client
 from app.services import fair_service, plans_service
 from app.services.exceptions import UpstreamUnavailable
 
@@ -43,7 +43,7 @@ async def fetch_all_fair_model_names() -> dict[int, str]:
     offset = 0
     limit = 100  # Max limit per request
 
-    async with httpx.AsyncClient(timeout=60.0, verify=FAIR_VERIFY_SSL) as client:
+    async with make_client(timeout=SLOW_TIMEOUT, verify=FAIR_VERIFY_SSL) as client:
         while True:
             try:
                 response = await client.get(
@@ -90,7 +90,7 @@ async def enrich_fair_centroids_in_background():
         base_data = get_cached(cache_key)
         if not base_data:
             # Fetch centroids first
-            async with httpx.AsyncClient(timeout=30.0, verify=FAIR_VERIFY_SSL) as client:
+            async with make_client(timeout=DEFAULT_TIMEOUT, verify=FAIR_VERIFY_SSL) as client:
                 response = await client.get(
                     f"{FAIR_API_BASE_URL}/models/centroid/",
                     headers={"accept": "application/json"}
@@ -180,7 +180,7 @@ async def get_fair_projects(
         "accept": "application/json",
     }
 
-    async with httpx.AsyncClient(timeout=30.0, verify=FAIR_VERIFY_SSL) as client:
+    async with make_client(timeout=DEFAULT_TIMEOUT, verify=FAIR_VERIFY_SSL) as client:
         try:
             response = await client.get(url, params=params, headers=headers)
             response.raise_for_status()
@@ -245,7 +245,7 @@ async def get_fair_models_centroids() -> dict:
         "accept": "application/json",
     }
 
-    async with httpx.AsyncClient(timeout=30.0, verify=FAIR_VERIFY_SSL) as client:
+    async with make_client(timeout=DEFAULT_TIMEOUT, verify=FAIR_VERIFY_SSL) as client:
         try:
             response = await client.get(url, headers=headers)
             response.raise_for_status()
@@ -368,7 +368,7 @@ async def get_fair_models_by_user(
         "accept": "application/json",
     }
 
-    async with httpx.AsyncClient(timeout=30.0, verify=FAIR_VERIFY_SSL) as client:
+    async with make_client(timeout=DEFAULT_TIMEOUT, verify=FAIR_VERIFY_SSL) as client:
         try:
             response = await client.get(url, params=params, headers=headers)
             response.raise_for_status()
@@ -414,7 +414,7 @@ async def get_my_fair_models(
     cookie_header = {"Cookie": f"hanko={hanko_cookie}"} if hanko_cookie else {}
     headers = {"accept": "application/json", **cookie_header}
 
-    async with httpx.AsyncClient(timeout=10.0, verify=FAIR_USER_VERIFY_SSL) as client:
+    async with make_client(timeout=QUICK_TIMEOUT, verify=FAIR_USER_VERIFY_SSL) as client:
         try:
             status_response = await client.get(
                 f"{FAIR_USER_API_URL}/auth/status/",

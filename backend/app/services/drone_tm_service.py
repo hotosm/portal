@@ -4,6 +4,7 @@ import httpx
 
 from app.core.cache import DEFAULT_TTL, get_cached, set_cached
 from app.core.config import settings
+from app.core.http import DEFAULT_TIMEOUT, make_client
 from app.services.exceptions import UpstreamUnavailable
 
 DRONE_TM_BACKEND_URL = settings.drone_tm_api_base_url or settings.drone_tm_api_url
@@ -29,7 +30,7 @@ async def fetch_project_by_id(
 
     url = f"{base_url or DRONE_TM_BACKEND_URL}/projects/{project_id}"
     try:
-        async with httpx.AsyncClient(timeout=30.0, verify=verify_ssl(base_url)) as client:
+        async with make_client(timeout=DEFAULT_TIMEOUT, verify=verify_ssl(base_url)) as client:
             response = await client.get(url, headers={"Accept": "application/json"})
             if response.status_code == 404:
                 return None
