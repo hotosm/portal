@@ -1,5 +1,9 @@
 """Drone Tasking Manager service: reusable fetch-by-id with caching."""
 
+import base64
+import json
+import logging
+
 import httpx
 
 from app.core.cache import DEFAULT_TTL, get_cached, set_cached
@@ -7,12 +11,33 @@ from app.core.config import settings
 from app.core.http import DEFAULT_TIMEOUT, make_client
 from app.services.exceptions import UpstreamUnavailable
 
+logger = logging.getLogger(__name__)
+
 DRONE_TM_BACKEND_URL = settings.drone_tm_api_base_url or settings.drone_tm_api_url
 
 
 def verify_ssl(base_url: str | None = None) -> bool:
     effective = base_url or DRONE_TM_BACKEND_URL
     return not effective.startswith("https://") or bool(settings.drone_tm_verify_ssl)
+
+
+def extract_hanko_user_id_from_token(token: str) -> str | None:
+    """Decode a JWT-like token (no signature verification) and return a user id.
+
+    Used only to forward an identifier to DroneTM so it can match Portal users to
+    its own test instances. Returns None when the token can't be decoded.
+    """
+    try:
+        parts = token.split(".")
+        if len(parts) < 2:
+            return None
+        payload = parts[1]
+        padding = "=" * (-len(payload) % 4)  # restore base64 padding
+        decoded = base64.urlsafe_b64decode(payload + padding).decode("utf-8")
+        data = json.loads(decoded)
+        return data.get("sub") or data.get("hanko_user_id") or data.get("user_id")
+    except Exception:
+        return None
 
 
 async def fetch_project_by_id(

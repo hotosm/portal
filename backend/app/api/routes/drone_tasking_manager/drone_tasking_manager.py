@@ -13,10 +13,9 @@ from app.models.drone_tasking_manager import (
 from app.core.cache import get_cached, set_cached, DEFAULT_TTL
 from app.core.database import get_db
 from app.core.http import DEFAULT_TIMEOUT, QUICK_TIMEOUT, make_client
+from app.services import drone_tm_service
 
 import logging
-import json
-import base64
 from app.core.config import settings
 
 # Setup logging
@@ -41,25 +40,6 @@ def build_dronetm_cache_key(
     """Build the cache key for DroneTM centroids. Single source of truth."""
     return f"dronetm_centroids_{filter_by_owner}_{search}_{page}_{results_per_page}"
 
-
-def extract_hanko_user_id_from_token(token: str) -> Optional[str]:
-    """Try to decode a JWT-like token and extract a user id (sub or hanko_user_id).
-
-    This does a unsigned decode (no verification) and is only used to pass an
-    identifier upstream for matching Portal users to DroneTM test instances.
-    """
-    try:
-        parts = token.split('.')
-        if len(parts) < 2:
-            return None
-        payload = parts[1]
-        # Fix padding
-        padding = '=' * (-len(payload) % 4)
-        decoded = base64.urlsafe_b64decode(payload + padding).decode('utf-8')
-        data = json.loads(decoded)
-        return data.get('sub') or data.get('hanko_user_id') or data.get('user_id')
-    except Exception:
-        return None
 
 @router.get("/projects", response_model=DroneTMProjectsResponse)
 async def get_projects(
@@ -129,7 +109,7 @@ async def get_projects(
         logger.warning("Failed to set DroneTM auth header from Hanko cookie")
 
     # Add an extra header with the Hanko user id (if we can extract it)
-    hanko_user_id = extract_hanko_user_id_from_token(hanko_cookie)
+    hanko_user_id = drone_tm_service.extract_hanko_user_id_from_token(hanko_cookie)
     if hanko_user_id:
         headers["X-Hanko-User-Id"] = hanko_user_id
     
@@ -388,7 +368,7 @@ async def get_user_projects(
         logger.warning("Failed to set DroneTM auth header from Hanko cookie")
 
     # Include extracted Hanko user id to help DroneTM match the Portal user
-    hanko_user_id = extract_hanko_user_id_from_token(hanko_cookie)
+    hanko_user_id = drone_tm_service.extract_hanko_user_id_from_token(hanko_cookie)
     if hanko_user_id:
         headers["X-Hanko-User-Id"] = hanko_user_id
     
