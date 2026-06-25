@@ -1,8 +1,4 @@
-import asyncio
-import logging
 from typing import Optional
-
-logger = logging.getLogger(__name__)
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
@@ -23,49 +19,8 @@ from app.core.config import settings
 from app.services import oam_service, plans_service
 
 OAM_API_BASE_URL = settings.oam_api_url
-SYNC_INTERVAL = 7 * 24 * 60 * 60  # 1 week in seconds
 
 router = APIRouter(prefix="/open-aerial-map")
-
-# Background task control
-_sync_task: Optional[asyncio.Task] = None
-
-
-# ── Background sync scheduler ─────────────────────────────────────────────────
-
-
-async def _db_sync_scheduler() -> None:
-    """Background task: sync OAM data from API into DB every week."""
-    from app.core.database import AsyncSessionLocal
-
-    while True:
-        try:
-            async with AsyncSessionLocal() as db:
-                await oam_service.sync_from_oam_api(db)
-        except Exception as e:
-            logger.error("OAM DB sync scheduler error: %s", e)
-
-        await asyncio.sleep(SYNC_INTERVAL)
-
-
-def start_sync_scheduler() -> None:
-    """Start the weekly OAM → DB background sync task."""
-    global _sync_task
-    if _sync_task is None or _sync_task.done():
-        _sync_task = asyncio.create_task(_db_sync_scheduler())
-        logger.info("OAM DB sync scheduler started (weekly updates)")
-
-
-def stop_sync_scheduler() -> None:
-    """Cancel the background sync task on shutdown."""
-    global _sync_task
-    if _sync_task and not _sync_task.done():
-        _sync_task.cancel()
-        logger.info("OAM DB sync scheduler stopped")
-
-
-# Keep legacy name so main.py import doesn't break during transition
-start_snapshot_scheduler = start_sync_scheduler
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────

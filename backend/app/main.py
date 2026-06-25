@@ -17,7 +17,6 @@ from app.api.routes.tasking_manager import tasking_manager
 from app.api.routes.drone_tasking_manager import drone_tasking_manager
 from app.api.routes.open_aerial_map import open_aerial_map
 from app.api.routes.homepage_map import homepage_map
-from app.api.routes.open_aerial_map.open_aerial_map import start_sync_scheduler
 from app.db.models.oam import OAMImage  # noqa: F401 — registers model with Base.metadata
 from app.db.models.map_project import MapProject  # noqa: F401 — registers model with Base.metadata
 from app.db.models.plan import Plan, PlanImage, PlanProject  # noqa: F401 — registers models with Base.metadata
@@ -56,7 +55,7 @@ async def homepage_map_sync_loop() -> None:
 async def preload_cache():
     """Preload cache with frequently accessed data on startup."""
     from app.core.http import DEFAULT_TIMEOUT, SLOW_TIMEOUT, make_client
-    from app.services import fair_service, tasking_manager_service
+    from app.services import fair_service, oam_service, tasking_manager_service
     from app.core.cache import get_cached, set_cached, DEFAULT_TTL
 
     logger.info("Preloading cache in background...")
@@ -138,7 +137,7 @@ async def preload_cache():
     asyncio.create_task(preload_fair())
 
     # Start OAM DB sync scheduler (weekly background updates)
-    start_sync_scheduler()
+    oam_service.start_sync_scheduler()
 
 
 @asynccontextmanager
@@ -162,6 +161,10 @@ async def lifespan(app: FastAPI):
     app.state.homepage_map_sync_task = asyncio.create_task(homepage_map_sync_loop())
 
     yield
+
+    from app.services import oam_service
+
+    oam_service.stop_sync_scheduler()
 
     homepage_map_sync_task = getattr(app.state, "homepage_map_sync_task", None)
     if homepage_map_sync_task is not None:

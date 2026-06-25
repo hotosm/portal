@@ -1,5 +1,6 @@
 """Service layer for OAM imagery DB operations."""
 
+import asyncio
 import logging
 from datetime import datetime, timezone
 from typing import Optional
@@ -283,3 +284,40 @@ def row_to_compact_dict(row: OAMImage) -> dict:
         "th": row.thumbnail_url,
     }
     return {k: v for k, v in compact.items() if v is not None}
+
+
+# ── Weekly OAM → DB background sync scheduler ─────────────────────────────────
+
+SYNC_INTERVAL = 7 * 24 * 60 * 60  # 1 week in seconds
+
+_sync_task: Optional[asyncio.Task] = None
+
+
+async def _sync_scheduler_loop() -> None:
+    """Sync OAM data from the API into the DB every SYNC_INTERVAL seconds."""
+    from app.core.database import AsyncSessionLocal
+
+    while True:
+        try:
+            async with AsyncSessionLocal() as db:
+                await sync_from_oam_api(db)
+        except Exception as e:
+            logger.error("OAM DB sync scheduler error: %s", e)
+
+        await asyncio.sleep(SYNC_INTERVAL)
+
+
+def start_sync_scheduler() -> None:
+    """Start the weekly OAM → DB background sync task (idempotent)."""
+    global _sync_task
+    if _sync_task is None or _sync_task.done():
+        _sync_task = asyncio.create_task(_sync_scheduler_loop())
+        logger.info("OAM DB sync scheduler started (weekly updates)")
+
+
+def stop_sync_scheduler() -> None:
+    """Cancel the background sync task on shutdown."""
+    global _sync_task
+    if _sync_task and not _sync_task.done():
+        _sync_task.cancel()
+        logger.info("OAM DB sync scheduler stopped")
