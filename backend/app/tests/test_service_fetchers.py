@@ -219,3 +219,25 @@ async def test_umap_fetch_by_id_returns_properties():
     with patched_get(return_value=_resp(json_data={"properties": {"name": "My Map"}})):
         out = await umap_service.fetch_map_by_id("42")
     assert out == {"name": "My Map"}
+
+
+@pytest.mark.asyncio
+async def test_umap_fetch_metadata_requires_cookie():
+    # Without a Hanko cookie the call short-circuits to None, no HTTP.
+    with patch("httpx.AsyncClient") as mc:
+        assert await umap_service.fetch_map_metadata_by_id("42", hanko_cookie=None) is None
+        mc.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_umap_fetch_metadata_finds_matching_map():
+    maps = {"maps": [{"id": 99, "name": "Other", "url": "u99"}, {"id": 42, "name": "Mine", "url": "u42"}]}
+    with patched_get(return_value=_resp(json_data=maps)):
+        out = await umap_service.fetch_map_metadata_by_id("42", hanko_cookie="cookie")
+    assert out == {"name": "Mine", "url": "u42"}
+
+
+@pytest.mark.asyncio
+async def test_umap_fetch_metadata_no_match_returns_none():
+    with patched_get(return_value=_resp(json_data={"maps": [{"id": 99}]})):
+        assert await umap_service.fetch_map_metadata_by_id("42", hanko_cookie="cookie") is None

@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from app.core.cache import get_cached, set_cached
-from app.services import drone_tm_service, tasking_manager_service
+from app.services import drone_tm_service, fair_service, tasking_manager_service
 
 
 def _make_jwt(payload: dict) -> str:
@@ -176,3 +176,58 @@ async def test_fetch_and_enrich_in_background_single_flight(monkeypatch):
     with patch("httpx.AsyncClient") as mock_client:
         await tasking_manager_service.fetch_and_enrich_in_background()
         mock_client.assert_not_called()  # guarded: no HTTP client created
+
+
+# ── fair_service.fetch_all_fair_model_names ───────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_fetch_all_fair_model_names_single_page():
+    results = [{"id": 1, "name": "Alpha"}, {"id": 2, "name": "Beta"}, {"id": 3}]  # 3rd lacks name
+    response = MagicMock()
+    response.raise_for_status = MagicMock()
+    response.json = MagicMock(return_value={"results": results, "next": None})
+
+    with patch("httpx.AsyncClient") as mock_client:
+        client = mock_client.return_value.__aenter__.return_value
+        client.get = AsyncMock(return_value=response)
+        names = await fair_service.fetch_all_fair_model_names()
+
+    assert names == {1: "Alpha", 2: "Beta"}  # short page (no "next") stops pagination
+    assert client.get.await_count == 1
+
+
+# ── fair_service.enrich_centroids_in_background ───────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_fair_enrich_centroids_drops_null_geometry_and_names():
+    base_data = {
+        "features": [
+            {"geometry": {"type": "Point", "coordinates": [1, 2]}, "properties": {"mid": 5}},
+            {"geometry": None, "properties": {"mid": 6}},  # dropped: null geometry
+        ]
+    }
+    set_cached(fair_service.CENTROIDS_CACHE_KEY, base_data)
+
+    names_page = {"results": [{"id": 5, "name": "Model Five"}], "next": None}
+    response = MagicMock()
+    response.raise_for_status = MagicMock()
+    response.json = MagicMock(return_value=names_page)
+
+    with patch("httpx.AsyncClient") as mock_client:
+        client = mock_client.return_value.__aenter__.return_value
+        client.get = AsyncMock(return_value=response)
+        await fair_service.enrich_centroids_in_background()
+
+    enriched = get_cached(fair_service.CENTROIDS_CACHE_KEY)
+    assert len(enriched["features"]) == 1  # null-geometry feature removed
+    assert enriched["features"][0]["properties"]["name"] == "Model Five"
+
+
+@pytest.mark.asyncio
+async def test_fair_enrich_centroids_single_flight(monkeypatch):
+    monkeypatch.setattr(fair_service, "_enrichment_in_progress", True)
+    with patch("httpx.AsyncClient") as mock_client:
+        await fair_service.enrich_centroids_in_background()
+        mock_client.assert_not_called()
