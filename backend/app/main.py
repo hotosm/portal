@@ -56,8 +56,7 @@ async def homepage_map_sync_loop() -> None:
 async def preload_cache():
     """Preload cache with frequently accessed data on startup."""
     from app.core.http import DEFAULT_TIMEOUT, SLOW_TIMEOUT, make_client
-    from app.api.routes.tasking_manager.tasking_manager import fetch_and_enrich_in_background
-    from app.api.routes.fair.fair import enrich_fair_centroids_in_background
+    from app.services import fair_service, tasking_manager_service
     from app.core.cache import get_cached, set_cached, DEFAULT_TTL
 
     logger.info("Preloading cache in background...")
@@ -114,7 +113,7 @@ async def preload_cache():
             if get_cached(cache_key):
                 logger.info("fAIr already cached")
                 # Still run enrichment in case names aren't populated yet
-                asyncio.create_task(enrich_fair_centroids_in_background())
+                asyncio.create_task(fair_service.enrich_centroids_in_background())
                 return
 
             async with make_client(timeout=DEFAULT_TIMEOUT, verify=settings.fair_verify_ssl) as client:
@@ -128,12 +127,12 @@ async def preload_cache():
                 features = data.get("features", []) if isinstance(data, dict) else []
                 logger.info("fAIr preload complete: %s models", len(features))
 
-                asyncio.create_task(enrich_fair_centroids_in_background())
+                asyncio.create_task(fair_service.enrich_centroids_in_background())
         except Exception as e:
             logger.warning("fAIr preload failed (non-critical): %s", e)
 
     # Run all preloads in parallel (non-blocking)
-    asyncio.create_task(fetch_and_enrich_in_background())  # Tasking Manager
+    asyncio.create_task(tasking_manager_service.fetch_and_enrich_in_background())  # Tasking Manager
     asyncio.create_task(preload_drone_tm())
     asyncio.create_task(initial_oam_sync())
     asyncio.create_task(preload_fair())

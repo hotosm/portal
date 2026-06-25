@@ -2,7 +2,6 @@
 
 """Tasking Manager API endpoints."""
 
-import asyncio
 import logging
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Path, BackgroundTasks
@@ -12,7 +11,7 @@ from app.models.tasking_manager import ProjectsResponse, Project, CountriesRespo
 from app.core.cache import get_cached, set_cached, LONG_TTL, DEFAULT_TTL
 from app.core.config import settings
 from app.core.database import get_db
-from app.core.http import BULK_TIMEOUT, DEFAULT_TIMEOUT, make_client
+from app.core.http import DEFAULT_TIMEOUT, make_client
 from app.services import plans_service, tasking_manager_service
 from app.services.exceptions import UpstreamUnavailable
 
@@ -21,110 +20,6 @@ router = APIRouter(prefix="/tasking-manager")
 logger = logging.getLogger(__name__)
 
 HOTOSM_API_BASE_URL = settings.tasking_manager_api_url
-
-# Flag to track if background enrichment is running
-enrichment_in_progress = False
-
-
-async def fetch_page(client: httpx.AsyncClient, page: int) -> list[dict]:
-    """Fetch a single page of projects."""
-    params = {"action": "any", "omitMapResults": "true", "page": page}
-    response = await client.get(f"{HOTOSM_API_BASE_URL}/projects/", params=params)
-    response.raise_for_status()
-    data = response.json()
-    return data.get("results", [])
-
-
-async def fetch_all_project_names(client: httpx.AsyncClient, total_projects: int, per_page: int = 14) -> dict[int, str]:
-    """
-    Fetch all project names by paginating through the API in parallel.
-    Returns a dict mapping projectId -> name.
-    """
-    total_pages = (total_projects + per_page - 1) // per_page
-    project_names: dict[int, str] = {}
-    batch_size = 15  # Increased batch size for faster fetching
-
-    for batch_start in range(1, total_pages + 1, batch_size):
-        batch_end = min(batch_start + batch_size, total_pages + 1)
-        pages = range(batch_start, batch_end)
-
-        tasks = [fetch_page(client, page) for page in pages]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-
-        for result in results:
-            if isinstance(result, Exception):
-                continue
-            for project in result:
-                project_id = project.get("projectId")
-                name = project.get("name")
-                if project_id and name:
-                    project_names[project_id] = name
-
-    return project_names
-
-
-def enrich_data_with_names(data: dict, project_names: dict[int, str]) -> dict:
-    """Enrich project data with names."""
-    if data.get("mapResults") and data["mapResults"].get("features"):
-        for feature in data["mapResults"]["features"]:
-            project_id = feature.get("properties", {}).get("projectId")
-            if project_id and project_id in project_names:
-                feature["properties"]["name"] = project_names[project_id]
-
-    for result in data.get("results", []):
-        project_id = result.get("projectId")
-        if project_id and project_id in project_names and not result.get("name"):
-            result["name"] = project_names[project_id]
-
-    return data
-
-
-async def fetch_and_enrich_in_background():
-    """Background task to fetch all project names and update cache."""
-    global enrichment_in_progress
-
-    if enrichment_in_progress:
-        return
-
-    enrichment_in_progress = True
-    cache_key = "tasking_manager_projects"
-    enriched_cache_key = "tasking_manager_projects_enriched"
-
-    try:
-        logger.info("Starting background enrichment of Tasking Manager projects...")
-
-        async with make_client(timeout=BULK_TIMEOUT) as client:
-            # Get base data from cache or fetch it
-            base_data = get_cached(cache_key)
-            if not base_data:
-                url = f"{HOTOSM_API_BASE_URL}/projects/"
-                params = {"action": "any", "omitMapResults": "false"}
-                response = await client.get(url, params=params)
-                response.raise_for_status()
-                base_data = response.json()
-
-            # Get total projects
-            pagination = base_data.get("pagination", {})
-            total_projects = pagination.get("total", 0)
-
-            # Fetch all names
-            project_names = await fetch_all_project_names(client, total_projects)
-
-            # Create enriched copy
-            import copy
-            enriched_data = copy.deepcopy(base_data)
-            enrich_data_with_names(enriched_data, project_names)
-
-            # Update cache with enriched data
-            set_cached(cache_key, enriched_data, DEFAULT_TTL)
-            set_cached(enriched_cache_key, True, DEFAULT_TTL)  # Flag that enrichment is done
-
-            logger.info(f"Background enrichment complete. Enriched {len(project_names)} project names.")
-
-    except Exception as e:
-        logger.error(f"Background enrichment failed: {e}")
-    finally:
-        enrichment_in_progress = False
 
 
 @router.get("/projects", response_model=ProjectsResponse)
@@ -188,7 +83,7 @@ async def get_tasking_manager_projects(
             set_cached(cache_key, data, DEFAULT_TTL)
 
             # Schedule background enrichment
-            background_tasks.add_task(fetch_and_enrich_in_background)
+            background_tasks.add_task(tasking_manager_service.fetch_and_enrich_in_background)
 
             return await enrich(data)
 
