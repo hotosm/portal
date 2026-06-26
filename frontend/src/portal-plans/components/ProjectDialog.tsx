@@ -6,6 +6,8 @@ import Dialog from "../../components/shared/Dialog";
 import Dropdown from "../../components/shared/Dropdown";
 import DropdownItem from "../../components/shared/DropdownItem";
 import boxArrowUpRight from "../../assets/icons/box-arrow-up-right.svg";
+import starFill from "../../assets/icons/star-fill.svg";
+import starOutline from "../../assets/icons/star.svg";
 import Icon from "../../components/shared/Icon";
 import Tag from "../../components/shared/Tag";
 import { m } from "../../paraglide/messages";
@@ -29,6 +31,7 @@ interface ProjectDialogProps {
   onDelete?: () => void;
   onStatusChange?: (status: ProjectStatus) => void;
   initialStatus?: ProjectStatus;
+  onFeaturedChange?: (featured: boolean) => void;
 }
 
 function extractMeta(upstream: Record<string, unknown> | null) {
@@ -67,6 +70,7 @@ function ProjectDialog({
   onDelete,
   onStatusChange,
   initialStatus,
+  onFeaturedChange,
 }: ProjectDialogProps) {
   const meta = APP_META[project.app];
   const { createdAt, author } = extractMeta(project.upstream);
@@ -83,8 +87,26 @@ function ProjectDialog({
   }
 
   return (
-    <Dialog open={open} label={title} onWaHide={onClose}>
+    <Dialog open={open} label=" " aria-label={title} onWaHide={onClose}>
       <div className="flex flex-col gap-md">
+        <div className="flex items-center justify-between gap-sm">
+          <h4>{title}</h4>
+          {onFeaturedChange ? (
+            <button
+              type="button"
+              onClick={() => onFeaturedChange(!project.featured)}
+              title={project.featured ? "Remove from featured" : "Mark as featured"}
+              className={`shrink-0 leading-none transition-colors ${project.featured ? "text-hot-yellow-600" : "text-hot-gray-300 hover:text-hot-gray-500"}`}
+            >
+              <Icon src={project.featured ? starFill : starOutline} label={project.featured ? "Remove from featured" : "Mark as featured"} />
+            </button>
+          ) : project.featured ? (
+            <span className="shrink-0 leading-none text-hot-yellow-600">
+              <Icon src={starFill} label="Featured" />
+            </span>
+          ) : null}
+        </div>
+
         <img
           src={imageUrl ?? placeholder}
           alt={title}
