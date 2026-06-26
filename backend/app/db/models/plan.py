@@ -81,6 +81,7 @@ class PlanProject(Base):
     project_exists = Column(Boolean, nullable=False, default=True)
     status = Column(String, nullable=False, default="in_progress")
     display_order = Column(Integer, nullable=False, default=0)
+    featured = Column(Boolean, nullable=False, default=False)
     data = Column(JSON().with_variant(JSONB, "postgresql"), nullable=True)
     added_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
 
