@@ -35,6 +35,26 @@ from app.services.url_resolver import parse_project_url
             "export-tool",
             "abcdef12-0000-0000-0000-000000000000",
         ),
+        # export URLs without the /v3/ segment (current export.hotosm.org format)
+        (
+            "https://export.hotosm.org/exports/a3a0f08f-5baf-4845-9eed-427010ace61a",
+            "export-tool",
+            "a3a0f08f-5baf-4845-9eed-427010ace61a",
+        ),
+        # pasted without a scheme — should default to https://
+        (
+            "export.hotosm.org/exports/a3a0f08f-5baf-4845-9eed-427010ace61a",
+            "export-tool",
+            "a3a0f08f-5baf-4845-9eed-427010ace61a",
+        ),
+        # with a locale prefix
+        (
+            "https://export.hotosm.org/en/v3/exports/a3a0f08f-5baf-4845-9eed-427010ace61a",
+            "export-tool",
+            "a3a0f08f-5baf-4845-9eed-427010ace61a",
+        ),
+        # scheme-less form for another app (scheme normalization)
+        ("tasks.hotosm.org/projects/555", "tasking-manager", "555"),
         # --- open-aerial-map ---
         (
             "https://map.openaerialmap.org/#/-18.720703125,18.562947442888312,3/latest/69f7b2056e5c3ae8d432f323",

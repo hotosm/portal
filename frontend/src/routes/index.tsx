@@ -1,7 +1,6 @@
 import React from "react";
-import { Navigate, Route, Routes, useParams } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { useLanguage } from "../contexts/LanguageContext";
 import HomePage from "../pages/HomePage";
 import WelcomePage from "../pages/WelcomePage";
 import ImageryPage from "../portal-imagery/ImageryPage";
@@ -35,18 +34,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 const MainNavRoute = ProtectedRoute;
 
 function HomeRoute() {
-  const { isLogin, isAuthLoading } = useAuth();
-  const { locale } = useParams<{ locale?: string }>();
-  const { currentLanguage } = useLanguage();
-
-  if (isAuthLoading) {
-    return null;
-  }
-
-  if (isLogin) {
-    return <Navigate to={`/${locale ?? currentLanguage}/plan`} replace />;
-  }
-
   return <HomePage />;
 }
 

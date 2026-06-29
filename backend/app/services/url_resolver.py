@@ -10,7 +10,8 @@ _PATTERNS: list[tuple[re.Pattern[str], AppLiteral]] = [
     (re.compile(r"https?://drone\.hotosm\.org/projects/([^/\s?#]+)", re.I), "drone-tasking-manager"),
     (re.compile(r"https?://(?:field\.hotosm\.org|field\.hotosm\.test|fieldtm\.testlogin\.hotosm\.org)/projects/(\d+)", re.I), "field-tm"),
     (re.compile(r"https?://fair\.hotosm\.org/ai-models/(\d+)", re.I), "fair"),
-    (re.compile(r"https?://export\.hotosm\.org/v3/exports/([0-9a-f\-]{8,})", re.I), "export-tool"),
+    # Export Tool: optional locale (e.g. /en/) and optional /v3/ path segments.
+    (re.compile(r"https?://export\.hotosm\.org/(?:[a-z]{2}/)?(?:v3/)?exports/([0-9a-f\-]{8,})", re.I), "export-tool"),
     # OAM: https://map.openaerialmap.org/#/{coords}/latest/{hex-id}[?...]
     (re.compile(r"https?://map\.openaerialmap\.org/#/[^/]+/latest/([0-9a-f]+)", re.I), "open-aerial-map"),
     # OAM: /#/{coords}/user/{user-id}/{hex-id}[?...] (logged-in user view)
@@ -28,7 +29,14 @@ def parse_project_url(url: str) -> tuple[AppLiteral, str] | None:
 
     For OAM /user/ URLs, project_id is encoded as "{user_id}:{image_id}" so the
     user path segment can be reconstructed when building the link back to OAM.
+
+    Accepts URLs pasted without a scheme (e.g. "export.hotosm.org/...") by
+    defaulting to https://.
     """
+    url = url.strip()
+    if url and not re.match(r"https?://", url, re.I):
+        url = f"https://{url}"
+
     for pattern, app in _PATTERNS:
         m = pattern.match(url)
         if m:

@@ -42,6 +42,7 @@ import {
   usePlan,
   useSharedPlan,
   useUpdatePlan,
+  useUpdateProjectStatus,
 } from "./hooks";
 import type {
   AppName,
@@ -61,6 +62,7 @@ function toItem(p: HydratedProjectItem): PlanProjectItem {
       project_exists: true,
       status: p.status,
       data: p.data,
+      featured: p.featured,
     };
   }
   return {
@@ -68,6 +70,7 @@ function toItem(p: HydratedProjectItem): PlanProjectItem {
     project_exists: false,
     status: p.status,
     data: p.data,
+    featured: p.featured,
   };
 }
 
@@ -96,6 +99,7 @@ function MyPlanPage() {
   const { sources } = useAllUserProjects();
 
   const { mutate: updatePlan } = useUpdatePlan();
+  const { mutate: updateStatus } = useUpdateProjectStatus();
   const { mutate: completeTask } = useCompleteTask(planId ?? "");
   /* const { mutate: refreshPlan, isPending: isRefreshing } = useRefreshPlan(
     planId ?? "",
@@ -110,6 +114,13 @@ function MyPlanPage() {
       planQueryKeys.detail(planId!),
       (old) => (old ? { ...old, projects } : old),
     );
+  }
+
+  function handleFeaturedToggle(id: string, featured: boolean) {
+    if (!plan) return;
+    const updated = plan.projects.map((p) => (p.id === id ? { ...p, featured } : p));
+    patchCachedProjects(updated);
+    updatePlan({ id: plan.id, payload: { projects: updated.map(toItem) } });
   }
 
   function handlePickerConfirm(
@@ -229,6 +240,41 @@ function MyPlanPage() {
     );
   }
 
+  const featuredProjects = plan ? plan.projects.filter((p) => p.featured) : [];
+
+  const featuredSection =
+    featuredProjects.length > 0 ? (
+      <div key="featured">
+        <SubSectionHeader title="<strong>Featured</strong>" />
+        <PageWrapper>
+          <div className="flex flex-wrap gap-lg py-lg">
+            {featuredProjects.map((project) => (
+              <div key={project.id} className={cardClassNames}>
+                <PlanProjectCard
+                  project={project}
+                  onStatusChange={
+                    isOwner && project.project_exists && project.project_id
+                      ? (status) =>
+                          updateStatus({
+                            planId: planId!,
+                            app: project.app,
+                            projectId: project.project_id!,
+                            status,
+                          })
+                      : undefined
+                  }
+                  onDelete={isOwner ? () => handleProjectDeleted(project.id) : undefined}
+                  onFeaturedChange={
+                    isOwner ? (featured) => handleFeaturedToggle(project.id, featured) : undefined
+                  }
+                />
+              </div>
+            ))}
+          </div>
+        </PageWrapper>
+      </div>
+    ) : null;
+
   const sections = PLAN_SECTIONS.map((section) => {
     if (isLoading) {
       return (
@@ -247,8 +293,8 @@ function MyPlanPage() {
       );
     }
 
-    const sectionProjects = plan!.projects.filter((p) =>
-      section.apps.includes(p.app),
+    const sectionProjects = plan!.projects.filter(
+      (p) => section.apps.includes(p.app),
     );
     if (!isOwner && sectionProjects.length === 0) return null;
 
@@ -277,6 +323,7 @@ function MyPlanPage() {
                     planId={plan!.id}
                     onProjectSelected={handleTaskCompleted}
                     onProjectDeleted={handleProjectDeleted}
+                    onFeaturedToggle={handleFeaturedToggle}
                   />
                 ))}
               </SortableContext>
@@ -377,6 +424,8 @@ function MyPlanPage() {
           </>
         )}
       </PageWrapper>
+
+      {featuredSection}
 
       {!isLoading && isOwner ? (
         <DndContext

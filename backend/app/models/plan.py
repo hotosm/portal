@@ -49,6 +49,7 @@ class PlanProjectItem(BaseModel):
     project_id: str | None = None
     project_exists: bool = True
     status: StatusLiteral = "in_progress"
+    featured: bool = False
     data: dict | None = None
 
     @model_validator(mode="after")
@@ -107,6 +108,7 @@ class HydratedProjectItem(BaseModel):
     project_id: str | None
     project_exists: bool = True
     status: StatusLiteral = "in_progress"
+    featured: bool = False
     data: dict | None = None
     upstream: dict | None = None
     error: HydrationError | None = None
