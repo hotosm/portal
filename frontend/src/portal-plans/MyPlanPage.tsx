@@ -295,7 +295,7 @@ function MyPlanPage() {
     }
 
     const sectionProjects = plan!.projects.filter(
-      (p) => section.apps.includes(p.app) && !featuredIds.has(p.id),
+      (p) => section.apps.includes(p.app),
     );
     if (!isOwner && sectionProjects.length === 0) return null;
 
