@@ -241,7 +241,6 @@ function MyPlanPage() {
   }
 
   const featuredProjects = plan ? plan.projects.filter((p) => p.featured) : [];
-  const featuredIds = new Set(featuredProjects.map((p) => p.id));
 
   const featuredSection =
     featuredProjects.length > 0 ? (
