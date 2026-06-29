@@ -31,7 +31,7 @@ interface ProjectDialogProps {
   onDelete?: () => void;
   onStatusChange?: (status: ProjectStatus) => void;
   initialStatus?: ProjectStatus;
-  onFeaturedChange?: (featured: boolean) => void;
+  onFeaturedChange?: (featured: boolean) => void | Promise<void>;
 }
 
 function extractMeta(upstream: Record<string, unknown> | null) {
@@ -86,6 +86,16 @@ function ProjectDialog({
     onStatusChange?.(status);
   }
 
+  async function handleFeaturedChange() {
+    const next = !project.featured;
+    try {
+      await onFeaturedChange?.(next);
+      toast.success(next ? m.plan_toast_project_featured() : m.plan_toast_project_unfeatured());
+    } catch {
+      toast.error(m.plan_toast_featured_error());
+    }
+  }
+
   return (
     <Dialog open={open} label=" " aria-label={title} onWaHide={onClose}>
       <div className="flex flex-col gap-md">
@@ -94,7 +104,7 @@ function ProjectDialog({
           {onFeaturedChange ? (
             <button
               type="button"
-              onClick={() => onFeaturedChange(!project.featured)}
+              onClick={handleFeaturedChange}
               title={project.featured ? "Remove from featured" : "Mark as featured"}
               className={`shrink-0 leading-none transition-colors ${project.featured ? "text-hot-yellow-600" : "text-hot-gray-300 hover:text-hot-gray-500"}`}
             >
