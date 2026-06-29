@@ -21,6 +21,7 @@ export interface PlanProjectItem {
   project_id?: string | null
   project_exists?: boolean
   status?: ProjectStatus
+  featured?: boolean
   data?: Record<string, unknown> | null
 }
 
@@ -61,6 +62,7 @@ export interface HydratedProjectItem {
   project_id: string | null
   project_exists: boolean
   status: ProjectStatus
+  featured: boolean
   data: Record<string, unknown> | null
   upstream: Record<string, unknown> | null
   error: HydrationError | null

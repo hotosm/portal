@@ -13,6 +13,7 @@ interface SortableViewProjectCardProps {
   planId: string
   onProjectSelected?: (oldKey: string, project: ProjectOption) => void
   onProjectDeleted?: (key: string) => void
+  onFeaturedToggle?: (id: string, featured: boolean) => void
 }
 
 function SortableViewProjectCard({
@@ -21,6 +22,7 @@ function SortableViewProjectCard({
   planId,
   onProjectSelected,
   onProjectDeleted,
+  onFeaturedToggle,
 }: SortableViewProjectCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
@@ -58,6 +60,7 @@ function SortableViewProjectCard({
         onStatusChange={project.project_exists ? handleStatusChange : undefined}
         onSelectClick={project.project_exists ? undefined : () => setDialogOpen(true)}
         onDelete={project.project_exists ? () => onProjectDeleted?.(id) : undefined}
+        onFeaturedChange={project.project_exists ? (featured) => onFeaturedToggle?.(id, featured) : undefined}
       />
       {!project.project_exists && (
         <LinkProjectDialog

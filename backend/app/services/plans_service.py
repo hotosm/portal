@@ -83,6 +83,7 @@ def plan_to_read(plan: Plan) -> PlanRead:
                 project_id=row.project_id,
                 project_exists=row.project_exists,
                 status=row.status,
+                featured=row.featured,
                 data=row.data,
             )
             for row in plan.projects
@@ -159,6 +160,7 @@ async def create_plan(
                 project_id=item.project_id,
                 project_exists=item.project_exists,
                 status=item.status,
+                featured=item.featured,
                 display_order=idx,
                 data=item.data,
             )
@@ -202,6 +204,7 @@ async def update_plan(
                     project_id=item.project_id,
                     project_exists=item.project_exists,
                     status=item.status,
+                    featured=item.featured,
                     display_order=idx,
                     data=item.data,
                 )
@@ -337,6 +340,7 @@ async def hydrate_one(
             app=row.app,
             project_id=row.project_id,
             project_exists=False,
+            featured=row.featured,
             data=row.data,
             upstream=None,
             error=None,
@@ -370,6 +374,7 @@ async def hydrate_one(
                 app=row.app,
                 project_id=row.project_id,
                 status=row.status,
+                featured=row.featured,
                 data=row.data,
                 upstream=None,
                 error="upstream_timeout",
@@ -379,6 +384,7 @@ async def hydrate_one(
                 app=row.app,
                 project_id=row.project_id,
                 status=row.status,
+                featured=row.featured,
                 data=row.data,
                 upstream=None,
                 error="upstream_unavailable",
@@ -388,6 +394,7 @@ async def hydrate_one(
                 app=row.app,
                 project_id=row.project_id,
                 status=row.status,
+                featured=row.featured,
                 data=row.data,
                 upstream=None,
                 error="not_found",
@@ -396,6 +403,7 @@ async def hydrate_one(
             app=row.app,
             project_id=row.project_id,
             status=row.status,
+            featured=row.featured,
             data=row.data,
             upstream=upstream,
             error=None,
@@ -415,6 +423,7 @@ async def hydrate_one(
                 app=row.app,
                 project_id=row.project_id,
                 status=row.status,
+                featured=row.featured,
                 data=row.data,
                 upstream=None,
                 error="upstream_timeout",
@@ -424,6 +433,7 @@ async def hydrate_one(
                 app=row.app,
                 project_id=row.project_id,
                 status=row.status,
+                featured=row.featured,
                 data=row.data,
                 upstream=None,
                 error="upstream_unavailable",
@@ -433,6 +443,7 @@ async def hydrate_one(
                 app=row.app,
                 project_id=row.project_id,
                 status=row.status,
+                featured=row.featured,
                 data=row.data,
                 upstream=None,
                 error="not_found",
@@ -441,6 +452,7 @@ async def hydrate_one(
             app=row.app,
             project_id=row.project_id,
             status=row.status,
+            featured=row.featured,
             data=row.data,
             upstream=upstream,
             error=None,
@@ -460,16 +472,16 @@ async def hydrate_one(
         except asyncio.TimeoutError:
             return HydratedProjectItem(
                 app=row.app, project_id=row.project_id, status=row.status,
-                data=row.data, upstream=None, error="upstream_timeout",
+                featured=row.featured, data=row.data, upstream=None, error="upstream_timeout",
             )
         except Exception:
             return HydratedProjectItem(
                 app=row.app, project_id=row.project_id, status=row.status,
-                data=row.data, upstream=None, error="upstream_unavailable",
+                featured=row.featured, data=row.data, upstream=None, error="upstream_unavailable",
             )
         return HydratedProjectItem(
             app=row.app, project_id=row.project_id, status=row.status,
-            data=row.data, upstream=upstream, error=None if upstream else "not_found",
+            featured=row.featured, data=row.data, upstream=upstream, error=None if upstream else "not_found",
         )
 
     fetcher = APP_FETCHERS.get(row.app)
@@ -478,6 +490,7 @@ async def hydrate_one(
             app=row.app,
             project_id=row.project_id,
             status=row.status,
+            featured=row.featured,
             data=row.data,
             upstream=None,
             error="not_found",
@@ -492,6 +505,7 @@ async def hydrate_one(
             app=row.app,
             project_id=row.project_id,
             status=row.status,
+            featured=row.featured,
             data=row.data,
             upstream=None,
             error="upstream_timeout",
@@ -501,6 +515,7 @@ async def hydrate_one(
             app=row.app,
             project_id=row.project_id,
             status=row.status,
+            featured=row.featured,
             data=row.data,
             upstream=None,
             error="upstream_unavailable",
@@ -510,6 +525,7 @@ async def hydrate_one(
             app=row.app,
             project_id=row.project_id,
             status=row.status,
+            featured=row.featured,
             data=row.data,
             upstream=None,
             error="not_found",
@@ -518,6 +534,7 @@ async def hydrate_one(
         app=row.app,
         project_id=row.project_id,
         status=row.status,
+        featured=row.featured,
         data=row.data,
         upstream=upstream,
         error=None,

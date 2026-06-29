@@ -152,6 +152,7 @@ interface PlanProjectCardProps {
   onStatusChange?: (status: ProjectStatus) => void;
   onSelectClick?: () => void;
   onDelete?: () => void;
+  onFeaturedChange?: (featured: boolean) => void;
 }
 
 function PlanProjectCard({
@@ -159,6 +160,7 @@ function PlanProjectCard({
   onStatusChange,
   onSelectClick,
   onDelete,
+  onFeaturedChange,
 }: PlanProjectCardProps) {
   const { title, imageUrl, href } = usePlanProjectDisplay(project);
   const meta = APP_META[project.app];
@@ -297,6 +299,7 @@ function PlanProjectCard({
             setLocalStatus(status);
             onStatusChange(status);
           } : undefined}
+          onFeaturedChange={onFeaturedChange}
         />
       )}
       {!project.project_exists ? (
