@@ -395,7 +395,7 @@ function MyPlanPage() {
               </Tag>
             )}
             {plan!.description && (
-              <RichTextContent html={plan!.description} className="py-md" />
+              <RichTextContent content={plan!.description ?? ""} className="py-md" />
             )}
             {plan!.images.length > 0 && (
               <Carousel
