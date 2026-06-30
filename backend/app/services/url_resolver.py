@@ -14,9 +14,10 @@ _PATTERNS: list[tuple[re.Pattern[str], AppLiteral]] = [
     (re.compile(r"https?://export\.hotosm\.org/(?:[a-z]{2}/)?(?:v3/)?exports/([0-9a-f\-]{8,})", re.I), "export-tool"),
     # OAM: https://map.openaerialmap.org/#/{coords}/latest/{hex-id}[?...]
     (re.compile(r"https?://map\.openaerialmap\.org/#/[^/]+/latest/([0-9a-f]+)", re.I), "open-aerial-map"),
-    # OAM: /#/{coords}/user/{user-id}/{hex-id}[?...] (logged-in user view)
+    # OAM: /#/{coords}/user/{user-id}/{hex-id}[.ext][?...] (logged-in user view)
     # project_id encoded as "{user_id}:{image_id}" to preserve the user path segment.
-    (re.compile(r"https?://map\.openaerialmap\.org/#/[^/]+/user/([0-9a-f]+)/([0-9a-f]+)", re.I), "open-aerial-map"),
+    # The image ID sometimes carries a file extension (e.g. .tif) that is stripped.
+    (re.compile(r"https?://map\.openaerialmap\.org/#/[^/]+/user/([0-9a-f]+)/([0-9a-f]+)(?:\.[a-z]+)?", re.I), "open-aerial-map"),
     # uMap: https://umap.hotosm.org/{locale}/map/{slug}_{id}[#...]
     (re.compile(r"https?://umap\.hotosm\.org/[a-z]{2,5}/map/[^#/]+_(\d+)", re.I), "umap"),
     # ChatMap: https://chatmap.hotosm.org/#map/{uuid}
