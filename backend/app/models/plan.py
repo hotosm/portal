@@ -19,7 +19,9 @@ AppLiteral = Literal[
 
 StatusLiteral = Literal["pending", "in_progress", "done", "task"]
 
-HydrationError = Literal["not_found", "upstream_unavailable", "upstream_timeout"]
+HydrationError = Literal[
+    "not_found", "upstream_unavailable", "upstream_timeout", "pending"
+]
 
 _ALLOWED_TAGS = frozenset(
     {"p", "h3", "h4", "h5", "strong", "em", "u", "ul", "ol", "li", "br", "a"}
@@ -112,6 +114,9 @@ class HydratedProjectItem(BaseModel):
     data: dict | None = None
     upstream: dict | None = None
     error: HydrationError | None = None
+    # True when this item was served from the stored snapshot (row.data) without a
+    # live upstream call, so the frontend can show a subtle "updating…" state.
+    from_snapshot: bool = False
 
 
 class PlanReadHydrated(BaseModel):

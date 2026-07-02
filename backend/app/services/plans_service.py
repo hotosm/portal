@@ -541,33 +541,29 @@ async def hydrate_one(
     )
 
 
-async def get_plan_hydrated(
-    db: AsyncSession,
-    owner_id: str,
-    plan_id: str,
-    hanko_cookie: str | None = None,
-    *,
-    refresh: bool = False,
-) -> PlanReadHydrated | None:
-    plan = await get_owned_plan(db, owner_id, plan_id)
-    if plan is None:
-        return None
+def _item_from_snapshot(row: PlanProject) -> HydratedProjectItem:
+    """Build a hydrated item from the stored snapshot (row.data), no upstream call.
 
-    hydrated_items = await asyncio.gather(
-        *[
-            hydrate_one(row, hanko_cookie=hanko_cookie, force_refresh=refresh)
-            for row in plan.projects
-        ]
+    `error="pending"` flags a project that has never been hydrated successfully
+    (row.data is null), so the frontend can show a spinner until the refresh fills it.
+    """
+    return HydratedProjectItem(
+        id=row.id,
+        app=row.app,
+        project_id=row.project_id,
+        project_exists=row.project_exists,
+        status=row.status,
+        featured=row.featured,
+        data=row.data,
+        upstream=row.data,
+        from_snapshot=True,
+        error=None if row.data is not None else "pending",
     )
-    for row, item in zip(plan.projects, hydrated_items, strict=True):
-        item.id = row.id
-    if refresh:
-        for row, item in zip(plan.projects, hydrated_items, strict=True):
-            if item.upstream is not None:
-                row.data = item.upstream
-                item.data = item.upstream
-        await db.flush()
 
+
+def _build_plan_response(
+    plan: Plan, items: list[HydratedProjectItem]
+) -> PlanReadHydrated:
     return PlanReadHydrated(
         id=plan.id,
         name=plan.name,
@@ -575,7 +571,7 @@ async def get_plan_hydrated(
         is_public=plan.is_public,
         created_at=plan.created_at,
         updated_at=plan.updated_at,
-        projects=list(hydrated_items),
+        projects=list(items),
         images=[
             PlanImageRead(
                 id=img.id,
@@ -588,10 +584,70 @@ async def get_plan_hydrated(
     )
 
 
-async def get_public_plan_hydrated(
-    db: AsyncSession, plan_id: str, hanko_cookie: str | None = None
+async def _hydrate_live_and_persist(
+    db: AsyncSession,
+    plan: Plan,
+    hanko_cookie: str | None,
+) -> list[HydratedProjectItem]:
+    """Hydrate every project live, persist the fresh snapshot, and flag deletions.
+
+    A successful upstream fetch overwrites `row.data` (keeps the snapshot fresh).
+    A definitive `not_found` (404 from a reachable upstream) marks the project
+    `project_exists=False`; transient errors (unavailable/timeout) are left alone
+    so a temporary outage never wrongly flags a valid project as deleted.
+    """
+    hydrated_items = await asyncio.gather(
+        *[
+            hydrate_one(row, hanko_cookie=hanko_cookie, force_refresh=True)
+            for row in plan.projects
+        ]
+    )
+    for row, item in zip(plan.projects, hydrated_items, strict=True):
+        item.id = row.id
+        if item.upstream is not None:
+            row.data = item.upstream
+            item.data = item.upstream
+        elif item.error == "not_found":
+            row.project_exists = False
+            item.project_exists = False
+    await db.flush()
+    return list(hydrated_items)
+
+
+async def get_plan_hydrated(
+    db: AsyncSession,
+    owner_id: str,
+    plan_id: str,
+    hanko_cookie: str | None = None,
+    *,
+    refresh: bool = False,
 ) -> PlanReadHydrated | None:
-    """Fetch a plan by ID only if is_public=True. No owner check."""
+    """Return an owned plan. Default serves the stored snapshot instantly; with
+    ``refresh=True`` it hydrates every project live and persists the fresh snapshot."""
+    plan = await get_owned_plan(db, owner_id, plan_id)
+    if plan is None:
+        return None
+
+    if not refresh:
+        return _build_plan_response(
+            plan, [_item_from_snapshot(row) for row in plan.projects]
+        )
+
+    items = await _hydrate_live_and_persist(db, plan, hanko_cookie)
+    return _build_plan_response(plan, items)
+
+
+async def get_public_plan_hydrated(
+    db: AsyncSession,
+    plan_id: str,
+    hanko_cookie: str | None = None,
+    *,
+    refresh: bool = False,
+) -> PlanReadHydrated | None:
+    """Fetch a plan by ID only if is_public=True. No owner check.
+
+    Default serves the stored snapshot instantly; ``refresh=True`` hydrates live
+    and persists the fresh snapshot (stale-while-revalidate)."""
     stmt = (
         select(Plan)
         .where(Plan.id == plan_id, Plan.is_public.is_(True))
@@ -602,30 +658,13 @@ async def get_public_plan_hydrated(
     if plan is None:
         return None
 
-    hydrated_items = await asyncio.gather(
-        *[hydrate_one(row, hanko_cookie=hanko_cookie) for row in plan.projects]
-    )
-    for row, item in zip(plan.projects, hydrated_items, strict=True):
-        item.id = row.id
+    if not refresh:
+        return _build_plan_response(
+            plan, [_item_from_snapshot(row) for row in plan.projects]
+        )
 
-    return PlanReadHydrated(
-        id=plan.id,
-        name=plan.name,
-        description=plan.description,
-        is_public=plan.is_public,
-        created_at=plan.created_at,
-        updated_at=plan.updated_at,
-        projects=list(hydrated_items),
-        images=[
-            PlanImageRead(
-                id=img.id,
-                url=img.url,
-                display_order=img.display_order,
-                created_at=img.created_at,
-            )
-            for img in plan.images
-        ],
-    )
+    items = await _hydrate_live_and_persist(db, plan, hanko_cookie)
+    return _build_plan_response(plan, items)
 
 
 async def get_plan_tags_for_projects(

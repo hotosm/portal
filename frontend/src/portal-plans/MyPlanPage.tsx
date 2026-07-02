@@ -12,7 +12,7 @@ import {
   rectSortingStrategy,
 } from "@dnd-kit/sortable";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import CardSkeleton from "../components/shared/CardSkeleton";
 import Carousel from "../components/shared/Carousel";
@@ -40,6 +40,7 @@ import {
   useAllUserProjects,
   useCompleteTask,
   usePlan,
+  useRefreshPlan,
   useSharedPlan,
   useUpdatePlan,
   useUpdateProjectStatus,
@@ -101,10 +102,22 @@ function MyPlanPage() {
   const { mutate: updatePlan } = useUpdatePlan();
   const { mutate: updateStatus } = useUpdateProjectStatus();
   const { mutate: completeTask } = useCompleteTask(planId ?? "");
-  /* const { mutate: refreshPlan, isPending: isRefreshing } = useRefreshPlan(
+  const { mutate: refreshPlan, isPending: isRefreshing } = useRefreshPlan(
     planId ?? "",
-  ); */
+    !isOwner,
+  );
   const queryClient = useQueryClient();
+
+  // Stale-while-revalidate: the query serves the persisted snapshot instantly,
+  // then we kick off one live hydration (?refresh=true) in the background so the
+  // upstream data and any deletions get refreshed. Runs once per loaded plan.
+  const revalidatedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!plan || !planId) return;
+    if (revalidatedRef.current === planId) return;
+    revalidatedRef.current = planId;
+    refreshPlan();
+  }, [plan, planId, refreshPlan]);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
@@ -354,17 +367,13 @@ function MyPlanPage() {
         menu={
           isLoading ? undefined : isOwner ? (
             <div className="flex items-center gap-sm">
-              {/* <Button
-                type="button"
-                appearance="outlined"
-                size="small"
-                onClick={() => refreshPlan()}
-                disabled={isRefreshing}
-              >
-                {isRefreshing
-                  ? m.plan_refreshing_button()
-                  : m.plan_refresh_button()}
-              </Button> */}
+              {isRefreshing && (
+                <span
+                  className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-hot-gray-300 border-t-hot-red"
+                  aria-label="Updating"
+                  title="Updating…"
+                />
+              )}
               <PlanMenu plan={plan!} />
             </div>
           ) : plan!.is_public ? (

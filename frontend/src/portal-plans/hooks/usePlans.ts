@@ -197,13 +197,17 @@ export function useCompleteTask(planId: string) {
   })
 }
 
-export function useRefreshPlan(id: string) {
+// Background revalidation for stale-while-revalidate: fetches the plan with
+// ?refresh=true (live hydration + snapshot persistence) and swaps the fresh data
+// into the cache. Failure is silent — the already-rendered snapshot stays put.
+export function useRefreshPlan(id: string, isPublic = false) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (): Promise<PlanReadHydrated | null> => {
-      const response = await fetch(`/api/plans/${id}`, {
-        credentials: 'include',
-      })
+      const url = isPublic
+        ? `/api/plans/shared/${id}?refresh=true`
+        : `/api/plans/${id}?refresh=true`
+      const response = await fetch(url, { credentials: 'include' })
       if (response.status === 404) return null
       if (!response.ok) {
         throw new Error(`[${response.status}] Failed to refresh plan`)
@@ -211,11 +215,13 @@ export function useRefreshPlan(id: string) {
       return response.json()
     },
     onSuccess: (data) => {
-      if (data) queryClient.setQueryData(planQueryKeys.detail(id), data)
+      if (data) {
+        const key = isPublic ? planQueryKeys.public(id) : planQueryKeys.detail(id)
+        queryClient.setQueryData(key, data)
+      }
     },
-    onError: () => {
-      toast.error(m.plan_toast_update_error())
-    },
+    // Non-fatal: keep showing the snapshot silently on a failed revalidation.
+    onError: () => {},
   })
 }
 
