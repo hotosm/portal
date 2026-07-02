@@ -71,11 +71,17 @@ async def resolve_project_url(
 async def get_shared_plan(
     request: Request,
     plan_id: str = Path(..., description="Plan UUID"),
+    refresh: bool = False,
     db: AsyncSession = Depends(get_db),
 ) -> PlanReadHydrated:
-    """Return a public plan hydrated. No auth required. 404 if plan is private or not found."""
+    """Return a public plan. No auth required. 404 if plan is private or not found.
+
+    Default serves the stored snapshot instantly; pass ?refresh=true to hydrate
+    every project live and persist the fresh snapshot (stale-while-revalidate)."""
     hanko_cookie = request.cookies.get("hanko")
-    plan = await plans_service.get_public_plan_hydrated(db, plan_id, hanko_cookie=hanko_cookie)
+    plan = await plans_service.get_public_plan_hydrated(
+        db, plan_id, hanko_cookie=hanko_cookie, refresh=refresh
+    )
     if plan is None:
         raise HTTPException(status_code=404, detail="Plan not found")
     return plan
@@ -86,19 +92,16 @@ async def get_plan(
     request: Request,
     user: CurrentUser,
     plan_id: str = Path(..., description="Plan UUID"),
-    cache: bool = False,
+    refresh: bool = False,
     db: AsyncSession = Depends(get_db),
 ) -> PlanReadHydrated:
-    """Return the plan with each project hydrated in parallel from its upstream app.
-
-    Hydration hits each upstream live by default. Pass ?cache=true to serve
-    from the in-memory cache instead. A live hydration also persists the fresh
-    upstream as `data` on each row that resolved successfully, so a cached or
-    failed read can still fall back to the last known snapshot.
+    """Return the plan. By default serves the stored snapshot instantly (no upstream
+    calls). Pass ?refresh=true to hydrate every project live and persist the fresh
+    snapshot — the frontend calls this in the background (stale-while-revalidate).
     """
     hanko_cookie = request.cookies.get("hanko")
     plan = await plans_service.get_plan_hydrated(
-        db, user.id, plan_id, hanko_cookie=hanko_cookie, refresh=not cache
+        db, user.id, plan_id, hanko_cookie=hanko_cookie, refresh=refresh
     )
     if plan is None:
         raise HTTPException(status_code=404, detail="Plan not found")
