@@ -52,6 +52,7 @@ export function useAllUserProjects(enabled = true) {
           app: "drone-tasking-manager" as AppName,
           project_id: p.id.startsWith("drone-") ? p.id.slice("drone-".length) : p.id,
           title: p.title,
+          upstream: { name: p.title, image_url: p.image ?? null },
         })),
         isLoading: drone.isLoading,
         isError: drone.isError,
