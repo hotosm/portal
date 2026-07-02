@@ -199,7 +199,16 @@ function MyPlanPage() {
       });
     }
 
-    updatePlan({ id: plan.id, payload: { projects } });
+    // Re-arm the SWR revalidation so newly added projects get hydrated
+    // (image and full upstream data) in the background without a manual reload.
+    updatePlan(
+      { id: plan.id, payload: { projects } },
+      {
+        onSuccess: () => {
+          revalidatedRef.current = null;
+        },
+      },
+    );
     setPickerSection(null);
   }
 
