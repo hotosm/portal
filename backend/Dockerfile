@@ -70,4 +70,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD curl -f http://localhost:8000/health || exit 1
 
 # Run with uvicorn
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# --timeout-keep-alive 120: keep idle connections open longer than the reverse
+# proxy's idle timeout (Traefik 90s / nginx 75s / ALB 60s) so the backend never
+# closes a connection the proxy still has pooled, which caused intermittent 504s.
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "120"]
