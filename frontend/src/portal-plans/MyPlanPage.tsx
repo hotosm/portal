@@ -183,7 +183,11 @@ function MyPlanPage() {
         app,
         project_id: projId,
         project_exists: true,
-        data: (opt?.upstream as Record<string, unknown> | null) ?? null,
+        // Fall back to the picker option's title so the card shows a name right
+        // away; some apps only expose the title (no upstream) until rehydration.
+        data:
+          (opt?.upstream as Record<string, unknown> | null) ??
+          (opt?.title ? { name: opt.title } : null),
       });
     }
     // Append newly created tasks.
