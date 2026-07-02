@@ -8,7 +8,7 @@ interface PaginatedResult<T> {
   total: number;
 }
 
-export function useExportJobs(page = 1, limit = 6) {
+export function useExportJobs(page = 1, limit = 6, enabled = true) {
   const offset = (page - 1) * limit;
   const { isLogin } = useAuth();
   return useQuery({
@@ -38,7 +38,7 @@ export function useExportJobs(page = 1, limit = 6) {
         return { items: [], total: 0 };
       }
     },
-    enabled: isLogin,
+    enabled: isLogin && enabled,
     retry: false,
   });
 }

@@ -25,12 +25,12 @@ export const APP_LABELS: Record<AppName, string> = {
   umap: "uMap",
 };
 
-export function useAllUserProjects() {
-  const chatmap = useChatMapData();
-  const drone = useDroneProjects();
-  const fair = useMyModels(1, 50);
-  const umap = useMyMaps(1, 50);
-  const exportJobs = useExportJobs();
+export function useAllUserProjects(enabled = true) {
+  const chatmap = useChatMapData(enabled);
+  const drone = useDroneProjects(enabled);
+  const fair = useMyModels(1, 50, enabled);
+  const umap = useMyMaps(1, 50, enabled);
+  const exportJobs = useExportJobs(1, 6, enabled);
 
   const sources = useMemo<ProjectSource[]>(
     () => [

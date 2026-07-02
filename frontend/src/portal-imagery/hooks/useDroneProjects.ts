@@ -11,7 +11,7 @@ export const droneProjectsQueryKeys = {
   user: () => [...droneProjectsQueryKeys.all] as const,
 };
 
-export function useDroneProjects() {
+export function useDroneProjects(enabled = true) {
   const { isLogin } = useAuth();
   return useQuery({
     queryKey: droneProjectsQueryKeys.user(),
@@ -61,6 +61,6 @@ export function useDroneProjects() {
     refetchOnWindowFocus: true,
     retry: (failureCount, error) =>
       failureCount < 1 && !/\[5\d\d\]/.test(String((error as Error)?.message ?? "")),
-    enabled: isLogin,
+    enabled: isLogin && enabled,
   });
 }

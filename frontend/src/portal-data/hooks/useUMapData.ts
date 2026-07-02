@@ -33,7 +33,7 @@ function mapToProject(item: UMapMap): IUMapProject {
   };
 }
 
-export function useMyMaps(page = 1, limit = MAPS_PER_PAGE) {
+export function useMyMaps(page = 1, limit = MAPS_PER_PAGE, enabled = true) {
   const { isLogin } = useAuth();
   const offset = (page - 1) * limit;
   return useQuery({
@@ -62,6 +62,6 @@ export function useMyMaps(page = 1, limit = MAPS_PER_PAGE) {
     refetchOnWindowFocus: true,
     retry: (failureCount, error) =>
       failureCount < 1 && !/\[5\d\d\]/.test(String((error as Error)?.message ?? "")),
-    enabled: isLogin,
+    enabled: isLogin && enabled,
   });
 }

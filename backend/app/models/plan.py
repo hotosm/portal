@@ -19,7 +19,7 @@ AppLiteral = Literal[
 
 StatusLiteral = Literal["pending", "in_progress", "done", "task"]
 
-HydrationError = Literal["not_found", "upstream_unavailable"]
+HydrationError = Literal["not_found", "upstream_unavailable", "upstream_timeout"]
 
 _ALLOWED_TAGS = frozenset(
     {"p", "h3", "h4", "h5", "strong", "em", "u", "ul", "ol", "li", "br", "a"}

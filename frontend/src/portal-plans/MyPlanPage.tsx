@@ -96,7 +96,7 @@ function MyPlanPage() {
   const plan = ownPlan ?? publicPlan;
 
   const [pickerSection, setPickerSection] = useState<AppName[] | null>(null);
-  const { sources } = useAllUserProjects();
+  const { sources } = useAllUserProjects(isOwner);
 
   const { mutate: updatePlan } = useUpdatePlan();
   const { mutate: updateStatus } = useUpdateProjectStatus();
