@@ -285,7 +285,7 @@ function PlanProjectCard({
 
   return (
     <>
-      {project.project_exists && (
+      {project.project_exists && !unavailable && (
         <ProjectDialog
           open={dialogOpen}
           onClose={() => setDialogOpen(false)}
@@ -310,6 +310,15 @@ function PlanProjectCard({
         >
           {cardContent}
         </button>
+      ) : unavailable ? (
+        // Upstream can't be reached: deactivate the whole card (grayed out and
+        // non-interactive) so it can't be opened until the app recovers.
+        <div
+          className={`${cardClassName} grayscale opacity-60 cursor-not-allowed pointer-events-none`}
+          aria-disabled="true"
+        >
+          {cardContent}
+        </div>
       ) : (
         <div
           className={`${cardClassName} cursor-pointer`}
