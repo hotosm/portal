@@ -129,11 +129,26 @@ function MyPlanPage() {
     );
   }
 
+  // Persist the plan's projects. The update invalidates the detail query, whose
+  // snapshot refetch drops live-only state (unavailable/timeout badges, fresh
+  // upstream), so we re-arm the background revalidation to recompute it.
+  function persistProjects(projects: PlanProjectItem[]) {
+    if (!plan) return;
+    updatePlan(
+      { id: plan.id, payload: { projects } },
+      {
+        onSuccess: () => {
+          revalidatedRef.current = null;
+        },
+      },
+    );
+  }
+
   function handleFeaturedToggle(id: string, featured: boolean) {
     if (!plan) return;
     const updated = plan.projects.map((p) => (p.id === id ? { ...p, featured } : p));
     patchCachedProjects(updated);
-    updatePlan({ id: plan.id, payload: { projects: updated.map(toItem) } });
+    persistProjects(updated.map(toItem));
   }
 
   function handlePickerConfirm(
@@ -199,7 +214,7 @@ function MyPlanPage() {
       });
     }
 
-    updatePlan({ id: plan.id, payload: { projects } });
+    persistProjects(projects);
     setPickerSection(null);
   }
 
@@ -215,7 +230,7 @@ function MyPlanPage() {
     if (!plan) return;
     const remaining = plan.projects.filter((p) => p.id !== id);
     patchCachedProjects(remaining);
-    updatePlan({ id: plan.id, payload: { projects: remaining.map(toItem) } });
+    persistProjects(remaining.map(toItem));
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -228,7 +243,7 @@ function MyPlanPage() {
       ids.indexOf(over.id as string),
     ).map((id) => plan.projects.find((p) => p.id === id)!);
     patchCachedProjects(reordered);
-    updatePlan({ id: plan.id, payload: { projects: reordered.map(toItem) } });
+    persistProjects(reordered.map(toItem));
   }
 
   const isLoading =
