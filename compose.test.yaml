@@ -64,6 +64,10 @@ services:
       - internal
     labels:
       - "traefik.enable=true"
+      # Backend is on two networks (hotosm-test + internal); pin Traefik to the
+      # shared network so it doesn't route to the unreachable internal IP, which
+      # caused intermittent 30s gateway 504s on /api.
+      - "traefik.docker.network=hotosm-test"
       - "traefik.http.routers.portal-backend.rule=Host(`dev.portal.hotosm.org`) && PathPrefix(`/api`)"
       - "traefik.http.routers.portal-backend.entrypoints=websecure"
       - "traefik.http.routers.portal-backend.tls.certresolver=letsencrypt"

@@ -12,7 +12,7 @@ import {
   rectSortingStrategy,
 } from "@dnd-kit/sortable";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import CardSkeleton from "../components/shared/CardSkeleton";
 import Carousel from "../components/shared/Carousel";
@@ -40,6 +40,7 @@ import {
   useAllUserProjects,
   useCompleteTask,
   usePlan,
+  useRefreshPlan,
   useSharedPlan,
   useUpdatePlan,
   useUpdateProjectStatus,
@@ -96,15 +97,27 @@ function MyPlanPage() {
   const plan = ownPlan ?? publicPlan;
 
   const [pickerSection, setPickerSection] = useState<AppName[] | null>(null);
-  const { sources } = useAllUserProjects();
+  const { sources } = useAllUserProjects(isOwner);
 
   const { mutate: updatePlan } = useUpdatePlan();
   const { mutate: updateStatus } = useUpdateProjectStatus();
   const { mutate: completeTask } = useCompleteTask(planId ?? "");
-  /* const { mutate: refreshPlan, isPending: isRefreshing } = useRefreshPlan(
+  const { mutate: refreshPlan, isPending: isRefreshing } = useRefreshPlan(
     planId ?? "",
-  ); */
+    !isOwner,
+  );
   const queryClient = useQueryClient();
+
+  // Stale-while-revalidate: the query serves the persisted snapshot instantly,
+  // then we kick off one live hydration (?refresh=true) in the background so the
+  // upstream data and any deletions get refreshed. Runs once per loaded plan.
+  const revalidatedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!plan || !planId) return;
+    if (revalidatedRef.current === planId) return;
+    revalidatedRef.current = planId;
+    refreshPlan();
+  }, [plan, planId, refreshPlan]);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
@@ -116,11 +129,26 @@ function MyPlanPage() {
     );
   }
 
+  // Persist the plan's projects. The update invalidates the detail query, whose
+  // snapshot refetch drops live-only state (unavailable/timeout badges, fresh
+  // upstream), so we re-arm the background revalidation to recompute it.
+  function persistProjects(projects: PlanProjectItem[]) {
+    if (!plan) return;
+    updatePlan(
+      { id: plan.id, payload: { projects } },
+      {
+        onSuccess: () => {
+          revalidatedRef.current = null;
+        },
+      },
+    );
+  }
+
   function handleFeaturedToggle(id: string, featured: boolean) {
     if (!plan) return;
     const updated = plan.projects.map((p) => (p.id === id ? { ...p, featured } : p));
     patchCachedProjects(updated);
-    updatePlan({ id: plan.id, payload: { projects: updated.map(toItem) } });
+    persistProjects(updated.map(toItem));
   }
 
   function handlePickerConfirm(
@@ -170,7 +198,11 @@ function MyPlanPage() {
         app,
         project_id: projId,
         project_exists: true,
-        data: (opt?.upstream as Record<string, unknown> | null) ?? null,
+        // Fall back to the picker option's title so the card shows a name right
+        // away; some apps only expose the title (no upstream) until rehydration.
+        data:
+          (opt?.upstream as Record<string, unknown> | null) ??
+          (opt?.title ? { name: opt.title } : null),
       });
     }
     // Append newly created tasks.
@@ -182,7 +214,7 @@ function MyPlanPage() {
       });
     }
 
-    updatePlan({ id: plan.id, payload: { projects } });
+    persistProjects(projects);
     setPickerSection(null);
   }
 
@@ -198,7 +230,7 @@ function MyPlanPage() {
     if (!plan) return;
     const remaining = plan.projects.filter((p) => p.id !== id);
     patchCachedProjects(remaining);
-    updatePlan({ id: plan.id, payload: { projects: remaining.map(toItem) } });
+    persistProjects(remaining.map(toItem));
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -211,7 +243,7 @@ function MyPlanPage() {
       ids.indexOf(over.id as string),
     ).map((id) => plan.projects.find((p) => p.id === id)!);
     patchCachedProjects(reordered);
-    updatePlan({ id: plan.id, payload: { projects: reordered.map(toItem) } });
+    persistProjects(reordered.map(toItem));
   }
 
   const isLoading =
@@ -354,17 +386,13 @@ function MyPlanPage() {
         menu={
           isLoading ? undefined : isOwner ? (
             <div className="flex items-center gap-sm">
-              {/* <Button
-                type="button"
-                appearance="outlined"
-                size="small"
-                onClick={() => refreshPlan()}
-                disabled={isRefreshing}
-              >
-                {isRefreshing
-                  ? m.plan_refreshing_button()
-                  : m.plan_refresh_button()}
-              </Button> */}
+              {isRefreshing && (
+                <span
+                  className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-hot-gray-300 border-t-hot-red"
+                  aria-label="Updating"
+                  title="Updating…"
+                />
+              )}
               <PlanMenu plan={plan!} />
             </div>
           ) : plan!.is_public ? (

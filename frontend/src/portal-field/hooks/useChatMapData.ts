@@ -25,7 +25,7 @@ function mapToProject(item: ChatMap): ChatMapProject {
   };
 }
 
-export function useChatMapData() {
+export function useChatMapData(enabled = true) {
   const { isLogin } = useAuth();
   return useQuery({
     queryKey: ["chatmap", "my-maps"],
@@ -49,6 +49,6 @@ export function useChatMapData() {
     refetchOnWindowFocus: true,
     retry: (failureCount, error) =>
       failureCount < 1 && !/\[5\d\d\]/.test(String((error as Error)?.message ?? "")),
-    enabled: isLogin,
+    enabled: isLogin && enabled,
   });
 }

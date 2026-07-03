@@ -12,7 +12,7 @@ interface PaginatedResult<T> {
   total: number;
 }
 
-export function useMyModels(page = 1, limit = 20) {
+export function useMyModels(page = 1, limit = 20, enabled = true) {
   const { isLogin } = useAuth();
   const offset = (page - 1) * limit;
   return useQuery({
@@ -41,7 +41,7 @@ export function useMyModels(page = 1, limit = 20) {
         total: data.count,
       };
     },
-    enabled: isLogin,
+    enabled: isLogin && enabled,
     retry: (failureCount, error) =>
       failureCount < 1 && !/\[5\d\d\]/.test(String((error as Error)?.message ?? "")),
   });

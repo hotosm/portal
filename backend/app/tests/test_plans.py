@@ -267,13 +267,57 @@ async def test_hydrate_plan_all_ok(auth_client):
     from app.services import field_tm_service
     with patch.dict(plans_service.APP_FETCHERS, fetchers):
         with patch.object(field_tm_service, "fetch_project_by_id", new=AsyncMock(return_value={"name": "proj3"})):
-            resp = await client.get(f"/api/plans/{plan_id}")
+            resp = await client.get(f"/api/plans/{plan_id}?refresh=true")
     assert resp.status_code == 200
     by_app = {p["app"]: p for p in resp.json()["projects"]}
     assert by_app["tasking-manager"]["upstream"] == {"organisationName": "org1"}
     assert by_app["tasking-manager"]["error"] is None
     assert by_app["fair"]["upstream"] == {"name": "model2"}
     assert by_app["field-tm"]["upstream"] == {"name": "proj3"}
+
+
+@pytest.mark.asyncio
+async def test_snapshot_swr_flow(auth_client):
+    client, _ = auth_client
+    resp = await client.post(
+        "/api/plans",
+        json={"name": "P", "projects": [{"app": "tasking-manager", "project_id": "1"}]},
+    )
+    plan_id = resp.json()["id"]
+
+    # Default GET serves the snapshot; never hydrated yet -> pending, no upstream call.
+    resp = await client.get(f"/api/plans/{plan_id}")
+    proj = resp.json()["projects"][0]
+    assert proj["from_snapshot"] is True
+    assert proj["error"] == "pending"
+    assert proj["upstream"] is None
+
+    # ?refresh=true hydrates live and persists the fresh snapshot.
+    with patch.dict(
+        plans_service.APP_FETCHERS,
+        {"tasking-manager": AsyncMock(return_value={"name": "proj"})},
+    ):
+        resp = await client.get(f"/api/plans/{plan_id}?refresh=true")
+    proj = resp.json()["projects"][0]
+    assert proj["from_snapshot"] is False
+    assert proj["upstream"] == {"name": "proj"}
+    assert proj["error"] is None
+
+    # Default GET now serves the persisted snapshot instantly (no upstream call).
+    resp = await client.get(f"/api/plans/{plan_id}")
+    proj = resp.json()["projects"][0]
+    assert proj["from_snapshot"] is True
+    assert proj["upstream"] == {"name": "proj"}
+
+    # Project deleted upstream -> refresh marks it not_found + persists project_exists=False.
+    with patch.dict(
+        plans_service.APP_FETCHERS,
+        {"tasking-manager": AsyncMock(return_value=None)},
+    ):
+        resp = await client.get(f"/api/plans/{plan_id}?refresh=true")
+    proj = resp.json()["projects"][0]
+    assert proj["error"] == "not_found"
+    assert proj["project_exists"] is False
 
 
 @pytest.mark.asyncio
@@ -301,7 +345,7 @@ async def test_hydrate_plan_orphan_item(auth_client):
         "umap": AsyncMock(return_value=None),
     }
     with patch.dict(plans_service.APP_FETCHERS, fetchers):
-        resp = await client.get(f"/api/plans/{plan_id}")
+        resp = await client.get(f"/api/plans/{plan_id}?refresh=true")
     assert resp.status_code == 200
     by_app = {p["app"]: p for p in resp.json()["projects"]}
     assert by_app["tasking-manager"]["error"] is None
@@ -337,7 +381,7 @@ async def test_hydrate_plan_upstream_unavailable(auth_client):
         "umap": AsyncMock(return_value=None),
     }
     with patch.dict(plans_service.APP_FETCHERS, fetchers):
-        resp = await client.get(f"/api/plans/{plan_id}")
+        resp = await client.get(f"/api/plans/{plan_id}?refresh=true")
     assert resp.status_code == 200
     by_app = {p["app"]: p for p in resp.json()["projects"]}
     assert by_app["tasking-manager"]["error"] is None
@@ -369,7 +413,7 @@ async def test_orphan_end_to_end_flow(auth_client):
         "umap": AsyncMock(return_value=None),
     }
     with patch.dict(plans_service.APP_FETCHERS, fetchers):
-        resp = await client.get(f"/api/plans/{plan_id}")
+        resp = await client.get(f"/api/plans/{plan_id}?refresh=true")
     assert any(p["error"] == "not_found" for p in resp.json()["projects"])
 
     # User removes the orphan via PATCH
@@ -419,7 +463,7 @@ async def test_hydrate_parallelism(auth_client):
     with patch.dict(plans_service.APP_FETCHERS, fetchers):
         loop = asyncio.get_event_loop()
         t0 = loop.time()
-        resp = await client.get(f"/api/plans/{plan_id}")
+        resp = await client.get(f"/api/plans/{plan_id}?refresh=true")
         elapsed = loop.time() - t0
     assert resp.status_code == 200
     # Sequential would be ~0.6s; parallel should be closer to 0.2s.
@@ -560,7 +604,7 @@ async def test_shared_endpoint_public_plan(auth_client):
         "umap": AsyncMock(return_value=None),
     }
     with patch.dict(plans_service.APP_FETCHERS, fetchers):
-        resp = await client.get(f"/api/plans/shared/{plan_id}")
+        resp = await client.get(f"/api/plans/shared/{plan_id}?refresh=true")
     assert resp.status_code == 200
     body = resp.json()
     assert body["id"] == plan_id
