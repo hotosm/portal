@@ -267,9 +267,23 @@ function PlanProjectCard({
               )}
             </>
           ) : (
-            <span className="block w-full text-left whitespace-normal text-base font-bold">
-              <span className="line-clamp-2">{title}</span>
-            </span>
+            <>
+              <span className="block w-full text-left whitespace-normal text-base font-bold">
+                <span className="line-clamp-2">{title}</span>
+              </span>
+              {unavailable && onDelete && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete();
+                  }}
+                  className="self-start text-sm font-medium text-red-700 underline hover:text-red-800"
+                >
+                  {m.plan_project_remove_button()}
+                </button>
+              )}
+            </>
           )}
         </div>
       ) : (
@@ -285,7 +299,7 @@ function PlanProjectCard({
 
   return (
     <>
-      {project.project_exists && (
+      {project.project_exists && !unavailable && (
         <ProjectDialog
           open={dialogOpen}
           onClose={() => setDialogOpen(false)}
@@ -310,6 +324,12 @@ function PlanProjectCard({
         >
           {cardContent}
         </button>
+      ) : unavailable ? (
+        // Upstream can't be reached: keep the card grayed out and non-openable
+        // (no dialog), but leave it interactive so it can still be removed.
+        <div className={`${cardClassName} grayscale opacity-60`} aria-disabled="true">
+          {cardContent}
+        </div>
       ) : (
         <div
           className={`${cardClassName} cursor-pointer`}
