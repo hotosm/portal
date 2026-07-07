@@ -25,12 +25,12 @@ export const APP_LABELS: Record<AppName, string> = {
   umap: "uMap",
 };
 
-export function useAllUserProjects() {
-  const chatmap = useChatMapData();
-  const drone = useDroneProjects();
-  const fair = useMyModels(1, 50);
-  const umap = useMyMaps(1, 50);
-  const exportJobs = useExportJobs();
+export function useAllUserProjects(enabled = true) {
+  const chatmap = useChatMapData(enabled);
+  const drone = useDroneProjects(enabled);
+  const fair = useMyModels(1, 50, enabled);
+  const umap = useMyMaps(1, 50, enabled);
+  const exportJobs = useExportJobs(1, 6, enabled);
 
   const sources = useMemo<ProjectSource[]>(
     () => [
@@ -41,6 +41,7 @@ export function useAllUserProjects() {
           app: "chatmap" as AppName,
           project_id: p.id,
           title: p.title,
+          upstream: { name: p.title, centroid: p.centroid ?? null },
         })),
         isLoading: chatmap.isLoading,
         isError: chatmap.isError,
@@ -52,6 +53,7 @@ export function useAllUserProjects() {
           app: "drone-tasking-manager" as AppName,
           project_id: p.id.startsWith("drone-") ? p.id.slice("drone-".length) : p.id,
           title: p.title,
+          upstream: { name: p.title, image_url: p.image ?? null },
         })),
         isLoading: drone.isLoading,
         isError: drone.isError,
@@ -63,6 +65,7 @@ export function useAllUserProjects() {
           app: "fair" as AppName,
           project_id: String(p.id),
           title: p.title,
+          upstream: { name: p.title, image_url: p.image ?? null },
         })),
         isLoading: fair.isLoading,
         isError: fair.isError,

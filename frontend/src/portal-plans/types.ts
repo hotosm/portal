@@ -8,10 +8,7 @@ export type AppName =
   | 'tasking-manager'
   | 'umap'
 
-export type HydrationError =
-  | 'not_found'
-  | 'upstream_unavailable'
-  | 'upstream_timeout'
+export type HydrationError = 'not_found' | 'upstream_unavailable' | 'upstream_timeout' | 'pending'
 
 export type ProjectStatus = 'pending' | 'in_progress' | 'done' | 'task'
 
@@ -21,6 +18,7 @@ export interface PlanProjectItem {
   project_id?: string | null
   project_exists?: boolean
   status?: ProjectStatus
+  featured?: boolean
   data?: Record<string, unknown> | null
 }
 
@@ -61,9 +59,11 @@ export interface HydratedProjectItem {
   project_id: string | null
   project_exists: boolean
   status: ProjectStatus
+  featured: boolean
   data: Record<string, unknown> | null
   upstream: Record<string, unknown> | null
   error: HydrationError | null
+  from_snapshot?: boolean
 }
 
 export interface PlanReadHydrated {
@@ -112,7 +112,7 @@ export interface ProjectPickerDialogProps {
     selected: Set<string>,
     extraProjects: ProjectOption[],
     keptTaskIds: Set<string>,
-    newTasks: PendingTaskInput[],
+    newTasks: PendingTaskInput[]
   ) => void
   onClose: () => void
 }
