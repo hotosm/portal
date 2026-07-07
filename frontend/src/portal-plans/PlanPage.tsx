@@ -1,14 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import CardAddNew from "../components/shared/CardAddNew";
-import CardSkeleton from "../components/shared/CardSkeleton";
-import PageWrapper from "../components/shared/PageWrapper";
-import SubSectionHeader from "../components/shared/SubSectionHeader";
+import SectionCardGrid from "../components/shared/SectionCardGrid";
 import { useLanguage } from "../contexts/LanguageContext";
 import { m } from "../paraglide/messages";
 import PlanCard from "./components/PlanCard";
 import PlanSectionHeader from "./components/PlanSectionHeader";
 import { useMyPlans } from "./hooks";
-import { cardClassNames } from "../constants/classNames";
 
 function PlanPage() {
   const navigate = useNavigate();
@@ -20,44 +17,28 @@ function PlanPage() {
       <PlanSectionHeader>
         <strong>{m.plan_header()}</strong>
       </PlanSectionHeader>
-      <SubSectionHeader
+
+      <SectionCardGrid
         title={`<strong>${m.plan_page_create_title()}</strong> ${m.plan_page_create_description()}`}
-      />
-      <PageWrapper>
-        <div className="flex flex-col gap-sm py-lg">
-          {isError && (
+        isLoading={isLoading}
+        skeletonCount={3}
+        header={
+          isError && (
             <p className="text-sm text-hot-red-600">{m.plan_list_error()}</p>
-          )}
-          <div className="flex flex-wrap gap-lg">
-            {isLoading ? (
-              Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className={cardClassNames}>
-                  <CardSkeleton linesCount={3} />
-                </div>
-              ))
-            ) : (
-              <>
-                <div className={cardClassNames}>
-                  <CardAddNew
-                    title={m.plan_page_create_title()}
-                    description={m.plan_page_create_description()}
-                    buttonLabel={m.plan_page_new_button()}
-                    icon="add"
-                    onButtonClick={() =>
-                      navigate(`/${currentLanguage}/plan/new`)
-                    }
-                  />
-                </div>
-                {plans.map((plan) => (
-                  <div key={plan.id} className={cardClassNames}>
-                    <PlanCard plan={plan} />
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
-        </div>
-      </PageWrapper>
+          )
+        }
+        addCard={
+          <CardAddNew
+            title={m.plan_page_create_title()}
+            description={m.plan_page_create_description()}
+            buttonLabel={m.plan_page_new_button()}
+            icon="add"
+            onButtonClick={() => navigate(`/${currentLanguage}/plan/new`)}
+          />
+        }
+        items={plans}
+        renderItem={(plan) => <PlanCard plan={plan} />}
+      />
     </>
   );
 }

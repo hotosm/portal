@@ -3,12 +3,9 @@ import aiIcon from "../assets/icons/ai.svg";
 import tmIcon from "../assets/icons/tm.svg";
 import CardAddNew from "../components/shared/CardAddNew";
 import CardDataNotAvailable from "../components/shared/CardDataNotAvailable";
-import CardSkeleton from "../components/shared/CardSkeleton";
-// import CardTakeCourse from "../components/shared/CardTakeCourse";
-import PageWrapper from "../components/shared/PageWrapper";
 import Pagination from "../components/shared/Pagination";
+import SectionCardGrid from "../components/shared/SectionCardGrid";
 import SectionHeader from "../components/shared/SectionHeader";
-import SubSectionHeader from "../components/shared/SubSectionHeader";
 import { m } from "../paraglide/messages";
 import FairProjectCard from "./components/FairProjectCard";
 import { useMyModels } from "./hooks";
@@ -31,76 +28,51 @@ function MappingPage() {
       <SectionHeader>
         <strong>{m.section_mapping()}</strong>
       </SectionHeader>
-      <SubSectionHeader
+
+      <SectionCardGrid
         icon={tmIcon}
         title={m.mapping_collaborative()}
         toolName="Tasking Manager"
-      />
-      <PageWrapper>
-        <div className="flex flex-col gap-sm py-lg">
-          <div className="flex flex-wrap gap-lg">
-            <div className={cardClassNames}>
-              <CardAddNew
-                title={m.mapping_tm_card_title()}
-                description={m.mapping_tm_card_description()}
-                buttonLabel={m.mapping_tm_card_button()}
-                icon="map"
-                buttonHref="https://tasks.hotosm.org"
-              />
-            </div>
-            <div className={cardClassNames}>
-              <CardDataNotAvailable />
-            </div>
+        addCard={
+          <CardAddNew
+            title={m.mapping_tm_card_title()}
+            description={m.mapping_tm_card_description()}
+            buttonLabel={m.mapping_tm_card_button()}
+            icon="map"
+            buttonHref="https://tasks.hotosm.org"
+          />
+        }
+        trailingCards={
+          <div className={cardClassNames}>
+            <CardDataNotAvailable />
           </div>
-        </div>
-      </PageWrapper>
+        }
+      />
 
-      <SubSectionHeader
+      {/* we only show models for the moment, no datasets */}
+      <SectionCardGrid
         icon={aiIcon}
         title={m.mapping_ai_assisted()}
         toolName="fAIr"
-      />
-
-      <PageWrapper>
-        <div className="flex flex-col gap-sm py-lg">
-          <div className="flex flex-wrap gap-lg">
-            {isLoading ? (
-              Array.from({ length: 1 }).map((_, i) => (
-                <div key={i} className={cardClassNames}>
-                  <CardSkeleton linesCount={3} />
-                </div>
-              ))
-            ) : (
-              <>
-                <div className={cardClassNames}>
-                  <CardAddNew
-                    title={m.mapping_fair_card_title()}
-                    description={m.mapping_tm_card_description()}
-                    buttonLabel={m.mapping_tm_card_button()}
-                    icon="map"
-                    buttonHref="https://fair.hotosm.org"
-                  />
-                </div>
-                {/* we only show models for the moment, no datasets */}
-                {models.map((project) => (
-                  <div key={project.id} className={cardClassNames}>
-                    <FairProjectCard project={project} />
-                  </div>
-                ))}
-              </>
-            )}
-            <div className={cardClassNames}>
-              <CardDataNotAvailable />
-            </div>
-            {/* <div className={cardClassNames}>
-              <CardTakeCourse
-                title={m.imagery_take_course_title()}
-                subtitle={m.imagery_take_course_subtitle()}
-                href="#"
-              />
-            </div> */}
+        isLoading={isLoading}
+        addCard={
+          <CardAddNew
+            title={m.mapping_fair_card_title()}
+            description={m.mapping_tm_card_description()}
+            buttonLabel={m.mapping_tm_card_button()}
+            icon="map"
+            buttonHref="https://fair.hotosm.org"
+          />
+        }
+        items={models}
+        renderItem={(project) => <FairProjectCard project={project} />}
+        trailingCards={
+          <div className={cardClassNames}>
+            <CardDataNotAvailable />
           </div>
-          {totalPages > 1 && (
+        }
+        footer={
+          totalPages > 1 && (
             <div className="mt-lg">
               <Pagination
                 currentPage={projectsPage}
@@ -108,9 +80,9 @@ function MappingPage() {
                 onPageChange={setProjectsPage}
               />
             </div>
-          )}
-        </div>
-      </PageWrapper>
+          )
+        }
+      />
     </>
   );
 }

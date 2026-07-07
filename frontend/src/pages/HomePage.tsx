@@ -32,28 +32,6 @@ function HomePage() {
       }}
     >
       <div className="container flex flex-col gap-xl mb-3xl mt-xl">
-        {/* <section className="h-[calc(100vh_-_68px_-_2rem)] relative pt-4">
-          <ProjectsMap
-            mapResults={projectsData}
-            selectedProjectId={selectedProjectId}
-            selectedProduct={selectedProduct}
-            selectedProjects={selectedProjects}
-            locationName={locationName}
-            onProjectClick={handleProjectClick}
-            onCloseDetails={handleCloseDetails}
-          />
-          {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/10 backdrop-blur-sm">
-              <p>{m.loading_projects()}...</p>
-            </div>
-          )}
-          {error && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/80">
-              <p>{m.loading_projects_error()}</p>
-            </div>
-          )}
-        </section> */}
-
         <section className="container overflow-hidden px-md md:px-xl py-3xl  bg-white  flex flex-col gap-xl md:gap-3xl justify-center items-center rounded-xl text-center">
           <div className="flex flex-col gap-md md:gap-xl">
             <span className="text-2xl md:text-3xl leading-tight">
