@@ -60,21 +60,6 @@ function FieldPage() {
       <PageWrapper>
         <div className="flex flex-col gap-sm py-lg">
           <div className="flex flex-wrap gap-lg">
-            {/* {isFieldLoading ? (
-              Array.from({ length: 1 }).map((_, i) => (
-                <div key={i} className={cardClassNames}>
-                  <CardSkeleton linesCount={3} />
-                </div>
-              ))
-            ) : (
-              <>
-                {fieldMaps.map((project) => (
-                  <div key={project.id} className={cardClassNames}>
-                    <FieldTMCard project={project} />
-                  </div>
-                ))}
-              </>
-            )} */}
             <div className={cardClassNames}>
               <CardDataNotAvailable />
             </div>
@@ -88,15 +73,6 @@ function FieldPage() {
               />
             </div>
           </div>
-          {/* {totalPages > 1 && (
-            <div className="mt-lg">
-              <Pagination
-                currentPage={projectsPage}
-                totalPages={totalPages}
-                onPageChange={setProjectsPage}
-              />
-            </div>
-          )} */}
         </div>
       </PageWrapper>
     </>

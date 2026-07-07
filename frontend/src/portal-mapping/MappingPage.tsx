@@ -4,7 +4,6 @@ import tmIcon from "../assets/icons/tm.svg";
 import CardAddNew from "../components/shared/CardAddNew";
 import CardDataNotAvailable from "../components/shared/CardDataNotAvailable";
 import CardSkeleton from "../components/shared/CardSkeleton";
-// import CardTakeCourse from "../components/shared/CardTakeCourse";
 import PageWrapper from "../components/shared/PageWrapper";
 import Pagination from "../components/shared/Pagination";
 import SectionHeader from "../components/shared/SectionHeader";
@@ -92,13 +91,6 @@ function MappingPage() {
             <div className={cardClassNames}>
               <CardDataNotAvailable />
             </div>
-            {/* <div className={cardClassNames}>
-              <CardTakeCourse
-                title={m.imagery_take_course_title()}
-                subtitle={m.imagery_take_course_subtitle()}
-                href="#"
-              />
-            </div> */}
           </div>
           {totalPages > 1 && (
             <div className="mt-lg">

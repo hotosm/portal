@@ -3,7 +3,6 @@ import exportIcon from "../assets/icons/export.svg";
 import umapIcon from "../assets/icons/umap.svg";
 import CardAddNew from "../components/shared/CardAddNew";
 import CardSkeleton from "../components/shared/CardSkeleton";
-// import CardTakeCourse from "../components/shared/CardTakeCourse";
 import CardDataNotAvailable from "../components/shared/CardDataNotAvailable";
 import PageWrapper from "../components/shared/PageWrapper";
 import Pagination from "../components/shared/Pagination";
@@ -121,11 +120,6 @@ function DataPage() {
             )}
             <div className={cardClassNames}>
               <CardDataNotAvailable />
-              {/* <CardTakeCourse
-                title={m.imagery_take_course_title()}
-                subtitle={m.imagery_take_course_subtitle()}
-                href="#"
-              /> */}
             </div>
           </div>
           {totalExportPages > 1 && (
