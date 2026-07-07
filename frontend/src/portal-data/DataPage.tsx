@@ -2,12 +2,10 @@ import { useState } from "react";
 import exportIcon from "../assets/icons/export.svg";
 import umapIcon from "../assets/icons/umap.svg";
 import CardAddNew from "../components/shared/CardAddNew";
-import CardSkeleton from "../components/shared/CardSkeleton";
 import CardDataNotAvailable from "../components/shared/CardDataNotAvailable";
-import PageWrapper from "../components/shared/PageWrapper";
 import Pagination from "../components/shared/Pagination";
+import SectionCardGrid from "../components/shared/SectionCardGrid";
 import SectionHeader from "../components/shared/SectionHeader";
-import SubSectionHeader from "../components/shared/SubSectionHeader";
 import { m } from "../paraglide/messages";
 import ExportCard from "./components/ExportCard";
 import UMapCard from "./components/UMapCard";
@@ -39,41 +37,24 @@ function DataPage() {
         <strong>{m.section_data()}</strong>
       </SectionHeader>
 
-      <SubSectionHeader
+      <SectionCardGrid
         icon={umapIcon}
         title="<strong>Create</strong> maps and visualizations "
         toolName="uMap"
-      />
-
-      <PageWrapper>
-        <div className="flex flex-col gap-sm py-lg">
-          <div className="flex flex-wrap gap-lg">
-            {mapsLoading ? (
-              Array.from({ length: 1 }).map((_, i) => (
-                <div key={i} className={cardClassNames}>
-                  <CardSkeleton linesCount={3} />
-                </div>
-              ))
-            ) : (
-              <>
-                <div className={cardClassNames}>
-                  <CardAddNew
-                    title="Create"
-                    description="a mapping project"
-                    buttonLabel="New project"
-                    icon="add"
-                    buttonHref="https://umap.hotosm.org/en/map/new/"
-                  />
-                </div>
-                {maps.map((map) => (
-                  <div key={map.id} className={cardClassNames}>
-                    <UMapCard project={map} />
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
-          {totalMapPages > 1 && (
+        isLoading={mapsLoading}
+        addCard={
+          <CardAddNew
+            title="Create"
+            description="a mapping project"
+            buttonLabel="New project"
+            icon="add"
+            buttonHref="https://umap.hotosm.org/en/map/new/"
+          />
+        }
+        items={maps}
+        renderItem={(map) => <UMapCard project={map} />}
+        footer={
+          totalMapPages > 1 && (
             <div className="mt-lg">
               <Pagination
                 currentPage={mapsPage}
@@ -81,48 +62,34 @@ function DataPage() {
                 onPageChange={setMapsPage}
               />
             </div>
-          )}
-        </div>
-      </PageWrapper>
+          )
+        }
+      />
 
-      <SubSectionHeader
+      <SectionCardGrid
         icon={exportIcon}
         title="<strong>Export</strong> OSM Data "
         toolName="Export Tool"
-      />
-
-      <PageWrapper>
-        <div className="flex flex-col gap-sm py-lg">
-          <div className="flex flex-wrap gap-lg">
-            {exportsLoading ? (
-              Array.from({ length: 2 }).map((_, i) => (
-                <div key={i} className={cardClassNames}>
-                  <CardSkeleton linesCount={3} />
-                </div>
-              ))
-            ) : (
-              <>
-                <div className={cardClassNames}>
-                  <CardAddNew
-                    title="Export"
-                    description="filter and download data in any format"
-                    buttonLabel="Create new export"
-                    icon="add"
-                    buttonHref="https://export.hotosm.org"
-                  />
-                </div>
-                {exports.map((project) => (
-                  <div key={project.id} className={cardClassNames}>
-                    <ExportCard project={project} />
-                  </div>
-                ))}
-              </>
-            )}
-            <div className={cardClassNames}>
-              <CardDataNotAvailable />
-            </div>
+        isLoading={exportsLoading}
+        skeletonCount={2}
+        addCard={
+          <CardAddNew
+            title="Export"
+            description="filter and download data in any format"
+            buttonLabel="Create new export"
+            icon="add"
+            buttonHref="https://export.hotosm.org"
+          />
+        }
+        items={exports}
+        renderItem={(project) => <ExportCard project={project} />}
+        trailingCards={
+          <div className={cardClassNames}>
+            <CardDataNotAvailable />
           </div>
-          {totalExportPages > 1 && (
+        }
+        footer={
+          totalExportPages > 1 && (
             <div className="mt-lg">
               <Pagination
                 currentPage={exportsPage}
@@ -130,9 +97,9 @@ function DataPage() {
                 onPageChange={setExportsPage}
               />
             </div>
-          )}
-        </div>
-      </PageWrapper>
+          )
+        }
+      />
     </>
   );
 }
