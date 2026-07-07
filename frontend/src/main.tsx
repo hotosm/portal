@@ -51,17 +51,13 @@ function Root() {
           <LanguageProvider>
             <AuthProvider>
               <Toaster richColors position="bottom-right" />
-              <AppContent />
+              <App />
             </AuthProvider>
           </LanguageProvider>
         </QueryClientProvider>
       </BrowserRouter>
     </StrictMode>
   )
-}
-
-function AppContent() {
-  return <App />
 }
 
 const rootElement = document.getElementById('root')!
