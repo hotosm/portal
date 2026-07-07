@@ -141,6 +141,7 @@
   "plan_form_name_label": "Nom",
   "plan_form_name_placeholder": "Mon plan",
   "plan_form_description_label": "Description",
+  "plan_form_description_markdown_hint": "La mise en forme Markdown est prise en charge.",
   "plan_form_description_placeholder": "Description facultative",
   "plan_form_projects_label": "Projets",
   "plan_form_select_projects": "Sélectionner des projets…",
