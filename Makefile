@@ -1,10 +1,11 @@
-.PHONY: help install dev dev-standalone dev-docker stop test test-backend test-frontend lint lint-fix clean build deploy-test
+.PHONY: help install dev dev-standalone dev-docker certs stop test test-backend test-frontend lint lint-fix clean build deploy-test
 
 UV_LOCAL_ENV ?= .venv-local
 UV_LOCAL = UV_PROJECT_ENVIRONMENT=$(UV_LOCAL_ENV) uv
 
-HOT_DEV_ENV := ../hot-dev-env
 LOGIN_DIR := ../login
+CERTS_DIR := certs
+DEV_DOMAINS := portal.hotosm.test login.hotosm.test
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -30,27 +31,24 @@ dev-frontend: ## Run frontend locally (without Docker)
 	cd frontend && pnpm dev
 
 # Development (Docker)
-dev: ## Run full dev environment: delegates to hot-dev-env (Traefik, https://portal.hotosm.test) if present, else standalone. Also brings up Login if ../login is present.
-	@if [ -f "$(HOT_DEV_ENV)/Makefile" ]; then \
-		if [ -d "$(LOGIN_DIR)/frontend" ] && [ -d "$(LOGIN_DIR)/backend" ]; then \
-			if docker ps --filter "name=^/hotosm-portal-frontend$$" --filter "status=running" -q | grep -q . && \
-			   docker ps --filter "name=^/hotosm-login-frontend$$" --filter "status=running" -q | grep -q .; then \
-				echo "hot-dev-env is already running Portal + Login — nothing to do."; \
-			else \
-				echo "hot-dev-env + login detected — starting Portal and Login together (https://portal.hotosm.test, https://login.hotosm.test)"; \
-				docker compose -f "$(HOT_DEV_ENV)/docker-compose.yml" --project-directory "$(HOT_DEV_ENV)" up portal-frontend portal-backend portal-db login-frontend login-backend hanko hanko-db mailhog traefik --build; \
-			fi \
-		else \
-			if docker ps --filter "name=^/hotosm-portal-frontend$$" --filter "status=running" -q | grep -q .; then \
-				echo "hot-dev-env is already running Portal at https://portal.hotosm.test — nothing to do."; \
-			else \
-				echo "hot-dev-env detected at $(HOT_DEV_ENV) — delegating to 'make dev-portal' (https://portal.hotosm.test)"; \
-				$(MAKE) -C $(HOT_DEV_ENV) dev-portal; \
-			fi \
-		fi \
-	else \
-		$(MAKE) dev-standalone; \
+certs: ## Generate local HTTPS certs for *.hotosm.test via mkcert (used by Caddy, no Traefik)
+	@command -v mkcert >/dev/null 2>&1 || { echo "Error: mkcert is required. Install it from https://github.com/FiloSottile/mkcert and re-run 'make certs'." >&2; exit 1; }
+	@mkdir -p $(CERTS_DIR)
+	@if [ ! -f "$(CERTS_DIR)/dev.crt" ] || [ ! -f "$(CERTS_DIR)/dev.key" ]; then \
+		mkcert -install; \
+		mkcert -cert-file $(CERTS_DIR)/dev.crt -key-file $(CERTS_DIR)/dev.key $(DEV_DOMAINS); \
 	fi
+
+dev: certs ## Run Portal + Login standalone with HTTPS via Caddy (no hot-dev-env, no Traefik) at https://portal.hotosm.test. Requires ../login to be present.
+	@if [ ! -d "$(LOGIN_DIR)/frontend" ] || [ ! -d "$(LOGIN_DIR)/backend" ]; then \
+		echo "Error: The login repository must be in the same folder to run the project and access it through the login." >&2; \
+		exit 1; \
+	fi
+	@echo "Starting Portal + Login standalone with HTTPS (Caddy, no hot-dev-env, no Traefik)."
+	@echo "Portal: https://portal.hotosm.test"
+	@echo "Login:  https://login.hotosm.test"
+	@echo "Make sure both hosts resolve to 127.0.0.1 in your hosts file."
+	docker compose --profile dev up --build
 
 dev-standalone: ## Run Portal only, without Traefik (http://localhost:5173)
 	@echo "Starting standalone development environment..."
