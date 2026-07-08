@@ -87,11 +87,15 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-portal}:${POSTGRES_PASSWORD:-portal}@db:5432/${POSTGRES_DB:-portal}
       DEBUG: "true"
-      # Authentication settings (expects login service to be running)
-      HANKO_API_URL: ${HANKO_API_URL:-https://login.hotosm.test}
-      JWT_ISSUER: ${JWT_ISSUER:-https://login.hotosm.test}
+      # Authentication settings (talks to the local hanko/login-dev services below).
+      # Fixed (not overridable via .env): JWT_ISSUER must match hanko-config.yaml's
+      # session.issuer (the public login.hotosm.test origin), NOT the internal
+      # HANKO_API_URL — otherwise "auto" would resolve the issuer to http://hanko:8000
+      # and token validation would fail.
+      HANKO_API_URL: http://hanko:8000
+      JWT_ISSUER: https://login.hotosm.test
       COOKIE_SECRET: ${COOKIE_SECRET}
-      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-.hotosm.test}
       COOKIE_SECURE: ${COOKIE_SECURE:-true}
       OSM_CLIENT_ID: ${OSM_CLIENT_ID:-}
       OSM_CLIENT_SECRET: ${OSM_CLIENT_SECRET:-}
@@ -113,6 +117,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      hanko:
+        condition: service_started
     command: sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir app --reload-exclude '.venv/*' --reload-exclude 'app/tests/*' --reload-exclude '.pytest_cache/*'"
     profiles:
       - dev
@@ -186,7 +192,8 @@ services:
       target: development
     container_name: portal-frontend-dev
     environment:
-      - VITE_API_URL=http://localhost:8000
+      - VITE_HANKO_URL=https://login.hotosm.test
+      - VITE_API_URL=https://portal.hotosm.test/api
       - VITE_BACKEND_URL=http://backend-dev:8000
     ports:
       - "${FRONTEND_PORT:-5173}:5173"
@@ -198,8 +205,137 @@ services:
     profiles:
       - dev
 
+  # Caddy reverse proxy: terminates HTTPS for portal.hotosm.test / login.hotosm.test
+  # locally, without Traefik or hot-dev-env.
+  caddy:
+    image: caddy:2-alpine
+    container_name: portal-caddy
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./certs:/etc/caddy/certs:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - frontend-dev
+      - backend-dev
+      - login-frontend
+      - login-backend
+      - hanko
+    profiles:
+      - dev
+
+  # --- Login / Hanko (built from the sibling ../login repo) ---
+
+  login-frontend:
+    build:
+      context: ../login/frontend
+      dockerfile: Dockerfile
+      target: dev
+    container_name: portal-login-frontend
+    volumes:
+      - ../login/frontend/src:/app/src
+      - ../login/frontend/public:/app/public
+      - ../login/frontend/vite.config.ts:/app/vite.config.ts
+    environment:
+      - VITE_HANKO_URL=https://login.hotosm.test
+      - VITE_BACKEND_URL=https://login.hotosm.test/api
+    depends_on:
+      - login-backend
+    profiles:
+      - dev
+
+  login-backend:
+    build:
+      context: ../login/backend
+      dockerfile: Dockerfile
+      target: dev
+    container_name: portal-login-backend
+    volumes:
+      - ../login/backend/app:/app/app
+    environment:
+      - HANKO_API_URL=http://hanko:8000
+      - JWT_ISSUER=https://login.hotosm.test
+      - COOKIE_SECRET=${COOKIE_SECRET}
+      - OSM_CLIENT_ID=${OSM_CLIENT_ID:-}
+      - OSM_CLIENT_SECRET=${OSM_CLIENT_SECRET:-}
+      # Fixed (not the portal OSM_REDIRECT_URI): this is login-backend's own callback,
+      # must be registered as an additional redirect URI on the same OSM OAuth app.
+      - OSM_REDIRECT_URI=https://login.hotosm.test/api/auth/osm/callback
+      - ADMIN_EMAILS=${ADMIN_EMAILS:-admin@hotosm.org}
+      - PORTAL_BACKEND_URL=http://backend-dev:8000
+    depends_on:
+      - hanko
+      - hanko-db
+    profiles:
+      - dev
+
+  hanko-migrate:
+    image: ghcr.io/teamhanko/hanko:v2.5.0
+    container_name: portal-hanko-migrate
+    volumes:
+      - ./config/hanko-config.yaml:/etc/config/config.yaml:ro
+    command: migrate up --config /etc/config/config.yaml
+    environment:
+      - DATABASE_URL=postgres://hanko:hanko@hanko-db:5432/hanko?sslmode=disable
+    depends_on:
+      hanko-db:
+        condition: service_healthy
+    restart: "no"
+    profiles:
+      - dev
+
+  hanko:
+    image: ghcr.io/teamhanko/hanko:v2.5.0
+    container_name: portal-hanko
+    volumes:
+      - ./config/hanko-config.yaml:/etc/config/config.yaml:ro
+    command: serve --config /etc/config/config.yaml public
+    environment:
+      - DATABASE_URL=postgres://hanko:hanko@hanko-db:5432/hanko?sslmode=disable
+      - SESSION_COOKIE_DOMAIN=.hotosm.test
+      - SESSION_COOKIE_HTTP_ONLY=true
+      - SESSION_COOKIE_SAME_SITE=none
+      - SESSION_COOKIE_SECURE=true
+      - THIRD_PARTY_COOKIE_DOMAIN=.hotosm.test
+    depends_on:
+      hanko-db:
+        condition: service_healthy
+      hanko-migrate:
+        condition: service_completed_successfully
+    profiles:
+      - dev
+
+  hanko-db:
+    image: postgres:17-alpine
+    container_name: portal-hanko-db
+    environment:
+      - POSTGRES_USER=hanko
+      - POSTGRES_PASSWORD=hanko
+      - POSTGRES_DB=hanko
+    volumes:
+      - hanko_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hanko -d hanko"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - dev
+
+  # Mailhog - catches emails sent by Hanko (password recovery, verification) in dev
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: portal-mailhog
+    ports:
+      - "8025:8025"
+    profiles:
+      - dev
+
 volumes:
   postgres_data:
     name: portal-postgres-data
   minio_data:
     name: portal-minio-data
+  hanko_db_data:
+    name: portal-hanko-db-data

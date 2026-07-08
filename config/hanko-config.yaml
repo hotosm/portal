@@ -1,0 +1,90 @@
+server:
+  public:
+    address: ":8000"
+    cors:
+      allow_origins:
+        - "https://portal.hotosm.test"
+        - "https://login.hotosm.test"
+      allow_credentials: true
+      unsafe_wildcard_origin_allowed: true
+
+database:
+  database: hanko
+  user: hanko
+  password: hanko
+  host: hanko-db
+  port: 5432
+
+secrets:
+  keys:
+    - "abcdefghijklmnopqrstuvwxyz123456"
+
+service:
+  name: "HOTOSM Portal (Dev)"
+
+account:
+  allow_deletion: true
+
+passkey:
+  enabled: false
+  acquire_on_login: never
+  acquire_on_registration: never
+
+mfa:
+  security_keys:
+    enabled: false
+
+webauthn:
+  enabled: false
+  relying_party:
+    id: "hotosm.test"
+    display_name: "HOTOSM Portal"
+    origins:
+      - "https://portal.hotosm.test"
+      - "https://login.hotosm.test"
+
+email:
+  require_verification: true
+  use_for_authentication: false
+
+passcode:
+  enabled: false
+  ttl: 300
+
+password:
+  enabled: true
+  min_length: 8
+  recovery: true
+
+email_delivery:
+  enabled: true
+  smtp:
+    host: "mailhog"
+    port: 1025
+  from_address: "noreply@hotosm.test"
+  from_name: "HOTOSM (Dev)"
+
+session:
+  lifespan: 1h
+  issuer: "https://login.hotosm.test"
+  audience:
+    - "https://portal.hotosm.test"
+    - "https://login.hotosm.test"
+  cookie:
+    name: "hanko"
+    domain: ".hotosm.test"
+    http_only: true
+    same_site: none
+    secure: true
+
+third_party:
+  redirect_url: "https://login.hotosm.test/app/thirdparty/callback"
+  error_redirect_url: "https://login.hotosm.test/app/error"
+  allowed_redirect_urls:
+    - "https://portal.hotosm.test/**"
+    - "https://login.hotosm.test/**"
+  cookie:
+    domain: ".hotosm.test"
+    http_only: true
+    same_site: none
+    secure: true
