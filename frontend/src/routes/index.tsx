@@ -31,20 +31,14 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-const MainNavRoute = ProtectedRoute;
-
-function HomeRoute() {
-  return <HomePage />;
-}
-
 export function AppRoutes() {
   return (
     <Routes>
       {/* Root route */}
-      <Route path="/" element={<HomeRoute />} />
+      <Route path="/" element={<HomePage />} />
 
       {/* Locale-prefixed routes */}
-      <Route path="/:locale" element={<HomeRoute />} />
+      <Route path="/:locale" element={<HomePage />} />
 
       <Route
         path="/:locale/welcome"
@@ -58,58 +52,58 @@ export function AppRoutes() {
       <Route
         path="/:locale/mapping"
         element={
-          <MainNavRoute>
+          <ProtectedRoute>
             <MappingPage />
-          </MainNavRoute>
+          </ProtectedRoute>
         }
       />
       <Route
         path="/:locale/imagery"
         element={
-          <MainNavRoute>
+          <ProtectedRoute>
             <ImageryPage />
-          </MainNavRoute>
+          </ProtectedRoute>
         }
       />
       <Route
         path="/:locale/field"
         element={
-          <MainNavRoute>
+          <ProtectedRoute>
             <FieldPage />
-          </MainNavRoute>
+          </ProtectedRoute>
         }
       />
       <Route
         path="/:locale/data"
         element={
-          <MainNavRoute>
+          <ProtectedRoute>
             <DataPage />
-          </MainNavRoute>
+          </ProtectedRoute>
         }
       />
       <Route
         path="/:locale/test"
         element={
-          <MainNavRoute>
+          <ProtectedRoute>
             <TestPage />
-          </MainNavRoute>
+          </ProtectedRoute>
         }
       />
       <Route path="/:locale/plan">
         <Route
           index
           element={
-            <MainNavRoute>
+            <ProtectedRoute>
               <PlanPage />
-            </MainNavRoute>
+            </ProtectedRoute>
           }
         />
         <Route
           path="new"
           element={
-            <MainNavRoute>
+            <ProtectedRoute>
               <AddPlanPage />
-            </MainNavRoute>
+            </ProtectedRoute>
           }
         />
         <Route path=":planId">
@@ -120,9 +114,9 @@ export function AppRoutes() {
           <Route
             path="edit"
             element={
-              <MainNavRoute>
+              <ProtectedRoute>
                 <EditPlanPage />
-              </MainNavRoute>
+              </ProtectedRoute>
             }
           />
         </Route>
@@ -130,9 +124,9 @@ export function AppRoutes() {
       <Route
         path="/:locale/help"
         element={
-          <MainNavRoute>
+          <ProtectedRoute>
             <HelpPage />
-          </MainNavRoute>
+          </ProtectedRoute>
         }
       />
 
