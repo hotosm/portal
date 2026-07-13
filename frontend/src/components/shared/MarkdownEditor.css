@@ -1,0 +1,27 @@
+/*
+ * Custom styling for the react-md-editor instance rendered by MarkdownEditor.tsx.
+ * Everything is scoped under `.markdown-editor` 
+ */
+
+.markdown-editor .w-md-editor-toolbar {
+  padding: 8px;
+}
+
+.markdown-editor .w-md-editor-toolbar li > button {
+  height: 30px;
+}
+
+/* Restore list markers in the preview pane (`@tailwind base`) resets `ol, ul { list-style: none }`) */
+.markdown-editor .w-md-editor-preview ul,
+.markdown-editor .w-md-editor-preview ol {
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.markdown-editor .w-md-editor-preview ul {
+  list-style-type: disc;
+}
+
+.markdown-editor .w-md-editor-preview ol {
+  list-style-type: decimal;
+}

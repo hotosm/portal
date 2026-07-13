@@ -141,7 +141,7 @@
   "plan_form_name_label": "Nombre",
   "plan_form_name_placeholder": "Mi plan",
   "plan_form_description_label": "Descripción",
-  "plan_form_description_markdown_hint": "Se admite formato Markdown.",
+  "plan_form_description_markdown_hint": "Se admite formato Markdown. El panel derecho muestra una vista previa en vivo.",
   "plan_form_description_placeholder": "Descripción opcional",
   "plan_form_projects_label": "Proyectos",
   "plan_form_select_projects": "Seleccionar proyectos…",
