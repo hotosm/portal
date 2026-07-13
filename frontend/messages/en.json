@@ -141,7 +141,7 @@
   "plan_form_name_label": "Name",
   "plan_form_name_placeholder": "My plan",
   "plan_form_description_label": "Description",
-  "plan_form_description_markdown_hint": "Markdown formatting is supported.",
+  "plan_form_description_markdown_hint": "Markdown formatting is supported. The right pane shows a live preview.",
   "plan_form_description_placeholder": "Optional description",
   "plan_form_projects_label": "Projects",
   "plan_form_select_projects": "Select projects…",

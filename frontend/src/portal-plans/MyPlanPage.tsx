@@ -18,7 +18,7 @@ import CardSkeleton from "../components/shared/CardSkeleton";
 import Carousel from "../components/shared/Carousel";
 import CarouselItem from "../components/shared/CarouselItem";
 import PageWrapper from "../components/shared/PageWrapper";
-import { RichTextContent } from "../components/shared/RichTextEditor";
+import { RichTextContent } from "../components/shared/RichTextContent";
 import SubSectionHeader from "../components/shared/SubSectionHeader";
 import Tag from "../components/shared/Tag";
 import { cardClassNames } from "../constants/classNames";
