@@ -55,13 +55,24 @@ function Footer() {
               This is free and open source software, brought to you by the
               Humanitarian OpenStreetMap Team &amp; friends
             </p>
+            <p>
             <Link
               to={`/${currentLanguage}/privacy-policy`}
               onClick={(e) => e.currentTarget.blur()}
-              className="text-sm text-hot-gray-400 hover:text-hot-gray-600 transition-colors"
+              className="text-sm text-hot-gray-400 hover:text-hot-gray-600 transition-colors inline"
             >
               Privacy Policy
             </Link>
+            •
+            <Link
+              to={"https://roadmap.hotosm.org/#tech-request"}
+              target="_blank"
+              onClick={(e) => e.currentTarget.blur()}
+              className="text-sm text-hot-gray-400 hover:text-hot-gray-600 transition-colors inline"
+            >
+              Tech request
+            </Link>
+            </p>
           </div>
         </div>
       </div>
