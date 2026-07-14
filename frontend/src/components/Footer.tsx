@@ -62,9 +62,7 @@ function Footer() {
               className="text-sm text-hot-gray-400 hover:text-hot-gray-600 transition-colors inline"
             >
               Privacy Policy
-            </Link>
-            •
-            <Link
+            </Link> • <Link
               to={"https://roadmap.hotosm.org/#tech-request"}
               target="_blank"
               onClick={(e) => e.currentTarget.blur()}
