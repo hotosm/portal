@@ -118,6 +118,25 @@ function MyPlanPage() {
     revalidatedRef.current = planId;
     refreshPlan();
   }, [plan, planId, refreshPlan]);
+
+  // Some projects (e.g. an OAM TMS URL, whose title needs a slow catalog search
+  // — see find_image_by_tms_ids) can still be "pending" after that one refresh.
+  // Keep retrying every few seconds, bounded, until nothing is pending anymore —
+  // a single attempt isn't reliable enough for something that routinely takes
+  // 10-20s and shares the plan's connection with everyone else's slow requests.
+  const pendingRetriesRef = useRef(0);
+  useEffect(() => {
+    if (!plan || !planId) return;
+    const hasPending = plan.projects.some((p) => p.error === "pending");
+    if (!hasPending) {
+      pendingRetriesRef.current = 0;
+      return;
+    }
+    if (pendingRetriesRef.current >= 6) return;
+    pendingRetriesRef.current += 1;
+    const timer = setTimeout(() => refreshPlan(), 5000);
+    return () => clearTimeout(timer);
+  }, [plan, planId, refreshPlan]);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
@@ -200,9 +219,13 @@ function MyPlanPage() {
         project_exists: true,
         // Fall back to the picker option's title so the card shows a name right
         // away; some apps only expose the title (no upstream) until rehydration.
+        // Skip that fallback while still resolving (e.g. an OAM TMS URL) — its
+        // "title" is just the raw project_id placeholder, not a real name, and
+        // stashing it in `data` would mark the row as already hydrated, hiding
+        // the pending spinner and never getting replaced by the real title.
         data:
           (opt?.upstream as Record<string, unknown> | null) ??
-          (opt?.title ? { name: opt.title } : null),
+          (opt?.title && !opt?.isResolving ? { name: opt.title } : null),
       });
     }
     // Append newly created tasks.

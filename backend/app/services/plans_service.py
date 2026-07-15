@@ -484,6 +484,27 @@ async def hydrate_one(
             featured=row.featured, data=row.data, upstream=upstream, error=None if upstream else "not_found",
         )
 
+    if row.app == "open-aerial-map" and open_aerial_map_service.is_tms_project_id(row.project_id):
+        # TMS-sourced OAM projects resolve via a slow catalog search (see
+        # open_aerial_map_service.find_image_by_tms_ids) that manages its own
+        # ~20s budget internally — the generic HYDRATE_FETCHER_TIMEOUT (8s) would
+        # almost always cut it off before it can finish. A timeout/failure here
+        # means "still searching", not "broken", so it maps to error="pending"
+        # (spinner) rather than upstream_timeout/upstream_unavailable (which the
+        # UI shows as a permanent "Unavailable" state) — the next hydration
+        # retries and benefits from whatever pages are already cached.
+        try:
+            upstream = await open_aerial_map_service.fetch_imagery_by_id(
+                row.project_id, force_refresh=force_refresh
+            )
+        except Exception:
+            upstream = None
+        return HydratedProjectItem(
+            app=row.app, project_id=row.project_id, status=row.status,
+            featured=row.featured, data=row.data, upstream=upstream,
+            error=None if upstream else "pending",
+        )
+
     fetcher = APP_FETCHERS.get(row.app)
     if fetcher is None:
         return HydratedProjectItem(
@@ -817,5 +838,16 @@ async def resolve_project_url(
         base = f"{p.scheme}://{p.netloc}"
         upstream = await field_tm_service.fetch_project_by_id(project_id, base_url=base)
         return UrlResolveResponse(app=app, project_id=project_id, upstream=upstream)
+
+    if app == "open-aerial-map" and open_aerial_map_service.is_tms_project_id(project_id):
+        # TMS tile URLs don't carry OAM's _id, so verifying/titling them means
+        # paging through OAM's whole /meta catalog (no indexed lookup by uuid
+        # exists) — measured up to ~20s. Don't block adding the project on that;
+        # accept it immediately and let the title fill in on a later plan
+        # hydration, while warming its page cache in the background so that
+        # hydration is likely to find it already cached instead of repeating
+        # the same slow search.
+        open_aerial_map_service.schedule_tms_warmup(project_id)
+        return UrlResolveResponse(app=app, project_id=project_id, upstream=None)
 
     return await _fetch_by_app_project(app, project_id, hanko_cookie=hanko_cookie)

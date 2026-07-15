@@ -170,6 +170,7 @@
   "plan_picker_url_not_found": "Projet introuvable. Vérifiez l'URL.",
   "plan_picker_url_service_unavailable": "Impossible de joindre le service. Réessayez plus tard.",
   "plan_picker_url_not_recognized": "URL non reconnue.",
+  "plan_picker_url_oam_tms_pending": "Image OpenAerialMap (résolution du nom…)",
   "plan_card_projects_singular": "projet",
   "plan_card_projects_plural": "projets",
   "plan_toast_create_error": "Échec de la création du plan",
@@ -191,6 +192,7 @@
   "plan_refreshing_button": "Mise à jour…",
   "plan_project_missing_badge": "Introuvable",
   "plan_project_unavailable_badge": "Indisponible",
+  "plan_project_pending_badge": "Résolution…",
   "plan_project_missing_label": "Ce projet n'existe plus dans l'application source.",
   "plan_project_remove_button": "Retirer du plan"
 }
