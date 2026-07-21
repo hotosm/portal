@@ -50,6 +50,7 @@ services:
       - DEBUG=false
       - HANKO_API_URL=https://dev.login.hotosm.org
       - JWT_ISSUER=auto
+      - LOGIN_GROUPS_ENABLED=true
       - COOKIE_SECRET=${COOKIE_SECRET}
       - COOKIE_DOMAIN=.hotosm.org
       - OSM_CLIENT_ID=${OSM_CLIENT_ID}
