@@ -93,18 +93,24 @@ function MyPlanPage() {
     isError: publicError,
   } = useSharedPlan(planId ?? "");
 
-  const isOwner = isLogin && ownPlan != null;
   const plan = ownPlan ?? publicPlan;
+  // Whether we're rendering the caller's private view (usePlan) vs. the public
+  // shared view (useSharedPlan) — drives which endpoints/errors apply.
+  const viewingOwn = ownPlan != null;
+  // can_edit: creator OR a group member with edit rights (all editing actions).
+  // Owner-only actions (delete, manage permissions) are gated inside PlanMenu
+  // via plan.is_owner.
+  const canEdit = plan?.can_edit ?? false;
 
   const [pickerSection, setPickerSection] = useState<AppName[] | null>(null);
-  const { sources } = useAllUserProjects(isOwner);
+  const { sources } = useAllUserProjects(canEdit);
 
   const { mutate: updatePlan } = useUpdatePlan();
   const { mutate: updateStatus } = useUpdateProjectStatus();
   const { mutate: completeTask } = useCompleteTask(planId ?? "");
   const { mutate: refreshPlan, isPending: isRefreshing } = useRefreshPlan(
     planId ?? "",
-    !isOwner,
+    !viewingOwn,
   );
   const queryClient = useQueryClient();
 
@@ -248,7 +254,7 @@ function MyPlanPage() {
 
   const isLoading =
     isAuthLoading || ownLoading || (ownPlan == null && publicLoading);
-  const isError = isOwner ? ownError : publicError;
+  const isError = viewingOwn ? ownError : publicError;
 
   if (!isLoading && isError) {
     return (
@@ -285,7 +291,7 @@ function MyPlanPage() {
                 <PlanProjectCard
                   project={project}
                   onStatusChange={
-                    isOwner && project.project_exists && project.project_id
+                    canEdit && project.project_exists && project.project_id
                       ? (status) =>
                           updateStatus({
                             planId: planId!,
@@ -295,9 +301,9 @@ function MyPlanPage() {
                           })
                       : undefined
                   }
-                  onDelete={isOwner ? () => handleProjectDeleted(project.id) : undefined}
+                  onDelete={canEdit ? () => handleProjectDeleted(project.id) : undefined}
                   onFeaturedChange={
-                    isOwner ? (featured) => handleFeaturedToggle(project.id, featured) : undefined
+                    canEdit ? (featured) => handleFeaturedToggle(project.id, featured) : undefined
                   }
                 />
               </div>
@@ -328,21 +334,21 @@ function MyPlanPage() {
     const sectionProjects = plan!.projects.filter(
       (p) => section.apps.includes(p.app),
     );
-    if (!isOwner && sectionProjects.length === 0) return null;
+    if (!canEdit && sectionProjects.length === 0) return null;
 
     return (
       <div key={section.title}>
         <SubSectionHeader title={`<strong>${section.title}</strong>`} />
         <PageWrapper>
           <div className="flex flex-wrap gap-lg py-lg">
-            {isOwner && (
+            {canEdit && (
               <div className={cardClassNames}>
                 <CardAddProject
                   onButtonClick={() => setPickerSection(section.apps)}
                 />
               </div>
             )}
-            {isOwner ? (
+            {canEdit ? (
               <SortableContext
                 items={sectionProjects.map((p) => p.id)}
                 strategy={rectSortingStrategy}
@@ -384,7 +390,7 @@ function MyPlanPage() {
               ]
         }
         menu={
-          isLoading ? undefined : isOwner ? (
+          isLoading ? undefined : canEdit ? (
             <div className="flex items-center gap-sm">
               {isRefreshing && (
                 <span
@@ -416,7 +422,7 @@ function MyPlanPage() {
           </div>
         ) : (
           <>
-            {plan!.is_public && isOwner && (
+            {plan!.is_public && canEdit && (
               <Tag variant="neutral" appearance="filled" size="large" className="mb-[10px]">
                 {m.plan_public_tag()}
               </Tag>
@@ -455,7 +461,7 @@ function MyPlanPage() {
 
       {featuredSection}
 
-      {!isLoading && isOwner ? (
+      {!isLoading && canEdit ? (
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -467,7 +473,7 @@ function MyPlanPage() {
         sections
       )}
 
-      {isOwner && pickerSection && (
+      {canEdit && pickerSection && (
         <ProjectPickerDialog
           open
           selected={

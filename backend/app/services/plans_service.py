@@ -5,7 +5,7 @@ import copy
 from collections import defaultdict
 from typing import get_args
 
-from sqlalchemy import delete, select
+from sqlalchemy import and_, delete, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -31,11 +31,13 @@ from app.services import (
     fair_service,
     field_tm_service,
     open_aerial_map_service,
+    permissions,
     tasking_manager_service,
     umap_service,
     url_resolver,
 )
 from app.services.exceptions import UpstreamUnavailable
+from app.services.permissions import PermissionContext
 
 _KNOWN_APPS = frozenset(get_args(AppLiteral))
 
@@ -68,12 +70,19 @@ APP_FETCHERS = {
 }
 
 
-def plan_to_read(plan: Plan) -> PlanRead:
+def plan_to_read(plan: Plan, ctx: PermissionContext) -> PlanRead:
     return PlanRead(
         id=plan.id,
         name=plan.name,
         description=plan.description,
         is_public=plan.is_public,
+        visibility=plan.visibility,
+        group_type=plan.group_type,
+        group_id=plan.group_id,
+        edit_scope=plan.edit_scope,
+        owner_id=plan.owner_id,
+        is_owner=ctx.user_id is not None and ctx.user_id == plan.owner_id,
+        can_edit=permissions.can_edit(plan, ctx),
         created_at=plan.created_at,
         updated_at=plan.updated_at,
         projects=[
@@ -114,21 +123,70 @@ def check_no_duplicates(items: list[PlanProjectItem]) -> None:
         seen.add(key)
 
 
-async def list_plans(db: AsyncSession, owner_id: str) -> list[PlanRead]:
+async def list_plans(
+    db: AsyncSession, ctx: PermissionContext
+) -> list[PlanRead]:
+    """List plans visible to the user: their own, plus group plans of groups
+    they belong to. Membership is resolved once (in ctx) so this stays a single
+    SELECT with no N+1."""
+    conditions = [Plan.owner_id == ctx.user_id]
+    group_conditions = [
+        and_(Plan.group_type == gtype, Plan.group_id == gid)
+        for (gtype, gid) in ctx.memberships
+    ]
+    if group_conditions:
+        conditions.append(
+            and_(
+                or_(*group_conditions),
+                Plan.visibility.in_(["group", "public"]),
+            )
+        )
+
     stmt = (
         select(Plan)
-        .where(Plan.owner_id == owner_id)
+        .where(or_(*conditions))
         .options(selectinload(Plan.projects), selectinload(Plan.images))
         .order_by(Plan.created_at.desc())
     )
     result = await db.execute(stmt)
     plans = result.scalars().all()
-    return [plan_to_read(p) for p in plans]
+    return [plan_to_read(p, ctx) for p in plans]
+
+
+async def _load_plan(db: AsyncSession, plan_id: str) -> Plan | None:
+    stmt = (
+        select(Plan)
+        .where(Plan.id == plan_id)
+        .options(selectinload(Plan.projects), selectinload(Plan.images))
+    )
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
+
+
+async def get_viewable_plan(
+    db: AsyncSession, ctx: PermissionContext, plan_id: str
+) -> Plan | None:
+    """Load a plan only if the context may view it (else None → 404)."""
+    plan = await _load_plan(db, plan_id)
+    if plan is None or not permissions.can_view(plan, ctx):
+        return None
+    return plan
+
+
+async def get_editable_plan(
+    db: AsyncSession, ctx: PermissionContext, plan_id: str
+) -> Plan | None:
+    """Load a plan only if the context may edit it (else None → 404)."""
+    plan = await _load_plan(db, plan_id)
+    if plan is None or not permissions.can_edit(plan, ctx):
+        return None
+    return plan
 
 
 async def get_owned_plan(
     db: AsyncSession, owner_id: str, plan_id: str
 ) -> Plan | None:
+    """Load a plan owned by owner_id (used where only the creator may act)."""
     stmt = (
         select(Plan)
         .where(Plan.id == plan_id, Plan.owner_id == owner_id)
@@ -138,16 +196,45 @@ async def get_owned_plan(
     return result.scalar_one_or_none()
 
 
+def _resolve_scope(payload: PlanCreate | PlanUpdate) -> dict:
+    """Map create/update scope fields to Plan columns, honoring is_public BC."""
+    values: dict = {}
+    if payload.visibility is not None:
+        values["visibility"] = payload.visibility
+    elif payload.is_public is not None:
+        values["visibility"] = "public" if payload.is_public else "private"
+    if payload.group_type is not None:
+        values["group_type"] = payload.group_type or None
+    if payload.group_id is not None:
+        values["group_id"] = payload.group_id or None
+    if payload.edit_scope is not None:
+        values["edit_scope"] = payload.edit_scope
+    return values
+
+
+class GroupMembershipError(ValueError):
+    """Raised when assigning a plan to a group the user does not belong to."""
+
+
 async def create_plan(
-    db: AsyncSession, owner_id: str, payload: PlanCreate
+    db: AsyncSession, ctx: PermissionContext, payload: PlanCreate
 ) -> PlanRead:
     check_no_duplicates(payload.projects)
 
+    scope = _resolve_scope(payload)
+    group_type = scope.get("group_type")
+    group_id = scope.get("group_id")
+    if group_id and not permissions.is_member(ctx, group_type, group_id):
+        raise GroupMembershipError("Not a member of the target group")
+
     plan = Plan(
-        owner_id=owner_id,
+        owner_id=ctx.user_id,
         name=payload.name,
         description=payload.description,
-        is_public=payload.is_public,
+        visibility=scope.get("visibility", "private"),
+        group_type=group_type,
+        group_id=group_id,
+        edit_scope=scope.get("edit_scope", "owner"),
     )
     db.add(plan)
     await db.flush()
@@ -173,13 +260,13 @@ async def create_plan(
         raise DuplicateProjectError(str(e)) from e
 
     await db.refresh(plan, attribute_names=["projects", "images"])
-    return plan_to_read(plan)
+    return plan_to_read(plan, ctx)
 
 
 async def update_plan(
-    db: AsyncSession, owner_id: str, plan_id: str, payload: PlanUpdate
+    db: AsyncSession, ctx: PermissionContext, plan_id: str, payload: PlanUpdate
 ) -> PlanRead | None:
-    plan = await get_owned_plan(db, owner_id, plan_id)
+    plan = await get_editable_plan(db, ctx, plan_id)
     if plan is None:
         return None
 
@@ -187,8 +274,18 @@ async def update_plan(
         plan.name = payload.name
     if payload.description is not None:
         plan.description = payload.description
-    if payload.is_public is not None:
-        plan.is_public = payload.is_public
+
+    scope = _resolve_scope(payload)
+    group_id = scope.get("group_id", plan.group_id)
+    group_type = scope.get("group_type", plan.group_type)
+    if (
+        "group_id" in scope
+        and group_id
+        and not permissions.is_member(ctx, group_type, group_id)
+    ):
+        raise GroupMembershipError("Not a member of the target group")
+    for field, value in scope.items():
+        setattr(plan, field, value)
 
     if payload.projects is not None:
         check_no_duplicates(payload.projects)
@@ -217,24 +314,21 @@ async def update_plan(
         raise DuplicateProjectError(str(e)) from e
 
     await db.refresh(plan, attribute_names=["projects", "images"])
-    return plan_to_read(plan)
+    return plan_to_read(plan, ctx)
 
 
 async def toggle_project_exists(
     db: AsyncSession,
-    owner_id: str,
+    ctx: PermissionContext,
     plan_id: str,
     plan_project_id: str,
 ) -> bool:
     """Toggle project_exists on a plan_project row. Returns False if not found."""
-    stmt = (
-        select(PlanProject)
-        .join(Plan, Plan.id == PlanProject.plan_id)
-        .where(
-            Plan.id == plan_id,
-            Plan.owner_id == owner_id,
-            PlanProject.id == plan_project_id,
-        )
+    if await get_editable_plan(db, ctx, plan_id) is None:
+        return False
+    stmt = select(PlanProject).where(
+        PlanProject.plan_id == plan_id,
+        PlanProject.id == plan_project_id,
     )
     result = await db.execute(stmt)
     row = result.scalar_one_or_none()
@@ -247,7 +341,7 @@ async def toggle_project_exists(
 
 async def complete_task(
     db: AsyncSession,
-    owner_id: str,
+    ctx: PermissionContext,
     plan_id: str,
     plan_project_id: str,
     url: str | None = None,
@@ -261,15 +355,12 @@ async def complete_task(
     Only targets rows where project_exists=False. Returns False if not found.
     Raises InvalidUrlError, ProjectNotFoundError, or UpstreamUnavailable.
     """
-    stmt = (
-        select(PlanProject)
-        .join(Plan, Plan.id == PlanProject.plan_id)
-        .where(
-            Plan.id == plan_id,
-            Plan.owner_id == owner_id,
-            PlanProject.id == plan_project_id,
-            PlanProject.project_exists.is_(False),
-        )
+    if await get_editable_plan(db, ctx, plan_id) is None:
+        return False
+    stmt = select(PlanProject).where(
+        PlanProject.plan_id == plan_id,
+        PlanProject.id == plan_project_id,
+        PlanProject.project_exists.is_(False),
     )
     result = await db.execute(stmt)
     row = result.scalar_one_or_none()
@@ -292,8 +383,11 @@ async def complete_task(
     return True
 
 
-async def delete_plan(db: AsyncSession, owner_id: str, plan_id: str) -> bool:
-    plan = await get_owned_plan(db, owner_id, plan_id)
+async def delete_plan(
+    db: AsyncSession, ctx: PermissionContext, plan_id: str
+) -> bool:
+    """Delete a plan. Only the owner may delete (not group members)."""
+    plan = await get_owned_plan(db, ctx.user_id, plan_id)
     if plan is None:
         return False
     await db.delete(plan)
@@ -303,22 +397,19 @@ async def delete_plan(db: AsyncSession, owner_id: str, plan_id: str) -> bool:
 
 async def set_project_status(
     db: AsyncSession,
-    owner_id: str,
+    ctx: PermissionContext,
     plan_id: str,
     app: str,
     ext_project_id: str,
     new_status: StatusLiteral,
 ) -> bool:
     """Update the status of a single project inside a plan. Returns False if not found."""
-    stmt = (
-        select(PlanProject)
-        .join(Plan, Plan.id == PlanProject.plan_id)
-        .where(
-            Plan.id == plan_id,
-            Plan.owner_id == owner_id,
-            PlanProject.app == app,
-            PlanProject.project_id == ext_project_id,
-        )
+    if await get_editable_plan(db, ctx, plan_id) is None:
+        return False
+    stmt = select(PlanProject).where(
+        PlanProject.plan_id == plan_id,
+        PlanProject.app == app,
+        PlanProject.project_id == ext_project_id,
     )
     result = await db.execute(stmt)
     row = result.scalar_one_or_none()
@@ -369,7 +460,7 @@ async def hydrate_one(
                     ),
                     timeout=HYDRATE_FETCHER_TIMEOUT,
                 )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return HydratedProjectItem(
                 app=row.app,
                 project_id=row.project_id,
@@ -418,7 +509,7 @@ async def hydrate_one(
                 ),
                 timeout=HYDRATE_FETCHER_TIMEOUT,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return HydratedProjectItem(
                 app=row.app,
                 project_id=row.project_id,
@@ -469,7 +560,7 @@ async def hydrate_one(
                 ),
                 timeout=HYDRATE_FETCHER_TIMEOUT,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return HydratedProjectItem(
                 app=row.app, project_id=row.project_id, status=row.status,
                 featured=row.featured, data=row.data, upstream=None, error="upstream_timeout",
@@ -500,7 +591,7 @@ async def hydrate_one(
             fetcher(row.project_id, force_refresh=force_refresh),
             timeout=HYDRATE_FETCHER_TIMEOUT,
         )
-    except asyncio.TimeoutError:
+    except TimeoutError:
         return HydratedProjectItem(
             app=row.app,
             project_id=row.project_id,
@@ -562,13 +653,20 @@ def _item_from_snapshot(row: PlanProject) -> HydratedProjectItem:
 
 
 def _build_plan_response(
-    plan: Plan, items: list[HydratedProjectItem]
+    plan: Plan, items: list[HydratedProjectItem], ctx: PermissionContext
 ) -> PlanReadHydrated:
     return PlanReadHydrated(
         id=plan.id,
         name=plan.name,
         description=plan.description,
         is_public=plan.is_public,
+        visibility=plan.visibility,
+        group_type=plan.group_type,
+        group_id=plan.group_id,
+        edit_scope=plan.edit_scope,
+        owner_id=plan.owner_id,
+        is_owner=ctx.user_id is not None and ctx.user_id == plan.owner_id,
+        can_edit=permissions.can_edit(plan, ctx),
         created_at=plan.created_at,
         updated_at=plan.updated_at,
         projects=list(items),
@@ -616,25 +714,25 @@ async def _hydrate_live_and_persist(
 
 async def get_plan_hydrated(
     db: AsyncSession,
-    owner_id: str,
+    ctx: PermissionContext,
     plan_id: str,
     hanko_cookie: str | None = None,
     *,
     refresh: bool = False,
 ) -> PlanReadHydrated | None:
-    """Return an owned plan. Default serves the stored snapshot instantly; with
-    ``refresh=True`` it hydrates every project live and persists the fresh snapshot."""
-    plan = await get_owned_plan(db, owner_id, plan_id)
+    """Return a plan the user may view. Default serves the stored snapshot
+    instantly; ``refresh=True`` hydrates live and persists the fresh snapshot."""
+    plan = await get_viewable_plan(db, ctx, plan_id)
     if plan is None:
         return None
 
     if not refresh:
         return _build_plan_response(
-            plan, [_item_from_snapshot(row) for row in plan.projects]
+            plan, [_item_from_snapshot(row) for row in plan.projects], ctx
         )
 
     items = await _hydrate_live_and_persist(db, plan, hanko_cookie)
-    return _build_plan_response(plan, items)
+    return _build_plan_response(plan, items, ctx)
 
 
 async def get_public_plan_hydrated(
@@ -644,13 +742,13 @@ async def get_public_plan_hydrated(
     *,
     refresh: bool = False,
 ) -> PlanReadHydrated | None:
-    """Fetch a plan by ID only if is_public=True. No owner check.
+    """Fetch a plan by ID only if visibility=public. No owner check.
 
     Default serves the stored snapshot instantly; ``refresh=True`` hydrates live
     and persists the fresh snapshot (stale-while-revalidate)."""
     stmt = (
         select(Plan)
-        .where(Plan.id == plan_id, Plan.is_public.is_(True))
+        .where(Plan.id == plan_id, Plan.visibility == "public")
         .options(selectinload(Plan.projects), selectinload(Plan.images))
     )
     result = await db.execute(stmt)
@@ -658,13 +756,17 @@ async def get_public_plan_hydrated(
     if plan is None:
         return None
 
+    # An anonymous public viewer has no edit rights.
+    anon_ctx = permissions.PermissionContext(None, frozenset(), True)
     if not refresh:
         return _build_plan_response(
-            plan, [_item_from_snapshot(row) for row in plan.projects]
+            plan,
+            [_item_from_snapshot(row) for row in plan.projects],
+            anon_ctx,
         )
 
     items = await _hydrate_live_and_persist(db, plan, hanko_cookie)
-    return _build_plan_response(plan, items)
+    return _build_plan_response(plan, items, anon_ctx)
 
 
 async def get_plan_tags_for_projects(

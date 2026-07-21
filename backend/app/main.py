@@ -28,6 +28,7 @@ from app.api.routes.export_tool import export_tool
 from app.api.routes.chatmap import chatmap
 from app.api.routes.plans import plans as plans_route
 from app.api.routes.plans import images as plan_images_route
+from app.api.routes import groups as groups_route
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal, check_db_connection
 
@@ -304,6 +305,11 @@ app.include_router(
 app.include_router(
     plan_images_route.router,
     prefix=f"{settings.api_v1_prefix}/plans",
+)
+
+app.include_router(
+    groups_route.router,
+    prefix=settings.api_v1_prefix,
 )
 
 # Include authentication routers (OSM OAuth)

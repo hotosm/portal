@@ -12,6 +12,22 @@ export type HydrationError = 'not_found' | 'upstream_unavailable' | 'upstream_ti
 
 export type ProjectStatus = 'pending' | 'in_progress' | 'done' | 'task'
 
+export type Visibility = 'private' | 'group' | 'public'
+
+export type EditScope = 'owner' | 'group'
+
+export type GroupType = 'team' | 'organization'
+
+/** A team or organization the current user belongs to (from GET /api/groups). */
+export interface UserGroup {
+  id: string
+  type: GroupType
+  slug: string
+  name: string
+  role: string
+  status: string
+}
+
 export interface PlanProjectItem {
   id?: string
   app: AppName
@@ -26,6 +42,10 @@ export interface PlanCreate {
   name: string
   description?: string
   projects?: PlanProjectItem[]
+  visibility?: Visibility
+  group_type?: GroupType | null
+  group_id?: string | null
+  edit_scope?: EditScope
 }
 
 export interface PlanUpdate {
@@ -33,6 +53,10 @@ export interface PlanUpdate {
   description?: string
   is_public?: boolean
   projects?: PlanProjectItem[]
+  visibility?: Visibility
+  group_type?: GroupType | null
+  group_id?: string | null
+  edit_scope?: EditScope
 }
 
 export interface PlanImageRead {
@@ -47,6 +71,13 @@ export interface PlanRead {
   name: string
   description: string | null
   is_public: boolean
+  owner_id: string
+  visibility: Visibility
+  group_type: GroupType | null
+  group_id: string | null
+  edit_scope: EditScope
+  is_owner: boolean
+  can_edit: boolean
   projects: PlanProjectItem[]
   images: PlanImageRead[]
   created_at: string
@@ -71,6 +102,13 @@ export interface PlanReadHydrated {
   name: string
   description: string | null
   is_public: boolean
+  owner_id: string
+  visibility: Visibility
+  group_type: GroupType | null
+  group_id: string | null
+  edit_scope: EditScope
+  is_owner: boolean
+  can_edit: boolean
   projects: HydratedProjectItem[]
   images: PlanImageRead[]
   created_at: string

@@ -102,6 +102,15 @@ class Settings(BaseSettings):
     osm_client_id: str | None = None
     osm_client_secret: str | None = None
 
+    # Enable team/organization plan scopes (requires login to expose
+    # GET /api/groups). Keep off until login publishes that endpoint.
+    login_groups_enabled: bool = False
+    # Base URL of the login *backend* (serves /api/groups). Distinct from
+    # hanko_api_url, which points at Hanko (JWKS). Falls back to hanko_api_url
+    # when unset (fine where hanko_api_url is the public login host that routes
+    # /api to the login backend, e.g. https://login.hotosm.org).
+    login_api_url: str | None = None
+
     # --- Service Base URLs (auto-filled from detected environment) ---
     hanko_api_url: str | None = None
     drone_tm_base_url: str | None = None

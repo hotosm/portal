@@ -9,16 +9,48 @@ import type {
   PlanUpdate,
   ProjectStatus,
   UrlResolveResponse,
+  UserGroup,
 } from '../types'
 
 const STALE_TIME = 5 * 60 * 1000
 const GC_TIME = 30 * 60 * 1000
+const GROUPS_STALE_TIME = 60 * 1000
 
 export const planQueryKeys = {
   all: ['plans'] as const,
   list: () => [...planQueryKeys.all, 'list'] as const,
   detail: (id: string) => [...planQueryKeys.all, 'detail', id] as const,
   public: (id: string) => [...planQueryKeys.detail(id), 'public'] as const,
+}
+
+export const groupsQueryKey = ['groups'] as const
+
+interface GroupsResponse {
+  groups?: UserGroup[]
+  degraded?: boolean
+}
+
+// Teams and organizations the current user belongs to. Proxied from login; when
+// login is down or the feature flag is off the backend returns an empty (or
+// degraded) list, in which case the UI offers only the "Personal" scope.
+export function useMyGroups() {
+  const { isLogin } = useAuth()
+  return useQuery({
+    queryKey: groupsQueryKey,
+    queryFn: async (): Promise<UserGroup[]> => {
+      const response = await fetch('/api/groups', { credentials: 'include' })
+      if (!response.ok) {
+        throw new Error(`[${response.status}] Failed to fetch groups`)
+      }
+      const data: GroupsResponse = await response.json()
+      if (data.degraded) return []
+      return data.groups ?? []
+    },
+    staleTime: GROUPS_STALE_TIME,
+    gcTime: GC_TIME,
+    enabled: isLogin,
+    retry: 1,
+  })
 }
 
 export function useMyPlans() {
