@@ -14,6 +14,7 @@ export function usePlanMenu(plan: PlanReadHydrated) {
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [publishFirstOpen, setPublishFirstOpen] = useState(false);
+  const [permissionsOpen, setPermissionsOpen] = useState(false);
 
   const planUrl = useMemo(
     () => `${window.location.origin}/${currentLanguage}/plan/${plan.id}`,
@@ -28,7 +29,10 @@ export function usePlanMenu(plan: PlanReadHydrated) {
           break;
         case "publish":
           updateMutation.mutate(
-            { id: plan.id, payload: { is_public: !plan.is_public } },
+            {
+              id: plan.id,
+              payload: { visibility: plan.is_public ? "private" : "public" },
+            },
             {
               onSuccess: () => {
                 toast.success(plan.is_public ? m.plan_toast_unpublished() : m.plan_toast_published());
@@ -38,6 +42,9 @@ export function usePlanMenu(plan: PlanReadHydrated) {
               },
             },
           );
+          break;
+        case "permissions":
+          setPermissionsOpen(true);
           break;
         case "share":
           if (!plan.is_public) {
@@ -88,6 +95,7 @@ export function usePlanMenu(plan: PlanReadHydrated) {
   const onCancelDelete = useCallback(() => setConfirmDeleteOpen(false), []);
   const onCloseShare = useCallback(() => setShareOpen(false), []);
   const onClosePublishFirst = useCallback(() => setPublishFirstOpen(false), []);
+  const onClosePermissions = useCallback(() => setPermissionsOpen(false), []);
 
   return {
     onSelect,
@@ -103,5 +111,7 @@ export function usePlanMenu(plan: PlanReadHydrated) {
     onCloseShare,
     publishFirstOpen,
     onClosePublishFirst,
+    permissionsOpen,
+    onClosePermissions,
   };
 }

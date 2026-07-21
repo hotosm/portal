@@ -19,6 +19,10 @@ AppLiteral = Literal[
 
 StatusLiteral = Literal["pending", "in_progress", "done", "task"]
 
+Visibility = Literal["private", "group", "public"]
+EditScope = Literal["owner", "group"]
+GroupType = Literal["team", "organization"]
+
 HydrationError = Literal[
     "not_found", "upstream_unavailable", "upstream_timeout", "pending"
 ]
@@ -67,10 +71,32 @@ class PlanProjectItem(BaseModel):
         return self
 
 
-class PlanCreate(BaseModel):
+class PlanScopeMixin(BaseModel):
+    """Scope + visibility fields shared by create and update payloads."""
+
+    # is_public kept for backward compatibility; mapped to visibility server-side.
+    is_public: bool | None = None
+    visibility: Visibility | None = None
+    group_type: GroupType | None = None
+    group_id: str | None = None
+    edit_scope: EditScope | None = None
+
+    @model_validator(mode="after")
+    def check_scope(self) -> "PlanScopeMixin":
+        # A personal plan (no group) can only be private or public, owner-edited.
+        if self.group_type is None and self.group_id is None:
+            if self.visibility == "group":
+                raise ValueError("visibility 'group' requires a group")
+            if self.edit_scope == "group":
+                raise ValueError("edit_scope 'group' requires a group")
+        if (self.group_type is None) != (self.group_id is None):
+            raise ValueError("group_type and group_id must be set together")
+        return self
+
+
+class PlanCreate(PlanScopeMixin):
     name: str = Field(..., min_length=1)
     description: str | None = Field(default=None, max_length=_DESC_MAX_LEN)
-    is_public: bool = False
     projects: list[PlanProjectItem] = []
 
     @field_validator("description")
@@ -79,10 +105,9 @@ class PlanCreate(BaseModel):
         return _sanitize_html(v)
 
 
-class PlanUpdate(BaseModel):
+class PlanUpdate(PlanScopeMixin):
     name: str | None = Field(default=None, min_length=1)
     description: str | None = Field(default=None, max_length=_DESC_MAX_LEN)
-    is_public: bool | None = None
     projects: list[PlanProjectItem] | None = None
 
     @field_validator("description")
@@ -91,13 +116,25 @@ class PlanUpdate(BaseModel):
         return _sanitize_html(v)
 
 
-class PlanRead(BaseModel):
+class PlanScopeRead(BaseModel):
+    """Scope/visibility fields exposed on plan reads, plus per-viewer flags."""
+
+    is_public: bool
+    visibility: Visibility
+    group_type: GroupType | None = None
+    group_id: str | None = None
+    edit_scope: EditScope
+    owner_id: str
+    is_owner: bool = False
+    can_edit: bool = False
+
+
+class PlanRead(PlanScopeRead):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
     name: str
     description: str | None
-    is_public: bool
     projects: list[PlanProjectItem]
     images: list[PlanImageRead] = []
     created_at: datetime
@@ -119,11 +156,10 @@ class HydratedProjectItem(BaseModel):
     from_snapshot: bool = False
 
 
-class PlanReadHydrated(BaseModel):
+class PlanReadHydrated(PlanScopeRead):
     id: str
     name: str
     description: str | None
-    is_public: bool
     projects: list[HydratedProjectItem]
     images: list[PlanImageRead] = []
     created_at: datetime

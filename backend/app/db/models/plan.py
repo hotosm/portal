@@ -1,7 +1,7 @@
 """SQLAlchemy ORM models for user-owned plans that group external projects."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import (
     JSON,
@@ -20,13 +20,21 @@ from sqlalchemy.orm import relationship
 
 from app.core.base import Base
 
+# A plan's scope + visibility model:
+#   * owner_id      — always the creator; the owner can always view/edit.
+#   * group_type    — None for a personal plan, else "team" | "organization".
+#   * group_id      — the login group id when the plan belongs to a group.
+#   * visibility    — "private" | "group" | "public" (replaces the old is_public
+#                     boolean; the property below preserves that name for reads).
+#   * edit_scope    — "owner" | "group" (who, besides the owner, may edit).
+
 
 def uuid_str() -> str:
     return str(uuid.uuid4())
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class Plan(Base):
@@ -38,7 +46,10 @@ class Plan(Base):
     owner_id = Column(String, nullable=False, index=True)
     name = Column(String, nullable=False)
     description = Column(Text, nullable=True)
-    is_public = Column(Boolean, nullable=False, default=False)
+    visibility = Column(String, nullable=False, default="private")
+    group_type = Column(String, nullable=True)
+    group_id = Column(String, nullable=True)
+    edit_scope = Column(String, nullable=False, default="owner")
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at = Column(
         DateTime(timezone=True),
@@ -46,6 +57,13 @@ class Plan(Base):
         onupdate=utcnow,
         nullable=False,
     )
+
+    __table_args__ = (Index("ix_plans_group", "group_type", "group_id"),)
+
+    @property
+    def is_public(self) -> bool:
+        """Back-compat read accessor; visibility is the source of truth."""
+        return self.visibility == "public"
 
     projects = relationship(
         "PlanProject",

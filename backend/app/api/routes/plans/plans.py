@@ -1,5 +1,7 @@
 """Plans API endpoints — user-owned collections of project references."""
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException, Path, Request, Response, status
 from hotosm_auth_fastapi import CurrentUser
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,31 +17,49 @@ from app.models.plan import (
     UrlResolveRequest,
     UrlResolveResponse,
 )
-from app.services import plans_service
+from app.services import permissions, plans_service
 from app.services.exceptions import UpstreamUnavailable
-from app.services.plans_service import DuplicateProjectError, InvalidUrlError, ProjectNotFoundError
+from app.services.permissions import PermissionContext
+from app.services.plans_service import (
+    DuplicateProjectError,
+    GroupMembershipError,
+    InvalidUrlError,
+    ProjectNotFoundError,
+)
 
 router = APIRouter(prefix="/plans", tags=["plans"])
 
 
+async def permission_ctx(
+    request: Request, user: CurrentUser
+) -> PermissionContext:
+    """Resolve the user's group memberships once per request (auth required)."""
+    return await permissions.build_context(user, request.cookies.get("hanko"))
+
+
+PermCtx = Annotated[PermissionContext, Depends(permission_ctx)]
+
+
 @router.get("", response_model=list[PlanRead])
 async def list_my_plans(
-    user: CurrentUser,
+    ctx: PermCtx,
     db: AsyncSession = Depends(get_db),
 ) -> list[PlanRead]:
-    """List all plans owned by the authenticated user (lightweight, no hydration)."""
-    return await plans_service.list_plans(db, user.id)
+    """List plans visible to the user: their own plus group plans they can see."""
+    return await plans_service.list_plans(db, ctx)
 
 
 @router.post("", response_model=PlanRead, status_code=status.HTTP_201_CREATED)
 async def create_plan(
     payload: PlanCreate,
-    user: CurrentUser,
+    ctx: PermCtx,
     db: AsyncSession = Depends(get_db),
 ) -> PlanRead:
     """Create a new plan owned by the authenticated user."""
     try:
-        return await plans_service.create_plan(db, user.id, payload)
+        return await plans_service.create_plan(db, ctx, payload)
+    except GroupMembershipError as e:
+        raise HTTPException(status_code=403, detail=str(e))
     except DuplicateProjectError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
@@ -90,18 +110,17 @@ async def get_shared_plan(
 @router.get("/{plan_id}", response_model=PlanReadHydrated)
 async def get_plan(
     request: Request,
-    user: CurrentUser,
+    ctx: PermCtx,
     plan_id: str = Path(..., description="Plan UUID"),
     refresh: bool = False,
     db: AsyncSession = Depends(get_db),
 ) -> PlanReadHydrated:
-    """Return the plan. By default serves the stored snapshot instantly (no upstream
-    calls). Pass ?refresh=true to hydrate every project live and persist the fresh
-    snapshot — the frontend calls this in the background (stale-while-revalidate).
+    """Return the plan if the user may view it. By default serves the stored
+    snapshot instantly; pass ?refresh=true to hydrate live (stale-while-revalidate).
     """
     hanko_cookie = request.cookies.get("hanko")
     plan = await plans_service.get_plan_hydrated(
-        db, user.id, plan_id, hanko_cookie=hanko_cookie, refresh=refresh
+        db, ctx, plan_id, hanko_cookie=hanko_cookie, refresh=refresh
     )
     if plan is None:
         raise HTTPException(status_code=404, detail="Plan not found")
@@ -111,13 +130,15 @@ async def get_plan(
 @router.patch("/{plan_id}", response_model=PlanRead)
 async def update_plan(
     payload: PlanUpdate,
-    user: CurrentUser,
+    ctx: PermCtx,
     plan_id: str = Path(..., description="Plan UUID"),
     db: AsyncSession = Depends(get_db),
 ) -> PlanRead:
-    """Update name/description/is_public and/or replace the full projects list."""
+    """Update name/description/scope/visibility and/or replace the projects list."""
     try:
-        plan = await plans_service.update_plan(db, user.id, plan_id, payload)
+        plan = await plans_service.update_plan(db, ctx, plan_id, payload)
+    except GroupMembershipError as e:
+        raise HTTPException(status_code=403, detail=str(e))
     except DuplicateProjectError as e:
         raise HTTPException(status_code=422, detail=str(e))
     if plan is None:
@@ -127,13 +148,13 @@ async def update_plan(
 
 @router.patch("/{plan_id}/projects/{plan_project_id}/toggle-exists", status_code=status.HTTP_204_NO_CONTENT)
 async def toggle_project_exists(
-    user: CurrentUser,
+    ctx: PermCtx,
     plan_id: str = Path(..., description="Plan UUID"),
     plan_project_id: str = Path(..., description="plan_project UUID"),
     db: AsyncSession = Depends(get_db),
 ) -> Response:
     """Toggle project_exists on a plan_project between true and false."""
-    ok = await plans_service.toggle_project_exists(db, user.id, plan_id, plan_project_id)
+    ok = await plans_service.toggle_project_exists(db, ctx, plan_id, plan_project_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Plan or project not found")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -143,7 +164,7 @@ async def toggle_project_exists(
 async def complete_task(
     payload: CompleteTaskRequest,
     request: Request,
-    user: CurrentUser,
+    ctx: PermCtx,
     plan_id: str = Path(..., description="Plan UUID"),
     plan_project_id: str = Path(..., description="plan_project UUID"),
     db: AsyncSession = Depends(get_db),
@@ -158,7 +179,7 @@ async def complete_task(
     try:
         ok = await plans_service.complete_task(
             db,
-            user.id,
+            ctx,
             plan_id,
             plan_project_id,
             url=payload.url,
@@ -182,14 +203,14 @@ async def complete_task(
 @router.patch("/{plan_id}/projects/{app}/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def update_project_status(
     payload: ProjectStatusUpdate,
-    user: CurrentUser,
+    ctx: PermCtx,
     plan_id: str = Path(..., description="Plan UUID"),
     app: str = Path(..., description="App name"),
     project_id: str = Path(..., description="External project ID"),
     db: AsyncSession = Depends(get_db),
 ) -> Response:
     """Update the status of a single project inside a plan."""
-    ok = await plans_service.set_project_status(db, user.id, plan_id, app, project_id, payload.status)
+    ok = await plans_service.set_project_status(db, ctx, plan_id, app, project_id, payload.status)
     if not ok:
         raise HTTPException(status_code=404, detail="Plan or project not found")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -197,12 +218,12 @@ async def update_project_status(
 
 @router.delete("/{plan_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_plan(
-    user: CurrentUser,
+    ctx: PermCtx,
     plan_id: str = Path(..., description="Plan UUID"),
     db: AsyncSession = Depends(get_db),
 ) -> Response:
-    """Delete a plan; plan_projects rows cascade automatically."""
-    ok = await plans_service.delete_plan(db, user.id, plan_id)
+    """Delete a plan (owner only); plan_projects rows cascade automatically."""
+    ok = await plans_service.delete_plan(db, ctx, plan_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Plan not found")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
