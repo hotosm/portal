@@ -21,10 +21,11 @@ A centralized web workspace that simplifies access to the HOT (Humanitarian Open
 |✅| Sections for Imagery, Mapping, Field and Data, for showing tools and user's data on each
 |✅| Public integration with all tools
 |✅| User data integration
-|⚙️| Design and UI/UX improvements
-| | Plans (grouping projects from multiple tools)
+|✅| Design and UI/UX improvements
+|⚙️| Plans (grouping projects from multiple tools)
 | | Links and content to/from Learn & Connect
 | | Public profiles
+| | Organizations / teams management
 
 ## Table of Contents
 
