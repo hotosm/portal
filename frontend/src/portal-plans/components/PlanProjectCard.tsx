@@ -3,6 +3,7 @@ import placeholder from "../../assets/images/placeholder.png";
 import Dropdown from "../../components/shared/Dropdown";
 import ProjectDialog from "./ProjectDialog";
 import DropdownItem from "../../components/shared/DropdownItem";
+import Spinner from "../../components/shared/Spinner";
 import Tag from "../../components/shared/Tag";
 import { APP_META } from "../../utils/appMeta";
 import {
@@ -175,6 +176,9 @@ function PlanProjectCard({
     project.project_exists &&
     (project.error === "upstream_unavailable" ||
       project.error === "upstream_timeout");
+  // Still being resolved (e.g. an OAM TMS URL's slow catalog search) — not
+  // broken, just not done yet. A later refresh will fill in the real title.
+  const pending = project.project_exists && project.error === "pending";
 
   useEffect(() => {
     setLocalStatus(project.status);
@@ -210,6 +214,12 @@ function PlanProjectCard({
         {unavailable && (
           <span className="absolute bottom-1 left-1 z-10 bg-hot-gray-600 text-white text-xs font-medium px-2 py-0.5 rounded">
             {m.plan_project_unavailable_badge()}
+          </span>
+        )}
+        {pending && (
+          <span className="absolute bottom-1 left-1 z-10 flex items-center gap-xs bg-hot-gray-600 text-white text-xs font-medium px-2 py-0.5 rounded">
+            <Spinner color="white" />
+            {m.plan_project_pending_badge()}
           </span>
         )}
         {!project.project_exists ? null : onStatusChange ? (
@@ -269,9 +279,11 @@ function PlanProjectCard({
           ) : (
             <>
               <span className="block w-full text-left whitespace-normal text-base font-bold">
-                <span className="line-clamp-2">{title}</span>
+                <span className="line-clamp-2">
+                  {pending ? meta.name : title}
+                </span>
               </span>
-              {unavailable && onDelete && (
+              {(unavailable || pending) && onDelete && (
                 <button
                   type="button"
                   onClick={(e) => {
@@ -299,7 +311,7 @@ function PlanProjectCard({
 
   return (
     <>
-      {project.project_exists && !unavailable && (
+      {project.project_exists && !unavailable && !pending && (
         <ProjectDialog
           open={dialogOpen}
           onClose={() => setDialogOpen(false)}
@@ -328,6 +340,12 @@ function PlanProjectCard({
         // Upstream can't be reached: keep the card grayed out and non-openable
         // (no dialog), but leave it interactive so it can still be removed.
         <div className={`${cardClassName} grayscale opacity-60`} aria-disabled="true">
+          {cardContent}
+        </div>
+      ) : pending ? (
+        // Still resolving (not broken) — no dialog yet since there's nothing to
+        // show, but keep the normal look (no grayscale) so it doesn't read as an error.
+        <div className={cardClassName} aria-busy="true">
           {cardContent}
         </div>
       ) : (

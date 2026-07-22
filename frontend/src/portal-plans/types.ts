@@ -126,6 +126,7 @@ export interface ProjectOption {
   project_id: string
   title: string
   upstream?: Record<string, unknown> | null
+  isResolving?: boolean
 }
 
 export interface ProjectSource {
