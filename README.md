@@ -22,10 +22,10 @@ A centralized web workspace that simplifies access to the HOT (Humanitarian Open
 |✅| Public integration with all tools
 |✅| User data integration
 |✅| Design and UI/UX improvements
-|⚙️| Plans (grouping projects from multiple tools)
+|✅| Plans (grouping projects from multiple tools)
+|⚙️| Public profiles
+|⚙️| Organizations / teams management
 | | Links and content to/from Learn & Connect
-| | Public profiles
-| | Organizations / teams management
 
 ## Table of Contents
 
