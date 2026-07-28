@@ -3,14 +3,6 @@
  * Everything is scoped under `.markdown-editor` 
  */
 
-.markdown-editor .w-md-editor-toolbar {
-  padding: 8px;
-}
-
-.markdown-editor .w-md-editor-toolbar li > button {
-  height: 30px;
-}
-
 /* Restore list markers in the preview pane (`@tailwind base`) resets `ol, ul { list-style: none }`) */
 .markdown-editor .w-md-editor-preview ul,
 .markdown-editor .w-md-editor-preview ol {
