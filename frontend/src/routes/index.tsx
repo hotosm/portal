@@ -1,5 +1,6 @@
 import React from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../contexts/AuthContext";
 import HomePage from "../pages/HomePage";
 import WelcomePage from "../pages/WelcomePage";
@@ -10,6 +11,7 @@ import DataPage from "../portal-data/DataPage";
 import HelpPage from "../pages/HelpPage";
 import TestPage from "../pages/TestPage";
 import NotFoundPage from "../pages/NotFoundPage";
+import ForbiddenPage from "../pages/ForbiddenPage";
 import PlanPage from "../portal-plans/PlanPage";
 import AddPlanPage from "../portal-plans/AddPlanPage";
 import EditPlanPage from "../portal-plans/EditPlanPage";
@@ -26,6 +28,40 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!isLogin) {
     return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+// Component to handle routes restricted to admin users.
+// Admin status is verified against the backend (/api/test/me, gated by
+// ADMIN_EMAILS via AdminUser) rather than trusted client-side.
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { isLogin, isAuthLoading } = useAuth();
+
+  const { isLoading: isAdminCheckLoading, isError: isNotAdmin } = useQuery({
+    queryKey: ["admin-check"],
+    queryFn: async () => {
+      const response = await fetch("/api/test/me", { credentials: "include" });
+      if (!response.ok) {
+        throw new Error(String(response.status));
+      }
+      return response.json();
+    },
+    enabled: isLogin,
+    retry: false,
+  });
+
+  if (isAuthLoading || (isLogin && isAdminCheckLoading)) {
+    return null;
+  }
+
+  if (!isLogin) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (isNotAdmin) {
+    return <ForbiddenPage />;
   }
 
   return <>{children}</>;
@@ -84,9 +120,9 @@ export function AppRoutes() {
       <Route
         path="/:locale/test"
         element={
-          <ProtectedRoute>
+          <AdminRoute>
             <TestPage />
-          </ProtectedRoute>
+          </AdminRoute>
         }
       />
       <Route path="/:locale/plan">

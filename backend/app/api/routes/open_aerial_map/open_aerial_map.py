@@ -33,7 +33,7 @@ _sync_task: Optional[asyncio.Task] = None
 # ── Background sync scheduler ─────────────────────────────────────────────────
 
 
-async def _db_sync_scheduler() -> None:
+async def db_sync_scheduler() -> None:
     """Background task: sync OAM data from API into DB every week."""
     from app.core.database import AsyncSessionLocal
 
@@ -51,7 +51,7 @@ def start_sync_scheduler() -> None:
     """Start the weekly OAM → DB background sync task."""
     global _sync_task
     if _sync_task is None or _sync_task.done():
-        _sync_task = asyncio.create_task(_db_sync_scheduler())
+        _sync_task = asyncio.create_task(db_sync_scheduler())
         logger.info("OAM DB sync scheduler started (weekly updates)")
 
 

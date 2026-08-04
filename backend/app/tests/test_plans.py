@@ -389,6 +389,63 @@ async def test_hydrate_plan_upstream_unavailable(auth_client):
 
 
 @pytest.mark.asyncio
+async def test_hydrate_plan_oam_tms_still_resolving_shows_pending_not_unavailable(auth_client):
+    """A TMS-sourced OAM project that hasn't resolved yet is "pending", not
+
+    "upstream_unavailable"/"upstream_timeout" — those map to a permanent
+    "Unavailable" badge in the UI, which is wrong for something that just
+    hasn't finished its (up to ~20s) catalog search yet.
+    """
+    client, _ = auth_client
+    resp = await client.post(
+        "/api/plans",
+        json={
+            "name": "P",
+            "projects": [{"app": "open-aerial-map", "project_id": "tms:aaa:bbb"}],
+        },
+    )
+    plan_id = resp.json()["id"]
+
+    with patch.object(
+        plans_service.open_aerial_map_service,
+        "fetch_imagery_by_id",
+        AsyncMock(side_effect=UpstreamUnavailable("TMS search timed out")),
+    ):
+        resp = await client.get(f"/api/plans/{plan_id}?refresh=true")
+
+    assert resp.status_code == 200
+    project = resp.json()["projects"][0]
+    assert project["error"] == "pending"
+    assert project["upstream"] is None
+
+
+@pytest.mark.asyncio
+async def test_hydrate_plan_oam_tms_resolves_once_found(auth_client):
+    """Once the search finds the image, it hydrates normally (error=None)."""
+    client, _ = auth_client
+    resp = await client.post(
+        "/api/plans",
+        json={
+            "name": "P",
+            "projects": [{"app": "open-aerial-map", "project_id": "tms:aaa:bbb"}],
+        },
+    )
+    plan_id = resp.json()["id"]
+
+    with patch.object(
+        plans_service.open_aerial_map_service,
+        "fetch_imagery_by_id",
+        AsyncMock(return_value={"title": "Found it", "bbox": None, "thumbnail": None}),
+    ):
+        resp = await client.get(f"/api/plans/{plan_id}?refresh=true")
+
+    assert resp.status_code == 200
+    project = resp.json()["projects"][0]
+    assert project["error"] is None
+    assert project["upstream"]["title"] == "Found it"
+
+
+@pytest.mark.asyncio
 async def test_orphan_end_to_end_flow(auth_client):
     client, _ = auth_client
     resp = await client.post(

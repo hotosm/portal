@@ -22,3 +22,5 @@ async def get_homepage_map_snapshot(
         return await map_projects_service.query_map_projects(db)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+    
