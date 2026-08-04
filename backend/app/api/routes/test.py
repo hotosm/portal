@@ -7,24 +7,27 @@ These endpoints demonstrate the hotosm-auth integration:
 
 from fastapi import APIRouter
 
-from hotosm_auth_fastapi import CurrentUser, OSMConnectionRequired
+from hotosm_auth_fastapi import AdminUser, OSMConnectionRequired
 from app.schemas.auth import UserInfoResponse, OSMInfoResponse
 
 router = APIRouter()
 
 
 @router.get("/me", response_model=UserInfoResponse)
-async def test_user_auth(user: CurrentUser) -> UserInfoResponse:
+async def test_user_auth(user: AdminUser) -> UserInfoResponse:
     """
-    Test endpoint requiring Hanko authentication.
+    Test endpoint requiring Hanko authentication and admin access.
 
     Returns authenticated user information from JWT.
 
-    **Authentication**: Requires valid Hanko session (JWT in cookie or Bearer token)
+    **Authentication**:
+    - Requires valid Hanko session (JWT in cookie or Bearer token)
+    - Requires the user's email to be in ADMIN_EMAILS
 
     **Returns**:
     - 200: User information
     - 401: Not authenticated
+    - 403: Not an admin
 
     **Example**:
     ```bash
@@ -42,22 +45,23 @@ async def test_user_auth(user: CurrentUser) -> UserInfoResponse:
 
 @router.get("/osm", response_model=OSMInfoResponse)
 async def test_osm_auth(
-    user: CurrentUser,
+    user: AdminUser,
     osm: OSMConnectionRequired,
 ) -> OSMInfoResponse:
     """
-    Test endpoint requiring both Hanko authentication and OSM connection.
+    Test endpoint requiring Hanko authentication, admin access, and OSM connection.
 
     Returns OSM connection information from encrypted cookie.
 
     **Authentication**:
     - Requires valid Hanko session (JWT in cookie or Bearer token)
+    - Requires the user's email to be in ADMIN_EMAILS
     - Requires OSM connection (encrypted cookie from OAuth flow)
 
     **Returns**:
     - 200: OSM connection information
     - 401: Not authenticated (no valid Hanko session)
-    - 403: OSM connection required (logged in but not connected to OSM)
+    - 403: Not an admin, or OSM connection required (logged in but not connected to OSM)
 
     **Example**:
     ```bash
