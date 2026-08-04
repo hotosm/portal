@@ -1,4 +1,5 @@
 import Checkbox from "../../components/shared/Checkbox";
+import Spinner from "../../components/shared/Spinner";
 import { m } from "../../paraglide/messages";
 import { projectKey } from "../../utils/utils";
 import type {
@@ -124,7 +125,14 @@ export function AppSourceSection({
                   defaultChecked={isChecked}
                   onChange={() => toggle(key)}
                 >
-                  {p.title}
+                  {p.isResolving ? (
+                    <span className="inline-flex items-center gap-xs">
+                      <Spinner label={m.plan_picker_url_oam_tms_pending()} />
+                      {source.label}
+                    </span>
+                  ) : (
+                    p.title
+                  )}
                 </Checkbox>
               );
             })}

@@ -51,6 +51,10 @@ export function useAddProjectByUrl() {
       }
 
       const upstream = resolvedUpstream ?? {};
+      const isPendingOamTms =
+        result.app === "open-aerial-map" &&
+        result.project_id.startsWith("tms:") &&
+        !resolvedUpstream;
       const title =
         (upstream.name as string | undefined) ??
         (upstream.title as string | undefined) ??
@@ -62,6 +66,7 @@ export function useAddProjectByUrl() {
           project_id: result.project_id,
           title,
           upstream: resolvedUpstream,
+          isResolving: isPendingOamTms,
         },
         key,
       );

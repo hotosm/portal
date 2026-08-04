@@ -76,6 +76,24 @@ from app.services.url_resolver import parse_project_url
             "open-aerial-map",
             "aabbccddeeff00112233aabb:112233aabbccddeeff001122",
         ),
+        # OAM TMS tile URL ("TMS" button on an image page)
+        (
+            "https://tiles.openaerialmap.org/6a029b68ef395bce007be43a/0/6a029b68ef395bce007be43b/{z}/{x}/{y}",
+            "open-aerial-map",
+            "tms:6a029b68ef395bce007be43a:6a029b68ef395bce007be43b",
+        ),
+        # same, with a file extension on the tile suffix
+        (
+            "http://tiles.openaerialmap.org/573a17d4cd0663bb003c32b6/0/575fcf142b67227a79b4fbfd/{z}/{x}/{y}.png",
+            "open-aerial-map",
+            "tms:573a17d4cd0663bb003c32b6:575fcf142b67227a79b4fbfd",
+        ),
+        # pasted without a scheme
+        (
+            "tiles.openaerialmap.org/691e7375628460062aec8bca/0/691e7375628460062aec8bcb/{z}/{x}/{y}",
+            "open-aerial-map",
+            "tms:691e7375628460062aec8bca:691e7375628460062aec8bcb",
+        ),
         # --- umap ---
         (
             "https://umap.hotosm.org/es/map/test-portal_2675#16/-34.572928/-58.430572",
@@ -122,6 +140,8 @@ def test_valid_urls(url: str, expected_app: str, expected_id: str) -> None:
         "https://map.openaerialmap.org/#/0,0,3/abc123",
         # OAM /user/ path but non-hex user id
         "https://map.openaerialmap.org/#/0,0,3/user/not-a-hex-id/6a04633ecc972f0164bdda20",
+        # OAM TMS URL with a short (non-24-char) id — not a valid ObjectId pair
+        "https://tiles.openaerialmap.org/abc123/0/def456/{z}/{x}/{y}",
         # umap missing _{id}
         "https://umap.hotosm.org/es/map/no-number-here",
         # chatmap missing uuid
