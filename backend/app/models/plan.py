@@ -6,6 +6,8 @@ from typing import Literal
 import nh3
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.models.taxonomy import GroupRead, TagRead
+
 AppLiteral = Literal[
     "chatmap",
     "drone-tasking-manager",
@@ -57,6 +59,10 @@ class PlanProjectItem(BaseModel):
     status: StatusLiteral = "in_progress"
     featured: bool = False
     data: dict | None = None
+    # Empty means "All" — the frontend groups any item with no groups under
+    # a virtual "All" bucket; there is no such row in the database.
+    groups: list[GroupRead] = []
+    tags: list[TagRead] = []
 
     @model_validator(mode="after")
     def check_project_fields(self) -> "PlanProjectItem":
@@ -149,6 +155,8 @@ class HydratedProjectItem(BaseModel):
     status: StatusLiteral = "in_progress"
     featured: bool = False
     data: dict | None = None
+    groups: list[GroupRead] = []
+    tags: list[TagRead] = []
     upstream: dict | None = None
     error: HydrationError | None = None
     # True when this item was served from the stored snapshot (row.data) without a

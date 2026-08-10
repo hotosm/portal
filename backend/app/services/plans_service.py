@@ -24,6 +24,7 @@ from app.models.plan import (
     StatusLiteral,
     UrlResolveResponse,
 )
+from app.models.taxonomy import GroupRead, TagRead
 from app.services import (
     chatmap_service,
     drone_tm_service,
@@ -33,6 +34,7 @@ from app.services import (
     open_aerial_map_service,
     permissions,
     tasking_manager_service,
+    taxonomy_service,
     umap_service,
     url_resolver,
 )
@@ -94,6 +96,8 @@ def plan_to_read(plan: Plan, ctx: PermissionContext) -> PlanRead:
                 status=row.status,
                 featured=row.featured,
                 data=row.data,
+                groups=[GroupRead.model_validate(g) for g in row.groups],
+                tags=[TagRead.model_validate(t) for t in row.tags],
             )
             for row in plan.projects
             if not row.project_exists or row.app in _KNOWN_APPS
@@ -420,6 +424,73 @@ async def set_project_status(
     return True
 
 
+class TaxonomyNotFoundError(ValueError):
+    """Raised when one or more group_ids/tag_ids don't exist or aren't visible to ctx."""
+
+
+async def _get_plan_project(
+    db: AsyncSession, plan_id: str, plan_project_id: str
+) -> PlanProject | None:
+    stmt = select(PlanProject).where(
+        PlanProject.plan_id == plan_id,
+        PlanProject.id == plan_project_id,
+    )
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
+
+
+async def set_project_groups(
+    db: AsyncSession,
+    ctx: PermissionContext,
+    plan_id: str,
+    plan_project_id: str,
+    group_ids: list[str],
+) -> bool:
+    """Replace the full set of groups on a plan_project row.
+
+    Returns False if the plan or plan_project is not found/not editable.
+    Raises TaxonomyNotFoundError if any group_id doesn't exist or isn't
+    visible to ctx (e.g. it belongs to a different owner).
+    """
+    if await get_editable_plan(db, ctx, plan_id) is None:
+        return False
+    row = await _get_plan_project(db, plan_id, plan_project_id)
+    if row is None:
+        return False
+    groups = await taxonomy_service.get_visible_groups(db, ctx, group_ids)
+    if len(groups) != len(set(group_ids)):
+        raise TaxonomyNotFoundError("One or more groups not found")
+    row.groups = groups
+    await db.flush()
+    return True
+
+
+async def set_project_tags(
+    db: AsyncSession,
+    ctx: PermissionContext,
+    plan_id: str,
+    plan_project_id: str,
+    tag_ids: list[str],
+) -> bool:
+    """Replace the full set of tags on a plan_project row.
+
+    Returns False if the plan or plan_project is not found/not editable.
+    Raises TaxonomyNotFoundError if any tag_id doesn't exist or isn't
+    visible to ctx (e.g. it belongs to a different owner).
+    """
+    if await get_editable_plan(db, ctx, plan_id) is None:
+        return False
+    row = await _get_plan_project(db, plan_id, plan_project_id)
+    if row is None:
+        return False
+    tags = await taxonomy_service.get_visible_tags(db, ctx, tag_ids)
+    if len(tags) != len(set(tag_ids)):
+        raise TaxonomyNotFoundError("One or more tags not found")
+    row.tags = tags
+    await db.flush()
+    return True
+
+
 async def hydrate_one(
     row: PlanProject,
     hanko_cookie: str | None = None,
@@ -667,6 +738,8 @@ def _item_from_snapshot(row: PlanProject) -> HydratedProjectItem:
         status=row.status,
         featured=row.featured,
         data=row.data,
+        groups=[GroupRead.model_validate(g) for g in row.groups],
+        tags=[TagRead.model_validate(t) for t in row.tags],
         upstream=row.data,
         from_snapshot=True,
         error=None if row.data is not None else "pending",
@@ -723,6 +796,8 @@ async def _hydrate_live_and_persist(
     )
     for row, item in zip(plan.projects, hydrated_items, strict=True):
         item.id = row.id
+        item.groups = [GroupRead.model_validate(g) for g in row.groups]
+        item.tags = [TagRead.model_validate(t) for t in row.tags]
         if item.upstream is not None:
             row.data = item.upstream
             item.data = item.upstream
