@@ -43,6 +43,9 @@ export function usePlanMenu(plan: PlanReadHydrated) {
             },
           );
           break;
+        case "groups":
+          navigate(`/${currentLanguage}/plan/${plan.id}/groups`);
+          break;
         case "permissions":
           setPermissionsOpen(true);
           break;

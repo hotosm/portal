@@ -19,7 +19,6 @@ import Carousel from "../components/shared/Carousel";
 import CarouselItem from "../components/shared/CarouselItem";
 import PageWrapper from "../components/shared/PageWrapper";
 import { RichTextContent } from "../components/shared/RichTextContent";
-import SubSectionHeader from "../components/shared/SubSectionHeader";
 import Tag from "../components/shared/Tag";
 import { cardClassNames } from "../constants/classNames";
 import { useAuth } from "../contexts/AuthContext";
@@ -32,14 +31,15 @@ import PlanMenu from "./components/PlanMenu";
 import PlanProjectCard from "./components/PlanProjectCard";
 import PlanSectionHeader from "./components/PlanSectionHeader";
 import PlanShareButton from "./components/PlanShareButton";
+import PlanSubSectionAccordion from "./components/PlanSubSectionAccordion";
 import ProjectPickerDialog from "./components/ProjectPickerDialog";
 import SortableViewProjectCard from "./components/SortableViewProjectCard";
-import { PLAN_SECTIONS } from "./contstants";
 import {
   planQueryKeys,
   useAllUserProjects,
   useCompleteTask,
   usePlan,
+  useProjectGroups,
   useRefreshPlan,
   useSharedPlan,
   useUpdatePlan,
@@ -53,6 +53,18 @@ import type {
   PlanReadHydrated,
   ProjectOption,
 } from "./types";
+import Button from "../components/shared/Button";
+
+/** Bucket for projects that carry no group — the taxonomy API models it as an empty group list. */
+const ALL_SECTION_ID = "all";
+
+/**
+ * Cards are dragged by a section-scoped id: a project may belong to several
+ * groups, so the same plan project renders in more than one section and dnd-kit
+ * needs one unique id per card.
+ */
+const dragIdFor = (sectionId: string, id: string) => `${sectionId}:${id}`;
+const planProjectId = (dragId: string) => dragId.slice(dragId.indexOf(":") + 1);
 
 /** Map a hydrated project/task back to the payload shape expected by PATCH /plans. */
 function toItem(p: HydratedProjectItem): PlanProjectItem {
@@ -104,6 +116,7 @@ function MyPlanPage() {
 
   const [pickerSection, setPickerSection] = useState<AppName[] | null>(null);
   const { sources } = useAllUserProjects(canEdit);
+  const { data: projectGroups = [] } = useProjectGroups();
 
   const { mutate: updatePlan } = useUpdatePlan();
   const { mutate: updateStatus } = useUpdateProjectStatus();
@@ -266,10 +279,11 @@ function MyPlanPage() {
     const { active, over } = event;
     if (!over || active.id === over.id || !plan) return;
     const ids = plan.projects.map((p) => p.id);
+    // Cards are dragged by their section-scoped id; ordering is global.
     const reordered = arrayMove(
       ids,
-      ids.indexOf(active.id as string),
-      ids.indexOf(over.id as string),
+      ids.indexOf(planProjectId(active.id as string)),
+      ids.indexOf(planProjectId(over.id as string)),
     ).map((id) => plan.projects.find((p) => p.id === id)!);
     patchCachedProjects(reordered);
     persistProjects(reordered.map(toItem));
@@ -305,8 +319,7 @@ function MyPlanPage() {
 
   const featuredSection =
     featuredProjects.length > 0 ? (
-      <div key="featured">
-        <SubSectionHeader title="<strong>Featured</strong>" />
+      <PlanSubSectionAccordion key="featured" title={<strong>Featured</strong>}>
         <PageWrapper>
           <div className="flex flex-wrap gap-lg py-lg">
             {featuredProjects.map((project) => (
@@ -333,14 +346,31 @@ function MyPlanPage() {
             ))}
           </div>
         </PageWrapper>
-      </div>
+      </PlanSubSectionAccordion>
     ) : null;
 
-  const sections = PLAN_SECTIONS.map((section) => {
+  // Sections are the project groups carried by this plan's projects: the user's
+  // own groups first, in useProjectGroups order, then any group that arrived on
+  // the plan but isn't in that list — someone viewing a shared plan reads the
+  // groups off the projects without being able to list the owner's taxonomy.
+  const groupsOnPlan = new Map(
+    (plan?.projects ?? []).flatMap((p) => p.groups.map((g) => [g.id, g] as const)),
+  );
+  const sectionDefs = [
+    { id: ALL_SECTION_ID, title: m.plan_groups_all_bucket() },
+    ...projectGroups
+      .filter((group) => groupsOnPlan.has(group.id))
+      .map((group) => ({ id: group.id, title: group.name })),
+    ...[...groupsOnPlan.values()]
+      .filter((group) => !projectGroups.some((own) => own.id === group.id))
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((group) => ({ id: group.id, title: group.name })),
+  ];
+
+  const sections = sectionDefs.map((section) => {
     if (isLoading) {
       return (
-        <div key={section.title}>
-          <SubSectionHeader title={`<strong>${section.title}</strong>`} />
+        <PlanSubSectionAccordion key={section.id} title={<strong>{section.title}</strong>}>
           <PageWrapper>
             <div className="flex flex-wrap gap-lg py-lg">
               {Array.from({ length: 3 }).map((_, i) => (
@@ -350,36 +380,41 @@ function MyPlanPage() {
               ))}
             </div>
           </PageWrapper>
-        </div>
+        </PlanSubSectionAccordion>
       );
     }
 
-    const sectionProjects = plan!.projects.filter(
-      (p) => section.apps.includes(p.app),
+    const sectionProjects = plan!.projects.filter((p) =>
+      section.id === ALL_SECTION_ID
+        ? p.groups.length === 0
+        : p.groups.some((g) => g.id === section.id),
     );
-    if (!canEdit && sectionProjects.length === 0) return null;
+    // Adding is offered in "All" only: the picker knows apps, not groups, so new
+    // projects arrive ungrouped and are assigned on the plan groups page.
+    const showAddCard = canEdit && section.id === ALL_SECTION_ID;
+    if (!showAddCard && sectionProjects.length === 0) return null;
 
     return (
-      <div key={section.title}>
-        <SubSectionHeader title={`<strong>${section.title}</strong>`} />
+      <PlanSubSectionAccordion key={section.id} title={<strong>{section.title}</strong>}>
         <PageWrapper>
           <div className="flex flex-wrap gap-lg py-lg">
-            {canEdit && (
+            {showAddCard && (
               <div className={cardClassNames}>
                 <CardAddProject
-                  onButtonClick={() => setPickerSection(section.apps)}
+                  onButtonClick={() => setPickerSection(sources.map((s) => s.app))}
                 />
               </div>
             )}
             {canEdit ? (
               <SortableContext
-                items={sectionProjects.map((p) => p.id)}
+                items={sectionProjects.map((p) => dragIdFor(section.id, p.id))}
                 strategy={rectSortingStrategy}
               >
                 {sectionProjects.map((project) => (
                   <SortableViewProjectCard
                     key={project.id}
                     id={project.id}
+                    dragId={dragIdFor(section.id, project.id)}
                     project={project}
                     planId={plan!.id}
                     onProjectSelected={handleTaskCompleted}
@@ -397,7 +432,7 @@ function MyPlanPage() {
             )}
           </div>
         </PageWrapper>
-      </div>
+      </PlanSubSectionAccordion>
     );
   });
 
@@ -480,6 +515,16 @@ function MyPlanPage() {
             )}
           </>
         )}
+      </PageWrapper>
+      
+      {/* actions */}
+      <PageWrapper>
+        <div>
+          <div className="flex gap-xs">
+            <Button appearance="" variant="">Add project</Button>
+            <Button>Groups</Button>
+          </div>
+        </div>
       </PageWrapper>
 
       {featuredSection}

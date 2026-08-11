@@ -9,6 +9,12 @@ import PlanProjectCard from './PlanProjectCard'
 
 interface SortableViewProjectCardProps {
   id: string
+  /**
+   * Identity for drag and drop, when it has to differ from `id`: a project shown
+   * in several sections needs a unique id per section, while `id` stays the plan
+   * project id the callbacks below report. Defaults to `id`.
+   */
+  dragId?: string
   project: HydratedProjectItem
   planId: string
   onProjectSelected?: (oldKey: string, project: ProjectOption) => void
@@ -18,6 +24,7 @@ interface SortableViewProjectCardProps {
 
 function SortableViewProjectCard({
   id,
+  dragId,
   project,
   planId,
   onProjectSelected,
@@ -25,7 +32,7 @@ function SortableViewProjectCard({
   onFeaturedToggle,
 }: SortableViewProjectCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id,
+    id: dragId ?? id,
   })
   const style = {
     transform: CSS.Transform.toString(transform),

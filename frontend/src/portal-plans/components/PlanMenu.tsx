@@ -1,3 +1,4 @@
+import chevronDownIcon from "../../assets/icons/chevron-down.svg?url";
 import Button from "../../components/shared/Button";
 import Dialog from "../../components/shared/Dialog";
 import Dropdown from "../../components/shared/Dropdown";
@@ -40,7 +41,10 @@ function PlanMenu({ plan }: PlanMenuProps) {
   return (
     <>
       <Dropdown onSelect={onSelect}>
-        <Button slot="trigger">{m.plan_menu_trigger()}</Button>
+        <Button slot="trigger">
+          {m.plan_menu_trigger()}
+          <Icon slot="end" src={chevronDownIcon} label="" />
+        </Button>
         {canEdit && (
           <DropdownItem value="edit">
             <Icon slot="icon" library="bootstrap" name="pencil" />
@@ -57,6 +61,12 @@ function PlanMenu({ plan }: PlanMenuProps) {
             {plan.is_public ? m.plan_menu_unpublish() : m.plan_menu_publish()}
           </DropdownItem>
         )}
+        {/* {canEdit && (
+          <DropdownItem value="groups">
+            <Icon slot="icon" library="bootstrap" name="tags" />
+            {m.plan_menu_groups()}
+          </DropdownItem>
+        )} */}
         {canEdit && (
           <DropdownItem value="share">
             <Icon slot="icon" library="bootstrap" name="share" />

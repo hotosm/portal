@@ -28,6 +28,57 @@ export interface UserGroup {
   status: string
 }
 
+/**
+ * An open-text taxonomy entity owned by a user and optionally shared with one of
+ * their login teams/organizations. Named `ProjectGroup` rather than `Group` to
+ * keep it distinct from `UserGroup` (a login team/org) — the API serves these
+ * under /project-groups for the same reason.
+ */
+export interface ProjectGroup {
+  id: string
+  name: string
+  description: string | null
+  owner_id: string
+  group_type: GroupType | null
+  group_id: string | null
+  created_at: string
+  updated_at: string
+}
+
+/** Same ownership/sharing model as ProjectGroup, but without a description. */
+export interface ProjectTag {
+  id: string
+  name: string
+  owner_id: string
+  group_type: GroupType | null
+  group_id: string | null
+  created_at: string
+  updated_at: string
+}
+
+/** Unset group_type/group_id means personal; both together share with that team/org. */
+export interface ProjectGroupCreate {
+  name: string
+  description?: string | null
+  group_type?: GroupType | null
+  group_id?: string | null
+}
+
+export interface ProjectGroupUpdate {
+  name?: string
+  description?: string | null
+}
+
+export interface ProjectTagCreate {
+  name: string
+  group_type?: GroupType | null
+  group_id?: string | null
+}
+
+export interface ProjectTagUpdate {
+  name: string
+}
+
 export interface PlanProjectItem {
   id?: string
   app: AppName
@@ -36,6 +87,8 @@ export interface PlanProjectItem {
   status?: ProjectStatus
   featured?: boolean
   data?: Record<string, unknown> | null
+  groups?: ProjectGroup[]
+  tags?: ProjectTag[]
 }
 
 export interface PlanCreate {
@@ -92,6 +145,10 @@ export interface HydratedProjectItem {
   status: ProjectStatus
   featured: boolean
   data: Record<string, unknown> | null
+  // Empty groups means "All" — there is no such row in the database; the UI
+  // buckets any item with no groups under a virtual "All" group.
+  groups: ProjectGroup[]
+  tags: ProjectTag[]
   upstream: Record<string, unknown> | null
   error: HydrationError | null
   from_snapshot?: boolean
