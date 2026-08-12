@@ -3,9 +3,9 @@ import { toast } from 'sonner'
 import { useAuth } from '../../contexts/AuthContext'
 import { m } from '../../paraglide/messages'
 import type {
-  ProjectGroup,
-  ProjectGroupCreate,
-  ProjectGroupUpdate,
+  Collection,
+  CollectionCreate,
+  CollectionUpdate,
   ProjectTag,
   ProjectTagCreate,
   ProjectTagUpdate,
@@ -17,7 +17,7 @@ const GC_TIME = 30 * 60 * 1000
 
 export const taxonomyQueryKeys = {
   all: ['taxonomy'] as const,
-  groups: () => [...taxonomyQueryKeys.all, 'project-groups'] as const,
+  collections: () => [...taxonomyQueryKeys.all, 'collections'] as const,
   tags: () => [...taxonomyQueryKeys.all, 'tags'] as const,
 }
 
@@ -31,15 +31,15 @@ async function errorDetail(response: Response, fallback: string): Promise<string
   return typeof body?.detail === 'string' && body.detail ? body.detail : fallback
 }
 
-/** Groups visible to the user: their own, plus any shared with their teams/orgs. */
-export function useProjectGroups() {
+/** Collections visible to the user: their own, plus any shared with their teams/orgs. */
+export function useCollections() {
   const { isLogin } = useAuth()
   return useQuery({
-    queryKey: taxonomyQueryKeys.groups(),
-    queryFn: async (): Promise<ProjectGroup[]> => {
+    queryKey: taxonomyQueryKeys.collections(),
+    queryFn: async (): Promise<Collection[]> => {
       const response = await fetch('/api/project-groups', { credentials: 'include' })
       if (!response.ok) {
-        throw new Error(`[${response.status}] Failed to fetch groups`)
+        throw new Error(`[${response.status}] Failed to fetch collections`)
       }
       return response.json()
     },
@@ -69,10 +69,10 @@ export function useProjectTags() {
   })
 }
 
-export function useCreateProjectGroup() {
+export function useCreateCollection() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (payload: ProjectGroupCreate): Promise<ProjectGroup> => {
+    mutationFn: async (payload: CollectionCreate): Promise<Collection> => {
       const response = await fetch('/api/project-groups', {
         method: 'POST',
         credentials: 'include',
@@ -80,12 +80,12 @@ export function useCreateProjectGroup() {
         body: JSON.stringify(payload),
       })
       if (!response.ok) {
-        throw new Error(await errorDetail(response, m.plan_taxonomy_group_create_error()))
+        throw new Error(await errorDetail(response, m.plan_taxonomy_collection_create_error()))
       }
       return response.json()
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: taxonomyQueryKeys.groups() })
+      queryClient.invalidateQueries({ queryKey: taxonomyQueryKeys.collections() })
     },
     onError: (error: Error) => {
       toast.error(error.message)
@@ -93,7 +93,7 @@ export function useCreateProjectGroup() {
   })
 }
 
-export function useUpdateProjectGroup() {
+export function useUpdateCollection() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({
@@ -101,8 +101,8 @@ export function useUpdateProjectGroup() {
       payload,
     }: {
       id: string
-      payload: ProjectGroupUpdate
-    }): Promise<ProjectGroup> => {
+      payload: CollectionUpdate
+    }): Promise<Collection> => {
       const response = await fetch(`/api/project-groups/${id}`, {
         method: 'PATCH',
         credentials: 'include',
@@ -110,14 +110,14 @@ export function useUpdateProjectGroup() {
         body: JSON.stringify(payload),
       })
       if (!response.ok) {
-        throw new Error(await errorDetail(response, m.plan_taxonomy_group_update_error()))
+        throw new Error(await errorDetail(response, m.plan_taxonomy_collection_update_error()))
       }
       return response.json()
     },
-    // A rename also changes how the group reads on every plan that uses it, so
+    // A rename also changes how the collection reads on every plan that uses it, so
     // drop the plan caches alongside the taxonomy list.
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: taxonomyQueryKeys.groups() })
+      queryClient.invalidateQueries({ queryKey: taxonomyQueryKeys.collections() })
       queryClient.invalidateQueries({ queryKey: planQueryKeys.all })
     },
     onError: (error: Error) => {
@@ -126,7 +126,7 @@ export function useUpdateProjectGroup() {
   })
 }
 
-export function useDeleteProjectGroup() {
+export function useDeleteCollection() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (id: string): Promise<void> => {
@@ -135,13 +135,13 @@ export function useDeleteProjectGroup() {
         credentials: 'include',
       })
       if (!response.ok) {
-        throw new Error(await errorDetail(response, m.plan_taxonomy_group_delete_error()))
+        throw new Error(await errorDetail(response, m.plan_taxonomy_collection_delete_error()))
       }
     },
-    // Deleting unassigns the group everywhere; plan projects that had only this
-    // group fall back to the virtual "All" bucket.
+    // Deleting unassigns the collection everywhere; plan projects that had only
+    // this collection fall back to the virtual "All" bucket.
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: taxonomyQueryKeys.groups() })
+      queryClient.invalidateQueries({ queryKey: taxonomyQueryKeys.collections() })
       queryClient.invalidateQueries({ queryKey: planQueryKeys.all })
     },
     onError: (error: Error) => {
@@ -228,24 +228,25 @@ export function useDeleteProjectTag() {
 }
 
 /**
- * Replace the full set of groups on one plan project/task. An empty list means
- * "All" — the backend stores no rows and the UI renders the virtual bucket.
+ * Replace the full set of collections on one plan project/task. An empty list
+ * means "All" — the backend stores no rows and the UI renders the virtual
+ * bucket. The route and body keys still say "group"; they follow the API.
  */
-export function useSetProjectGroups(planId: string) {
+export function useSetProjectCollections(planId: string) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({
       planProjectId,
-      groupIds,
+      collectionIds,
     }: {
       planProjectId: string
-      groupIds: string[]
+      collectionIds: string[]
     }): Promise<void> => {
       const response = await fetch(`/api/plans/${planId}/projects/${planProjectId}/groups`, {
         method: 'PATCH',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ group_ids: groupIds }),
+        body: JSON.stringify({ group_ids: collectionIds }),
       })
       if (!response.ok) {
         throw new Error(await errorDetail(response, m.plan_taxonomy_assign_error()))

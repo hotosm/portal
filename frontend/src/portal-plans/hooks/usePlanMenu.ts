@@ -43,8 +43,8 @@ export function usePlanMenu(plan: PlanReadHydrated) {
             },
           );
           break;
-        case "groups":
-          navigate(`/${currentLanguage}/plan/${plan.id}/groups`);
+        case "collections":
+          navigate(`/${currentLanguage}/plan/${plan.id}/collections`);
           break;
         case "permissions":
           setPermissionsOpen(true);

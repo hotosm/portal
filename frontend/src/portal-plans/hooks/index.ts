@@ -13,15 +13,15 @@ export {
   groupsQueryKey,
 } from './usePlans'
 export {
-  useProjectGroups,
+  useCollections,
   useProjectTags,
-  useCreateProjectGroup,
-  useUpdateProjectGroup,
-  useDeleteProjectGroup,
+  useCreateCollection,
+  useUpdateCollection,
+  useDeleteCollection,
   useCreateProjectTag,
   useUpdateProjectTag,
   useDeleteProjectTag,
-  useSetProjectGroups,
+  useSetProjectCollections,
   useSetProjectTags,
   taxonomyQueryKeys,
 } from './useTaxonomy'

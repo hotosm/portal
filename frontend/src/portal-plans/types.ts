@@ -30,11 +30,11 @@ export interface UserGroup {
 
 /**
  * An open-text taxonomy entity owned by a user and optionally shared with one of
- * their login teams/organizations. Named `ProjectGroup` rather than `Group` to
- * keep it distinct from `UserGroup` (a login team/org) — the API serves these
- * under /project-groups for the same reason.
+ * their login teams/organizations. Distinct from `UserGroup` (a login team/org),
+ * which is what `group_type`/`group_id` below refer to. The API still calls
+ * these project groups (/project-groups); the wire names stay until it renames.
  */
-export interface ProjectGroup {
+export interface Collection {
   id: string
   name: string
   description: string | null
@@ -45,7 +45,7 @@ export interface ProjectGroup {
   updated_at: string
 }
 
-/** Same ownership/sharing model as ProjectGroup, but without a description. */
+/** Same ownership/sharing model as Collection, but without a description. */
 export interface ProjectTag {
   id: string
   name: string
@@ -57,14 +57,14 @@ export interface ProjectTag {
 }
 
 /** Unset group_type/group_id means personal; both together share with that team/org. */
-export interface ProjectGroupCreate {
+export interface CollectionCreate {
   name: string
   description?: string | null
   group_type?: GroupType | null
   group_id?: string | null
 }
 
-export interface ProjectGroupUpdate {
+export interface CollectionUpdate {
   name?: string
   description?: string | null
 }
@@ -87,7 +87,7 @@ export interface PlanProjectItem {
   status?: ProjectStatus
   featured?: boolean
   data?: Record<string, unknown> | null
-  groups?: ProjectGroup[]
+  groups?: Collection[]
   tags?: ProjectTag[]
 }
 
@@ -145,9 +145,10 @@ export interface HydratedProjectItem {
   status: ProjectStatus
   featured: boolean
   data: Record<string, unknown> | null
-  // Empty groups means "All" — there is no such row in the database; the UI
-  // buckets any item with no groups under a virtual "All" group.
-  groups: ProjectGroup[]
+  // Empty means "All" — there is no such row in the database; the UI buckets
+  // any item with no collections under a virtual "All" collection.
+  // Wire name stays `groups` until the API renames it.
+  groups: Collection[]
   tags: ProjectTag[]
   upstream: Record<string, unknown> | null
   error: HydrationError | null

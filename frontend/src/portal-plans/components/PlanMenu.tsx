@@ -62,9 +62,9 @@ function PlanMenu({ plan }: PlanMenuProps) {
           </DropdownItem>
         )}
         {/* {canEdit && (
-          <DropdownItem value="groups">
+          <DropdownItem value="collections">
             <Icon slot="icon" library="bootstrap" name="tags" />
-            {m.plan_menu_groups()}
+            {m.plan_menu_collections()}
           </DropdownItem>
         )} */}
         {canEdit && (

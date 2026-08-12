@@ -16,27 +16,27 @@ import { m } from "../paraglide/messages";
 import { APP_META } from "../utils/appMeta";
 import PlanSectionHeader from "./components/PlanSectionHeader";
 import {
-  useCreateProjectGroup,
+  useCollections,
+  useCreateCollection,
   useCreateProjectTag,
-  useDeleteProjectGroup,
+  useDeleteCollection,
   useDeleteProjectTag,
   useMyGroups,
   usePlan,
-  useProjectGroups,
   useProjectTags,
-  useSetProjectGroups,
+  useSetProjectCollections,
   useSetProjectTags,
-  useUpdateProjectGroup,
+  useUpdateCollection,
   useUpdateProjectTag,
 } from "./hooks";
 import type {
+  Collection,
   GroupType,
   HydratedProjectItem,
-  ProjectGroup,
   ProjectTag,
 } from "./types";
 
-/** Ownership scope of a new group/tag, mirroring PlanPermissionsDialog. */
+/** Ownership scope of a new collection/tag, mirroring PlanPermissionsDialog. */
 type Scope = "personal" | GroupType;
 
 /** Read the selected value from a Web Awesome `<wa-select>` change event. */
@@ -54,7 +54,7 @@ function rowTitle(project: HydratedProjectItem): string {
   const src = project.upstream ?? project.data;
   const raw = src?.name ?? src?.title ?? src?.project_name;
   if (typeof raw === "string" && raw) return raw;
-  return project.project_id ?? m.plan_groups_untitled();
+  return project.project_id ?? m.plan_collections_untitled();
 }
 
 interface ScopeFieldProps {
@@ -65,7 +65,7 @@ interface ScopeFieldProps {
 }
 
 /**
- * Scope picker for a new group/tag: personal, or shared with one of the user's
+ * Scope picker for a new collection/tag: personal, or shared with one of the user's
  * login teams/organizations. Renders nothing when the user has no memberships,
  * in which case everything they create is personal.
  */
@@ -85,7 +85,7 @@ function ScopeField({
   return (
     <>
       <Select
-        label={m.plan_groups_scope_label()}
+        label={m.plan_collections_scope_label()}
         value={scope}
         onChange={(e) => {
           const next = selectValue(e) as Scope;
@@ -98,17 +98,17 @@ function ScopeField({
           onGroupIdChange(list[0]?.id ?? null);
         }}
       >
-        <Option value="personal">{m.plan_groups_scope_personal()}</Option>
+        <Option value="personal">{m.plan_collections_scope_personal()}</Option>
         {teamGroups.length > 0 && (
-          <Option value="team">{m.plan_groups_scope_team()}</Option>
+          <Option value="team">{m.plan_collections_scope_team()}</Option>
         )}
         {orgGroups.length > 0 && (
-          <Option value="organization">{m.plan_groups_scope_org()}</Option>
+          <Option value="organization">{m.plan_collections_scope_org()}</Option>
         )}
       </Select>
       {scope !== "personal" && (
         <Select
-          label={m.plan_groups_scope_which_label()}
+          label={m.plan_collections_scope_which_label()}
           value={groupId ?? ""}
           onChange={(e) => onGroupIdChange(selectValue(e) || null)}
         >
@@ -124,14 +124,14 @@ function ScopeField({
 }
 
 interface TaxonomyRowProps {
-  entity: ProjectGroup | ProjectTag;
+  entity: Collection | ProjectTag;
   description?: string | null;
   isSaving: boolean;
   onRename: (name: string, description: string | null) => void;
   onDelete: () => void;
 }
 
-/** One group/tag in the management list, with inline rename and delete. */
+/** One collection/tag in the management list, with inline rename and delete. */
 function TaxonomyRow({
   entity,
   description,
@@ -140,7 +140,7 @@ function TaxonomyRow({
   onDelete,
 }: TaxonomyRowProps) {
   // `description === undefined` marks a tag (no description field at all),
-  // distinct from a group whose description is null.
+  // distinct from a collection whose description is null.
   const hasDescription = description !== undefined;
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(entity.name);
@@ -177,7 +177,7 @@ function TaxonomyRow({
           <textarea
             value={desc}
             rows={2}
-            placeholder={m.plan_groups_description_placeholder()}
+            placeholder={m.plan_collections_description_placeholder()}
             onChange={(e) => setDesc(e.target.value)}
             className="border border-hot-gray-300 rounded-lg px-md py-sm text-sm outline-none focus:border-hot-red-500 resize-y"
           />
@@ -196,7 +196,7 @@ function TaxonomyRow({
             onClick={save}
             disabled={isSaving || !name.trim()}
           >
-            {m.plan_groups_save()}
+            {m.plan_collections_save()}
           </Button>
         </div>
       </li>
@@ -210,7 +210,7 @@ function TaxonomyRow({
           <span className="font-medium break-words">{entity.name}</span>
           {entity.group_id && (
             <Tag variant="neutral" appearance="outlined" size="small">
-              {m.plan_groups_shared_tag()}
+              {m.plan_collections_shared_tag()}
             </Tag>
           )}
         </div>
@@ -224,18 +224,18 @@ function TaxonomyRow({
       <button
         type="button"
         onClick={startEditing}
-        aria-label={m.plan_groups_rename()}
+        aria-label={m.plan_collections_rename()}
         className="text-hot-gray-500 hover:text-hot-gray-700"
       >
-        <Icon library="bootstrap" name="pencil" label={m.plan_groups_rename()} />
+        <Icon library="bootstrap" name="pencil" label={m.plan_collections_rename()} />
       </button>
       <button
         type="button"
         onClick={onDelete}
-        aria-label={m.plan_groups_delete()}
+        aria-label={m.plan_collections_delete()}
         className="text-hot-gray-500 hover:text-hot-red-600"
       >
-        <Icon library="bootstrap" name="trash" label={m.plan_groups_delete()} />
+        <Icon library="bootstrap" name="trash" label={m.plan_collections_delete()} />
       </button>
     </li>
   );
@@ -251,7 +251,7 @@ interface ChipPickerProps {
 }
 
 /**
- * Toggleable chips for assigning groups/tags to a plan row. Chips rather than a
+ * Toggleable chips for assigning collections/tags to a plan row. Chips rather than a
  * multi-`<wa-select>`: assignments are usually one or two clicks and stay
  * readable at a glance next to every project.
  */
@@ -299,7 +299,7 @@ function ChipPicker({
   );
 }
 
-function PlanGroupsPage() {
+function PlanCollectionsPage() {
   const { planId } = useParams<{ planId: string }>();
   const { isLogin, isAuthLoading } = useAuth();
   const { currentLanguage } = useLanguage();
@@ -307,22 +307,22 @@ function PlanGroupsPage() {
   const { data: plan, isLoading: planLoading, isError: planError } = usePlan(
     planId ?? "",
   );
-  const { data: groups = [], isLoading: groupsLoading } = useProjectGroups();
+  const { data: collections = [], isLoading: collectionsLoading } = useCollections();
   const { data: tags = [], isLoading: tagsLoading } = useProjectTags();
 
-  const createGroup = useCreateProjectGroup();
-  const updateGroup = useUpdateProjectGroup();
-  const deleteGroup = useDeleteProjectGroup();
+  const createCollection = useCreateCollection();
+  const updateCollection = useUpdateCollection();
+  const deleteCollection = useDeleteCollection();
   const createTag = useCreateProjectTag();
   const updateTag = useUpdateProjectTag();
   const deleteTag = useDeleteProjectTag();
-  const setProjectGroups = useSetProjectGroups(planId ?? "");
+  const setProjectCollections = useSetProjectCollections(planId ?? "");
   const setProjectTags = useSetProjectTags(planId ?? "");
 
-  const [groupName, setGroupName] = useState("");
-  const [groupDesc, setGroupDesc] = useState("");
-  const [groupScope, setGroupScope] = useState<Scope>("personal");
-  const [groupScopeId, setGroupScopeId] = useState<string | null>(null);
+  const [collectionName, setCollectionName] = useState("");
+  const [collectionDesc, setCollectionDesc] = useState("");
+  const [collectionScope, setCollectionScope] = useState<Scope>("personal");
+  const [collectionScopeId, setCollectionScopeId] = useState<string | null>(null);
 
   const [tagName, setTagName] = useState("");
   const [tagScope, setTagScope] = useState<Scope>("personal");
@@ -330,28 +330,28 @@ function PlanGroupsPage() {
 
   // Which entity a delete confirmation is open for, if any.
   const [pendingDelete, setPendingDelete] = useState<
-    { kind: "group" | "tag"; id: string; name: string } | null
+    { kind: "collection" | "tag"; id: string; name: string } | null
   >(null);
 
   const canEdit = plan?.can_edit ?? false;
   const isLoading = isAuthLoading || planLoading;
 
-  function handleCreateGroup(e: React.FormEvent) {
+  function handleCreateCollection(e: React.FormEvent) {
     e.preventDefault();
-    const name = groupName.trim();
+    const name = collectionName.trim();
     if (!name) return;
-    createGroup.mutate(
+    createCollection.mutate(
       {
         name,
-        description: groupDesc.trim() || null,
-        group_type: groupScope === "personal" ? null : groupScope,
-        group_id: groupScope === "personal" ? null : groupScopeId,
+        description: collectionDesc.trim() || null,
+        group_type: collectionScope === "personal" ? null : collectionScope,
+        group_id: collectionScope === "personal" ? null : collectionScopeId,
       },
       {
         onSuccess: () => {
-          setGroupName("");
-          setGroupDesc("");
-          toast.success(m.plan_groups_toast_group_created());
+          setCollectionName("");
+          setCollectionDesc("");
+          toast.success(m.plan_collections_toast_collection_created());
         },
       },
     );
@@ -370,7 +370,7 @@ function PlanGroupsPage() {
       {
         onSuccess: () => {
           setTagName("");
-          toast.success(m.plan_groups_toast_tag_created());
+          toast.success(m.plan_collections_toast_tag_created());
         },
       },
     );
@@ -379,14 +379,14 @@ function PlanGroupsPage() {
   function handleConfirmDelete() {
     if (!pendingDelete) return;
     const { kind, id } = pendingDelete;
-    const mutation = kind === "group" ? deleteGroup : deleteTag;
+    const mutation = kind === "collection" ? deleteCollection : deleteTag;
     mutation.mutate(id, {
       onSuccess: () => {
         setPendingDelete(null);
         toast.success(
-          kind === "group"
-            ? m.plan_groups_toast_group_deleted()
-            : m.plan_groups_toast_tag_deleted(),
+          kind === "collection"
+            ? m.plan_collections_toast_collection_deleted()
+            : m.plan_collections_toast_tag_deleted(),
         );
       },
     });
@@ -394,12 +394,12 @@ function PlanGroupsPage() {
 
   // Assignment endpoints replace the whole set, so toggling means sending the
   // current ids with one added or removed.
-  function toggleGroupOnProject(project: HydratedProjectItem, groupId: string) {
+  function toggleCollectionOnProject(project: HydratedProjectItem, collectionId: string) {
     const current = project.groups.map((g) => g.id);
-    const next = current.includes(groupId)
-      ? current.filter((id) => id !== groupId)
-      : [...current, groupId];
-    setProjectGroups.mutate({ planProjectId: project.id, groupIds: next });
+    const next = current.includes(collectionId)
+      ? current.filter((id) => id !== collectionId)
+      : [...current, collectionId];
+    setProjectCollections.mutate({ planProjectId: project.id, collectionIds: next });
   }
 
   function toggleTagOnProject(project: HydratedProjectItem, tagId: string) {
@@ -444,92 +444,93 @@ function PlanGroupsPage() {
                   label: plan!.name,
                   href: `/${currentLanguage}/plan/${plan!.id}`,
                 },
-                { label: m.plan_groups_header() },
+                { label: m.plan_collections_header() },
               ]
         }
       >
         {isLoading ? (
           <div className="animate-pulse bg-hot-gray-300 rounded h-6 w-48" />
         ) : (
-          m.plan_groups_header()
+          m.plan_collections_header()
         )}
       </PlanSectionHeader>
 
       <PageWrapper>
         <p className="text-sm text-hot-gray-600 py-md">
-          {m.plan_groups_intro()}
+          {m.plan_collections_intro()}
         </p>
       </PageWrapper>
 
-      {/* Taxonomy management — groups and tags are owned by the user (or shared
+      {/* Taxonomy management — collections and tags are owned by the user (or shared
           with a team/org), so edits here affect every plan that uses them. */}
-      <SubSectionHeader title={`<strong>${m.plan_groups_section_groups()}</strong>`} />
+      <SubSectionHeader title={`<strong>${m.plan_collections_section_collections()}</strong>`} />
       <PageWrapper>
         <div className="flex flex-col gap-md py-lg max-w-2xl">
-          <form onSubmit={handleCreateGroup} className="flex flex-col gap-sm">
+          <form onSubmit={handleCreateCollection} className="flex flex-col gap-sm">
             <input
               type="text"
-              value={groupName}
-              onChange={(e) => setGroupName(e.target.value)}
-              placeholder={m.plan_groups_new_group_placeholder()}
+              value={collectionName}
+              onChange={(e) => setCollectionName(e.target.value)}
+              placeholder={m.plan_collections_new_collection_placeholder()}
               className="border border-hot-gray-300 rounded-lg px-md py-sm text-base outline-none focus:border-hot-red-500"
             />
             <textarea
-              value={groupDesc}
+              value={collectionDesc}
               rows={2}
-              onChange={(e) => setGroupDesc(e.target.value)}
-              placeholder={m.plan_groups_description_placeholder()}
+              onChange={(e) => setCollectionDesc(e.target.value)}
+              placeholder={m.plan_collections_description_placeholder()}
               className="border border-hot-gray-300 rounded-lg px-md py-sm text-sm outline-none focus:border-hot-red-500 resize-y"
             />
             <ScopeField
-              scope={groupScope}
-              groupId={groupScopeId}
-              onScopeChange={setGroupScope}
-              onGroupIdChange={setGroupScopeId}
+              scope={collectionScope}
+              groupId={collectionScopeId}
+              onScopeChange={setCollectionScope}
+              onGroupIdChange={setCollectionScopeId}
             />
             <div>
               <Button
                 type="submit"
-                disabled={createGroup.isPending || !groupName.trim()}
+                disabled={createCollection.isPending || !collectionName.trim()}
               >
                 <Icon slot="start" library="bootstrap" name="plus" />
-                {createGroup.isPending
-                  ? m.plan_groups_adding()
-                  : m.plan_groups_add()}
+                {createCollection.isPending
+                  ? m.plan_collections_adding()
+                  : m.plan_collections_add()}
               </Button>
             </div>
           </form>
 
-          {groupsLoading ? (
+          {collectionsLoading ? (
             <Spinner label={m.plan_form_loading()} />
-          ) : groups.length === 0 ? (
+          ) : collections.length === 0 ? (
             <p className="text-sm text-hot-gray-500">
-              {m.plan_groups_empty_groups()}
+              {m.plan_collections_empty_collections()}
             </p>
           ) : (
             <ul className="flex flex-col gap-sm">
-              {groups.map((group) => (
+              {collections.map((collection) => (
                 <TaxonomyRow
-                  key={group.id}
-                  entity={group}
-                  description={group.description}
+                  key={collection.id}
+                  entity={collection}
+                  description={collection.description}
                   isSaving={
-                    updateGroup.isPending && updateGroup.variables?.id === group.id
+                    updateCollection.isPending &&
+                    updateCollection.variables?.id === collection.id
                   }
                   onRename={(name, description) =>
-                    updateGroup.mutate(
-                      { id: group.id, payload: { name, description } },
+                    updateCollection.mutate(
+                      { id: collection.id, payload: { name, description } },
                       {
                         onSuccess: () =>
-                          toast.success(m.plan_groups_toast_group_updated()),
+                          toast.success(m.plan_collections_toast_collection_updated()),
                       },
                     )
                   }
                   onDelete={() =>
                     setPendingDelete({
-                      kind: "group",
-                      id: group.id,
-                      name: group.name,
+                      kind: "collection",
+                      id: collection.id,
+                      name: collection.name,
                     })
                   }
                 />
@@ -539,7 +540,7 @@ function PlanGroupsPage() {
         </div>
       </PageWrapper>
 
-      <SubSectionHeader title={`<strong>${m.plan_groups_section_tags()}</strong>`} />
+      <SubSectionHeader title={`<strong>${m.plan_collections_section_tags()}</strong>`} />
       <PageWrapper>
         <div className="flex flex-col gap-md py-lg max-w-2xl">
           <form onSubmit={handleCreateTag} className="flex flex-col gap-sm">
@@ -547,7 +548,7 @@ function PlanGroupsPage() {
               type="text"
               value={tagName}
               onChange={(e) => setTagName(e.target.value)}
-              placeholder={m.plan_groups_new_tag_placeholder()}
+              placeholder={m.plan_collections_new_tag_placeholder()}
               className="border border-hot-gray-300 rounded-lg px-md py-sm text-base outline-none focus:border-hot-red-500"
             />
             <ScopeField
@@ -563,8 +564,8 @@ function PlanGroupsPage() {
               >
                 <Icon slot="start" library="bootstrap" name="plus" />
                 {createTag.isPending
-                  ? m.plan_groups_adding()
-                  : m.plan_groups_add()}
+                  ? m.plan_collections_adding()
+                  : m.plan_collections_add()}
               </Button>
             </div>
           </form>
@@ -573,7 +574,7 @@ function PlanGroupsPage() {
             <Spinner label={m.plan_form_loading()} />
           ) : tags.length === 0 ? (
             <p className="text-sm text-hot-gray-500">
-              {m.plan_groups_empty_tags()}
+              {m.plan_collections_empty_tags()}
             </p>
           ) : (
             <ul className="flex flex-col gap-sm">
@@ -587,7 +588,7 @@ function PlanGroupsPage() {
                       { id: tag.id, payload: { name } },
                       {
                         onSuccess: () =>
-                          toast.success(m.plan_groups_toast_tag_updated()),
+                          toast.success(m.plan_collections_toast_tag_updated()),
                       },
                     )
                   }
@@ -601,15 +602,15 @@ function PlanGroupsPage() {
         </div>
       </PageWrapper>
 
-      {/* Assignment — which groups/tags each project in *this* plan carries. */}
-      <SubSectionHeader title={`<strong>${m.plan_groups_section_assign()}</strong>`} />
+      {/* Assignment — which collections/tags each project in *this* plan carries. */}
+      <SubSectionHeader title={`<strong>${m.plan_collections_section_assign()}</strong>`} />
       <PageWrapper>
         <div className="flex flex-col gap-md py-lg">
           {isLoading ? (
             <Spinner label={m.plan_form_loading()} />
           ) : plan!.projects.length === 0 ? (
             <p className="text-sm text-hot-gray-500">
-              {m.plan_groups_no_projects()}
+              {m.plan_collections_no_projects()}
             </p>
           ) : (
             plan!.projects.map((project) => (
@@ -626,24 +627,24 @@ function PlanGroupsPage() {
                   </span>
                   {project.groups.length === 0 && (
                     <Tag variant="neutral" appearance="outlined" size="small">
-                      {m.plan_groups_all_bucket()}
+                      {m.plan_collections_all_bucket()}
                     </Tag>
                   )}
                 </div>
                 <ChipPicker
-                  label={m.plan_groups_assign_groups_label()}
-                  options={groups}
+                  label={m.plan_collections_assign_collections_label()}
+                  options={collections}
                   selected={new Set(project.groups.map((g) => g.id))}
-                  disabled={!canEdit || setProjectGroups.isPending}
-                  emptyHint={m.plan_groups_empty_groups()}
-                  onToggle={(groupId) => toggleGroupOnProject(project, groupId)}
+                  disabled={!canEdit || setProjectCollections.isPending}
+                  emptyHint={m.plan_collections_empty_collections()}
+                  onToggle={(collectionId) => toggleCollectionOnProject(project, collectionId)}
                 />
                 <ChipPicker
-                  label={m.plan_groups_assign_tags_label()}
+                  label={m.plan_collections_assign_tags_label()}
                   options={tags}
                   selected={new Set(project.tags.map((t) => t.id))}
                   disabled={!canEdit || setProjectTags.isPending}
-                  emptyHint={m.plan_groups_empty_tags()}
+                  emptyHint={m.plan_collections_empty_tags()}
                   onToggle={(tagId) => toggleTagOnProject(project, tagId)}
                 />
               </div>
@@ -656,8 +657,8 @@ function PlanGroupsPage() {
         open={pendingDelete !== null}
         label={
           pendingDelete?.kind === "tag"
-            ? m.plan_groups_delete_tag_label()
-            : m.plan_groups_delete_group_label()
+            ? m.plan_collections_delete_tag_label()
+            : m.plan_collections_delete_collection_label()
         }
         onWaHide={(e: Event) => {
           if (e.target === e.currentTarget) setPendingDelete(null);
@@ -667,8 +668,8 @@ function PlanGroupsPage() {
           <strong className="break-words">{pendingDelete?.name}</strong>
           {" — "}
           {pendingDelete?.kind === "tag"
-            ? m.plan_groups_delete_tag_message()
-            : m.plan_groups_delete_group_message()}
+            ? m.plan_collections_delete_tag_message()
+            : m.plan_collections_delete_collection_message()}
         </p>
         <div slot="footer" className="flex gap-sm justify-end">
           <button
@@ -682,9 +683,9 @@ function PlanGroupsPage() {
             type="button"
             variant="danger"
             onClick={handleConfirmDelete}
-            disabled={deleteGroup.isPending || deleteTag.isPending}
+            disabled={deleteCollection.isPending || deleteTag.isPending}
           >
-            {m.plan_groups_delete()}
+            {m.plan_collections_delete()}
           </Button>
         </div>
       </Dialog>
@@ -692,4 +693,4 @@ function PlanGroupsPage() {
   );
 }
 
-export default PlanGroupsPage;
+export default PlanCollectionsPage;

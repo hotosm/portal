@@ -27,6 +27,7 @@ import { useIsMobile } from "../hooks/useIsMobile";
 import { m } from "../paraglide/messages";
 import { projectKey } from "../utils/utils";
 import CardAddProject from "./components/CardAddProject";
+import CollectionsDialog from "./components/CollectionsDialog";
 import PlanMenu from "./components/PlanMenu";
 import PlanProjectCard from "./components/PlanProjectCard";
 import PlanSectionHeader from "./components/PlanSectionHeader";
@@ -37,9 +38,9 @@ import SortableViewProjectCard from "./components/SortableViewProjectCard";
 import {
   planQueryKeys,
   useAllUserProjects,
+  useCollections,
   useCompleteTask,
   usePlan,
-  useProjectGroups,
   useRefreshPlan,
   useSharedPlan,
   useUpdatePlan,
@@ -55,14 +56,9 @@ import type {
 } from "./types";
 import Button from "../components/shared/Button";
 
-/** Bucket for projects that carry no group — the taxonomy API models it as an empty group list. */
+/** Bucket for projects in no collection — the taxonomy API models it as an empty list. */
 const ALL_SECTION_ID = "all";
 
-/**
- * Cards are dragged by a section-scoped id: a project may belong to several
- * groups, so the same plan project renders in more than one section and dnd-kit
- * needs one unique id per card.
- */
 const dragIdFor = (sectionId: string, id: string) => `${sectionId}:${id}`;
 const planProjectId = (dragId: string) => dragId.slice(dragId.indexOf(":") + 1);
 
@@ -115,8 +111,9 @@ function MyPlanPage() {
   const canEdit = plan?.can_edit ?? false;
 
   const [pickerSection, setPickerSection] = useState<AppName[] | null>(null);
+  const [collectionsDialogOpen, setCollectionsDialogOpen] = useState(false);
   const { sources } = useAllUserProjects(canEdit);
-  const { data: projectGroups = [] } = useProjectGroups();
+  const { data: collections = [] } = useCollections();
 
   const { mutate: updatePlan } = useUpdatePlan();
   const { mutate: updateStatus } = useUpdateProjectStatus();
@@ -127,9 +124,7 @@ function MyPlanPage() {
   );
   const queryClient = useQueryClient();
 
-  // Stale-while-revalidate: the query serves the persisted snapshot instantly,
-  // then we kick off one live hydration (?refresh=true) in the background so the
-  // upstream data and any deletions get refreshed. Runs once per loaded plan.
+
   const revalidatedRef = useRef<string | null>(null);
   useEffect(() => {
     if (!plan || !planId) return;
@@ -138,11 +133,7 @@ function MyPlanPage() {
     refreshPlan();
   }, [plan, planId, refreshPlan]);
 
-  // Some projects (e.g. an OAM TMS URL, whose title needs a slow catalog search
-  // — see find_image_by_tms_ids) can still be "pending" after that one refresh.
-  // Keep retrying every few seconds, bounded, until nothing is pending anymore —
-  // a single attempt isn't reliable enough for something that routinely takes
-  // 10-20s and shares the plan's connection with everyone else's slow requests.
+
   const pendingRetriesRef = useRef(0);
   useEffect(() => {
     if (!plan || !planId) return;
@@ -167,9 +158,7 @@ function MyPlanPage() {
     );
   }
 
-  // Persist the plan's projects. The update invalidates the detail query, whose
-  // snapshot refetch drops live-only state (unavailable/timeout badges, fresh
-  // upstream), so we re-arm the background revalidation to recompute it.
+
   function persistProjects(projects: PlanProjectItem[]) {
     if (!plan) return;
     updatePlan(
@@ -349,22 +338,18 @@ function MyPlanPage() {
       </PlanSubSectionAccordion>
     ) : null;
 
-  // Sections are the project groups carried by this plan's projects: the user's
-  // own groups first, in useProjectGroups order, then any group that arrived on
-  // the plan but isn't in that list — someone viewing a shared plan reads the
-  // groups off the projects without being able to list the owner's taxonomy.
-  const groupsOnPlan = new Map(
+  const collectionsOnPlan = new Map(
     (plan?.projects ?? []).flatMap((p) => p.groups.map((g) => [g.id, g] as const)),
   );
   const sectionDefs = [
-    { id: ALL_SECTION_ID, title: m.plan_groups_all_bucket() },
-    ...projectGroups
-      .filter((group) => groupsOnPlan.has(group.id))
-      .map((group) => ({ id: group.id, title: group.name })),
-    ...[...groupsOnPlan.values()]
-      .filter((group) => !projectGroups.some((own) => own.id === group.id))
+    { id: ALL_SECTION_ID, title: m.plan_collections_all_bucket() },
+    ...collections
+      .filter((collection) => collectionsOnPlan.has(collection.id))
+      .map((collection) => ({ id: collection.id, title: collection.name })),
+    ...[...collectionsOnPlan.values()]
+      .filter((collection) => !collections.some((own) => own.id === collection.id))
       .sort((a, b) => a.name.localeCompare(b.name))
-      .map((group) => ({ id: group.id, title: group.name })),
+      .map((collection) => ({ id: collection.id, title: collection.name })),
   ];
 
   const sections = sectionDefs.map((section) => {
@@ -389,8 +374,8 @@ function MyPlanPage() {
         ? p.groups.length === 0
         : p.groups.some((g) => g.id === section.id),
     );
-    // Adding is offered in "All" only: the picker knows apps, not groups, so new
-    // projects arrive ungrouped and are assigned on the plan groups page.
+    // Adding is offered in "All" only: the picker knows apps, not collections, so
+    // new projects arrive unassigned and are sorted on the plan collections page.
     const showAddCard = canEdit && section.id === ALL_SECTION_ID;
     if (!showAddCard && sectionProjects.length === 0) return null;
 
@@ -521,8 +506,8 @@ function MyPlanPage() {
       <PageWrapper>
         <div>
           <div className="flex gap-xs">
-            <Button appearance="" variant="">Add project</Button>
-            <Button>Groups</Button>
+            <Button variant="danger">Add project</Button>
+            <Button onClick={() => setCollectionsDialogOpen(true)}>Collections</Button>
           </div>
         </div>
       </PageWrapper>
@@ -560,6 +545,11 @@ function MyPlanPage() {
           onClose={() => setPickerSection(null)}
         />
       )}
+
+      <CollectionsDialog
+        open={collectionsDialogOpen}
+        onClose={() => setCollectionsDialogOpen(false)}
+      />
     </>
   );
 }

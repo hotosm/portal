@@ -7,7 +7,7 @@ import './PlanSubSectionAccordion.css'
 interface PlanSubSectionAccordionProps {
   /**
    * Section title. A node rather than SubSectionHeader's HTML string, because
-   * section names now come from user-created project groups.
+   * section names now come from user-created collections.
    */
   title: React.ReactNode
   /** Optional tool logo shown before the title. */
