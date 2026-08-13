@@ -1,16 +1,16 @@
-import { useNavigate } from "react-router-dom";
-import CardAddNew from "../components/shared/CardAddNew";
-import SectionCardGrid from "../components/shared/SectionCardGrid";
-import { useLanguage } from "../contexts/LanguageContext";
-import { m } from "../paraglide/messages";
-import PlanCard from "./components/PlanCard";
-import PlanSectionHeader from "./components/PlanSectionHeader";
-import { useMyPlans } from "./hooks";
+import { useNavigate } from 'react-router-dom'
+import CardAddNew from '../components/shared/CardAddNew'
+import SectionCardGrid from '../components/shared/SectionCardGrid'
+import { useLanguage } from '../contexts/LanguageContext'
+import { m } from '../paraglide/messages'
+import PlanCard from './components/PlanCard'
+import PlanSectionHeader from './components/PlanSectionHeader'
+import { useMyPlans } from './hooks'
 
 function PlanPage() {
-  const navigate = useNavigate();
-  const { currentLanguage } = useLanguage();
-  const { data: plans = [], isLoading, isError } = useMyPlans();
+  const navigate = useNavigate()
+  const { currentLanguage } = useLanguage()
+  const { data: plans = [], isLoading, isError } = useMyPlans()
 
   return (
     <>
@@ -22,11 +22,7 @@ function PlanPage() {
         title={`<strong>${m.plan_page_create_title()}</strong> ${m.plan_page_create_description()}`}
         isLoading={isLoading}
         skeletonCount={3}
-        header={
-          isError && (
-            <p className="text-sm text-hot-red-600">{m.plan_list_error()}</p>
-          )
-        }
+        header={isError && <p className="text-sm text-hot-red-600">{m.plan_list_error()}</p>}
         addCard={
           <CardAddNew
             title={m.plan_page_create_title()}
@@ -40,7 +36,7 @@ function PlanPage() {
         renderItem={(plan) => <PlanCard plan={plan} />}
       />
     </>
-  );
+  )
 }
 
-export default PlanPage;
+export default PlanPage

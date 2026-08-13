@@ -1,44 +1,44 @@
-import { useMemo } from "react";
-import { useExportJobs } from "../../portal-data/hooks/useExportToolData";
-import { useMyMaps } from "../../portal-data/hooks/useUMapData";
-import { useChatMapData } from "../../portal-field/hooks/useChatMapData";
-import { useDroneProjects } from "../../portal-imagery/hooks/useDroneProjects";
-import { useMyModels } from "../../portal-mapping/hooks/useFairData";
-import type { AppName, ProjectOption, ProjectSource } from "../types";
+import { useMemo } from 'react'
+import { useExportJobs } from '../../portal-data/hooks/useExportToolData'
+import { useMyMaps } from '../../portal-data/hooks/useUMapData'
+import { useChatMapData } from '../../portal-field/hooks/useChatMapData'
+import { useDroneProjects } from '../../portal-imagery/hooks/useDroneProjects'
+import { useMyModels } from '../../portal-mapping/hooks/useFairData'
+import type { AppName, ProjectOption, ProjectSource } from '../types'
 
 export const FETCHED_APPS = new Set<AppName>([
-  "chatmap",
-  "drone-tasking-manager",
-  "fair",
-  "umap",
-  "export-tool",
-]);
+  'chatmap',
+  'drone-tasking-manager',
+  'fair',
+  'umap',
+  'export-tool',
+])
 
 export const APP_LABELS: Record<AppName, string> = {
-  chatmap: "ChatMap",
-  "drone-tasking-manager": "Drone TM",
-  "export-tool": "Export Tool",
-  fair: "fAIr",
-  "field-tm": "Field TM",
-  "open-aerial-map": "OpenAerialMap",
-  "tasking-manager": "Tasking Manager",
-  umap: "uMap",
-};
+  chatmap: 'ChatMap',
+  'drone-tasking-manager': 'Drone TM',
+  'export-tool': 'Export Tool',
+  fair: 'fAIr',
+  'field-tm': 'Field TM',
+  'open-aerial-map': 'OpenAerialMap',
+  'tasking-manager': 'Tasking Manager',
+  umap: 'uMap',
+}
 
 export function useAllUserProjects(enabled = true) {
-  const chatmap = useChatMapData(enabled);
-  const drone = useDroneProjects(enabled);
-  const fair = useMyModels(1, 50, enabled);
-  const umap = useMyMaps(1, 50, enabled);
-  const exportJobs = useExportJobs(1, 6, enabled);
+  const chatmap = useChatMapData(enabled)
+  const drone = useDroneProjects(enabled)
+  const fair = useMyModels(1, 50, enabled)
+  const umap = useMyMaps(1, 50, enabled)
+  const exportJobs = useExportJobs(1, 6, enabled)
 
   const sources = useMemo<ProjectSource[]>(
     () => [
       {
-        app: "chatmap",
+        app: 'chatmap',
         label: APP_LABELS.chatmap,
         projects: (chatmap.data ?? []).map((p) => ({
-          app: "chatmap" as AppName,
+          app: 'chatmap' as AppName,
           project_id: p.id,
           title: p.title,
           upstream: { name: p.title, centroid: p.centroid ?? null },
@@ -47,11 +47,11 @@ export function useAllUserProjects(enabled = true) {
         isError: chatmap.isError,
       },
       {
-        app: "drone-tasking-manager",
-        label: APP_LABELS["drone-tasking-manager"],
+        app: 'drone-tasking-manager',
+        label: APP_LABELS['drone-tasking-manager'],
         projects: (drone.data ?? []).map((p) => ({
-          app: "drone-tasking-manager" as AppName,
-          project_id: p.id.startsWith("drone-") ? p.id.slice("drone-".length) : p.id,
+          app: 'drone-tasking-manager' as AppName,
+          project_id: p.id.startsWith('drone-') ? p.id.slice('drone-'.length) : p.id,
           title: p.title,
           upstream: { name: p.title, image_url: p.image ?? null },
         })),
@@ -59,10 +59,10 @@ export function useAllUserProjects(enabled = true) {
         isError: drone.isError,
       },
       {
-        app: "fair",
+        app: 'fair',
         label: APP_LABELS.fair,
         projects: (fair.data?.items ?? []).map((p) => ({
-          app: "fair" as AppName,
+          app: 'fair' as AppName,
           project_id: String(p.id),
           title: p.title,
           upstream: { name: p.title, image_url: p.image ?? null },
@@ -71,10 +71,10 @@ export function useAllUserProjects(enabled = true) {
         isError: fair.isError,
       },
       {
-        app: "umap",
+        app: 'umap',
         label: APP_LABELS.umap,
         projects: (umap.data?.items ?? []).map((p) => ({
-          app: "umap" as AppName,
+          app: 'umap' as AppName,
           project_id: String(p.id),
           title: p.title,
           upstream: { name: p.title, centroid: p.centroid ?? null, href: p.href },
@@ -83,10 +83,10 @@ export function useAllUserProjects(enabled = true) {
         isError: umap.isError,
       },
       {
-        app: "export-tool",
-        label: APP_LABELS["export-tool"],
+        app: 'export-tool',
+        label: APP_LABELS['export-tool'],
         projects: (exportJobs.data?.items ?? []).map((p) => ({
-          app: "export-tool" as AppName,
+          app: 'export-tool' as AppName,
           project_id: String(p.id),
           title: p.title,
         })),
@@ -94,22 +94,22 @@ export function useAllUserProjects(enabled = true) {
         isError: exportJobs.isError,
       },
       {
-        app: "tasking-manager",
-        label: APP_LABELS["tasking-manager"],
+        app: 'tasking-manager',
+        label: APP_LABELS['tasking-manager'],
         projects: [],
         isLoading: false,
         isError: false,
       },
       {
-        app: "open-aerial-map",
-        label: APP_LABELS["open-aerial-map"],
+        app: 'open-aerial-map',
+        label: APP_LABELS['open-aerial-map'],
         projects: [],
         isLoading: false,
         isError: false,
       },
       {
-        app: "field-tm",
-        label: APP_LABELS["field-tm"],
+        app: 'field-tm',
+        label: APP_LABELS['field-tm'],
         projects: [],
         isLoading: false,
         isError: false,
@@ -131,15 +131,12 @@ export function useAllUserProjects(enabled = true) {
       exportJobs.data,
       exportJobs.isLoading,
       exportJobs.isError,
-    ],
-  );
+    ]
+  )
 
-  const projects = useMemo<ProjectOption[]>(
-    () => sources.flatMap((s) => s.projects),
-    [sources],
-  );
-  const isLoading = sources.some((s) => s.isLoading);
-  const isError = sources.some((s) => s.isError);
+  const projects = useMemo<ProjectOption[]>(() => sources.flatMap((s) => s.projects), [sources])
+  const isLoading = sources.some((s) => s.isLoading)
+  const isError = sources.some((s) => s.isError)
 
-  return { sources, projects, isLoading, isError };
+  return { sources, projects, isLoading, isError }
 }
