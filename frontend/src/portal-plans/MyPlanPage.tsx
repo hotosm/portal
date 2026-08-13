@@ -5,54 +5,57 @@ import {
   closestCenter,
   useSensor,
   useSensors,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  arrayMove,
-  rectSortingStrategy,
-} from "@dnd-kit/sortable";
-import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
-import CardSkeleton from "../components/shared/CardSkeleton";
-import Carousel from "../components/shared/Carousel";
-import CarouselItem from "../components/shared/CarouselItem";
-import PageWrapper from "../components/shared/PageWrapper";
-import { RichTextContent } from "../components/shared/RichTextContent";
-import SubSectionHeader from "../components/shared/SubSectionHeader";
-import Tag from "../components/shared/Tag";
-import { cardClassNames } from "../constants/classNames";
-import { useAuth } from "../contexts/AuthContext";
-import { useLanguage } from "../contexts/LanguageContext";
-import { useIsMobile } from "../hooks/useIsMobile";
-import { m } from "../paraglide/messages";
-import { projectKey } from "../utils/utils";
-import CardAddProject from "./components/CardAddProject";
-import PlanMenu from "./components/PlanMenu";
-import PlanProjectCard from "./components/PlanProjectCard";
-import PlanSectionHeader from "./components/PlanSectionHeader";
-import PlanShareButton from "./components/PlanShareButton";
-import ProjectPickerDialog from "./components/ProjectPickerDialog";
-import SortableViewProjectCard from "./components/SortableViewProjectCard";
-import { PLAN_SECTIONS } from "./contstants";
+} from '@dnd-kit/core'
+import { SortableContext, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable'
+import { useQueryClient } from '@tanstack/react-query'
+import { useEffect, useRef, useState } from 'react'
+import { useParams } from 'react-router-dom'
+import Button from '../components/shared/Button'
+import CardSkeleton from '../components/shared/CardSkeleton'
+import Carousel from '../components/shared/Carousel'
+import CarouselItem from '../components/shared/CarouselItem'
+import Icon from '../components/shared/Icon'
+import PageWrapper from '../components/shared/PageWrapper'
+import { RichTextContent } from '../components/shared/RichTextContent'
+import Tag from '../components/shared/Tag'
+import { cardClassNames } from '../constants/classNames'
+import { useAuth } from '../contexts/AuthContext'
+import { useLanguage } from '../contexts/LanguageContext'
+import { useIsMobile } from '../hooks/useIsMobile'
+import { m } from '../paraglide/messages'
+import { projectKey } from '../utils/utils'
+import CardAddProject from './components/CardAddProject'
+import CollectionsDialog from './components/CollectionsDialog'
+import PlanMenu from './components/PlanMenu'
+import PlanProjectCard from './components/PlanProjectCard'
+import PlanSectionHeader from './components/PlanSectionHeader'
+import PlanShareButton from './components/PlanShareButton'
+import PlanSubSectionAccordion from './components/PlanSubSectionAccordion'
+import ProjectPickerDialog from './components/ProjectPickerDialog'
+import SortableViewProjectCard from './components/SortableViewProjectCard'
 import {
   planQueryKeys,
-  useAllUserProjects,
+  useCollections,
   useCompleteTask,
   usePlan,
   useRefreshPlan,
   useSharedPlan,
   useUpdatePlan,
   useUpdateProjectStatus,
-} from "./hooks";
+} from './hooks'
 import type {
   AppName,
   HydratedProjectItem,
-  PendingTaskInput,
   PlanProjectItem,
   PlanReadHydrated,
   ProjectOption,
-} from "./types";
+} from './types'
+
+/** Bucket for projects in no collection — the taxonomy API models it as an empty list. */
+const ALL_SECTION_ID = 'all'
+
+const dragIdFor = (sectionId: string, id: string) => `${sectionId}:${id}`
+const planProjectId = (dragId: string) => dragId.slice(dragId.indexOf(':') + 1)
 
 /** Map a hydrated project/task back to the payload shape expected by PATCH /plans. */
 function toItem(p: HydratedProjectItem): PlanProjectItem {
@@ -64,187 +67,142 @@ function toItem(p: HydratedProjectItem): PlanProjectItem {
       status: p.status,
       data: p.data,
       featured: p.featured,
-    };
+    }
   }
   return {
-    app: p.app,
     project_exists: false,
     status: p.status,
     data: p.data,
     featured: p.featured,
-  };
+  }
 }
 
 function MyPlanPage() {
-  const { planId } = useParams<{ planId: string }>();
-  const { isLogin, isAuthLoading } = useAuth();
-  const { currentLanguage } = useLanguage();
-  const isMobile = useIsMobile();
+  const { planId } = useParams<{ planId: string }>()
+  const { isLogin, isAuthLoading } = useAuth()
+  const { currentLanguage } = useLanguage()
+  const isMobile = useIsMobile()
 
-  const {
-    data: ownPlan,
-    isLoading: ownLoading,
-    isError: ownError,
-  } = usePlan(planId ?? "");
+  const { data: ownPlan, isLoading: ownLoading, isError: ownError } = usePlan(planId ?? '')
 
   const {
     data: publicPlan,
     isLoading: publicLoading,
     isError: publicError,
-  } = useSharedPlan(planId ?? "");
+  } = useSharedPlan(planId ?? '')
 
-  const plan = ownPlan ?? publicPlan;
+  const plan = ownPlan ?? publicPlan
   // Whether we're rendering the caller's private view (usePlan) vs. the public
   // shared view (useSharedPlan) — drives which endpoints/errors apply.
-  const viewingOwn = ownPlan != null;
+  const viewingOwn = ownPlan != null
   // can_edit: creator OR a group member with edit rights (all editing actions).
   // Owner-only actions (delete, manage permissions) are gated inside PlanMenu
   // via plan.is_owner.
-  const canEdit = plan?.can_edit ?? false;
+  const canEdit = plan?.can_edit ?? false
 
-  const [pickerSection, setPickerSection] = useState<AppName[] | null>(null);
-  const { sources } = useAllUserProjects(canEdit);
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [collectionsDialogOpen, setCollectionsDialogOpen] = useState(false)
+  const { data: collections = [] } = useCollections()
 
-  const { mutate: updatePlan } = useUpdatePlan();
-  const { mutate: updateStatus } = useUpdateProjectStatus();
-  const { mutate: completeTask } = useCompleteTask(planId ?? "");
-  const { mutate: refreshPlan, isPending: isRefreshing } = useRefreshPlan(
-    planId ?? "",
-    !viewingOwn,
-  );
-  const queryClient = useQueryClient();
+  const { mutate: updatePlan } = useUpdatePlan()
+  const { mutate: updateStatus } = useUpdateProjectStatus()
+  const { mutate: completeTask } = useCompleteTask(planId ?? '')
+  const { mutate: refreshPlan, isPending: isRefreshing } = useRefreshPlan(planId ?? '', !viewingOwn)
+  const queryClient = useQueryClient()
 
-  // Stale-while-revalidate: the query serves the persisted snapshot instantly,
-  // then we kick off one live hydration (?refresh=true) in the background so the
-  // upstream data and any deletions get refreshed. Runs once per loaded plan.
-  const revalidatedRef = useRef<string | null>(null);
+  const revalidatedRef = useRef<string | null>(null)
   useEffect(() => {
-    if (!plan || !planId) return;
-    if (revalidatedRef.current === planId) return;
-    revalidatedRef.current = planId;
-    refreshPlan();
-  }, [plan, planId, refreshPlan]);
+    if (!plan || !planId) return
+    if (revalidatedRef.current === planId) return
+    revalidatedRef.current = planId
+    refreshPlan()
+  }, [plan, planId, refreshPlan])
 
-  // Some projects (e.g. an OAM TMS URL, whose title needs a slow catalog search
-  // — see find_image_by_tms_ids) can still be "pending" after that one refresh.
-  // Keep retrying every few seconds, bounded, until nothing is pending anymore —
-  // a single attempt isn't reliable enough for something that routinely takes
-  // 10-20s and shares the plan's connection with everyone else's slow requests.
-  const pendingRetriesRef = useRef(0);
+  const pendingRetriesRef = useRef(0)
   useEffect(() => {
-    if (!plan || !planId) return;
-    const hasPending = plan.projects.some((p) => p.error === "pending");
+    if (!plan || !planId) return
+    const hasPending = plan.projects.some((p) => p.error === 'pending')
     if (!hasPending) {
-      pendingRetriesRef.current = 0;
-      return;
+      pendingRetriesRef.current = 0
+      return
     }
-    if (pendingRetriesRef.current >= 6) return;
-    pendingRetriesRef.current += 1;
-    const timer = setTimeout(() => refreshPlan(), 5000);
-    return () => clearTimeout(timer);
-  }, [plan, planId, refreshPlan]);
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-  );
+    if (pendingRetriesRef.current >= 6) return
+    pendingRetriesRef.current += 1
+    const timer = setTimeout(() => refreshPlan(), 5000)
+    return () => clearTimeout(timer)
+  }, [plan, planId, refreshPlan])
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
   function patchCachedProjects(projects: HydratedProjectItem[]) {
-    queryClient.setQueryData<PlanReadHydrated | null>(
-      planQueryKeys.detail(planId!),
-      (old) => (old ? { ...old, projects } : old),
-    );
+    queryClient.setQueryData<PlanReadHydrated | null>(planQueryKeys.detail(planId!), (old) =>
+      old ? { ...old, projects } : old
+    )
   }
 
-  // Persist the plan's projects. The update invalidates the detail query, whose
-  // snapshot refetch drops live-only state (unavailable/timeout badges, fresh
-  // upstream), so we re-arm the background revalidation to recompute it.
   function persistProjects(projects: PlanProjectItem[]) {
-    if (!plan) return;
+    if (!plan) return
     updatePlan(
       { id: plan.id, payload: { projects } },
       {
         onSuccess: () => {
-          revalidatedRef.current = null;
+          revalidatedRef.current = null
         },
-      },
-    );
+      }
+    )
   }
 
   function handleFeaturedToggle(id: string, featured: boolean) {
-    if (!plan) return;
-    const updated = plan.projects.map((p) => (p.id === id ? { ...p, featured } : p));
-    patchCachedProjects(updated);
-    persistProjects(updated.map(toItem));
+    if (!plan) return
+    const updated = plan.projects.map((p) => (p.id === id ? { ...p, featured } : p))
+    patchCachedProjects(updated)
+    persistProjects(updated.map(toItem))
   }
 
-  function handlePickerConfirm(
-    next: Set<string>,
-    nextExtra: ProjectOption[],
-    keptTaskIds: Set<string>,
-    newTasks: PendingTaskInput[],
-  ) {
-    if (!plan) return;
-    const apps = new Set(pickerSection ?? []);
-    const options = new Map<string, ProjectOption>([
-      ...sources
-        .flatMap((s) => s.projects)
-        .map((p) => [projectKey(p.app, p.project_id), p] as const),
-      ...nextExtra.map((p) => [projectKey(p.app, p.project_id), p] as const),
-    ]);
+  // A PATCH only invalidates the plan query, so `plan.projects` still lags behind
+  // right after a save. Keep the list we last sent here so reopening the picker
+  // and adding again before the refetch lands doesn't drop the previous item.
+  const draftRef = useRef<PlanProjectItem[] | null>(null)
 
-    const projects: PlanProjectItem[] = [];
-    // Other sections preserved; tasks of this section kept only if the picker
-    // left them checked; real projects of this section kept only if still selected.
-    for (const p of plan.projects) {
-      const inSection = apps.has(p.app);
-      if (!inSection) {
-        projects.push(toItem(p));
-        continue;
-      }
-      if (!p.project_exists) {
-        if (keptTaskIds.has(p.id)) projects.push(toItem(p));
-        continue;
-      }
-      if (p.project_id && next.has(projectKey(p.app, p.project_id))) {
-        projects.push(toItem(p));
-      }
-    }
-    // Append newly picked real projects (the old "pending" option is gone).
-    for (const key of next) {
-      const opt = options.get(key);
-      const colon = key.indexOf(":");
-      const app = key.slice(0, colon) as AppName;
-      const projId = key.slice(colon + 1);
-      if (!projId) continue;
-      const already = plan.projects.some(
-        (p) => p.project_exists && p.app === app && p.project_id === projId,
-      );
-      if (already) continue;
-      projects.push({
-        app,
-        project_id: projId,
-        project_exists: true,
-        // Fall back to the picker option's title so the card shows a name right
-        // away; some apps only expose the title (no upstream) until rehydration.
-        // Skip that fallback while still resolving (e.g. an OAM TMS URL) — its
-        // "title" is just the raw project_id placeholder, not a real name, and
-        // stashing it in `data` would mark the row as already hydrated, hiding
-        // the pending spinner and never getting replaced by the real title.
-        data:
-          (opt?.upstream as Record<string, unknown> | null) ??
-          (opt?.title && !opt?.isResolving ? { name: opt.title } : null),
-      });
-    }
-    // Append newly created tasks.
-    for (const t of newTasks) {
-      projects.push({
-        app: t.app,
-        project_exists: false,
-        data: { title: t.title },
-      });
-    }
+  // The refreshed (or locally patched) list is authoritative again — drop the draft.
+  useEffect(() => {
+    draftRef.current = null
+  }, [plan?.projects])
 
-    persistProjects(projects);
-    setPickerSection(null);
+  /** Items as last sent to the API, newest edits included. */
+  function currentItems(): PlanProjectItem[] {
+    return draftRef.current ?? plan?.projects.map(toItem) ?? []
+  }
+
+  function appendToPlan(item: PlanProjectItem) {
+    if (!plan) return
+    const next = [...currentItems(), item]
+    draftRef.current = next
+    persistProjects(next)
+  }
+
+  function handleAddProject(project: ProjectOption) {
+    if (!plan) return
+    appendToPlan({
+      app: project.app,
+      project_id: project.project_id,
+      project_exists: true,
+      // Fall back to the resolved title so the card shows a name right away;
+      // some apps only expose the title (no upstream) until rehydration.
+      // Skip that fallback while still resolving (e.g. an OAM TMS URL) — its
+      // "title" is just the raw project_id placeholder, not a real name, and
+      // stashing it in `data` would mark the row as already hydrated, hiding
+      // the pending spinner and never getting replaced by the real title.
+      data:
+        (project.upstream as Record<string, unknown> | null) ??
+        (project.title && !project.isResolving ? { name: project.title } : null),
+    })
+  }
+
+  function handleAddTask(title: string) {
+    appendToPlan({
+      project_exists: false,
+      data: { title },
+    })
   }
 
   function handleTaskCompleted(planProjectId: string, project: ProjectOption) {
@@ -252,32 +210,32 @@ function MyPlanPage() {
       planProjectId,
       app: project.app,
       projectId: project.project_id,
-    });
+    })
   }
 
   function handleProjectDeleted(id: string) {
-    if (!plan) return;
-    const remaining = plan.projects.filter((p) => p.id !== id);
-    patchCachedProjects(remaining);
-    persistProjects(remaining.map(toItem));
+    if (!plan) return
+    const remaining = plan.projects.filter((p) => p.id !== id)
+    patchCachedProjects(remaining)
+    persistProjects(remaining.map(toItem))
   }
 
   function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    if (!over || active.id === over.id || !plan) return;
-    const ids = plan.projects.map((p) => p.id);
+    const { active, over } = event
+    if (!over || active.id === over.id || !plan) return
+    const ids = plan.projects.map((p) => p.id)
+    // Cards are dragged by their section-scoped id; ordering is global.
     const reordered = arrayMove(
       ids,
-      ids.indexOf(active.id as string),
-      ids.indexOf(over.id as string),
-    ).map((id) => plan.projects.find((p) => p.id === id)!);
-    patchCachedProjects(reordered);
-    persistProjects(reordered.map(toItem));
+      ids.indexOf(planProjectId(active.id as string)),
+      ids.indexOf(planProjectId(over.id as string))
+    ).map((id) => plan.projects.find((p) => p.id === id)!)
+    patchCachedProjects(reordered)
+    persistProjects(reordered.map(toItem))
   }
 
-  const isLoading =
-    isAuthLoading || ownLoading || (ownPlan == null && publicLoading);
-  const isError = viewingOwn ? ownError : publicError;
+  const isLoading = isAuthLoading || ownLoading || (ownPlan == null && publicLoading)
+  const isError = viewingOwn ? ownError : publicError
 
   if (!isLoading && isError) {
     return (
@@ -286,27 +244,24 @@ function MyPlanPage() {
           <h3 className="py-xl">{m.plan_load_error()}</h3>
         </div>
       </PageWrapper>
-    );
+    )
   }
 
   if (!isLoading && !plan) {
     return (
       <PageWrapper>
         <div className="flex justify-center items-center">
-          <h3 className="py-xl">
-            {isLogin ? m.plan_not_found() : m.plan_private()}
-          </h3>
+          <h3 className="py-xl">{isLogin ? m.plan_not_found() : m.plan_private()}</h3>
         </div>
       </PageWrapper>
-    );
+    )
   }
 
-  const featuredProjects = plan ? plan.projects.filter((p) => p.featured) : [];
+  const featuredProjects = plan ? plan.projects.filter((p) => p.featured) : []
 
   const featuredSection =
     featuredProjects.length > 0 ? (
-      <div key="featured">
-        <SubSectionHeader title="<strong>Featured</strong>" />
+      <PlanSubSectionAccordion key="featured" title={<strong>Featured</strong>}>
         <PageWrapper>
           <div className="flex flex-wrap gap-lg py-lg">
             {featuredProjects.map((project) => (
@@ -314,11 +269,11 @@ function MyPlanPage() {
                 <PlanProjectCard
                   project={project}
                   onStatusChange={
-                    canEdit && project.project_exists && project.project_id
+                    canEdit && project.project_exists && project.project_id && project.app
                       ? (status) =>
                           updateStatus({
                             planId: planId!,
-                            app: project.app,
+                            app: project.app!,
                             projectId: project.project_id!,
                             status,
                           })
@@ -328,19 +283,34 @@ function MyPlanPage() {
                   onFeaturedChange={
                     canEdit ? (featured) => handleFeaturedToggle(project.id, featured) : undefined
                   }
+                  planId={canEdit ? planId : undefined}
                 />
               </div>
             ))}
           </div>
         </PageWrapper>
-      </div>
-    ) : null;
+      </PlanSubSectionAccordion>
+    ) : null
 
-  const sections = PLAN_SECTIONS.map((section) => {
+  const collectionsOnPlan = new Map(
+    (plan?.projects ?? []).flatMap((p) => p.groups.map((g) => [g.id, g] as const))
+  )
+  // "All" (projects in no collection) always renders last.
+  const sectionDefs = [
+    ...collections
+      .filter((collection) => collectionsOnPlan.has(collection.id))
+      .map((collection) => ({ id: collection.id, title: collection.name })),
+    ...[...collectionsOnPlan.values()]
+      .filter((collection) => !collections.some((own) => own.id === collection.id))
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((collection) => ({ id: collection.id, title: collection.name })),
+    { id: ALL_SECTION_ID, title: m.plan_collections_all_bucket() },
+  ]
+
+  const sections = sectionDefs.map((section) => {
     if (isLoading) {
       return (
-        <div key={section.title}>
-          <SubSectionHeader title={`<strong>${section.title}</strong>`} />
+        <PlanSubSectionAccordion key={section.id} title={<strong>{section.title}</strong>}>
           <PageWrapper>
             <div className="flex flex-wrap gap-lg py-lg">
               {Array.from({ length: 3 }).map((_, i) => (
@@ -350,36 +320,39 @@ function MyPlanPage() {
               ))}
             </div>
           </PageWrapper>
-        </div>
-      );
+        </PlanSubSectionAccordion>
+      )
     }
 
-    const sectionProjects = plan!.projects.filter(
-      (p) => section.apps.includes(p.app),
-    );
-    if (!canEdit && sectionProjects.length === 0) return null;
+    const sectionProjects = plan!.projects.filter((p) =>
+      section.id === ALL_SECTION_ID
+        ? p.groups.length === 0
+        : p.groups.some((g) => g.id === section.id)
+    )
+    // Adding is offered in "All" only: the picker knows apps, not collections, so
+    // new projects arrive unassigned and are sorted on the plan collections page.
+    const showAddCard = canEdit && section.id === ALL_SECTION_ID
+    if (!showAddCard && sectionProjects.length === 0) return null
 
     return (
-      <div key={section.title}>
-        <SubSectionHeader title={`<strong>${section.title}</strong>`} />
+      <PlanSubSectionAccordion key={section.id} title={<strong>{section.title}</strong>}>
         <PageWrapper>
           <div className="flex flex-wrap gap-lg py-lg">
-            {canEdit && (
+            {showAddCard && (
               <div className={cardClassNames}>
-                <CardAddProject
-                  onButtonClick={() => setPickerSection(section.apps)}
-                />
+                <CardAddProject onButtonClick={() => setPickerOpen(true)} />
               </div>
             )}
             {canEdit ? (
               <SortableContext
-                items={sectionProjects.map((p) => p.id)}
+                items={sectionProjects.map((p) => dragIdFor(section.id, p.id))}
                 strategy={rectSortingStrategy}
               >
                 {sectionProjects.map((project) => (
                   <SortableViewProjectCard
                     key={project.id}
                     id={project.id}
+                    dragId={dragIdFor(section.id, project.id)}
                     project={project}
                     planId={plan!.id}
                     onProjectSelected={handleTaskCompleted}
@@ -397,20 +370,18 @@ function MyPlanPage() {
             )}
           </div>
         </PageWrapper>
-      </div>
-    );
-  });
+      </PlanSubSectionAccordion>
+    )
+  })
 
   return (
     <>
       <PlanSectionHeader
+        plan={isLoading ? undefined : plan!}
         breadcrumbs={
           isLoading
             ? undefined
-            : [
-                { label: m.plan_header(), href: `/${currentLanguage}/plan` },
-                { label: plan!.name },
-              ]
+            : [{ label: m.plan_header(), href: `/${currentLanguage}/plan` }, { label: plan!.name }]
         }
         menu={
           isLoading ? undefined : canEdit ? (
@@ -451,7 +422,7 @@ function MyPlanPage() {
               </Tag>
             )}
             {plan!.description && (
-              <RichTextContent content={plan!.description ?? ""} className="py-md" />
+              <RichTextContent content={plan!.description ?? ''} className="py-md" />
             )}
             {plan!.images.length > 0 && (
               <Carousel
@@ -466,7 +437,7 @@ function MyPlanPage() {
                 {plan!.images.map((img) => (
                   <CarouselItem key={img.id}>
                     <div
-                      className={`overflow-hidden aspect-[16/9] ${plan!.images.length === 1 ? "max-w-2xl mx-auto w-full" : "w-full"}`}
+                      className={`overflow-hidden aspect-[16/9] ${plan!.images.length === 1 ? 'max-w-2xl mx-auto w-full' : 'w-full'}`}
                     >
                       <img
                         src={img.url}
@@ -482,41 +453,54 @@ function MyPlanPage() {
         )}
       </PageWrapper>
 
+      {/* actions */}
+      <PageWrapper>
+        <div>
+          <div className="flex gap-xs">
+            <Button variant="danger" onClick={() => setPickerOpen(true)}>
+              <Icon name="circle-plus" />
+              Add project
+            </Button>
+            <Button onClick={() => setCollectionsDialogOpen(true)}>
+              <Icon name="folder" variant="regular" />
+              Collections
+            </Button>
+          </div>
+        </div>
+      </PageWrapper>
+
       {featuredSection}
 
       {!isLoading && canEdit ? (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           {sections}
         </DndContext>
       ) : (
         sections
       )}
 
-      {canEdit && pickerSection && (
+      {canEdit && pickerOpen && (
         <ProjectPickerDialog
           open
-          selected={
+          existingKeys={
             new Set(
-              plan!.projects
-                .filter((p) => p.project_exists && p.project_id)
-                .map((p) => projectKey(p.app, p.project_id as string)),
+              currentItems()
+                .filter((p) => p.project_exists !== false && p.app && p.project_id)
+                .map((p) => projectKey(p.app as AppName, p.project_id as string))
             )
           }
-          extraProjects={[]}
-          sources={sources.filter((s) => pickerSection.includes(s.app))}
-          existingTasks={plan!.projects.filter(
-            (p) => !p.project_exists && pickerSection.includes(p.app),
-          )}
-          onConfirm={handlePickerConfirm}
-          onClose={() => setPickerSection(null)}
+          onAddProject={handleAddProject}
+          onAddTask={handleAddTask}
+          onClose={() => setPickerOpen(false)}
         />
       )}
+
+      <CollectionsDialog
+        open={collectionsDialogOpen}
+        onClose={() => setCollectionsDialogOpen(false)}
+      />
     </>
-  );
+  )
 }
 
-export default MyPlanPage;
+export default MyPlanPage

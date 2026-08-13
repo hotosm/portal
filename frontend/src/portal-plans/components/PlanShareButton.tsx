@@ -1,40 +1,40 @@
-import { useCallback, useMemo, useState } from "react";
-import { toast } from "sonner";
-import Button from "../../components/shared/Button";
-import Dialog from "../../components/shared/Dialog";
-import Icon from "../../components/shared/Icon";
-import { useLanguage } from "../../contexts/LanguageContext";
-import { m } from "../../paraglide/messages";
-import type { PlanReadHydrated } from "../types";
+import { useCallback, useMemo, useState } from 'react'
+import { toast } from 'sonner'
+import Button from '../../components/shared/Button'
+import Dialog from '../../components/shared/Dialog'
+import Icon from '../../components/shared/Icon'
+import { useLanguage } from '../../contexts/LanguageContext'
+import { m } from '../../paraglide/messages'
+import type { PlanReadHydrated } from '../types'
 
 interface PlanShareButtonProps {
-  plan: PlanReadHydrated;
+  plan: PlanReadHydrated
 }
 
 function PlanShareButton({ plan }: PlanShareButtonProps) {
-  const { currentLanguage } = useLanguage();
-  const [shareOpen, setShareOpen] = useState(false);
+  const { currentLanguage } = useLanguage()
+  const [shareOpen, setShareOpen] = useState(false)
 
   const planUrl = useMemo(
     () => `${window.location.origin}/${currentLanguage}/plan/${plan.id}`,
-    [currentLanguage, plan.id],
-  );
+    [currentLanguage, plan.id]
+  )
 
   const onCopyLink = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(planUrl);
-      toast.success(m.plan_toast_link_copied());
+      await navigator.clipboard.writeText(planUrl)
+      toast.success(m.plan_toast_link_copied())
     } catch {
-      toast.error(m.plan_toast_link_copy_error());
+      toast.error(m.plan_toast_link_copy_error())
     }
-  }, [planUrl]);
+  }, [planUrl])
 
   const onNativeShare = useCallback(() => {
     navigator.share({ title: plan.name, url: planUrl }).catch((err: unknown) => {
-      if (err instanceof DOMException && err.name === "AbortError") return;
-      toast.error(m.plan_toast_share_error());
-    });
-  }, [plan.name, planUrl]);
+      if (err instanceof DOMException && err.name === 'AbortError') return
+      toast.error(m.plan_toast_share_error())
+    })
+  }, [plan.name, planUrl])
 
   return (
     <div>
@@ -54,16 +54,11 @@ function PlanShareButton({ plan }: PlanShareButtonProps) {
             <span className="flex-1">{planUrl}</span>
           </div>
           <div className="flex gap-sm">
-            <Button
-              type="button"
-              appearance="outlined"
-              onClick={onCopyLink}
-              className="flex-1"
-            >
+            <Button type="button" appearance="outlined" onClick={onCopyLink} className="flex-1">
               <Icon slot="start" library="bootstrap" name="clipboard" />
               {m.plan_share_copy_link()}
             </Button>
-            {typeof navigator.share === "function" && (
+            {typeof navigator.share === 'function' && (
               <Button
                 type="button"
                 appearance="outlined"
@@ -78,7 +73,7 @@ function PlanShareButton({ plan }: PlanShareButtonProps) {
         </div>
       </Dialog>
     </div>
-  );
+  )
 }
 
-export default PlanShareButton;
+export default PlanShareButton

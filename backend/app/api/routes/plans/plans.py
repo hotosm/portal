@@ -17,6 +17,7 @@ from app.models.plan import (
     UrlResolveRequest,
     UrlResolveResponse,
 )
+from app.models.taxonomy import GroupIdsUpdate, TagIdsUpdate
 from app.services import permissions, plans_service
 from app.services.exceptions import UpstreamUnavailable
 from app.services.permissions import PermissionContext
@@ -25,6 +26,7 @@ from app.services.plans_service import (
     GroupMembershipError,
     InvalidUrlError,
     ProjectNotFoundError,
+    TaxonomyNotFoundError,
 )
 
 router = APIRouter(prefix="/plans", tags=["plans"])
@@ -194,6 +196,50 @@ async def complete_task(
     except UpstreamUnavailable:
         raise HTTPException(status_code=502, detail="upstream_unavailable")
     except DuplicateProjectError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    if not ok:
+        raise HTTPException(status_code=404, detail="Plan or project not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.patch(
+    "/{plan_id}/projects/{plan_project_id}/groups", status_code=status.HTTP_204_NO_CONTENT
+)
+async def set_project_groups(
+    payload: GroupIdsUpdate,
+    ctx: PermCtx,
+    plan_id: str = Path(..., description="Plan UUID"),
+    plan_project_id: str = Path(..., description="plan_project UUID"),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Replace the full set of groups on a plan_project. Empty list means "All"."""
+    try:
+        ok = await plans_service.set_project_groups(
+            db, ctx, plan_id, plan_project_id, payload.group_ids
+        )
+    except TaxonomyNotFoundError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    if not ok:
+        raise HTTPException(status_code=404, detail="Plan or project not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.patch(
+    "/{plan_id}/projects/{plan_project_id}/tags", status_code=status.HTTP_204_NO_CONTENT
+)
+async def set_project_tags(
+    payload: TagIdsUpdate,
+    ctx: PermCtx,
+    plan_id: str = Path(..., description="Plan UUID"),
+    plan_project_id: str = Path(..., description="plan_project UUID"),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Replace the full set of tags on a plan_project."""
+    try:
+        ok = await plans_service.set_project_tags(
+            db, ctx, plan_id, plan_project_id, payload.tag_ids
+        )
+    except TaxonomyNotFoundError as e:
         raise HTTPException(status_code=422, detail=str(e))
     if not ok:
         raise HTTPException(status_code=404, detail="Plan or project not found")

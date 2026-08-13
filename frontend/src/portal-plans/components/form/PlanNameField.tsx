@@ -1,8 +1,8 @@
-import { m } from "../../../paraglide/messages";
+import { m } from '../../../paraglide/messages'
 
 interface PlanNameFieldProps {
-  value: string;
-  onChange: (v: string) => void;
+  value: string
+  onChange: (v: string) => void
 }
 
 function PlanNameField({ value, onChange }: PlanNameFieldProps) {
@@ -21,7 +21,7 @@ function PlanNameField({ value, onChange }: PlanNameFieldProps) {
         className="border border-hot-gray-300 rounded-lg px-md py-sm text-base outline-none focus:border-hot-red-500"
       />
     </div>
-  );
+  )
 }
 
-export default PlanNameField;
+export default PlanNameField

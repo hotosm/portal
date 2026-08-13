@@ -28,14 +28,68 @@ export interface UserGroup {
   status: string
 }
 
+/**
+ * An open-text taxonomy entity owned by a user and optionally shared with one of
+ * their login teams/organizations. Distinct from `UserGroup` (a login team/org),
+ * which is what `group_type`/`group_id` below refer to. The API still calls
+ * these project groups (/project-groups); the wire names stay until it renames.
+ */
+export interface Collection {
+  id: string
+  name: string
+  description: string | null
+  owner_id: string
+  group_type: GroupType | null
+  group_id: string | null
+  created_at: string
+  updated_at: string
+}
+
+/** Same ownership/sharing model as Collection, but without a description. */
+export interface ProjectTag {
+  id: string
+  name: string
+  owner_id: string
+  group_type: GroupType | null
+  group_id: string | null
+  created_at: string
+  updated_at: string
+}
+
+/** Unset group_type/group_id means personal; both together share with that team/org. */
+export interface CollectionCreate {
+  name: string
+  description?: string | null
+  group_type?: GroupType | null
+  group_id?: string | null
+}
+
+export interface CollectionUpdate {
+  name?: string
+  description?: string | null
+}
+
+export interface ProjectTagCreate {
+  name: string
+  group_type?: GroupType | null
+  group_id?: string | null
+}
+
+export interface ProjectTagUpdate {
+  name: string
+}
+
 export interface PlanProjectItem {
   id?: string
-  app: AppName
+  /** Null on a task that isn't tied to a tool yet. */
+  app?: AppName | null
   project_id?: string | null
   project_exists?: boolean
   status?: ProjectStatus
   featured?: boolean
   data?: Record<string, unknown> | null
+  groups?: Collection[]
+  tags?: ProjectTag[]
 }
 
 export interface PlanCreate {
@@ -86,12 +140,18 @@ export interface PlanRead {
 
 export interface HydratedProjectItem {
   id: string
-  app: AppName
+  /** Null on a task that isn't tied to a tool yet. */
+  app: AppName | null
   project_id: string | null
   project_exists: boolean
   status: ProjectStatus
   featured: boolean
   data: Record<string, unknown> | null
+  // Empty means "All" — there is no such row in the database; the UI buckets
+  // any item with no collections under a virtual "All" collection.
+  // Wire name stays `groups` until the API renames it.
+  groups: Collection[]
+  tags: ProjectTag[]
   upstream: Record<string, unknown> | null
   error: HydrationError | null
   from_snapshot?: boolean
@@ -136,23 +196,12 @@ export interface ProjectSource {
   isLoading: boolean
   isError: boolean
 }
-export interface PendingTaskInput {
-  app: AppName
-  title: string
-}
-
 export interface ProjectPickerDialogProps {
   open: boolean
-  selected: Set<string>
-  extraProjects: ProjectOption[]
-  sources: ProjectSource[]
-  existingTasks: HydratedProjectItem[]
-  onConfirm: (
-    selected: Set<string>,
-    extraProjects: ProjectOption[],
-    keptTaskIds: Set<string>,
-    newTasks: PendingTaskInput[]
-  ) => void
+  /** `app:project_id` keys already in the plan — used to reject duplicate URLs. */
+  existingKeys: Set<string>
+  onAddProject: (project: ProjectOption) => void
+  onAddTask: (title: string) => void
   onClose: () => void
 }
 

@@ -16,6 +16,7 @@ import PlanPage from "../portal-plans/PlanPage";
 import AddPlanPage from "../portal-plans/AddPlanPage";
 import EditPlanPage from "../portal-plans/EditPlanPage";
 import MyPlanPage from "../portal-plans/MyPlanPage";
+import PlanCollectionsPage from "../portal-plans/PlanCollectionsPage";
 import PrivacyPolicyPage from "../pages/PrivacyPolicyPage";
 
 // Component to handle protected routes
@@ -152,6 +153,14 @@ export function AppRoutes() {
             element={
               <ProtectedRoute>
                 <EditPlanPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="collections"
+            element={
+              <ProtectedRoute>
+                <PlanCollectionsPage />
               </ProtectedRoute>
             }
           />

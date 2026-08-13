@@ -9,6 +9,12 @@ import PlanProjectCard from './PlanProjectCard'
 
 interface SortableViewProjectCardProps {
   id: string
+  /**
+   * Identity for drag and drop, when it has to differ from `id`: a project shown
+   * in several sections needs a unique id per section, while `id` stays the plan
+   * project id the callbacks below report. Defaults to `id`.
+   */
+  dragId?: string
   project: HydratedProjectItem
   planId: string
   onProjectSelected?: (oldKey: string, project: ProjectOption) => void
@@ -18,6 +24,7 @@ interface SortableViewProjectCardProps {
 
 function SortableViewProjectCard({
   id,
+  dragId,
   project,
   planId,
   onProjectSelected,
@@ -25,7 +32,7 @@ function SortableViewProjectCard({
   onFeaturedToggle,
 }: SortableViewProjectCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id,
+    id: dragId ?? id,
   })
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -37,7 +44,7 @@ function SortableViewProjectCard({
   const [dialogOpen, setDialogOpen] = useState(false)
 
   function handleStatusChange(status: ProjectStatus) {
-    if (!project.project_id) return
+    if (!project.project_id || !project.app) return
     updateStatus({
       planId,
       app: project.app,
@@ -60,12 +67,19 @@ function SortableViewProjectCard({
         onStatusChange={project.project_exists ? handleStatusChange : undefined}
         onSelectClick={project.project_exists ? undefined : () => setDialogOpen(true)}
         onDelete={project.project_exists ? () => onProjectDeleted?.(id) : undefined}
-        onFeaturedChange={project.project_exists ? (featured) => onFeaturedToggle?.(id, featured) : undefined}
+        onFeaturedChange={
+          project.project_exists ? (featured) => onFeaturedToggle?.(id, featured) : undefined
+        }
+        planId={planId}
       />
       {!project.project_exists && (
         <LinkProjectDialog
           open={dialogOpen}
           app={project.app}
+          planId={planId}
+          planProjectId={id}
+          // A project can only be in one collection; anything past the first is legacy data.
+          collectionId={project.groups[0]?.id ?? null}
           onClose={() => setDialogOpen(false)}
           onDelete={() => onProjectDeleted?.(id)}
           onConfirm={(selected) => onProjectSelected?.(id, selected)}

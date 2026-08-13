@@ -92,6 +92,11 @@ wa-breadcrumb {
   overflow: hidden;
 }
 
+/* Same color for links and the current page */
+wa-breadcrumb-item {
+  color: var(--hot-color-gray-600); /* #716F73 */
+}
+
 wa-breadcrumb-item[aria-current="page"] {
   min-width: 0;
   overflow: hidden;

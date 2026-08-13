@@ -6,6 +6,8 @@ from typing import Literal
 import nh3
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.models.taxonomy import GroupRead, TagRead
+
 AppLiteral = Literal[
     "chatmap",
     "drone-tasking-manager",
@@ -57,6 +59,10 @@ class PlanProjectItem(BaseModel):
     status: StatusLiteral = "in_progress"
     featured: bool = False
     data: dict | None = None
+    # Empty means "All" — the frontend groups any item with no groups under
+    # a virtual "All" bucket; there is no such row in the database.
+    groups: list[GroupRead] = []
+    tags: list[TagRead] = []
 
     @model_validator(mode="after")
     def check_project_fields(self) -> "PlanProjectItem":
@@ -64,8 +70,8 @@ class PlanProjectItem(BaseModel):
             if self.app is None or self.project_id is None:
                 raise ValueError("app and project_id are required when project_exists is True")
         else:
-            if self.app is None:
-                raise ValueError("app is required when project_exists is False")
+            # A task is a plain to-do: it may name the tool it will end up in, but
+            # it does not have to — the app is set when the task is linked.
             if self.project_id is not None:
                 raise ValueError("project_id must be absent when project_exists is False")
         return self
@@ -149,6 +155,8 @@ class HydratedProjectItem(BaseModel):
     status: StatusLiteral = "in_progress"
     featured: bool = False
     data: dict | None = None
+    groups: list[GroupRead] = []
+    tags: list[TagRead] = []
     upstream: dict | None = None
     error: HydrationError | None = None
     # True when this item was served from the stored snapshot (row.data) without a

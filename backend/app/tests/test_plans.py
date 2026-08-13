@@ -753,7 +753,7 @@ async def test_create_plan_with_task(auth_client):
 
 @pytest.mark.asyncio
 async def test_task_rejects_invalid_fields(auth_client):
-    """A task must carry an app and must not carry a project_id."""
+    """A task must not carry a project_id, but needs no app."""
     client, _ = auth_client
     # project_id present on a task -> 422
     resp = await client.post(
@@ -766,7 +766,12 @@ async def test_task_rejects_invalid_fields(auth_client):
         },
     )
     assert resp.status_code == 422
-    # app missing on a task -> 422
+
+
+@pytest.mark.asyncio
+async def test_create_plan_with_task_without_app(auth_client):
+    """A to-do that isn't tied to any tool yet — app is filled in when it's linked."""
+    client, _ = auth_client
     resp = await client.post(
         "/api/plans",
         json={
@@ -774,7 +779,11 @@ async def test_task_rejects_invalid_fields(auth_client):
             "projects": [{"project_exists": False, "data": {"title": "x"}}],
         },
     )
-    assert resp.status_code == 422
+    assert resp.status_code == 201, resp.text
+    task = resp.json()["projects"][0]
+    assert task["app"] is None
+    assert task["project_id"] is None
+    assert task["data"] == {"title": "x"}
 
 
 @pytest.mark.asyncio

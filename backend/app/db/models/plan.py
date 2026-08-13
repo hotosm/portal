@@ -105,6 +105,25 @@ class PlanProject(Base):
 
     plan = relationship("Plan", back_populates="projects")
 
+    # secondary="plan_project_groups"/"plan_project_tags" (table name, not class)
+    # so this resolves without importing app.db.models.taxonomy here — that
+    # module registers the reverse side (Group.plan_projects/Tag.plan_projects)
+    # against the same declarative registry. lazy="selectin" so every query
+    # that loads PlanProject rows gets groups/tags for free — AsyncSession
+    # can't do implicit lazy loads on attribute access.
+    groups = relationship(
+        "Group",
+        secondary="plan_project_groups",
+        back_populates="plan_projects",
+        lazy="selectin",
+    )
+    tags = relationship(
+        "Tag",
+        secondary="plan_project_tags",
+        back_populates="plan_projects",
+        lazy="selectin",
+    )
+
     __table_args__ = (
         UniqueConstraint(
             "plan_id", "app", "project_id", name="uq_plan_projects_plan_app_project"
