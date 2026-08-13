@@ -1,238 +1,155 @@
-import { useEffect, useRef, useState } from "react";
-import Button from "../../components/shared/Button";
-import Dialog from "../../components/shared/Dialog";
-import Dropdown from "../../components/shared/Dropdown";
-import DropdownItem from "../../components/shared/DropdownItem";
-import { m } from "../../paraglide/messages";
-import { APP_LABELS } from "../hooks";
-import { useAddProjectByUrl } from "../hooks/useAddProjectByUrl";
-import type {
-  AppName,
-  PendingTaskInput,
-  ProjectOption,
-  ProjectPickerDialogProps,
-  ProjectSource,
-} from "../types";
-import { AddByUrlSection } from "./AddByUrlSection";
-import { AppSourceSection } from "./AppSourceSection";
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
+import Button from '../../components/shared/Button'
+import Dialog from '../../components/shared/Dialog'
+import Option from '../../components/shared/Option'
+import Select from '../../components/shared/Select'
+import { m } from '../../paraglide/messages'
+import { APP_LABELS } from '../hooks'
+import { useAddProjectByUrl } from '../hooks/useAddProjectByUrl'
+import type { AppName, ProjectPickerDialogProps } from '../types'
+import { AddByUrlSection } from './AddByUrlSection'
+
+type Tab = 'projects' | 'tasks'
+
+const TABS: Tab[] = ['projects', 'tasks']
+
+/** Tools a to-do can be filed under, alphabetical by label. */
+const TASK_APPS = (Object.keys(APP_LABELS) as AppName[]).sort((a, b) =>
+  APP_LABELS[a].localeCompare(APP_LABELS[b])
+)
+
+const DEFAULT_TASK_APP: AppName = 'tasking-manager'
+
+/** Read the selected value from a Web Awesome `<wa-select>` change event. */
+function selectValue(event: unknown): string {
+  return (event as { target: { value?: string } }).target?.value ?? ''
+}
 
 function ProjectPickerDialog({
   open,
-  selected,
-  extraProjects,
-  sources,
-  existingTasks,
-  onConfirm,
+  existingKeys,
+  onAddProject,
+  onAddTask,
   onClose,
 }: ProjectPickerDialogProps) {
-  const [localSelected, setLocalSelected] = useState<Set<string>>(new Set());
-  const [localExtraProjects, setLocalExtraProjects] = useState<ProjectOption[]>(
-    [],
-  );
-  const [selectedTool, setSelectedTool] = useState<string>("");
-  const [localTaskIds, setLocalTaskIds] = useState<Set<string>>(new Set());
-  const [newTasks, setNewTasks] = useState<PendingTaskInput[]>([]);
-  const [newTaskTitle, setNewTaskTitle] = useState<string>("");
-  const dropdownWrapperRef = useRef<HTMLDivElement>(null);
-  const {
-    urlInput,
-    setUrlInput,
-    urlError,
-    setUrlError,
-    isPending,
-    handleAddUrl,
-  } = useAddProjectByUrl();
+  const [tab, setTab] = useState<Tab>('projects')
+  const [taskApp, setTaskApp] = useState<AppName>(DEFAULT_TASK_APP)
+  const [taskTitle, setTaskTitle] = useState('')
+  const { urlInput, setUrlInput, urlError, setUrlError, isPending, handleAddUrl } =
+    useAddProjectByUrl()
 
   useEffect(() => {
-    const el = dropdownWrapperRef.current;
-    if (!el) return;
-    const stop = (e: Event) => e.stopPropagation();
-    el.addEventListener("wa-hide", stop);
-    return () => el.removeEventListener("wa-hide", stop);
-  }, []);
+    if (!open) return
+    setTab('projects')
+    setTaskTitle('')
+    setUrlInput('')
+    setUrlError(null)
+  }, [open, setUrlInput, setUrlError])
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: only sync on open-transition
-  useEffect(() => {
-    if (open) {
-      setLocalSelected(new Set(selected));
-      setLocalExtraProjects(extraProjects);
-      setSelectedTool(sources[0]?.app ?? "");
-      setLocalTaskIds(new Set(existingTasks.map((t) => t.id)));
-      setNewTasks([]);
-      setNewTaskTitle("");
-      setUrlInput("");
-      setUrlError(null);
-    }
-  }, [open]);
-
-  function toggle(key: string) {
-    setLocalSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+  function addProject() {
+    handleAddUrl({
+      localSelected: existingKeys,
+      onAdded: (project) => {
+        onAddProject(project)
+        toast.success(m.plan_toast_project_added())
+        onClose()
+      },
+    })
   }
 
-  function toggleTaskId(id: string) {
-    setLocalTaskIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  function addTask() {
+    const title = taskTitle.trim()
+    if (!title) return
+    onAddTask({ app: taskApp, title })
+    toast.success(m.plan_toast_task_added())
+    onClose()
   }
-
-  function removeNewTask(idx: number) {
-    setNewTasks((prev) => prev.filter((_, i) => i !== idx));
-  }
-
-  function addNewTask() {
-    const title = newTaskTitle.trim();
-    if (!title || !selectedTool) return;
-    setNewTasks((prev) => [...prev, { app: selectedTool as AppName, title }]);
-    setNewTaskTitle("");
-  }
-
-  function onProjectAdded(project: ProjectOption, key: string) {
-    setLocalExtraProjects((prev) => [...prev, project]);
-    setLocalSelected((prev) => new Set(prev).add(key));
-  }
-
-  const sourceApps = new Set(sources.map((s) => s.app));
-  const allSources: ProjectSource[] = [
-    ...sources,
-    ...[
-      ...new Set(
-        localExtraProjects.map((p) => p.app).filter((a) => !sourceApps.has(a)),
-      ),
-    ].map((app) => ({
-      app,
-      label: APP_LABELS[app],
-      projects: [],
-      isLoading: false,
-      isError: false,
-    })),
-  ];
 
   return (
     <Dialog
       open={open}
       label={m.plan_picker_label()}
-      onWaRequestClose={(e: Event) => { if (isPending) e.preventDefault(); }}
-      onWaHide={onClose}
-      style={{ "--width": "560px" } as React.CSSProperties}
+      // Only close on the dialog's own wa-hide — the inner wa-select bubbles
+      // wa-hide when its dropdown closes, which would otherwise close us too.
+      onWaHide={(e: Event) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+      onWaRequestClose={(e: Event) => {
+        if (isPending) e.preventDefault()
+      }}
+      style={{ '--width': '480px' } as React.CSSProperties}
     >
-      <div ref={dropdownWrapperRef} className="mb-md w-full">
-        <label className="text-xs font-semibold text-hot-gray-500 uppercase tracking-wide mb-xs">
-          {m.plan_picker_tool_label()}
-        </label>
-        <Dropdown onSelect={(e) => setSelectedTool(e.detail.item.value)}>
+      <div role="tablist" className="flex gap-xs mb-md">
+        {TABS.map((t) => (
           <button
-            slot="trigger"
+            key={t}
             type="button"
-            className="w-full flex justify-between items-center border border-hot-gray-300 rounded-lg px-md py-sm text-base bg-white focus:border-hot-red-500 focus:outline-none"
+            role="tab"
+            aria-selected={tab === t}
+            onClick={() => setTab(t)}
+            className={`rounded-2xl px-sm py-0 text-sm font-semibold transition-colors ${
+              tab === t
+                ? 'bg-hot-neutral-800 text-white'
+                : 'text-hot-neutral-800 hover:bg-hot-gray-100'
+            }`}
           >
-            <span>{allSources.find((s) => s.app === selectedTool)?.label}</span>
-            <span className="text-hot-gray-400">&#x25BE;</span>
+            {t === 'projects' ? m.plan_picker_tab_projects() : m.plan_picker_tab_tasks()}
           </button>
-          {allSources.map((s) => (
-            <DropdownItem key={s.app} value={s.app}>
-              {s.label}
-            </DropdownItem>
-          ))}
-        </Dropdown>
+        ))}
       </div>
 
-      <div className="overflow-y-auto max-h-[50vh] flex flex-col gap-md mt-md">
-        {allSources.map((source) => {
-          const extras = localExtraProjects.filter((p) => p.app === source.app);
-          const tasks = existingTasks.filter((t) => t.app === source.app);
-          const newForApp = newTasks
-            .map((t, idx) => ({ title: t.title, app: t.app, idx }))
-            .filter((t) => t.app === source.app);
-          const hidden = selectedTool !== "" && source.app !== selectedTool;
-          return (
-            <AppSourceSection
-              key={source.app}
-              source={source}
-              extras={extras}
-              localSelected={localSelected}
-              toggle={toggle}
-              hidden={hidden}
-              existingTasks={tasks}
-              taskIds={localTaskIds}
-              onToggleTask={toggleTaskId}
-              newTasks={newForApp}
-              onRemoveNewTask={removeNewTask}
-            />
-          );
-        })}
-      </div>
-
-      <AddByUrlSection
-        urlInput={urlInput}
-        setUrlInput={setUrlInput}
-        urlError={urlError}
-        setUrlError={setUrlError}
-        isPending={isPending}
-        onAdd={() => handleAddUrl({ localSelected, onAdded: onProjectAdded })}
-      />
-
-      <div className="border-t border-hot-gray-200 pt-md mt-md flex flex-col gap-xs">
-        <span className="text-xs font-semibold text-hot-gray-500 uppercase tracking-wide">
-          No project yet?
-        </span>
-        <p className="text-xs text-hot-gray-400">
-          Add a to-do now and connect it to a real project later.
-        </p>
-        <div className="flex gap-xs">
-          <input
-            type="text"
-            value={newTaskTitle}
-            onChange={(e) => setNewTaskTitle(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                addNewTask();
-              }
-            }}
-            placeholder="What needs to be done?"
-            className="flex-1 border border-hot-gray-300 rounded-lg px-sm py-xs text-sm outline-none focus:border-hot-red-500"
-          />
-          <Button
-            type="button"
+      {tab === 'projects' ? (
+        <AddByUrlSection
+          urlInput={urlInput}
+          setUrlInput={setUrlInput}
+          urlError={urlError}
+          setUrlError={setUrlError}
+          isPending={isPending}
+          onAdd={addProject}
+          description={m.plan_picker_url_help()}
+          divider={false}
+        />
+      ) : (
+        <div className="flex flex-col gap-xs">
+          <span className="text-xs font-semibold text-hot-gray-500 uppercase tracking-wide">
+            {m.plan_picker_task_heading()}
+          </span>
+          <p className="text-xs text-hot-gray-400">{m.plan_picker_task_help()}</p>
+          <Select
             size="small"
-            disabled={!newTaskTitle.trim() || !selectedTool}
-            onClick={addNewTask}
+            value={taskApp}
+            onChange={(e) => setTaskApp(selectValue(e) as AppName)}
+            aria-label={m.plan_picker_task_tool_label()}
           >
-            Create
-          </Button>
+            {TASK_APPS.map((app) => (
+              <Option key={app} value={app}>
+                {APP_LABELS[app]}
+              </Option>
+            ))}
+          </Select>
+          <div className="flex gap-xs">
+            <input
+              type="text"
+              value={taskTitle}
+              onChange={(e) => setTaskTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  addTask()
+                }
+              }}
+              placeholder={m.plan_picker_task_placeholder()}
+              className="flex-1 border border-hot-gray-300 rounded-lg px-sm py-xs text-sm outline-none focus:border-hot-red-500"
+            />
+            <Button type="button" size="small" disabled={!taskTitle.trim()} onClick={addTask}>
+              {m.plan_picker_task_create()}
+            </Button>
+          </div>
         </div>
-      </div>
-
-      <div slot="footer" className="flex gap-sm justify-end">
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={isPending}
-          className="text-sm text-hot-gray-500 hover:text-hot-gray-700 underline disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          {m.plan_cancel()}
-        </button>
-        <Button
-          type="button"
-          disabled={isPending}
-          onClick={() => {
-            onConfirm(localSelected, localExtraProjects, localTaskIds, newTasks);
-            onClose();
-          }}
-        >
-          {m.plan_picker_done()}
-        </Button>
-      </div>
+      )}
     </Dialog>
-  );
+  )
 }
 
-export default ProjectPickerDialog;
+export default ProjectPickerDialog

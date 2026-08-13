@@ -37,7 +37,6 @@ import ProjectPickerDialog from "./components/ProjectPickerDialog";
 import SortableViewProjectCard from "./components/SortableViewProjectCard";
 import {
   planQueryKeys,
-  useAllUserProjects,
   useCollections,
   useCompleteTask,
   usePlan,
@@ -47,7 +46,6 @@ import {
   useUpdateProjectStatus,
 } from "./hooks";
 import type {
-  AppName,
   HydratedProjectItem,
   PendingTaskInput,
   PlanProjectItem,
@@ -111,9 +109,8 @@ function MyPlanPage() {
   // via plan.is_owner.
   const canEdit = plan?.can_edit ?? false;
 
-  const [pickerSection, setPickerSection] = useState<AppName[] | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [collectionsDialogOpen, setCollectionsDialogOpen] = useState(false);
-  const { sources } = useAllUserProjects(canEdit);
   const { data: collections = [] } = useCollections();
 
   const { mutate: updatePlan } = useUpdatePlan();
@@ -179,75 +176,52 @@ function MyPlanPage() {
     persistProjects(updated.map(toItem));
   }
 
-  function handlePickerConfirm(
-    next: Set<string>,
-    nextExtra: ProjectOption[],
-    keptTaskIds: Set<string>,
-    newTasks: PendingTaskInput[],
-  ) {
+  // A PATCH only invalidates the plan query, so `plan.projects` still lags behind
+  // right after a save. Keep the list we last sent here so reopening the picker
+  // and adding again before the refetch lands doesn't drop the previous item.
+  const draftRef = useRef<PlanProjectItem[] | null>(null);
+
+  // The refreshed (or locally patched) list is authoritative again — drop the draft.
+  useEffect(() => {
+    draftRef.current = null;
+  }, [plan?.projects]);
+
+  /** Items as last sent to the API, newest edits included. */
+  function currentItems(): PlanProjectItem[] {
+    return draftRef.current ?? plan?.projects.map(toItem) ?? [];
+  }
+
+  function appendToPlan(item: PlanProjectItem) {
     if (!plan) return;
-    const apps = new Set(pickerSection ?? []);
-    const options = new Map<string, ProjectOption>([
-      ...sources
-        .flatMap((s) => s.projects)
-        .map((p) => [projectKey(p.app, p.project_id), p] as const),
-      ...nextExtra.map((p) => [projectKey(p.app, p.project_id), p] as const),
-    ]);
+    const next = [...currentItems(), item];
+    draftRef.current = next;
+    persistProjects(next);
+  }
 
-    const projects: PlanProjectItem[] = [];
-    // Other sections preserved; tasks of this section kept only if the picker
-    // left them checked; real projects of this section kept only if still selected.
-    for (const p of plan.projects) {
-      const inSection = apps.has(p.app);
-      if (!inSection) {
-        projects.push(toItem(p));
-        continue;
-      }
-      if (!p.project_exists) {
-        if (keptTaskIds.has(p.id)) projects.push(toItem(p));
-        continue;
-      }
-      if (p.project_id && next.has(projectKey(p.app, p.project_id))) {
-        projects.push(toItem(p));
-      }
-    }
-    // Append newly picked real projects (the old "pending" option is gone).
-    for (const key of next) {
-      const opt = options.get(key);
-      const colon = key.indexOf(":");
-      const app = key.slice(0, colon) as AppName;
-      const projId = key.slice(colon + 1);
-      if (!projId) continue;
-      const already = plan.projects.some(
-        (p) => p.project_exists && p.app === app && p.project_id === projId,
-      );
-      if (already) continue;
-      projects.push({
-        app,
-        project_id: projId,
-        project_exists: true,
-        // Fall back to the picker option's title so the card shows a name right
-        // away; some apps only expose the title (no upstream) until rehydration.
-        // Skip that fallback while still resolving (e.g. an OAM TMS URL) — its
-        // "title" is just the raw project_id placeholder, not a real name, and
-        // stashing it in `data` would mark the row as already hydrated, hiding
-        // the pending spinner and never getting replaced by the real title.
-        data:
-          (opt?.upstream as Record<string, unknown> | null) ??
-          (opt?.title && !opt?.isResolving ? { name: opt.title } : null),
-      });
-    }
-    // Append newly created tasks.
-    for (const t of newTasks) {
-      projects.push({
-        app: t.app,
-        project_exists: false,
-        data: { title: t.title },
-      });
-    }
+  function handleAddProject(project: ProjectOption) {
+    if (!plan) return;
+    appendToPlan({
+      app: project.app,
+      project_id: project.project_id,
+      project_exists: true,
+      // Fall back to the resolved title so the card shows a name right away;
+      // some apps only expose the title (no upstream) until rehydration.
+      // Skip that fallback while still resolving (e.g. an OAM TMS URL) — its
+      // "title" is just the raw project_id placeholder, not a real name, and
+      // stashing it in `data` would mark the row as already hydrated, hiding
+      // the pending spinner and never getting replaced by the real title.
+      data:
+        (project.upstream as Record<string, unknown> | null) ??
+        (project.title && !project.isResolving ? { name: project.title } : null),
+    });
+  }
 
-    persistProjects(projects);
-    setPickerSection(null);
+  function handleAddTask(task: PendingTaskInput) {
+    appendToPlan({
+      app: task.app,
+      project_exists: false,
+      data: { title: task.title },
+    });
   }
 
   function handleTaskCompleted(planProjectId: string, project: ProjectOption) {
@@ -388,9 +362,7 @@ function MyPlanPage() {
           <div className="flex flex-wrap gap-lg py-lg">
             {showAddCard && (
               <div className={cardClassNames}>
-                <CardAddProject
-                  onButtonClick={() => setPickerSection(sources.map((s) => s.app))}
-                />
+                <CardAddProject onButtonClick={() => setPickerOpen(true)} />
               </div>
             )}
             {canEdit ? (
@@ -510,7 +482,10 @@ function MyPlanPage() {
       <PageWrapper>
         <div>
           <div className="flex gap-xs">
-            <Button variant="danger"><Icon name="circle-plus" />Add project</Button>
+            <Button variant="danger" onClick={() => setPickerOpen(true)}>
+              <Icon name="circle-plus" />
+              Add project
+            </Button>
             <Button onClick={() => setCollectionsDialogOpen(true)}>
               <Icon name="folder" variant="regular" />
               Collections
@@ -533,23 +508,19 @@ function MyPlanPage() {
         sections
       )}
 
-      {canEdit && pickerSection && (
+      {canEdit && pickerOpen && (
         <ProjectPickerDialog
           open
-          selected={
+          existingKeys={
             new Set(
-              plan!.projects
-                .filter((p) => p.project_exists && p.project_id)
+              currentItems()
+                .filter((p) => p.project_exists !== false && p.project_id)
                 .map((p) => projectKey(p.app, p.project_id as string)),
             )
           }
-          extraProjects={[]}
-          sources={sources.filter((s) => pickerSection.includes(s.app))}
-          existingTasks={plan!.projects.filter(
-            (p) => !p.project_exists && pickerSection.includes(p.app),
-          )}
-          onConfirm={handlePickerConfirm}
-          onClose={() => setPickerSection(null)}
+          onAddProject={handleAddProject}
+          onAddTask={handleAddTask}
+          onClose={() => setPickerOpen(false)}
         />
       )}
 

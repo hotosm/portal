@@ -201,16 +201,10 @@ export interface PendingTaskInput {
 
 export interface ProjectPickerDialogProps {
   open: boolean
-  selected: Set<string>
-  extraProjects: ProjectOption[]
-  sources: ProjectSource[]
-  existingTasks: HydratedProjectItem[]
-  onConfirm: (
-    selected: Set<string>,
-    extraProjects: ProjectOption[],
-    keptTaskIds: Set<string>,
-    newTasks: PendingTaskInput[]
-  ) => void
+  /** `app:project_id` keys already in the plan — used to reject duplicate URLs. */
+  existingKeys: Set<string>
+  onAddProject: (project: ProjectOption) => void
+  onAddTask: (task: PendingTaskInput) => void
   onClose: () => void
 }
 
