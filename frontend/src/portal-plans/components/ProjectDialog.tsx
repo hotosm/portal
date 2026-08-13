@@ -9,10 +9,12 @@ import boxArrowUpRight from "../../assets/icons/box-arrow-up-right.svg";
 import starFill from "../../assets/icons/star-fill.svg";
 import starOutline from "../../assets/icons/star.svg";
 import Icon from "../../components/shared/Icon";
+import Spinner from "../../components/shared/Spinner";
 import Tag from "../../components/shared/Tag";
 import { m } from "../../paraglide/messages";
 import { APP_META } from "../../utils/appMeta";
 import { formatProjectStatus } from "../../utils/utils";
+import { useCollections, useSetProjectCollections } from "../hooks";
 import type { HydratedProjectItem, ProjectStatus } from "../types";
 
 const STATUS_OPTIONS: ProjectStatus[] = ["pending", "in_progress", "done"];
@@ -32,6 +34,11 @@ interface ProjectDialogProps {
   onStatusChange?: (status: ProjectStatus) => void;
   initialStatus?: ProjectStatus;
   onFeaturedChange?: (featured: boolean) => void | Promise<void>;
+  /**
+   * Plan the project is being viewed in. Set it to offer collection assignment;
+   * leave it out for read-only views, like the other edit affordances here.
+   */
+  planId?: string;
 }
 
 function extractMeta(upstream: Record<string, unknown> | null) {
@@ -71,10 +78,16 @@ function ProjectDialog({
   onStatusChange,
   initialStatus,
   onFeaturedChange,
+  planId,
 }: ProjectDialogProps) {
   const meta = APP_META[project.app];
   const { createdAt, author } = extractMeta(project.upstream);
   const [localStatus, setLocalStatus] = useState<ProjectStatus>(initialStatus ?? project.status);
+
+  const { data: collections = [] } = useCollections();
+  const setCollections = useSetProjectCollections(planId ?? "");
+  // Wire name: `groups` is the collections the project already belongs to.
+  const assigned = new Set(project.groups.map((c) => c.id));
 
   useEffect(() => {
     setLocalStatus(initialStatus ?? project.status);
@@ -84,6 +97,20 @@ function ProjectDialog({
     const status = event.detail.item.value as ProjectStatus;
     setLocalStatus(status);
     onStatusChange?.(status);
+  }
+
+  // The endpoint replaces the whole set, so picking a collection means sending
+  // the current ids with that one added — or removed, if it was already there.
+  function handleCollectionSelect(event: CustomEvent) {
+    const id = event.detail.item.value as string | undefined;
+    if (!id) return;
+    const next = assigned.has(id)
+      ? [...assigned].filter((c) => c !== id)
+      : [...assigned, id];
+    setCollections.mutate(
+      { planProjectId: project.id, collectionIds: next },
+      { onSuccess: () => toast.success(m.plan_toast_project_collections_saved()) },
+    );
   }
 
   async function handleFeaturedChange() {
@@ -153,6 +180,54 @@ function ProjectDialog({
             </Tag>
           )}
         </div>
+
+        {planId && (
+          <div className="flex flex-col gap-xs">
+            <span className="text-xs font-medium text-hot-gray-500 uppercase tracking-wide">
+              {m.plan_collections_assign_collections_label()}
+            </span>
+            <div className="flex items-center gap-xs flex-wrap">
+              {project.groups.map((collection) => (
+                <Tag
+                  key={collection.id}
+                  variant="brand"
+                  appearance="filled"
+                  size="small"
+                >
+                  {collection.name}
+                </Tag>
+              ))}
+              <Dropdown onSelect={handleCollectionSelect}>
+                <Tag
+                  slot="trigger"
+                  variant="neutral"
+                  appearance="outlined"
+                  size="small"
+                  className="cursor-pointer"
+                >
+                  {m.plan_project_add_to_collection()} ▾
+                </Tag>
+                {collections.length === 0 ? (
+                  <DropdownItem disabled>
+                    {m.plan_collections_empty_collections()}
+                  </DropdownItem>
+                ) : (
+                  collections.map((collection) => (
+                    <DropdownItem
+                      key={collection.id}
+                      value={collection.id}
+                      type="checkbox"
+                      checked={assigned.has(collection.id)}
+                    >
+                      {collection.name}
+                    </DropdownItem>
+                  ))
+                )}
+              </Dropdown>
+              {setCollections.isPending && <Spinner />}
+            </div>
+          </div>
+        )}
 
         {(author || createdAt) && (
           <dl className="grid grid-cols-[auto_1fr] gap-x-md gap-y-xs text-sm">

@@ -154,6 +154,8 @@ interface PlanProjectCardProps {
   onSelectClick?: () => void;
   onDelete?: () => void;
   onFeaturedChange?: (featured: boolean) => void;
+  /** Set on editable views only — lets the dialog offer collection assignment. */
+  planId?: string;
 }
 
 function PlanProjectCard({
@@ -162,6 +164,7 @@ function PlanProjectCard({
   onSelectClick,
   onDelete,
   onFeaturedChange,
+  planId,
 }: PlanProjectCardProps) {
   const { title, imageUrl, href } = usePlanProjectDisplay(project);
   const meta = APP_META[project.app];
@@ -326,6 +329,7 @@ function PlanProjectCard({
             onStatusChange(status);
           } : undefined}
           onFeaturedChange={onFeaturedChange}
+          planId={planId}
         />
       )}
       {!project.project_exists ? (

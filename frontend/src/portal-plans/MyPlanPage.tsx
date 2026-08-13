@@ -55,6 +55,7 @@ import type {
   ProjectOption,
 } from "./types";
 import Button from "../components/shared/Button";
+import Icon from "../components/shared/Icon";
 
 /** Bucket for projects in no collection — the taxonomy API models it as an empty list. */
 const ALL_SECTION_ID = "all";
@@ -330,6 +331,7 @@ function MyPlanPage() {
                   onFeaturedChange={
                     canEdit ? (featured) => handleFeaturedToggle(project.id, featured) : undefined
                   }
+                  planId={canEdit ? planId : undefined}
                 />
               </div>
             ))}
@@ -341,8 +343,8 @@ function MyPlanPage() {
   const collectionsOnPlan = new Map(
     (plan?.projects ?? []).flatMap((p) => p.groups.map((g) => [g.id, g] as const)),
   );
+  // "All" (projects in no collection) always renders last.
   const sectionDefs = [
-    { id: ALL_SECTION_ID, title: m.plan_collections_all_bucket() },
     ...collections
       .filter((collection) => collectionsOnPlan.has(collection.id))
       .map((collection) => ({ id: collection.id, title: collection.name })),
@@ -350,6 +352,7 @@ function MyPlanPage() {
       .filter((collection) => !collections.some((own) => own.id === collection.id))
       .sort((a, b) => a.name.localeCompare(b.name))
       .map((collection) => ({ id: collection.id, title: collection.name })),
+    { id: ALL_SECTION_ID, title: m.plan_collections_all_bucket() },
   ];
 
   const sections = sectionDefs.map((section) => {
@@ -424,6 +427,7 @@ function MyPlanPage() {
   return (
     <>
       <PlanSectionHeader
+        plan={isLoading ? undefined : plan!}
         breadcrumbs={
           isLoading
             ? undefined
@@ -506,8 +510,11 @@ function MyPlanPage() {
       <PageWrapper>
         <div>
           <div className="flex gap-xs">
-            <Button variant="danger">Add project</Button>
-            <Button onClick={() => setCollectionsDialogOpen(true)}>Collections</Button>
+            <Button variant="danger"><Icon name="circle-plus" />Add project</Button>
+            <Button onClick={() => setCollectionsDialogOpen(true)}>
+              <Icon name="folder" variant="regular" />
+              Collections
+            </Button>
           </div>
         </div>
       </PageWrapper>
