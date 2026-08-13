@@ -70,8 +70,8 @@ class PlanProjectItem(BaseModel):
             if self.app is None or self.project_id is None:
                 raise ValueError("app and project_id are required when project_exists is True")
         else:
-            if self.app is None:
-                raise ValueError("app is required when project_exists is False")
+            # A task is a plain to-do: it may name the tool it will end up in, but
+            # it does not have to — the app is set when the task is linked.
             if self.project_id is not None:
                 raise ValueError("project_id must be absent when project_exists is False")
         return self
