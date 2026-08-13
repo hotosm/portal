@@ -81,7 +81,8 @@ export interface ProjectTagUpdate {
 
 export interface PlanProjectItem {
   id?: string
-  app: AppName
+  /** Null on a task that isn't tied to a tool yet. */
+  app?: AppName | null
   project_id?: string | null
   project_exists?: boolean
   status?: ProjectStatus
@@ -139,7 +140,8 @@ export interface PlanRead {
 
 export interface HydratedProjectItem {
   id: string
-  app: AppName
+  /** Null on a task that isn't tied to a tool yet. */
+  app: AppName | null
   project_id: string | null
   project_exists: boolean
   status: ProjectStatus
@@ -194,17 +196,12 @@ export interface ProjectSource {
   isLoading: boolean
   isError: boolean
 }
-export interface PendingTaskInput {
-  app: AppName
-  title: string
-}
-
 export interface ProjectPickerDialogProps {
   open: boolean
   /** `app:project_id` keys already in the plan — used to reject duplicate URLs. */
   existingKeys: Set<string>
   onAddProject: (project: ProjectOption) => void
-  onAddTask: (task: PendingTaskInput) => void
+  onAddTask: (title: string) => void
   onClose: () => void
 }
 

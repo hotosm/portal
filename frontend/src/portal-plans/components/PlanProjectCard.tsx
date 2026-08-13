@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
-import placeholder from "../../assets/images/placeholder.png";
-import Dropdown from "../../components/shared/Dropdown";
-import ProjectDialog from "./ProjectDialog";
-import DropdownItem from "../../components/shared/DropdownItem";
-import Spinner from "../../components/shared/Spinner";
-import Tag from "../../components/shared/Tag";
-import { APP_META } from "../../utils/appMeta";
+import { useEffect, useState } from 'react'
+import placeholder from '../../assets/images/placeholder.png'
+import Dropdown from '../../components/shared/Dropdown'
+import DropdownItem from '../../components/shared/DropdownItem'
+import Spinner from '../../components/shared/Spinner'
+import Tag from '../../components/shared/Tag'
+import { m } from '../../paraglide/messages'
+import { APP_META } from '../../utils/appMeta'
 import {
   getChatMapBaseUrl,
   getDroneTmBaseUrl,
@@ -13,69 +13,65 @@ import {
   getFairBaseUrl,
   getFieldTmBaseUrl,
   getUmapBaseUrl,
-} from "../../utils/envConfig";
-import { osmTileUrl } from "../../utils/osmTiles";
-import { formatProjectStatus } from "../../utils/utils";
-import { m } from "../../paraglide/messages";
-import type { AppName, HydratedProjectItem, ProjectStatus } from "../types";
+} from '../../utils/envConfig'
+import { osmTileUrl } from '../../utils/osmTiles'
+import { formatProjectStatus } from '../../utils/utils'
+import type { AppName, HydratedProjectItem, ProjectStatus } from '../types'
+import ProjectDialog from './ProjectDialog'
 
-const STATUS_OPTIONS: ProjectStatus[] = ["pending", "in_progress", "done"];
+const STATUS_OPTIONS: ProjectStatus[] = ['pending', 'in_progress', 'done']
 
-function statusVariant(status: ProjectStatus): "neutral" | "success" {
-  return status === "done" ? "success" : "neutral";
+function statusVariant(status: ProjectStatus): 'neutral' | 'success' {
+  return status === 'done' ? 'success' : 'neutral'
 }
 
 function resolveTitle(
   upstream: Record<string, unknown> | null,
   projectId: string,
-  data: Record<string, unknown> | null,
+  data: Record<string, unknown> | null
 ): string {
-  const src = upstream ?? data;
-  if (!src) return projectId;
-  const t = src.name ?? src.title ?? src.project_name;
-  return typeof t === "string" && t ? t : projectId;
+  const src = upstream ?? data
+  if (!src) return projectId
+  const t = src.name ?? src.title ?? src.project_name
+  return typeof t === 'string' && t ? t : projectId
 }
 
 function resolveImageUrl(
-  app: AppName,
+  app: AppName | null,
   upstream: Record<string, unknown> | null,
-  data: Record<string, unknown> | null,
+  data: Record<string, unknown> | null
 ): string {
-  if (app === "chatmap" || app === "umap") {
-    const centroid = (upstream?.centroid ?? data?.centroid) as
-      | [number, number]
-      | null
-      | undefined;
+  if (app === 'chatmap' || app === 'umap') {
+    const centroid = (upstream?.centroid ?? data?.centroid) as [number, number] | null | undefined
     if (Array.isArray(centroid) && centroid.length === 2) {
-      return osmTileUrl(centroid[0], centroid[1], 10);
+      return osmTileUrl(centroid[0], centroid[1], 10)
     }
   }
 
-  if (app === "tasking-manager") {
-    const src = upstream ?? data;
-    const bbox = src?.aoiBBOX as
-      | [number, number, number, number]
-      | null
-      | undefined;
+  if (app === 'tasking-manager') {
+    const src = upstream ?? data
+    const bbox = src?.aoiBBOX as [number, number, number, number] | null | undefined
     if (Array.isArray(bbox) && bbox.length === 4) {
-      const lat = (bbox[1] + bbox[3]) / 2;
-      const lon = (bbox[0] + bbox[2]) / 2;
-      return osmTileUrl(lat, lon, 10);
+      const lat = (bbox[1] + bbox[3]) / 2
+      const lon = (bbox[0] + bbox[2]) / 2
+      return osmTileUrl(lat, lon, 10)
     }
   }
 
-  const src = upstream ?? data;
-  if (!src) return placeholder;
-  const img = src.image_url ?? src.thumbnail_url ?? src.thumbnail ?? src.image;
-  return typeof img === "string" && img ? img : placeholder;
+  const src = upstream ?? data
+  if (!src) return placeholder
+  const img = src.image_url ?? src.thumbnail_url ?? src.thumbnail ?? src.image
+  return typeof img === 'string' && img ? img : placeholder
 }
 
 function resolveHref(
-  app: AppName,
+  app: AppName | null,
   projectId: string,
   upstream: Record<string, unknown> | null,
-  data: Record<string, unknown> | null,
+  data: Record<string, unknown> | null
 ): string {
+  // A task with no tool yet has nowhere to link to.
+  if (!app) return '#'
   switch (app) {
     case 'tasking-manager':
       return `https://tasks.hotosm.org/projects/${projectId}`
@@ -93,69 +89,61 @@ function resolveHref(
       const bbox = (upstream?.bbox ?? data?.bbox) as
         | [number, number, number, number]
         | null
-        | undefined;
+        | undefined
       if (Array.isArray(bbox) && bbox.length === 4) {
-        const lng = ((bbox[0] as number) + (bbox[2] as number)) / 2;
-        const lat = ((bbox[1] as number) + (bbox[3] as number)) / 2;
-        const parts = projectId.split(':');
-        const oamPath = parts.length === 2
-          ? `user/${parts[0]}/${parts[1]}`
-          : `latest/${projectId}`;
-        return `https://map.openaerialmap.org/#/${lng},${lat},14/${oamPath}`;
+        const lng = ((bbox[0] as number) + (bbox[2] as number)) / 2
+        const lat = ((bbox[1] as number) + (bbox[3] as number)) / 2
+        const parts = projectId.split(':')
+        const oamPath = parts.length === 2 ? `user/${parts[0]}/${parts[1]}` : `latest/${projectId}`
+        return `https://map.openaerialmap.org/#/${lng},${lat},14/${oamPath}`
       }
-      return `https://map.openaerialmap.org`;
+      return `https://map.openaerialmap.org`
     }
-    case "umap": {
-      const href = (upstream?.href ?? data?.href) as string | null | undefined;
-      return href ?? `${getUmapBaseUrl()}/m/${projectId}/`;
+    case 'umap': {
+      const href = (upstream?.href ?? data?.href) as string | null | undefined
+      return href ?? `${getUmapBaseUrl()}/m/${projectId}/`
     }
-    case "chatmap":
-      return `${getChatMapBaseUrl()}/#map/${projectId}`;
+    case 'chatmap':
+      return `${getChatMapBaseUrl()}/#map/${projectId}`
   }
 }
 
 function usePlanProjectDisplay(project: HydratedProjectItem) {
-  const [chatmapTitle, setChatmapTitle] = useState<string | null>(null);
+  const [chatmapTitle, setChatmapTitle] = useState<string | null>(null)
 
   useEffect(() => {
-    if (project.app !== "chatmap" || project.upstream || project.data) return;
+    if (project.app !== 'chatmap' || project.upstream || project.data) return
     fetch(`${getChatMapBaseUrl()}/api/v1/map/${project.project_id}`, {
-      credentials: "include",
-      headers: { accept: "application/json" },
+      credentials: 'include',
+      headers: { accept: 'application/json' },
     })
       .then((r) => (r.ok ? r.json() : null))
       .then((d: Record<string, unknown> | null) => {
-        if (typeof d?.name === "string" && d.name) setChatmapTitle(d.name);
+        if (typeof d?.name === 'string' && d.name) setChatmapTitle(d.name)
       })
-      .catch(() => {});
-  }, [project.app, project.project_id, project.upstream, project.data]);
+      .catch(() => {})
+  }, [project.app, project.project_id, project.upstream, project.data])
 
-  const isTask = !project.project_exists;
+  const isTask = !project.project_exists
   return {
     title: isTask
-      ? typeof project.data?.title === "string" && project.data.title
+      ? typeof project.data?.title === 'string' && project.data.title
         ? project.data.title
-        : "Untitled task"
-      : (chatmapTitle ??
-        resolveTitle(project.upstream, project.project_id ?? "", project.data)),
+        : 'Untitled task'
+      : (chatmapTitle ?? resolveTitle(project.upstream, project.project_id ?? '', project.data)),
     imageUrl: resolveImageUrl(project.app, project.upstream, project.data),
-    href: resolveHref(
-      project.app,
-      project.project_id ?? "",
-      project.upstream,
-      project.data,
-    ),
-  };
+    href: resolveHref(project.app, project.project_id ?? '', project.upstream, project.data),
+  }
 }
 
 interface PlanProjectCardProps {
-  project: HydratedProjectItem;
-  onStatusChange?: (status: ProjectStatus) => void;
-  onSelectClick?: () => void;
-  onDelete?: () => void;
-  onFeaturedChange?: (featured: boolean) => void;
+  project: HydratedProjectItem
+  onStatusChange?: (status: ProjectStatus) => void
+  onSelectClick?: () => void
+  onDelete?: () => void
+  onFeaturedChange?: (featured: boolean) => void
   /** Set on editable views only — lets the dialog offer collection assignment. */
-  planId?: string;
+  planId?: string
 }
 
 function PlanProjectCard({
@@ -166,31 +154,31 @@ function PlanProjectCard({
   onFeaturedChange,
   planId,
 }: PlanProjectCardProps) {
-  const { title, imageUrl, href } = usePlanProjectDisplay(project);
-  const meta = APP_META[project.app];
-  const [localStatus, setLocalStatus] = useState<ProjectStatus>(project.status);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const { title, imageUrl, href } = usePlanProjectDisplay(project)
+  // Null on a task that isn't tied to a tool yet.
+  const meta = project.app ? APP_META[project.app] : null
+  const [localStatus, setLocalStatus] = useState<ProjectStatus>(project.status)
+  const [dialogOpen, setDialogOpen] = useState(false)
 
   // The upstream app confirmed (404) that this project no longer exists.
-  const missing = project.project_exists && project.error === "not_found";
+  const missing = project.project_exists && project.error === 'not_found'
   // The upstream app could not be reached, so existence is unknown — do not
   // offer to remove it, it may still exist once the app recovers.
   const unavailable =
     project.project_exists &&
-    (project.error === "upstream_unavailable" ||
-      project.error === "upstream_timeout");
+    (project.error === 'upstream_unavailable' || project.error === 'upstream_timeout')
   // Still being resolved (e.g. an OAM TMS URL's slow catalog search) — not
   // broken, just not done yet. A later refresh will fill in the real title.
-  const pending = project.project_exists && project.error === "pending";
+  const pending = project.project_exists && project.error === 'pending'
 
   useEffect(() => {
-    setLocalStatus(project.status);
-  }, [project.status]);
+    setLocalStatus(project.status)
+  }, [project.status])
 
   function handleStatusSelect(event: CustomEvent) {
-    const status = event.detail.item.value as ProjectStatus;
-    setLocalStatus(status);
-    onStatusChange?.(status);
+    const status = event.detail.item.value as ProjectStatus
+    setLocalStatus(status)
+    onStatusChange?.(status)
   }
 
   const cardContent = (
@@ -199,16 +187,18 @@ function PlanProjectCard({
         <img
           src={imageUrl}
           alt={title}
-          className={`w-full h-36 object-cover${missing ? " grayscale opacity-60" : ""}`}
+          className={`w-full h-36 object-cover${missing ? ' grayscale opacity-60' : ''}`}
           onError={(e) => {
-            e.currentTarget.src = placeholder;
+            e.currentTarget.src = placeholder
           }}
         />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md">
-            <img src={meta.icon} alt={meta.label} className="w-6 h-6" />
+        {meta && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md">
+              <img src={meta.icon} alt={meta.label} className="w-6 h-6" />
+            </div>
           </div>
-        </div>
+        )}
         {missing && (
           <span className="absolute bottom-1 left-1 z-10 bg-red-600 text-white text-xs font-medium px-2 py-0.5 rounded">
             {m.plan_project_missing_badge()}
@@ -226,16 +216,9 @@ function PlanProjectCard({
           </span>
         )}
         {!project.project_exists ? null : onStatusChange ? (
-          <div
-            className="absolute top-1 right-1 z-10"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="absolute top-1 right-1 z-10" onClick={(e) => e.stopPropagation()}>
             <Dropdown onSelect={handleStatusSelect}>
-              <Tag
-                slot="trigger"
-                variant={statusVariant(localStatus)}
-                className="cursor-pointer"
-              >
+              <Tag slot="trigger" variant={statusVariant(localStatus)} className="cursor-pointer">
                 {formatProjectStatus(localStatus)} ▾
               </Tag>
               {STATUS_OPTIONS.map((s) => (
@@ -246,10 +229,7 @@ function PlanProjectCard({
             </Dropdown>
           </div>
         ) : (
-          <Tag
-            variant={statusVariant(project.status)}
-            className="absolute top-1 right-1 z-10"
-          >
+          <Tag variant={statusVariant(project.status)} className="absolute top-1 right-1 z-10">
             {formatProjectStatus(project.status)}
           </Tag>
         )}
@@ -257,21 +237,19 @@ function PlanProjectCard({
 
       {project.project_exists ? (
         <div className="flex flex-col justify-start gap-xs">
-          <span className="text-sm text-hot-gray-600">{meta.name}</span>
+          <span className="text-sm text-hot-gray-600">{meta?.name}</span>
           {missing ? (
             <>
               <span className="block whitespace-normal text-base font-bold text-hot-gray-600 line-through line-clamp-2">
                 {title}
               </span>
-              <p className="text-sm text-red-700">
-                {m.plan_project_missing_label()}
-              </p>
+              <p className="text-sm text-red-700">{m.plan_project_missing_label()}</p>
               {onDelete && (
                 <button
                   type="button"
                   onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete();
+                    e.stopPropagation()
+                    onDelete()
                   }}
                   className="self-start text-sm font-medium text-red-700 underline hover:text-red-800"
                 >
@@ -282,16 +260,14 @@ function PlanProjectCard({
           ) : (
             <>
               <span className="block w-full text-left whitespace-normal text-base font-bold">
-                <span className="line-clamp-2">
-                  {pending ? meta.name : title}
-                </span>
+                <span className="line-clamp-2">{pending ? meta?.name : title}</span>
               </span>
               {(unavailable || pending) && onDelete && (
                 <button
                   type="button"
                   onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete();
+                    e.stopPropagation()
+                    onDelete()
                   }}
                   className="self-start text-sm font-medium text-red-700 underline hover:text-red-800"
                 >
@@ -303,14 +279,14 @@ function PlanProjectCard({
         </div>
       ) : (
         <span className="text-base font-bold whitespace-normal">
-          <span className="text-sm text-hot-gray-600">{meta.name}</span>
+          {meta && <span className="text-sm text-hot-gray-600">{meta.name}</span>}
           <span className="line-clamp-2">{title}</span>
         </span>
       )}
     </div>
-  );
+  )
 
-  const cardClassName = `w-full h-full bg-white rounded-xl shadow-[0_0_14px_rgba(0,0,0,0.2)] p-md flex flex-col gap-lg${!project.project_exists ? " opacity-50" : ""}`;
+  const cardClassName = `w-full h-full bg-white rounded-xl shadow-[0_0_14px_rgba(0,0,0,0.2)] p-md flex flex-col gap-lg${!project.project_exists ? ' opacity-50' : ''}`
 
   return (
     <>
@@ -324,10 +300,14 @@ function PlanProjectCard({
           imageUrl={imageUrl}
           onDelete={onDelete}
           initialStatus={localStatus}
-          onStatusChange={onStatusChange ? (status) => {
-            setLocalStatus(status);
-            onStatusChange(status);
-          } : undefined}
+          onStatusChange={
+            onStatusChange
+              ? (status) => {
+                  setLocalStatus(status)
+                  onStatusChange(status)
+                }
+              : undefined
+          }
           onFeaturedChange={onFeaturedChange}
           planId={planId}
         />
@@ -359,14 +339,14 @@ function PlanProjectCard({
           role="button"
           tabIndex={0}
           onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") setDialogOpen(true);
+            if (e.key === 'Enter' || e.key === ' ') setDialogOpen(true)
           }}
         >
           {cardContent}
         </div>
       )}
     </>
-  );
+  )
 }
 
-export default PlanProjectCard;
+export default PlanProjectCard

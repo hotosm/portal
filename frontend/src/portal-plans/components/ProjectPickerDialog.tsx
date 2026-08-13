@@ -2,29 +2,14 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import Button from '../../components/shared/Button'
 import Dialog from '../../components/shared/Dialog'
-import Option from '../../components/shared/Option'
-import Select from '../../components/shared/Select'
 import { m } from '../../paraglide/messages'
-import { APP_LABELS } from '../hooks'
 import { useAddProjectByUrl } from '../hooks/useAddProjectByUrl'
-import type { AppName, ProjectPickerDialogProps } from '../types'
+import type { ProjectPickerDialogProps } from '../types'
 import { AddByUrlSection } from './AddByUrlSection'
 
 type Tab = 'projects' | 'tasks'
 
 const TABS: Tab[] = ['projects', 'tasks']
-
-/** Tools a to-do can be filed under, alphabetical by label. */
-const TASK_APPS = (Object.keys(APP_LABELS) as AppName[]).sort((a, b) =>
-  APP_LABELS[a].localeCompare(APP_LABELS[b])
-)
-
-const DEFAULT_TASK_APP: AppName = 'tasking-manager'
-
-/** Read the selected value from a Web Awesome `<wa-select>` change event. */
-function selectValue(event: unknown): string {
-  return (event as { target: { value?: string } }).target?.value ?? ''
-}
 
 function ProjectPickerDialog({
   open,
@@ -34,7 +19,6 @@ function ProjectPickerDialog({
   onClose,
 }: ProjectPickerDialogProps) {
   const [tab, setTab] = useState<Tab>('projects')
-  const [taskApp, setTaskApp] = useState<AppName>(DEFAULT_TASK_APP)
   const [taskTitle, setTaskTitle] = useState('')
   const { urlInput, setUrlInput, urlError, setUrlError, isPending, handleAddUrl } =
     useAddProjectByUrl()
@@ -61,7 +45,7 @@ function ProjectPickerDialog({
   function addTask() {
     const title = taskTitle.trim()
     if (!title) return
-    onAddTask({ app: taskApp, title })
+    onAddTask(title)
     toast.success(m.plan_toast_task_added())
     onClose()
   }
@@ -70,11 +54,7 @@ function ProjectPickerDialog({
     <Dialog
       open={open}
       label={m.plan_picker_label()}
-      // Only close on the dialog's own wa-hide — the inner wa-select bubbles
-      // wa-hide when its dropdown closes, which would otherwise close us too.
-      onWaHide={(e: Event) => {
-        if (e.target === e.currentTarget) onClose()
-      }}
+      onWaHide={onClose}
       onWaRequestClose={(e: Event) => {
         if (isPending) e.preventDefault()
       }}
@@ -116,18 +96,6 @@ function ProjectPickerDialog({
             {m.plan_picker_task_heading()}
           </span>
           <p className="text-xs text-hot-gray-400">{m.plan_picker_task_help()}</p>
-          <Select
-            size="small"
-            value={taskApp}
-            onChange={(e) => setTaskApp(selectValue(e) as AppName)}
-            aria-label={m.plan_picker_task_tool_label()}
-          >
-            {TASK_APPS.map((app) => (
-              <Option key={app} value={app}>
-                {APP_LABELS[app]}
-              </Option>
-            ))}
-          </Select>
           <div className="flex gap-xs">
             <input
               type="text"
