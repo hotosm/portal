@@ -1,8 +1,13 @@
 import {
+  type CollisionDetection,
   DndContext,
   type DragEndEvent,
+  type DragOverEvent,
+  DragOverlay,
+  type DragStartEvent,
   PointerSensor,
-  closestCenter,
+  pointerWithin,
+  rectIntersection,
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
@@ -25,6 +30,7 @@ import { useIsMobile } from '../hooks/useIsMobile'
 import { m } from '../paraglide/messages'
 import { projectKey } from '../utils/utils'
 import CardAddProject from './components/CardAddProject'
+import CollectionSection from './components/CollectionSection'
 import CollectionsDialog from './components/CollectionsDialog'
 import PlanMenu from './components/PlanMenu'
 import PlanProjectCard from './components/PlanProjectCard'
@@ -33,48 +39,45 @@ import PlanShareButton from './components/PlanShareButton'
 import PlanSubSectionAccordion from './components/PlanSubSectionAccordion'
 import ProjectPickerDialog from './components/ProjectPickerDialog'
 import SortableViewProjectCard from './components/SortableViewProjectCard'
+import { ALL_SECTION_ID, isSectionDropId } from './contstants'
 import {
   planQueryKeys,
+  useAddProject,
   useCollections,
   useCompleteTask,
   usePlan,
   useRefreshPlan,
+  useRemoveProject,
+  useReorderProjects,
+  useSetProjectFeatured,
   useSharedPlan,
-  useUpdatePlan,
   useUpdateProjectStatus,
 } from './hooks'
-import type {
-  AppName,
-  HydratedProjectItem,
-  PlanProjectItem,
-  PlanReadHydrated,
-  ProjectOption,
-} from './types'
+import type { AppName, HydratedProjectItem, PlanReadHydrated, ProjectOption } from './types'
 
-/** Bucket for projects in no collection — the taxonomy API models it as an empty list. */
-const ALL_SECTION_ID = 'all'
+/** Projects of one section, in their stored order. */
+function projectsOf(projects: HydratedProjectItem[], sectionId: string) {
+  return projects.filter((p) =>
+    sectionId === ALL_SECTION_ID ? p.collection_id == null : p.collection_id === sectionId
+  )
+}
 
-const dragIdFor = (sectionId: string, id: string) => `${sectionId}:${id}`
-const planProjectId = (dragId: string) => dragId.slice(dragId.indexOf(':') + 1)
-
-/** Map a hydrated project/task back to the payload shape expected by PATCH /plans. */
-function toItem(p: HydratedProjectItem): PlanProjectItem {
-  if (p.project_exists) {
-    return {
-      app: p.app,
-      project_id: p.project_id,
-      project_exists: true,
-      status: p.status,
-      data: p.data,
-      featured: p.featured,
-    }
-  }
-  return {
-    project_exists: false,
-    status: p.status,
-    data: p.data,
-    featured: p.featured,
-  }
+/**
+ * Whatever sits under the pointer wins, cards before their section.
+ *
+ * The default `closestCorners` compares distances against every registered
+ * droppable at once, so a card dragged across sections kept matching its own
+ * neighbours — the drop read as a reorder inside the section it started in.
+ * Falling back to rect intersection covers the gap when the pointer leaves the
+ * page while dragging.
+ */
+const collisionDetection: CollisionDetection = (args) => {
+  const pointerHits = pointerWithin(args)
+  const hits = pointerHits.length > 0 ? pointerHits : rectIntersection(args)
+  // A card and the section under it both match; the card gives an exact slot,
+  // the bare section means "drop at the end".
+  const cardHits = hits.filter((hit) => !isSectionDropId(String(hit.id)))
+  return cardHits.length > 0 ? cardHits : hits
 }
 
 function MyPlanPage() {
@@ -100,13 +103,21 @@ function MyPlanPage() {
   // via plan.is_owner.
   const canEdit = plan?.can_edit ?? false
 
-  const [pickerOpen, setPickerOpen] = useState(false)
+  // Section whose picker is open, if any — what it adds lands in that
+  // collection, so the choice of section travels with the dialog.
+  const [pickerSection, setPickerSection] = useState<string | null>(null)
   const [collectionsDialogOpen, setCollectionsDialogOpen] = useState(false)
-  const { data: collections = [] } = useCollections()
+  // The plan carries its collections; the query keeps them fresh after a create
+  // or rename without waiting for the plan to refetch.
+  const { data: fetchedCollections } = useCollections(viewingOwn ? (planId ?? '') : '')
+  const collections = fetchedCollections ?? plan?.collections ?? []
 
-  const { mutate: updatePlan } = useUpdatePlan()
   const { mutate: updateStatus } = useUpdateProjectStatus()
   const { mutate: completeTask } = useCompleteTask(planId ?? '')
+  const { mutate: addProject } = useAddProject(planId ?? '')
+  const { mutate: removeProject } = useRemoveProject(planId ?? '')
+  const { mutate: setFeatured } = useSetProjectFeatured(planId ?? '')
+  const { mutate: reorderProjects } = useReorderProjects(planId ?? '')
   const { mutate: refreshPlan, isPending: isRefreshing } = useRefreshPlan(planId ?? '', !viewingOwn)
   const queryClient = useQueryClient()
 
@@ -139,53 +150,23 @@ function MyPlanPage() {
     )
   }
 
-  function persistProjects(projects: PlanProjectItem[]) {
-    if (!plan) return
-    updatePlan(
-      { id: plan.id, payload: { projects } },
-      {
-        onSuccess: () => {
-          revalidatedRef.current = null
-        },
-      }
-    )
-  }
-
   function handleFeaturedToggle(id: string, featured: boolean) {
     if (!plan) return
-    const updated = plan.projects.map((p) => (p.id === id ? { ...p, featured } : p))
-    patchCachedProjects(updated)
-    persistProjects(updated.map(toItem))
+    patchCachedProjects(plan.projects.map((p) => (p.id === id ? { ...p, featured } : p)))
+    setFeatured({ planProjectId: id, featured })
   }
 
-  // A PATCH only invalidates the plan query, so `plan.projects` still lags behind
-  // right after a save. Keep the list we last sent here so reopening the picker
-  // and adding again before the refetch lands doesn't drop the previous item.
-  const draftRef = useRef<PlanProjectItem[] | null>(null)
-
-  // The refreshed (or locally patched) list is authoritative again — drop the draft.
-  useEffect(() => {
-    draftRef.current = null
-  }, [plan?.projects])
-
-  /** Items as last sent to the API, newest edits included. */
-  function currentItems(): PlanProjectItem[] {
-    return draftRef.current ?? plan?.projects.map(toItem) ?? []
-  }
-
-  function appendToPlan(item: PlanProjectItem) {
-    if (!plan) return
-    const next = [...currentItems(), item]
-    draftRef.current = next
-    persistProjects(next)
+  /** Collection the open picker adds into; null is the "All" bucket. */
+  function pickerCollectionId() {
+    return pickerSection && pickerSection !== ALL_SECTION_ID ? pickerSection : null
   }
 
   function handleAddProject(project: ProjectOption) {
-    if (!plan) return
-    appendToPlan({
+    addProject({
       app: project.app,
       project_id: project.project_id,
       project_exists: true,
+      collection_id: pickerCollectionId(),
       // Fall back to the resolved title so the card shows a name right away;
       // some apps only expose the title (no upstream) until rehydration.
       // Skip that fallback while still resolving (e.g. an OAM TMS URL) — its
@@ -199,10 +180,7 @@ function MyPlanPage() {
   }
 
   function handleAddTask(title: string) {
-    appendToPlan({
-      project_exists: false,
-      data: { title },
-    })
+    addProject({ project_exists: false, data: { title }, collection_id: pickerCollectionId() })
   }
 
   function handleTaskCompleted(planProjectId: string, project: ProjectOption) {
@@ -215,23 +193,128 @@ function MyPlanPage() {
 
   function handleProjectDeleted(id: string) {
     if (!plan) return
-    const remaining = plan.projects.filter((p) => p.id !== id)
-    patchCachedProjects(remaining)
-    persistProjects(remaining.map(toItem))
+    patchCachedProjects(plan.projects.filter((p) => p.id !== id))
+    removeProject(id)
   }
 
+  /**
+   * The card that follows the pointer, drawn by DragOverlay.
+   *
+   * Each section body lives inside a wa-accordion-item that clips its content,
+   * so dragging the card's own node out of its section made it vanish. The
+   * overlay renders a copy outside that hierarchy; `width` is carried over
+   * because the card sizes itself as a fraction of the section's flex row.
+   */
+  const [dragging, setDragging] = useState<{
+    project: HydratedProjectItem
+    width: number
+    /** Section the card started in — the one to renumber once it lands elsewhere. */
+    fromSection: string
+  } | null>(null)
+
+  function handleDragStart(event: DragStartEvent) {
+    const project = plan?.projects.find((p) => p.id === event.active.id)
+    const fromSection = event.active.data.current?.sectionId as string | undefined
+    if (!project || !fromSection) return
+    setDragging({
+      project,
+      fromSection,
+      width: event.active.rect.current.initial?.width ?? 0,
+    })
+  }
+
+  /** Rewrite both sections in the cache, keeping every other section untouched. */
+  function placeProjects(landed: HydratedProjectItem[], origin: HydratedProjectItem[]) {
+    const touched = new Set([...landed, ...origin].map((p) => p.id))
+    patchCachedProjects([...plan!.projects.filter((p) => !touched.has(p.id)), ...landed, ...origin])
+  }
+
+  /**
+   * Move the card into the section it is hovering, mid-drag.
+   *
+   * Without this the target section has no idea it is about to receive a card,
+   * so its own cards never step aside — reordering animated inside a section
+   * but crossing into another one looked frozen. Moving it here puts the card
+   * in the target's SortableContext, which opens the gap. Only cross-section
+   * moves are handled; reordering within a section is the sortable's own job
+   * and is settled on drop.
+   */
+  function handleDragOver(event: DragOverEvent) {
+    const { active, over } = event
+    if (!over || !plan) return
+    const fromSection = active.data.current?.sectionId as string | undefined
+    const toSection = over.data.current?.sectionId as string | undefined
+    if (!fromSection || !toSection || fromSection === toSection) return
+
+    const project = plan.projects.find((p) => p.id === active.id)
+    if (!project) return
+
+    const overProjectId = over.data.current?.projectId as string | undefined
+    const target = projectsOf(plan.projects, toSection).filter((p) => p.id !== project.id)
+    const overIndex = overProjectId ? target.findIndex((p) => p.id === overProjectId) : -1
+    const insertAt = overIndex === -1 ? target.length : overIndex
+    const moved = { ...project, collection_id: toSection === ALL_SECTION_ID ? null : toSection }
+
+    placeProjects(
+      [...target.slice(0, insertAt), moved, ...target.slice(insertAt)],
+      projectsOf(plan.projects, fromSection).filter((p) => p.id !== project.id)
+    )
+  }
+
+  /**
+   * Settle the final order and persist it.
+   *
+   * By now handleDragOver has already put the card in its target section, so
+   * this only has to resolve the slot inside that section — and renumber the
+   * section the card originally came from, so positions stay contiguous.
+   */
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
-    if (!over || active.id === over.id || !plan) return
-    const ids = plan.projects.map((p) => p.id)
-    // Cards are dragged by their section-scoped id; ordering is global.
-    const reordered = arrayMove(
-      ids,
-      ids.indexOf(planProjectId(active.id as string)),
-      ids.indexOf(planProjectId(over.id as string))
-    ).map((id) => plan.projects.find((p) => p.id === id)!)
-    patchCachedProjects(reordered)
-    persistProjects(reordered.map(toItem))
+    const fromSection = dragging?.fromSection
+    setDragging(null)
+    if (!plan || !fromSection) return
+    // Dropped outside any section: undo whatever the hover moved.
+    if (!over) {
+      queryClient.invalidateQueries({ queryKey: planQueryKeys.detail(planId!) })
+      return
+    }
+
+    const project = plan.projects.find((p) => p.id === active.id)
+    const toSection = over.data.current?.sectionId as string | undefined
+    if (!project || !toSection) return
+
+    const current = projectsOf(plan.projects, toSection)
+    const from = current.findIndex((p) => p.id === project.id)
+    if (from === -1) return
+    // Dropped on a card → take its slot; dropped on the section → stay last.
+    const overProjectId = over.data.current?.projectId as string | undefined
+    const overIndex = overProjectId ? current.findIndex((p) => p.id === overProjectId) : -1
+    const to = overIndex === -1 ? current.length - 1 : overIndex
+    if (fromSection === toSection && from === to) return
+
+    const nextCollectionId = toSection === ALL_SECTION_ID ? null : toSection
+    const landed = arrayMove(current, from, to).map((p) => ({
+      ...p,
+      collection_id: nextCollectionId,
+    }))
+    const origin =
+      fromSection === toSection
+        ? []
+        : projectsOf(plan.projects, fromSection).filter((p) => p.id !== project.id)
+
+    placeProjects(landed, origin)
+    reorderProjects([
+      ...landed.map((p, index) => ({
+        id: p.id,
+        collection_id: nextCollectionId,
+        display_order: index,
+      })),
+      ...origin.map((p, index) => ({
+        id: p.id,
+        collection_id: fromSection === ALL_SECTION_ID ? null : fromSection,
+        display_order: index,
+      })),
+    ])
   }
 
   const isLoading = isAuthLoading || ownLoading || (ownPlan == null && publicLoading)
@@ -292,18 +375,10 @@ function MyPlanPage() {
       </PlanSubSectionAccordion>
     ) : null
 
-  const collectionsOnPlan = new Map(
-    (plan?.projects ?? []).flatMap((p) => p.groups.map((g) => [g.id, g] as const))
-  )
-  // "All" (projects in no collection) always renders last.
+  // Every collection of the plan renders, empty ones included: an empty section
+  // is where a project gets dropped to join that collection. "All" goes last.
   const sectionDefs = [
-    ...collections
-      .filter((collection) => collectionsOnPlan.has(collection.id))
-      .map((collection) => ({ id: collection.id, title: collection.name })),
-    ...[...collectionsOnPlan.values()]
-      .filter((collection) => !collections.some((own) => own.id === collection.id))
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .map((collection) => ({ id: collection.id, title: collection.name })),
+    ...collections.map((collection) => ({ id: collection.id, title: collection.name })),
     { id: ALL_SECTION_ID, title: m.plan_collections_all_bucket() },
   ]
 
@@ -324,35 +399,30 @@ function MyPlanPage() {
       )
     }
 
-    const sectionProjects = plan!.projects.filter((p) =>
-      section.id === ALL_SECTION_ID
-        ? p.groups.length === 0
-        : p.groups.some((g) => g.id === section.id)
-    )
-    // Adding is offered in "All" only: the picker knows apps, not collections, so
-    // new projects arrive unassigned and are sorted on the plan collections page.
-    const showAddCard = canEdit && section.id === ALL_SECTION_ID
-    if (!showAddCard && sectionProjects.length === 0) return null
+    const sectionProjects = projectsOf(plan!.projects, section.id)
+    // Every section offers adding, and what it adds lands in that collection.
+    const showAddCard = canEdit
+    if (!canEdit && sectionProjects.length === 0) return null
 
     return (
       <PlanSubSectionAccordion key={section.id} title={<strong>{section.title}</strong>}>
         <PageWrapper>
-          <div className="flex flex-wrap gap-lg py-lg">
+          <CollectionSection sectionId={section.id} isDroppable={canEdit}>
             {showAddCard && (
               <div className={cardClassNames}>
-                <CardAddProject onButtonClick={() => setPickerOpen(true)} />
+                <CardAddProject onButtonClick={() => setPickerSection(section.id)} />
               </div>
             )}
             {canEdit ? (
               <SortableContext
-                items={sectionProjects.map((p) => dragIdFor(section.id, p.id))}
+                items={sectionProjects.map((p) => p.id)}
                 strategy={rectSortingStrategy}
               >
                 {sectionProjects.map((project) => (
                   <SortableViewProjectCard
                     key={project.id}
                     id={project.id}
-                    dragId={dragIdFor(section.id, project.id)}
+                    sectionId={section.id}
                     project={project}
                     planId={plan!.id}
                     onProjectSelected={handleTaskCompleted}
@@ -368,7 +438,12 @@ function MyPlanPage() {
                 </div>
               ))
             )}
-          </div>
+            {canEdit && sectionProjects.length === 0 && (
+              <p className="self-center text-sm text-hot-gray-500">
+                {m.plan_collections_drop_hint()}
+              </p>
+            )}
+          </CollectionSection>
         </PageWrapper>
       </PlanSubSectionAccordion>
     )
@@ -454,51 +529,74 @@ function MyPlanPage() {
       </PageWrapper>
 
       {/* actions */}
-      <PageWrapper>
-        <div>
-          <div className="flex gap-xs">
-            <Button variant="danger" onClick={() => setPickerOpen(true)}>
-              <Icon name="circle-plus" />
-              Add project
-            </Button>
-            <Button onClick={() => setCollectionsDialogOpen(true)}>
-              <Icon name="folder" variant="regular" />
-              Collections
-            </Button>
+      {canEdit && (
+        <PageWrapper>
+          <div>
+            <div className="flex gap-xs">
+              <Button variant="danger" onClick={() => setPickerSection(ALL_SECTION_ID)}>
+                <Icon name="circle-plus" />
+                Add project
+              </Button>
+              <Button onClick={() => setCollectionsDialogOpen(true)}>
+                <Icon name="folder" variant="regular" />
+                Collections
+              </Button>
+            </div>
           </div>
-        </div>
-      </PageWrapper>
+        </PageWrapper>
+      )}
 
       {featuredSection}
 
       {!isLoading && canEdit ? (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={collisionDetection}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+          onDragCancel={() => {
+            setDragging(null)
+            // The hover may have moved the card already; go back to the server's word.
+            queryClient.invalidateQueries({ queryKey: planQueryKeys.detail(planId!) })
+          }}
+        >
           {sections}
+          <DragOverlay>
+            {dragging && (
+              <div style={{ width: dragging.width || undefined }} className="cursor-grabbing">
+                <PlanProjectCard project={dragging.project} />
+              </div>
+            )}
+          </DragOverlay>
         </DndContext>
       ) : (
         sections
       )}
 
-      {canEdit && pickerOpen && (
+      {canEdit && pickerSection && (
         <ProjectPickerDialog
           open
           existingKeys={
             new Set(
-              currentItems()
-                .filter((p) => p.project_exists !== false && p.app && p.project_id)
+              (plan?.projects ?? [])
+                .filter((p) => p.project_exists && p.app && p.project_id)
                 .map((p) => projectKey(p.app as AppName, p.project_id as string))
             )
           }
           onAddProject={handleAddProject}
           onAddTask={handleAddTask}
-          onClose={() => setPickerOpen(false)}
+          onClose={() => setPickerSection(null)}
         />
       )}
 
-      <CollectionsDialog
-        open={collectionsDialogOpen}
-        onClose={() => setCollectionsDialogOpen(false)}
-      />
+      {canEdit && (
+        <CollectionsDialog
+          planId={planId ?? ''}
+          open={collectionsDialogOpen}
+          onClose={() => setCollectionsDialogOpen(false)}
+        />
+      )}
     </>
   )
 }

@@ -6,6 +6,8 @@ import { m } from '../../paraglide/messages'
 import { useCollections } from '../hooks'
 
 interface CollectionPickerProps {
+  /** Plan the collections belong to. */
+  planId: string
   /** Assigned collection, or null for the virtual "All" bucket (no collection). */
   value: string | null
   /** Picking the assigned collection again clears it, reporting null. */
@@ -15,11 +17,11 @@ interface CollectionPickerProps {
 }
 
 /**
- * Single-collection picker. A project can only be in one collection, so this is a
- * dropdown rather than the multi-select chips on the collections & tags page.
+ * Single-collection picker: a project belongs to one collection of its plan,
+ * or to none ("All").
  */
-function CollectionPicker({ value, onChange, isPending }: CollectionPickerProps) {
-  const { data: collections = [] } = useCollections()
+function CollectionPicker({ planId, value, onChange, isPending }: CollectionPickerProps) {
+  const { data: collections = [] } = useCollections(planId)
   const assigned = collections.find((c) => c.id === value) ?? null
 
   function handleSelect(event: CustomEvent) {

@@ -5,15 +5,18 @@ import copy
 from collections import defaultdict
 from typing import get_args
 
-from sqlalchemy import and_, delete, or_, select
+from sqlalchemy import and_, func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.db.models.plan import Plan, PlanProject
+from app.db.models.plan import Plan, PlanCollection, PlanProject
 from app.models.plan import (
     AppLiteral,
     HydratedProjectItem,
+    PlanCollectionCreate,
+    PlanCollectionRead,
+    PlanCollectionUpdate,
     PlanCreate,
     PlanImageRead,
     PlanProjectItem,
@@ -21,10 +24,10 @@ from app.models.plan import (
     PlanReadHydrated,
     PlanTag,
     PlanUpdate,
+    ProjectPlacement,
     StatusLiteral,
     UrlResolveResponse,
 )
-from app.models.taxonomy import GroupRead, TagRead
 from app.services import (
     chatmap_service,
     drone_tm_service,
@@ -34,7 +37,6 @@ from app.services import (
     open_aerial_map_service,
     permissions,
     tasking_manager_service,
-    taxonomy_service,
     umap_service,
     url_resolver,
 )
@@ -96,12 +98,12 @@ def plan_to_read(plan: Plan, ctx: PermissionContext) -> PlanRead:
                 status=row.status,
                 featured=row.featured,
                 data=row.data,
-                groups=[GroupRead.model_validate(g) for g in row.groups],
-                tags=[TagRead.model_validate(t) for t in row.tags],
+                collection_id=row.collection_id,
             )
             for row in plan.projects
             if not row.project_exists or row.app in _KNOWN_APPS
         ],
+        collections=[PlanCollectionRead.model_validate(c) for c in plan.collections],
         images=[
             PlanImageRead(
                 id=img.id,
@@ -127,16 +129,13 @@ def check_no_duplicates(items: list[PlanProjectItem]) -> None:
         seen.add(key)
 
 
-async def list_plans(
-    db: AsyncSession, ctx: PermissionContext
-) -> list[PlanRead]:
+async def list_plans(db: AsyncSession, ctx: PermissionContext) -> list[PlanRead]:
     """List plans visible to the user: their own, plus group plans of groups
     they belong to. Membership is resolved once (in ctx) so this stays a single
     SELECT with no N+1."""
     conditions = [Plan.owner_id == ctx.user_id]
     group_conditions = [
-        and_(Plan.group_type == gtype, Plan.group_id == gid)
-        for (gtype, gid) in ctx.memberships
+        and_(Plan.group_type == gtype, Plan.group_id == gid) for (gtype, gid) in ctx.memberships
     ]
     if group_conditions:
         conditions.append(
@@ -149,7 +148,11 @@ async def list_plans(
     stmt = (
         select(Plan)
         .where(or_(*conditions))
-        .options(selectinload(Plan.projects), selectinload(Plan.images))
+        .options(
+            selectinload(Plan.projects),
+            selectinload(Plan.collections),
+            selectinload(Plan.images),
+        )
         .order_by(Plan.created_at.desc())
     )
     result = await db.execute(stmt)
@@ -161,15 +164,17 @@ async def _load_plan(db: AsyncSession, plan_id: str) -> Plan | None:
     stmt = (
         select(Plan)
         .where(Plan.id == plan_id)
-        .options(selectinload(Plan.projects), selectinload(Plan.images))
+        .options(
+            selectinload(Plan.projects),
+            selectinload(Plan.collections),
+            selectinload(Plan.images),
+        )
     )
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
 
-async def get_viewable_plan(
-    db: AsyncSession, ctx: PermissionContext, plan_id: str
-) -> Plan | None:
+async def get_viewable_plan(db: AsyncSession, ctx: PermissionContext, plan_id: str) -> Plan | None:
     """Load a plan only if the context may view it (else None → 404)."""
     plan = await _load_plan(db, plan_id)
     if plan is None or not permissions.can_view(plan, ctx):
@@ -177,9 +182,7 @@ async def get_viewable_plan(
     return plan
 
 
-async def get_editable_plan(
-    db: AsyncSession, ctx: PermissionContext, plan_id: str
-) -> Plan | None:
+async def get_editable_plan(db: AsyncSession, ctx: PermissionContext, plan_id: str) -> Plan | None:
     """Load a plan only if the context may edit it (else None → 404)."""
     plan = await _load_plan(db, plan_id)
     if plan is None or not permissions.can_edit(plan, ctx):
@@ -187,14 +190,16 @@ async def get_editable_plan(
     return plan
 
 
-async def get_owned_plan(
-    db: AsyncSession, owner_id: str, plan_id: str
-) -> Plan | None:
+async def get_owned_plan(db: AsyncSession, owner_id: str, plan_id: str) -> Plan | None:
     """Load a plan owned by owner_id (used where only the creator may act)."""
     stmt = (
         select(Plan)
         .where(Plan.id == plan_id, Plan.owner_id == owner_id)
-        .options(selectinload(Plan.projects), selectinload(Plan.images))
+        .options(
+            selectinload(Plan.projects),
+            selectinload(Plan.collections),
+            selectinload(Plan.images),
+        )
     )
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
@@ -220,9 +225,7 @@ class GroupMembershipError(ValueError):
     """Raised when assigning a plan to a group the user does not belong to."""
 
 
-async def create_plan(
-    db: AsyncSession, ctx: PermissionContext, payload: PlanCreate
-) -> PlanRead:
+async def create_plan(db: AsyncSession, ctx: PermissionContext, payload: PlanCreate) -> PlanRead:
     check_no_duplicates(payload.projects)
 
     scope = _resolve_scope(payload)
@@ -263,8 +266,68 @@ async def create_plan(
         await db.rollback()
         raise DuplicateProjectError(str(e)) from e
 
-    await db.refresh(plan, attribute_names=["projects", "images"])
+    await db.refresh(plan, attribute_names=["projects", "collections", "images"])
     return plan_to_read(plan, ctx)
+
+
+async def _merge_projects(db: AsyncSession, plan: Plan, items: list[PlanProjectItem]) -> None:
+    """Reconcile the plan's rows with the payload, keeping row identity.
+
+    Each payload item is matched to an existing row by id, falling back to
+    (app, project_id) for callers that don't send ids. Matched rows are updated
+    in place, so everything keyed to plan_project.id — the collection above all
+    — survives the save. Rows missing from the payload are deleted.
+
+    Replacing the whole list used to mean DELETE + INSERT, which handed every
+    row a new id and silently dropped its collection on any plan edit
+    (reorder, featured, add, delete).
+    """
+    rows_by_id = {row.id: row for row in plan.projects}
+    rows_by_key = {
+        (row.app, row.project_id): row
+        for row in plan.projects
+        if row.project_exists and row.app and row.project_id
+    }
+    # display_order counts within a collection, so each bucket has its own cursor.
+    next_order: dict[str | None, int] = defaultdict(int)
+    kept: set[str] = set()
+
+    for item in items:
+        row = rows_by_id.get(item.id) if item.id else None
+        if row is None and item.project_exists and item.app and item.project_id:
+            row = rows_by_key.get((item.app, item.project_id))
+
+        # An absent collection_id means "leave it where it is": the payload
+        # carries the plan's projects, not their placement, and only the
+        # reorder/collection endpoints move things around.
+        collection_id = (
+            item.collection_id
+            if "collection_id" in item.model_fields_set
+            else (row.collection_id if row is not None else None)
+        )
+
+        if row is None:
+            row = PlanProject(plan_id=plan.id)
+            db.add(row)
+            plan.projects.append(row)
+        else:
+            kept.add(row.id)
+
+        row.app = item.app
+        row.project_id = item.project_id
+        row.project_exists = item.project_exists
+        row.status = item.status
+        row.featured = item.featured
+        row.data = item.data
+        row.collection_id = collection_id
+        row.display_order = next_order[collection_id]
+        next_order[collection_id] += 1
+
+    # Rows created above have no id until the flush, so they never look removed.
+    # delete-orphan on Plan.projects turns the detach into a DELETE.
+    for row in [row for row in plan.projects if row.id and row.id not in kept]:
+        plan.projects.remove(row)
+    await db.flush()
 
 
 async def update_plan(
@@ -282,34 +345,14 @@ async def update_plan(
     scope = _resolve_scope(payload)
     group_id = scope.get("group_id", plan.group_id)
     group_type = scope.get("group_type", plan.group_type)
-    if (
-        "group_id" in scope
-        and group_id
-        and not permissions.is_member(ctx, group_type, group_id)
-    ):
+    if "group_id" in scope and group_id and not permissions.is_member(ctx, group_type, group_id):
         raise GroupMembershipError("Not a member of the target group")
     for field, value in scope.items():
         setattr(plan, field, value)
 
     if payload.projects is not None:
         check_no_duplicates(payload.projects)
-        await db.execute(
-            delete(PlanProject).where(PlanProject.plan_id == plan.id)
-        )
-        await db.flush()
-        for idx, item in enumerate(payload.projects):
-            db.add(
-                PlanProject(
-                    plan_id=plan.id,
-                    app=item.app,
-                    project_id=item.project_id,
-                    project_exists=item.project_exists,
-                    status=item.status,
-                    featured=item.featured,
-                    display_order=idx,
-                    data=item.data,
-                )
-            )
+        await _merge_projects(db, plan, payload.projects)
 
     try:
         await db.flush()
@@ -317,7 +360,7 @@ async def update_plan(
         await db.rollback()
         raise DuplicateProjectError(str(e)) from e
 
-    await db.refresh(plan, attribute_names=["projects", "images"])
+    await db.refresh(plan, attribute_names=["projects", "collections", "images"])
     return plan_to_read(plan, ctx)
 
 
@@ -387,9 +430,7 @@ async def complete_task(
     return True
 
 
-async def delete_plan(
-    db: AsyncSession, ctx: PermissionContext, plan_id: str
-) -> bool:
+async def delete_plan(db: AsyncSession, ctx: PermissionContext, plan_id: str) -> bool:
     """Delete a plan. Only the owner may delete (not group members)."""
     plan = await get_owned_plan(db, ctx.user_id, plan_id)
     if plan is None:
@@ -424,8 +465,12 @@ async def set_project_status(
     return True
 
 
-class TaxonomyNotFoundError(ValueError):
-    """Raised when one or more group_ids/tag_ids don't exist or aren't visible to ctx."""
+class CollectionNotFoundError(ValueError):
+    """Raised when a collection_id doesn't belong to the plan being edited."""
+
+
+class DuplicateCollectionError(ValueError):
+    """Raised when a plan already has a collection with that name."""
 
 
 async def _get_plan_project(
@@ -439,54 +484,263 @@ async def _get_plan_project(
     return result.scalar_one_or_none()
 
 
-async def set_project_groups(
+async def _assert_collection_in_plan(
+    db: AsyncSession, plan_id: str, collection_id: str | None
+) -> None:
+    """Guard against pointing a project at a collection of a different plan."""
+    if collection_id is None:
+        return
+    stmt = select(PlanCollection.id).where(
+        PlanCollection.id == collection_id,
+        PlanCollection.plan_id == plan_id,
+    )
+    result = await db.execute(stmt)
+    if result.scalar_one_or_none() is None:
+        raise CollectionNotFoundError("Collection not found in this plan")
+
+
+async def list_collections(
+    db: AsyncSession, ctx: PermissionContext, plan_id: str
+) -> list[PlanCollectionRead] | None:
+    """Collections of a plan the user may view, ordered as they render."""
+    plan = await get_viewable_plan(db, ctx, plan_id)
+    if plan is None:
+        return None
+    return [PlanCollectionRead.model_validate(c) for c in plan.collections]
+
+
+async def create_collection(
+    db: AsyncSession, ctx: PermissionContext, plan_id: str, payload: PlanCollectionCreate
+) -> PlanCollectionRead | None:
+    """Append a collection to a plan the user may edit."""
+    plan = await get_editable_plan(db, ctx, plan_id)
+    if plan is None:
+        return None
+    collection = PlanCollection(
+        plan_id=plan.id,
+        name=payload.name,
+        description=payload.description,
+        display_order=len(plan.collections),
+    )
+    db.add(collection)
+    try:
+        await db.flush()
+    except IntegrityError as e:
+        await db.rollback()
+        raise DuplicateCollectionError(f"'{payload.name}' already exists in this plan") from e
+    await db.refresh(collection)
+    return PlanCollectionRead.model_validate(collection)
+
+
+async def update_collection(
     db: AsyncSession,
     ctx: PermissionContext,
     plan_id: str,
-    plan_project_id: str,
-    group_ids: list[str],
-) -> bool:
-    """Replace the full set of groups on a plan_project row.
+    collection_id: str,
+    payload: PlanCollectionUpdate,
+) -> PlanCollectionRead | None:
+    """Rename a collection, edit its description, or move it in the plan."""
+    if await get_editable_plan(db, ctx, plan_id) is None:
+        return None
+    stmt = select(PlanCollection).where(
+        PlanCollection.id == collection_id, PlanCollection.plan_id == plan_id
+    )
+    result = await db.execute(stmt)
+    collection = result.scalar_one_or_none()
+    if collection is None:
+        return None
+    if payload.name is not None:
+        collection.name = payload.name
+    if payload.description is not None:
+        collection.description = payload.description
+    if payload.display_order is not None:
+        collection.display_order = payload.display_order
+    try:
+        await db.flush()
+    except IntegrityError as e:
+        await db.rollback()
+        raise DuplicateCollectionError(f"'{payload.name}' already exists in this plan") from e
+    await db.refresh(collection)
+    return PlanCollectionRead.model_validate(collection)
 
-    Returns False if the plan or plan_project is not found/not editable.
-    Raises TaxonomyNotFoundError if any group_id doesn't exist or isn't
-    visible to ctx (e.g. it belongs to a different owner).
-    """
+
+async def delete_collection(
+    db: AsyncSession, ctx: PermissionContext, plan_id: str, collection_id: str
+) -> bool:
+    """Delete a collection; its projects fall back to the virtual "All" bucket."""
     if await get_editable_plan(db, ctx, plan_id) is None:
         return False
-    row = await _get_plan_project(db, plan_id, plan_project_id)
-    if row is None:
+    stmt = select(PlanCollection).where(
+        PlanCollection.id == collection_id, PlanCollection.plan_id == plan_id
+    )
+    result = await db.execute(stmt)
+    collection = result.scalar_one_or_none()
+    if collection is None:
         return False
-    groups = await taxonomy_service.get_visible_groups(db, ctx, group_ids)
-    if len(groups) != len(set(group_ids)):
-        raise TaxonomyNotFoundError("One or more groups not found")
-    row.groups = groups
+    # ON DELETE SET NULL only fires in the database, so clear the loaded rows
+    # too — the session would otherwise keep serving the stale collection_id.
+    await db.execute(
+        update(PlanProject)
+        .where(PlanProject.collection_id == collection_id)
+        .values(collection_id=None)
+    )
+    await db.delete(collection)
     await db.flush()
     return True
 
 
-async def set_project_tags(
+async def set_project_collection(
     db: AsyncSession,
     ctx: PermissionContext,
     plan_id: str,
     plan_project_id: str,
-    tag_ids: list[str],
+    collection_id: str | None,
 ) -> bool:
-    """Replace the full set of tags on a plan_project row.
+    """Move one project to a collection of the same plan (None means "All").
 
-    Returns False if the plan or plan_project is not found/not editable.
-    Raises TaxonomyNotFoundError if any tag_id doesn't exist or isn't
-    visible to ctx (e.g. it belongs to a different owner).
+    Returns False if the plan or project is not found/not editable. Raises
+    CollectionNotFoundError if the collection belongs to another plan.
     """
     if await get_editable_plan(db, ctx, plan_id) is None:
         return False
     row = await _get_plan_project(db, plan_id, plan_project_id)
     if row is None:
         return False
-    tags = await taxonomy_service.get_visible_tags(db, ctx, tag_ids)
-    if len(tags) != len(set(tag_ids)):
-        raise TaxonomyNotFoundError("One or more tags not found")
-    row.tags = tags
+    if row.collection_id == collection_id:
+        return True
+    await _assert_collection_in_plan(db, plan_id, collection_id)
+    row.collection_id = collection_id
+    # Land at the end of the target bucket; a drag sends explicit positions
+    # through reorder_projects instead.
+    row.display_order = await _next_display_order(db, plan_id, collection_id)
+    await db.flush()
+    return True
+
+
+async def _next_display_order(db: AsyncSession, plan_id: str, collection_id: str | None) -> int:
+    stmt = select(func.max(PlanProject.display_order)).where(
+        PlanProject.plan_id == plan_id,
+        PlanProject.collection_id.is_(None)
+        if collection_id is None
+        else PlanProject.collection_id == collection_id,
+    )
+    result = await db.execute(stmt)
+    return (result.scalar() or 0) + 1
+
+
+async def reorder_projects(
+    db: AsyncSession,
+    ctx: PermissionContext,
+    plan_id: str,
+    placements: list[ProjectPlacement],
+) -> bool:
+    """Apply the placements a drag produced: collection + position per project.
+
+    Every id must belong to the plan and every collection to the same plan;
+    anything else is rejected so a stale frontend can't scatter rows across plans.
+    """
+    if await get_editable_plan(db, ctx, plan_id) is None:
+        return False
+    if not placements:
+        return True
+
+    stmt = select(PlanProject).where(
+        PlanProject.plan_id == plan_id,
+        PlanProject.id.in_([p.id for p in placements]),
+    )
+    result = await db.execute(stmt)
+    rows = {row.id: row for row in result.scalars().all()}
+    if len(rows) != len({p.id for p in placements}):
+        return False
+
+    for collection_id in {p.collection_id for p in placements}:
+        await _assert_collection_in_plan(db, plan_id, collection_id)
+
+    for placement in placements:
+        row = rows[placement.id]
+        row.collection_id = placement.collection_id
+        row.display_order = placement.display_order
+    await db.flush()
+    return True
+
+
+async def set_project_featured(
+    db: AsyncSession,
+    ctx: PermissionContext,
+    plan_id: str,
+    plan_project_id: str,
+    featured: bool,
+) -> bool:
+    """Toggle the featured flag on one project. Returns False if not found."""
+    if await get_editable_plan(db, ctx, plan_id) is None:
+        return False
+    row = await _get_plan_project(db, plan_id, plan_project_id)
+    if row is None:
+        return False
+    row.featured = featured
+    await db.flush()
+    return True
+
+
+async def add_project(
+    db: AsyncSession, ctx: PermissionContext, plan_id: str, item: PlanProjectItem
+) -> PlanProjectItem | None:
+    """Append one project/task to a plan, optionally straight into a collection.
+
+    Adding one row at a time (instead of PATCHing the whole plan) keeps the
+    other rows — and their collections — untouched.
+    """
+    plan = await get_editable_plan(db, ctx, plan_id)
+    if plan is None:
+        return None
+    await _assert_collection_in_plan(db, plan_id, item.collection_id)
+    if item.project_exists and any(
+        row.project_exists and row.app == item.app and row.project_id == item.project_id
+        for row in plan.projects
+    ):
+        raise DuplicateProjectError(
+            f"Duplicate project in plan: app={item.app} project_id={item.project_id}"
+        )
+    row = PlanProject(
+        plan_id=plan.id,
+        collection_id=item.collection_id,
+        app=item.app,
+        project_id=item.project_id,
+        project_exists=item.project_exists,
+        status=item.status,
+        featured=item.featured,
+        data=item.data,
+        display_order=await _next_display_order(db, plan_id, item.collection_id),
+    )
+    db.add(row)
+    try:
+        await db.flush()
+    except IntegrityError as e:
+        await db.rollback()
+        raise DuplicateProjectError(str(e)) from e
+    await db.refresh(row)
+    return PlanProjectItem(
+        id=row.id,
+        app=row.app,
+        project_id=row.project_id,
+        project_exists=row.project_exists,
+        status=row.status,
+        featured=row.featured,
+        data=row.data,
+        collection_id=row.collection_id,
+    )
+
+
+async def remove_project(
+    db: AsyncSession, ctx: PermissionContext, plan_id: str, plan_project_id: str
+) -> bool:
+    """Delete one project/task from a plan. Returns False if not found."""
+    if await get_editable_plan(db, ctx, plan_id) is None:
+        return False
+    row = await _get_plan_project(db, plan_id, plan_project_id)
+    if row is None:
+        return False
+    await db.delete(row)
     await db.flush()
     return True
 
@@ -633,17 +887,32 @@ async def hydrate_one(
             )
         except TimeoutError:
             return HydratedProjectItem(
-                app=row.app, project_id=row.project_id, status=row.status,
-                featured=row.featured, data=row.data, upstream=None, error="upstream_timeout",
+                app=row.app,
+                project_id=row.project_id,
+                status=row.status,
+                featured=row.featured,
+                data=row.data,
+                upstream=None,
+                error="upstream_timeout",
             )
         except Exception:
             return HydratedProjectItem(
-                app=row.app, project_id=row.project_id, status=row.status,
-                featured=row.featured, data=row.data, upstream=None, error="upstream_unavailable",
+                app=row.app,
+                project_id=row.project_id,
+                status=row.status,
+                featured=row.featured,
+                data=row.data,
+                upstream=None,
+                error="upstream_unavailable",
             )
         return HydratedProjectItem(
-            app=row.app, project_id=row.project_id, status=row.status,
-            featured=row.featured, data=row.data, upstream=upstream, error=None if upstream else "not_found",
+            app=row.app,
+            project_id=row.project_id,
+            status=row.status,
+            featured=row.featured,
+            data=row.data,
+            upstream=upstream,
+            error=None if upstream else "not_found",
         )
 
     if row.app == "open-aerial-map" and open_aerial_map_service.is_tms_project_id(row.project_id):
@@ -662,8 +931,12 @@ async def hydrate_one(
         except Exception:
             upstream = None
         return HydratedProjectItem(
-            app=row.app, project_id=row.project_id, status=row.status,
-            featured=row.featured, data=row.data, upstream=upstream,
+            app=row.app,
+            project_id=row.project_id,
+            status=row.status,
+            featured=row.featured,
+            data=row.data,
+            upstream=upstream,
             error=None if upstream else "pending",
         )
 
@@ -738,8 +1011,7 @@ def _item_from_snapshot(row: PlanProject) -> HydratedProjectItem:
         status=row.status,
         featured=row.featured,
         data=row.data,
-        groups=[GroupRead.model_validate(g) for g in row.groups],
-        tags=[TagRead.model_validate(t) for t in row.tags],
+        collection_id=row.collection_id,
         upstream=row.data,
         from_snapshot=True,
         error=None if row.data is not None else "pending",
@@ -764,6 +1036,7 @@ def _build_plan_response(
         created_at=plan.created_at,
         updated_at=plan.updated_at,
         projects=list(items),
+        collections=[PlanCollectionRead.model_validate(c) for c in plan.collections],
         images=[
             PlanImageRead(
                 id=img.id,
@@ -789,15 +1062,11 @@ async def _hydrate_live_and_persist(
     so a temporary outage never wrongly flags a valid project as deleted.
     """
     hydrated_items = await asyncio.gather(
-        *[
-            hydrate_one(row, hanko_cookie=hanko_cookie, force_refresh=True)
-            for row in plan.projects
-        ]
+        *[hydrate_one(row, hanko_cookie=hanko_cookie, force_refresh=True) for row in plan.projects]
     )
     for row, item in zip(plan.projects, hydrated_items, strict=True):
         item.id = row.id
-        item.groups = [GroupRead.model_validate(g) for g in row.groups]
-        item.tags = [TagRead.model_validate(t) for t in row.tags]
+        item.collection_id = row.collection_id
         if item.upstream is not None:
             row.data = item.upstream
             item.data = item.upstream
@@ -823,9 +1092,7 @@ async def get_plan_hydrated(
         return None
 
     if not refresh:
-        return _build_plan_response(
-            plan, [_item_from_snapshot(row) for row in plan.projects], ctx
-        )
+        return _build_plan_response(plan, [_item_from_snapshot(row) for row in plan.projects], ctx)
 
     items = await _hydrate_live_and_persist(db, plan, hanko_cookie)
     return _build_plan_response(plan, items, ctx)
@@ -845,7 +1112,11 @@ async def get_public_plan_hydrated(
     stmt = (
         select(Plan)
         .where(Plan.id == plan_id, Plan.visibility == "public")
-        .options(selectinload(Plan.projects), selectinload(Plan.images))
+        .options(
+            selectinload(Plan.projects),
+            selectinload(Plan.collections),
+            selectinload(Plan.images),
+        )
     )
     result = await db.execute(stmt)
     plan = result.scalar_one_or_none()
@@ -947,7 +1218,10 @@ _CANONICAL_RESOLVE: dict[str, tuple] = {
     "drone-tasking-manager": (drone_tm_service.fetch_project_by_id, "https://api.drone.hotosm.org"),
     "fair": (fair_service.fetch_model_by_id, "https://api-prod.fair.hotosm.org/api/v1"),
     "export-tool": (export_tool_service.fetch_job_by_uid, "https://export.hotosm.org/api"),
-    "open-aerial-map": (open_aerial_map_service.fetch_imagery_by_id, "https://api.openaerialmap.org"),
+    "open-aerial-map": (
+        open_aerial_map_service.fetch_imagery_by_id,
+        "https://api.openaerialmap.org",
+    ),
     "umap": (umap_service.fetch_map_by_id, "https://umap.hotosm.org"),
 }
 
@@ -993,9 +1267,7 @@ async def _fetch_by_app_project(
     return UrlResolveResponse(app=app, project_id=project_id, upstream=upstream)
 
 
-async def resolve_project_url(
-    url: str, hanko_cookie: str | None = None
-) -> UrlResolveResponse:
+async def resolve_project_url(url: str, hanko_cookie: str | None = None) -> UrlResolveResponse:
     """Parse a project URL, verify it exists upstream, and return app/project_id/upstream.
 
     Raises:

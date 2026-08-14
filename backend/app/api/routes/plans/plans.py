@@ -9,32 +9,37 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.models.plan import (
     CompleteTaskRequest,
+    PlanCollectionCreate,
+    PlanCollectionRead,
+    PlanCollectionUpdate,
     PlanCreate,
+    PlanProjectItem,
     PlanRead,
     PlanReadHydrated,
     PlanUpdate,
+    ProjectCollectionUpdate,
+    ProjectFeaturedUpdate,
+    ProjectReorder,
     ProjectStatusUpdate,
     UrlResolveRequest,
     UrlResolveResponse,
 )
-from app.models.taxonomy import GroupIdsUpdate, TagIdsUpdate
 from app.services import permissions, plans_service
 from app.services.exceptions import UpstreamUnavailable
 from app.services.permissions import PermissionContext
 from app.services.plans_service import (
+    CollectionNotFoundError,
+    DuplicateCollectionError,
     DuplicateProjectError,
     GroupMembershipError,
     InvalidUrlError,
     ProjectNotFoundError,
-    TaxonomyNotFoundError,
 )
 
 router = APIRouter(prefix="/plans", tags=["plans"])
 
 
-async def permission_ctx(
-    request: Request, user: CurrentUser
-) -> PermissionContext:
+async def permission_ctx(request: Request, user: CurrentUser) -> PermissionContext:
     """Resolve the user's group memberships once per request (auth required)."""
     return await permissions.build_context(user, request.cookies.get("hanko"))
 
@@ -148,7 +153,9 @@ async def update_plan(
     return plan
 
 
-@router.patch("/{plan_id}/projects/{plan_project_id}/toggle-exists", status_code=status.HTTP_204_NO_CONTENT)
+@router.patch(
+    "/{plan_id}/projects/{plan_project_id}/toggle-exists", status_code=status.HTTP_204_NO_CONTENT
+)
 async def toggle_project_exists(
     ctx: PermCtx,
     plan_id: str = Path(..., description="Plan UUID"),
@@ -162,7 +169,9 @@ async def toggle_project_exists(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.patch("/{plan_id}/projects/{plan_project_id}/complete-task", status_code=status.HTTP_204_NO_CONTENT)
+@router.patch(
+    "/{plan_id}/projects/{plan_project_id}/complete-task", status_code=status.HTTP_204_NO_CONTENT
+)
 async def complete_task(
     payload: CompleteTaskRequest,
     request: Request,
@@ -202,22 +211,104 @@ async def complete_task(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.patch(
-    "/{plan_id}/projects/{plan_project_id}/groups", status_code=status.HTTP_204_NO_CONTENT
-)
-async def set_project_groups(
-    payload: GroupIdsUpdate,
+@router.get("/{plan_id}/collections", response_model=list[PlanCollectionRead])
+async def list_collections(
     ctx: PermCtx,
     plan_id: str = Path(..., description="Plan UUID"),
-    plan_project_id: str = Path(..., description="plan_project UUID"),
+    db: AsyncSession = Depends(get_db),
+) -> list[PlanCollectionRead]:
+    """List the collections of a plan the user may view."""
+    collections = await plans_service.list_collections(db, ctx, plan_id)
+    if collections is None:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    return collections
+
+
+@router.post(
+    "/{plan_id}/collections",
+    response_model=PlanCollectionRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_collection(
+    payload: PlanCollectionCreate,
+    ctx: PermCtx,
+    plan_id: str = Path(..., description="Plan UUID"),
+    db: AsyncSession = Depends(get_db),
+) -> PlanCollectionRead:
+    """Add a collection to a plan. Every editor of the plan sees it."""
+    try:
+        collection = await plans_service.create_collection(db, ctx, plan_id, payload)
+    except DuplicateCollectionError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    if collection is None:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    return collection
+
+
+@router.patch("/{plan_id}/collections/{collection_id}", response_model=PlanCollectionRead)
+async def update_collection(
+    payload: PlanCollectionUpdate,
+    ctx: PermCtx,
+    plan_id: str = Path(..., description="Plan UUID"),
+    collection_id: str = Path(..., description="Collection UUID"),
+    db: AsyncSession = Depends(get_db),
+) -> PlanCollectionRead:
+    """Rename a collection, edit its description, or move it in the plan."""
+    try:
+        collection = await plans_service.update_collection(db, ctx, plan_id, collection_id, payload)
+    except DuplicateCollectionError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    if collection is None:
+        raise HTTPException(status_code=404, detail="Plan or collection not found")
+    return collection
+
+
+@router.delete("/{plan_id}/collections/{collection_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_collection(
+    ctx: PermCtx,
+    plan_id: str = Path(..., description="Plan UUID"),
+    collection_id: str = Path(..., description="Collection UUID"),
     db: AsyncSession = Depends(get_db),
 ) -> Response:
-    """Replace the full set of groups on a plan_project. Empty list means "All"."""
+    """Delete a collection; its projects fall back to the "All" bucket."""
+    ok = await plans_service.delete_collection(db, ctx, plan_id, collection_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Plan or collection not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    "/{plan_id}/projects", response_model=PlanProjectItem, status_code=status.HTTP_201_CREATED
+)
+async def add_project(
+    payload: PlanProjectItem,
+    ctx: PermCtx,
+    plan_id: str = Path(..., description="Plan UUID"),
+    db: AsyncSession = Depends(get_db),
+) -> PlanProjectItem:
+    """Append one project/task, leaving the rest of the plan untouched."""
     try:
-        ok = await plans_service.set_project_groups(
-            db, ctx, plan_id, plan_project_id, payload.group_ids
-        )
-    except TaxonomyNotFoundError as e:
+        item = await plans_service.add_project(db, ctx, plan_id, payload)
+    except CollectionNotFoundError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except DuplicateProjectError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    if item is None:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    return item
+
+
+@router.patch("/{plan_id}/projects/reorder", status_code=status.HTTP_204_NO_CONTENT)
+async def reorder_projects(
+    payload: ProjectReorder,
+    ctx: PermCtx,
+    plan_id: str = Path(..., description="Plan UUID"),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Apply the placements a drag produced: collection + position per project."""
+    try:
+        ok = await plans_service.reorder_projects(db, ctx, plan_id, payload.items)
+    except CollectionNotFoundError as e:
         raise HTTPException(status_code=422, detail=str(e))
     if not ok:
         raise HTTPException(status_code=404, detail="Plan or project not found")
@@ -225,22 +316,56 @@ async def set_project_groups(
 
 
 @router.patch(
-    "/{plan_id}/projects/{plan_project_id}/tags", status_code=status.HTTP_204_NO_CONTENT
+    "/{plan_id}/projects/{plan_project_id}/collection",
+    status_code=status.HTTP_204_NO_CONTENT,
 )
-async def set_project_tags(
-    payload: TagIdsUpdate,
+async def set_project_collection(
+    payload: ProjectCollectionUpdate,
     ctx: PermCtx,
     plan_id: str = Path(..., description="Plan UUID"),
     plan_project_id: str = Path(..., description="plan_project UUID"),
     db: AsyncSession = Depends(get_db),
 ) -> Response:
-    """Replace the full set of tags on a plan_project."""
+    """Move one project to a collection of this plan. Null means "All"."""
     try:
-        ok = await plans_service.set_project_tags(
-            db, ctx, plan_id, plan_project_id, payload.tag_ids
+        ok = await plans_service.set_project_collection(
+            db, ctx, plan_id, plan_project_id, payload.collection_id
         )
-    except TaxonomyNotFoundError as e:
+    except CollectionNotFoundError as e:
         raise HTTPException(status_code=422, detail=str(e))
+    if not ok:
+        raise HTTPException(status_code=404, detail="Plan or project not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.patch(
+    "/{plan_id}/projects/{plan_project_id}/featured", status_code=status.HTTP_204_NO_CONTENT
+)
+async def set_project_featured(
+    payload: ProjectFeaturedUpdate,
+    ctx: PermCtx,
+    plan_id: str = Path(..., description="Plan UUID"),
+    plan_project_id: str = Path(..., description="plan_project UUID"),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Mark/unmark one project as featured without touching the rest of the plan."""
+    ok = await plans_service.set_project_featured(
+        db, ctx, plan_id, plan_project_id, payload.featured
+    )
+    if not ok:
+        raise HTTPException(status_code=404, detail="Plan or project not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete("/{plan_id}/projects/{plan_project_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_project(
+    ctx: PermCtx,
+    plan_id: str = Path(..., description="Plan UUID"),
+    plan_project_id: str = Path(..., description="plan_project UUID"),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Delete one project/task from a plan, leaving the rest untouched."""
+    ok = await plans_service.remove_project(db, ctx, plan_id, plan_project_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Plan or project not found")
     return Response(status_code=status.HTTP_204_NO_CONTENT)

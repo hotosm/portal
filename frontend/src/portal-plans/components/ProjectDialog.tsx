@@ -13,7 +13,7 @@ import Tag from '../../components/shared/Tag'
 import { m } from '../../paraglide/messages'
 import { APP_META } from '../../utils/appMeta'
 import { formatProjectStatus } from '../../utils/utils'
-import { useSetProjectCollections } from '../hooks'
+import { useSetProjectCollection } from '../hooks'
 import type { HydratedProjectItem, ProjectStatus } from '../types'
 import CollectionPicker from './CollectionPicker'
 
@@ -84,10 +84,7 @@ function ProjectDialog({
   const { createdAt, author } = extractMeta(project.upstream)
   const [localStatus, setLocalStatus] = useState<ProjectStatus>(initialStatus ?? project.status)
 
-  const setCollections = useSetProjectCollections(planId ?? '')
-  // Wire name: `groups` is the collections the project belongs to. A project can
-  // only be in one, so anything past the first is legacy data we ignore here.
-  const assigned = project.groups[0] ?? null
+  const setCollection = useSetProjectCollection(planId ?? '')
 
   useEffect(() => {
     setLocalStatus(initialStatus ?? project.status)
@@ -99,11 +96,9 @@ function ProjectDialog({
     onStatusChange?.(status)
   }
 
-  // The endpoint replaces the whole set, so a single collection is just a
-  // one-element list, and clearing it is an empty one.
   function handleCollectionChange(collectionId: string | null) {
-    setCollections.mutate(
-      { planProjectId: project.id, collectionIds: collectionId ? [collectionId] : [] },
+    setCollection.mutate(
+      { planProjectId: project.id, collectionId },
       { onSuccess: () => toast.success(m.plan_toast_project_collection_saved()) }
     )
   }
@@ -179,9 +174,10 @@ function ProjectDialog({
 
         {planId && (
           <CollectionPicker
-            value={assigned?.id ?? null}
+            planId={planId}
+            value={project.collection_id}
             onChange={handleCollectionChange}
-            isPending={setCollections.isPending}
+            isPending={setCollection.isPending}
           />
         )}
 

@@ -29,54 +29,35 @@ export interface UserGroup {
 }
 
 /**
- * An open-text taxonomy entity owned by a user and optionally shared with one of
- * their login teams/organizations. Distinct from `UserGroup` (a login team/org),
- * which is what `group_type`/`group_id` below refer to. The API still calls
- * these project groups (/project-groups); the wire names stay until it renames.
+ * A named section of one plan, grouping some of its projects. Belongs to the
+ * plan, not to a user, so every editor of a shared plan sees the same ones.
  */
 export interface Collection {
   id: string
+  plan_id: string
   name: string
   description: string | null
-  owner_id: string
-  group_type: GroupType | null
-  group_id: string | null
+  display_order: number
   created_at: string
   updated_at: string
 }
 
-/** Same ownership/sharing model as Collection, but without a description. */
-export interface ProjectTag {
-  id: string
-  name: string
-  owner_id: string
-  group_type: GroupType | null
-  group_id: string | null
-  created_at: string
-  updated_at: string
-}
-
-/** Unset group_type/group_id means personal; both together share with that team/org. */
 export interface CollectionCreate {
   name: string
   description?: string | null
-  group_type?: GroupType | null
-  group_id?: string | null
 }
 
 export interface CollectionUpdate {
   name?: string
   description?: string | null
+  display_order?: number
 }
 
-export interface ProjectTagCreate {
-  name: string
-  group_type?: GroupType | null
-  group_id?: string | null
-}
-
-export interface ProjectTagUpdate {
-  name: string
+/** Where one project sits after a drag: which collection, in which position. */
+export interface ProjectPlacement {
+  id: string
+  collection_id: string | null
+  display_order: number
 }
 
 export interface PlanProjectItem {
@@ -88,8 +69,8 @@ export interface PlanProjectItem {
   status?: ProjectStatus
   featured?: boolean
   data?: Record<string, unknown> | null
-  groups?: Collection[]
-  tags?: ProjectTag[]
+  /** Null means the virtual "All" bucket. */
+  collection_id?: string | null
 }
 
 export interface PlanCreate {
@@ -133,6 +114,7 @@ export interface PlanRead {
   is_owner: boolean
   can_edit: boolean
   projects: PlanProjectItem[]
+  collections: Collection[]
   images: PlanImageRead[]
   created_at: string
   updated_at: string
@@ -147,11 +129,9 @@ export interface HydratedProjectItem {
   status: ProjectStatus
   featured: boolean
   data: Record<string, unknown> | null
-  // Empty means "All" — there is no such row in the database; the UI buckets
-  // any item with no collections under a virtual "All" collection.
-  // Wire name stays `groups` until the API renames it.
-  groups: Collection[]
-  tags: ProjectTag[]
+  // Null means "All" — there is no such collection in the database; the UI
+  // buckets every unassigned project under a virtual section.
+  collection_id: string | null
   upstream: Record<string, unknown> | null
   error: HydrationError | null
   from_snapshot?: boolean
@@ -170,6 +150,7 @@ export interface PlanReadHydrated {
   is_owner: boolean
   can_edit: boolean
   projects: HydratedProjectItem[]
+  collections: Collection[]
   images: PlanImageRead[]
   created_at: string
   updated_at: string

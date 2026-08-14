@@ -1,29 +1,11 @@
-import { m } from '../paraglide/messages'
-import type { AppName } from './types'
+/** Bucket for projects in no collection — the API models it as a null collection_id. */
+export const ALL_SECTION_ID = 'all'
 
-export const PLAN_SECTIONS: {
-  title: string
-  toolName: string
-  apps: AppName[]
-}[] = [
-  {
-    title: m.section_imagery(),
-    toolName: '<em>Drone</em> Tasking Manager, <em>OpenAerialMap</em>',
-    apps: ['drone-tasking-manager', 'open-aerial-map'],
-  },
-  {
-    title: m.section_mapping(),
-    toolName: '<em>Tasking Manager</em>, <em>fAIr</em>',
-    apps: ['tasking-manager', 'fair'],
-  },
-  {
-    title: m.section_field(),
-    toolName: '<em>Field</em> Tasking Manager, <em>ChatMap</em>',
-    apps: ['field-tm', 'chatmap'],
-  },
-  {
-    title: m.section_data(),
-    toolName: '<em>Export Tool</em>, <em>uMap</em>',
-    apps: ['export-tool', 'umap'],
-  },
-]
+/**
+ * Drop-target id of a section. Cards are dragged by their plan_project id, which
+ * must stay stable across a move: dnd-kit tracks the active draggable by id, so
+ * an id built from the section would change mid-drag and drop the gesture.
+ */
+export const sectionDropId = (sectionId: string) => `section:${sectionId}`
+
+export const isSectionDropId = (id: string) => id.startsWith('section:')

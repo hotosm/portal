@@ -73,6 +73,14 @@ class Plan(Base):
         order_by="PlanProject.display_order",
     )
 
+    collections = relationship(
+        "PlanCollection",
+        back_populates="plan",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="PlanCollection.display_order",
+    )
+
     images = relationship(
         "PlanImage",
         back_populates="plan",
@@ -80,6 +88,40 @@ class Plan(Base):
         passive_deletes=True,
         order_by="PlanImage.display_order",
     )
+
+
+class PlanCollection(Base):
+    """A named section of a plan that groups some of its projects/tasks.
+
+    Owned by the plan, not by a user: everyone who can edit the plan sees and
+    edits the same collections. A project belongs to at most one collection
+    (PlanProject.collection_id); no row means the virtual "All" bucket.
+    """
+
+    __tablename__ = "plan_collections"
+
+    id = Column(String, primary_key=True, default=uuid_str)
+    plan_id = Column(
+        String,
+        ForeignKey("plans.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    display_order = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=utcnow,
+        onupdate=utcnow,
+        nullable=False,
+    )
+
+    __table_args__ = (UniqueConstraint("plan_id", "name", name="uq_plan_collections_plan_name"),)
+
+    plan = relationship("Plan", back_populates="collections")
+    projects = relationship("PlanProject", back_populates="collection")
 
 
 class PlanProject(Base):
@@ -94,40 +136,29 @@ class PlanProject(Base):
         nullable=False,
         index=True,
     )
+    # Null means the project sits in the virtual "All" bucket. SET NULL so
+    # deleting a collection sends its projects back there.
+    collection_id = Column(
+        String,
+        ForeignKey("plan_collections.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     app = Column(String, nullable=True)
     project_id = Column(String, nullable=True)
     project_exists = Column(Boolean, nullable=False, default=True)
     status = Column(String, nullable=False, default="in_progress")
+    # Position inside the project's collection (or inside "All" when unassigned).
     display_order = Column(Integer, nullable=False, default=0)
     featured = Column(Boolean, nullable=False, default=False)
     data = Column(JSON().with_variant(JSONB, "postgresql"), nullable=True)
     added_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
 
     plan = relationship("Plan", back_populates="projects")
-
-    # secondary="plan_project_groups"/"plan_project_tags" (table name, not class)
-    # so this resolves without importing app.db.models.taxonomy here — that
-    # module registers the reverse side (Group.plan_projects/Tag.plan_projects)
-    # against the same declarative registry. lazy="selectin" so every query
-    # that loads PlanProject rows gets groups/tags for free — AsyncSession
-    # can't do implicit lazy loads on attribute access.
-    groups = relationship(
-        "Group",
-        secondary="plan_project_groups",
-        back_populates="plan_projects",
-        lazy="selectin",
-    )
-    tags = relationship(
-        "Tag",
-        secondary="plan_project_tags",
-        back_populates="plan_projects",
-        lazy="selectin",
-    )
+    collection = relationship("PlanCollection", back_populates="projects")
 
     __table_args__ = (
-        UniqueConstraint(
-            "plan_id", "app", "project_id", name="uq_plan_projects_plan_app_project"
-        ),
+        UniqueConstraint("plan_id", "app", "project_id", name="uq_plan_projects_plan_app_project"),
         Index("idx_plan_projects_app_project_id", "app", "project_id"),
     )
 

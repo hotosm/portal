@@ -1,7 +1,7 @@
 import Button from '../../components/shared/Button'
 import Checkbox from '../../components/shared/Checkbox'
 import Dialog from '../../components/shared/Dialog'
-import { APP_LABELS, useSetProjectCollections } from '../hooks'
+import { APP_LABELS, useSetProjectCollection } from '../hooks'
 import { useLinkProject } from '../hooks/useLinkProject'
 import type { AppName, ProjectOption } from '../types'
 import { AddByUrlSection } from './AddByUrlSection'
@@ -31,7 +31,7 @@ function LinkProjectDialog({
   onDelete,
   onConfirm,
 }: SelectProjectDialogProps) {
-  const setCollections = useSetProjectCollections(planId)
+  const setCollection = useSetProjectCollection(planId)
   const {
     selected,
     setSelected,
@@ -99,9 +99,10 @@ function LinkProjectDialog({
           closing the dialog without linking a project. */}
       <div className="border-t border-hot-gray-200 pt-md mt-md">
         <CollectionPicker
+          planId={planId}
           value={collectionId}
-          onChange={(id) => setCollections.mutate({ planProjectId, collectionIds: id ? [id] : [] })}
-          isPending={setCollections.isPending}
+          onChange={(collectionId) => setCollection.mutate({ planProjectId, collectionId })}
+          isPending={setCollection.isPending}
         />
       </div>
 

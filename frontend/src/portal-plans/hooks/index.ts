@@ -14,17 +14,16 @@ export {
 } from './usePlans'
 export {
   useCollections,
-  useProjectTags,
   useCreateCollection,
   useUpdateCollection,
   useDeleteCollection,
-  useCreateProjectTag,
-  useUpdateProjectTag,
-  useDeleteProjectTag,
-  useSetProjectCollections,
-  useSetProjectTags,
-  taxonomyQueryKeys,
-} from './useTaxonomy'
+  useSetProjectCollection,
+  useReorderProjects,
+  useAddProject,
+  useRemoveProject,
+  useSetProjectFeatured,
+  collectionQueryKeys,
+} from './useCollections'
 export { usePlanMenu } from './usePlanMenu'
 export { useAllUserProjects, APP_LABELS, FETCHED_APPS } from './useAllUserProjects'
 export { useUploadPlanImage, useDeletePlanImage } from './usePlanImages'

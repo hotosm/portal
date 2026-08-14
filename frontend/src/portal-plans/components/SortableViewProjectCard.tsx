@@ -8,13 +8,10 @@ import LinkProjectDialog from './LinkProjectDialog'
 import PlanProjectCard from './PlanProjectCard'
 
 interface SortableViewProjectCardProps {
+  /** The plan_project id, which is what every callback below reports. */
   id: string
-  /**
-   * Identity for drag and drop, when it has to differ from `id`: a project shown
-   * in several sections needs a unique id per section, while `id` stays the plan
-   * project id the callbacks below report. Defaults to `id`.
-   */
-  dragId?: string
+  /** Collection the card renders under (ALL_SECTION_ID when unassigned). */
+  sectionId: string
   project: HydratedProjectItem
   planId: string
   onProjectSelected?: (oldKey: string, project: ProjectOption) => void
@@ -24,7 +21,7 @@ interface SortableViewProjectCardProps {
 
 function SortableViewProjectCard({
   id,
-  dragId,
+  sectionId,
   project,
   planId,
   onProjectSelected,
@@ -32,7 +29,12 @@ function SortableViewProjectCard({
   onFeaturedToggle,
 }: SortableViewProjectCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: dragId ?? id,
+    // The plan_project id, kept stable across sections: dnd-kit tracks the
+    // active draggable by id, so an id derived from the section would change
+    // mid-move and abort the drag.
+    id,
+    // Read back by the drop handler to know which bucket this card sits in.
+    data: { sectionId, projectId: id },
   })
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -78,8 +80,7 @@ function SortableViewProjectCard({
           app={project.app}
           planId={planId}
           planProjectId={id}
-          // A project can only be in one collection; anything past the first is legacy data.
-          collectionId={project.groups[0]?.id ?? null}
+          collectionId={project.collection_id}
           onClose={() => setDialogOpen(false)}
           onDelete={() => onProjectDeleted?.(id)}
           onConfirm={(selected) => onProjectSelected?.(id, selected)}

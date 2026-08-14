@@ -5,92 +5,18 @@ orphan flow, parallelism, tag lookup, and listing enrichment on one app.
 """
 
 import asyncio
-from collections.abc import AsyncGenerator
-from datetime import datetime, timezone
 from unittest.mock import AsyncMock, patch
 
 import httpx
 import pytest
-import pytest_asyncio
 import respx
 from httpx import ASGITransport, AsyncClient
 
-from hotosm_auth.models import HankoUser
-from hotosm_auth_fastapi.dependencies import (
-    get_current_user,
-    get_current_user_optional,
-)
-
 from app.core.config import settings
 from app.core.database import get_db
-from app.main import app
 from app.services import plans_service
 from app.services.exceptions import UpstreamUnavailable
-
-
-def make_user(user_id: str, email: str = "u@example.com") -> HankoUser:
-    now = datetime.now(timezone.utc)
-    return HankoUser(
-        id=user_id,
-        email=email,
-        email_verified=True,
-        created_at=now,
-        updated_at=now,
-        username=email.split("@")[0],
-    )
-
-
-@pytest_asyncio.fixture
-async def auth_client(test_db_session) -> AsyncGenerator[tuple[AsyncClient, HankoUser], None]:
-    """Client authenticated as a fixed test user (user A)."""
-    user = make_user("user-a-id", "a@example.com")
-
-    async def override_get_db():
-        yield test_db_session
-
-    async def override_current_user():
-        return user
-
-    async def override_current_user_optional():
-        return user
-
-    app.dependency_overrides[get_db] = override_get_db
-    app.dependency_overrides[get_current_user] = override_current_user
-    app.dependency_overrides[get_current_user_optional] = override_current_user_optional
-
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        yield c, user
-
-    app.dependency_overrides.clear()
-
-
-@pytest_asyncio.fixture
-async def two_auth_clients(test_db_session):
-    """Single client whose current user can be switched between requests.
-
-    Yields (client, user_cell) where user_cell is a 1-element list.
-    Set user_cell[0] = some_user before each request to control auth.
-    """
-    user_cell: list = [None]
-
-    async def override_get_db():
-        yield test_db_session
-
-    async def override_current_user():
-        return user_cell[0]
-
-    async def override_current_user_optional():
-        return user_cell[0]
-
-    app.dependency_overrides[get_db] = override_get_db
-    app.dependency_overrides[get_current_user] = override_current_user
-    app.dependency_overrides[get_current_user_optional] = override_current_user_optional
-
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        yield c, user_cell
-
-    app.dependency_overrides.clear()
-
+from app.tests.conftest import make_user
 
 # ─────────────────────────────── CRUD ────────────────────────────────────────
 
@@ -174,6 +100,7 @@ async def test_patch_name_only_keeps_projects(auth_client):
 @pytest.mark.asyncio
 async def test_delete_plan_cascades(auth_client, test_db_session):
     from sqlalchemy import select
+
     from app.db.models.plan import PlanProject
 
     client, _ = auth_client
@@ -700,6 +627,7 @@ async def test_shared_endpoint_no_auth_required(test_db_session):
         return user
 
     from hotosm_auth_fastapi.dependencies import get_current_user
+
     from app.main import app
 
     app.dependency_overrides[get_db] = override_get_db
