@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from app.models.fair import FAIRProjectsResponse, FAIRCentroidsResponse, FAIRModelDetail
-from hotosm_auth_fastapi import CurrentUser, CurrentUserOptional
+from hotosm_auth_fastapi import AdminUser, CurrentUser, CurrentUserOptional
 from app.core.cache import get_cached, set_cached, delete_cached, DEFAULT_TTL, LONG_TTL
 from app.core.config import settings
 from app.core.database import get_db
@@ -197,7 +197,7 @@ async def get_fair_projects(
 
 
 @router.delete("/models/centroid/cache")
-async def clear_fair_centroids_cache() -> dict:
+async def clear_fair_centroids_cache(admin: AdminUser) -> dict:
     """Clear the fAIr centroids cache to force re-fetching with enriched names."""
     deleted = delete_cached("fair_models_centroids")
     return {"deleted": deleted, "message": "Cache cleared. Next request will fetch fresh data with names."}

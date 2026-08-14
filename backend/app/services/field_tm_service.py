@@ -6,6 +6,7 @@ import httpx
 
 from app.core.cache import DEFAULT_TTL, get_cached, set_cached
 from app.core.config import settings
+from app.services.exceptions import UpstreamUnavailable
 
 _TITLE_RE = re.compile(r"<title>\s*(.+?)\s*-\s*Field Tasking Manager\s*</title>", re.I)
 
@@ -18,8 +19,8 @@ async def fetch_project_by_id(
 ) -> dict | None:
     """Fetch a single FMTM project by id by parsing the HTML page title.
 
-    Returns a dict with at least {"name": ..., "id": ...}, None on 404.
-    Never raises — returns None on any network or parse failure.
+    Returns a dict with at least {"name": ..., "id": ...}, None on 404,
+    raises UpstreamUnavailable on network errors or non-404 HTTP errors.
     """
     external_base = base_url or settings.field_tm_base_url or "https://field.hotosm.org"
     fetch_base = (
@@ -41,8 +42,8 @@ async def fetch_project_by_id(
                 return None
             response.raise_for_status()
             html = response.text
-    except Exception:
-        return None
+    except (httpx.RequestError, httpx.HTTPStatusError) as e:
+        raise UpstreamUnavailable(f"field-tasking-manager: {e}") from e
 
     m = _TITLE_RE.search(html)
     data = {"id": int(project_id), "name": m.group(1) if m else f"Project {project_id}", "base_url": external_base}

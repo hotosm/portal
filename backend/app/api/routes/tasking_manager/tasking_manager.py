@@ -3,9 +3,10 @@
 """Tasking Manager API endpoints."""
 
 import asyncio
+import hashlib
 import logging
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Path, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Path, BackgroundTasks, Request
 from hotosm_auth_fastapi import CurrentUserOptional
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.tasking_manager import ProjectsResponse, Project, CountriesResponse
@@ -299,7 +300,7 @@ async def get_tasking_manager_project_by_id(
 
 
 @router.get("/projects/user")
-async def get_user_projects() -> dict:
+async def get_user_projects(request: Request) -> dict:
     """
     Fetch projects mapped by the authenticated user from HOT OSM Tasking Manager.
 
@@ -326,7 +327,15 @@ async def get_user_projects() -> dict:
         }
         ```
     """
-    cache_key = "tasking_manager_user_projects"
+    hanko_cookie = request.cookies.get("hanko")
+    if not hanko_cookie:
+        raise HTTPException(
+            status_code=401,
+            detail="Hanko authentication cookie not found. Please log in.",
+        )
+
+    user_key = hashlib.sha256(hanko_cookie.encode()).hexdigest()
+    cache_key = f"tasking_manager_user_projects_{user_key}"
     cached_data = get_cached(cache_key)
     if cached_data is not None:
         return cached_data
@@ -334,7 +343,7 @@ async def get_user_projects() -> dict:
     url = f"{HOTOSM_API_BASE_URL}/projects/"
     params = {"mappedByMe": "true", "action": "any"}
     headers = {
-        "Authorization": ""
+        "Authorization": f"Bearer {hanko_cookie}"
     }
 
     try:

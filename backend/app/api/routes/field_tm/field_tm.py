@@ -8,14 +8,14 @@ from hotosm_auth_fastapi import CurrentUserOptional
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.field_tm import FMTMProjectsResponse, FMTMProjectSummary
 from app.core.cache import get_cached, set_cached, DEFAULT_TTL
+from app.core.config import settings
 from app.core.database import get_db
 from app.services import field_tm_service, plans_service
 from app.services.exceptions import UpstreamUnavailable
 
 router = APIRouter(prefix="/field-tm")
 
-# FMTM API base URL
-FMTM_API_BASE_URL = "https://api.fmtm.hotosm.org"
+FMTM_API_BASE_URL = settings.field_tm_base_url
 
 
 @router.get("/projects", response_model=FMTMProjectsResponse)

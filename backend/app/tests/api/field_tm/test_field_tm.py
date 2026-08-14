@@ -8,6 +8,10 @@ import httpx
 from unittest.mock import AsyncMock, patch
 from httpx import AsyncClient, Response
 
+from app.core.config import settings
+
+FMTM_PROJECTS_SUMMARIES_URL = f"{settings.field_tm_base_url}/projects/summaries"
+
 
 # -------------------------------
 # /field-tm/projects
@@ -32,7 +36,7 @@ async def test_get_fmtm_projects_success(client: AsyncClient):
         }
     }
 
-    respx.get("https://api.fmtm.hotosm.org/projects/summaries").mock(
+    respx.get(FMTM_PROJECTS_SUMMARIES_URL).mock(
         return_value=Response(200, json=mock_response)
     )
 
@@ -57,7 +61,7 @@ async def test_get_fmtm_projects_success(client: AsyncClient):
 @respx.mock
 async def test_get_fmtm_projects_http_error(client: AsyncClient):
     """Test handling of HTTP errors from FMTM API."""
-    respx.get("https://api.fmtm.hotosm.org/projects/summaries").mock(
+    respx.get(FMTM_PROJECTS_SUMMARIES_URL).mock(
         return_value=Response(500, text="Internal Server Error")
     )
 
@@ -71,7 +75,7 @@ async def test_get_fmtm_projects_http_error(client: AsyncClient):
 @respx.mock
 async def test_get_fmtm_projects_connection_error(client: AsyncClient):
     """Test handling of connection errors from FMTM API."""
-    respx.get("https://api.fmtm.hotosm.org/projects/summaries").mock(
+    respx.get(FMTM_PROJECTS_SUMMARIES_URL).mock(
         side_effect=httpx.RequestError("Connection failed")
     )
 
@@ -85,7 +89,7 @@ async def test_get_fmtm_projects_connection_error(client: AsyncClient):
 @respx.mock
 async def test_get_fmtm_projects_unexpected_error(client: AsyncClient):
     """Test handling of unexpected errors in FMTM projects endpoint."""
-    respx.get("https://api.fmtm.hotosm.org/projects/summaries").mock(
+    respx.get(FMTM_PROJECTS_SUMMARIES_URL).mock(
         side_effect=Exception("Something broke")
     )
 

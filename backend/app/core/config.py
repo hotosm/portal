@@ -155,6 +155,8 @@ class Settings(BaseSettings):
     drone_tm_auth_prefix: str = "Bearer"
     drone_tm_verify_ssl: bool | None = None
     fair_verify_ssl: bool | None = None
+    chatmap_verify_ssl: bool | None = None
+    umap_verify_ssl: bool | None = None
     umap_locale: str = "es"
     homepage_map_sync_interval_hours: int = 7
 
@@ -202,7 +204,11 @@ class Settings(BaseSettings):
         if self.fair_verify_ssl is None:
             self.fair_verify_ssl = prod
         if self.drone_tm_verify_ssl is None:
-            self.drone_tm_verify_ssl = False
+            self.drone_tm_verify_ssl = prod
+        if self.chatmap_verify_ssl is None:
+            self.chatmap_verify_ssl = prod
+        if self.umap_verify_ssl is None:
+            self.umap_verify_ssl = prod
 
         # fair_user_base_url falls back to fair_base_url when not set.
         if not self.fair_user_base_url:
