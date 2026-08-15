@@ -230,6 +230,7 @@
   "plan_collections_adding": "Agregando…",
   "plan_collections_dialog_add_label": "Agregar colección",
   "plan_collections_dialog_add_hint": "Agrega una nueva colección a este plan",
+  "plan_collections_dialog_manage_label": "Administrar colecciones",
   "plan_collections_dialog_create": "Crear colección",
   "plan_collections_save": "Guardar",
   "plan_collections_rename": "Renombrar",
