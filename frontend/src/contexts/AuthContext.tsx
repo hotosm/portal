@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import {
   createContext,
   useContext,
@@ -5,6 +6,7 @@ import {
   useEffect,
   ReactNode,
 } from "react";
+import { groupsQueryKey, planQueryKeys } from "../portal-plans/hooks/queryKeys";
 
 interface HankoUser {
   id: string;
@@ -25,6 +27,11 @@ interface AuthContextType {
   osmConnection: OSMConnection | null;
   isLogin: boolean; // Computed from user !== null
   isAuthLoading: boolean; // True while waiting for web component to signal auth state
+  // Hanko's stored session says we're logged in, but the web component hasn't
+  // signalled yet. Unlike isAuthLoading — which deliberately gives up after 2s
+  // so the page can paint — this stays true until auth actually resolves, so
+  // pages can withhold auth-dependent controls instead of guessing wrong.
+  isSessionUnconfirmed: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,6 +41,13 @@ interface AuthProviderProps {
 }
 
 const AUTH_CACHE_KEY = "hotosm-auth-user";
+
+// How long to keep trusting a stored Hanko session before concluding that
+// hanko-login is never going to fire (session revoked server-side, web
+// component failed to load). Deliberately longer than the isAuthLoading
+// fallback: that one unblocks painting, this one only gates auth-dependent
+// controls, so it can afford to wait out a slow handshake.
+const SESSION_CONFIRM_TIMEOUT_MS = 10_000;
 
 // Hanko SDK stores session state under this key with an `expiration` timestamp.
 // It resets to {expiration: 0} on logout, so it's reliable as an auth signal.
@@ -64,6 +78,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isAuthLoading, setIsAuthLoading] = useState<boolean>(
     () => hasActiveHankoSession() && !localStorage.getItem(AUTH_CACHE_KEY)
   );
+  const [hasStoredSession, setHasStoredSession] =
+    useState<boolean>(hasActiveHankoSession);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     // Check initial OSM connection status
@@ -94,19 +111,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // (e.g. network error, token actually expired), stop blocking after 2s.
     const loadingTimer = setTimeout(() => setIsAuthLoading(false), 2000);
 
+    // Queries that resolved before auth landed hold anonymous data (or an
+    // unauthorized error), and nothing else would ever redo them.
+    const invalidateAuthScopedQueries = () => {
+      queryClient.invalidateQueries({ queryKey: planQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: groupsQueryKey });
+    };
+
     // hanko-session-created fires as soon as a Hanko session is established —
     // before hanko-login fires. Using it to set isAuthLoading = true suppresses
     // the homepage flash during active login form submission.
-    const handleSessionCreated = () => setIsAuthLoading(true);
+    const handleSessionCreated = () => {
+      setIsAuthLoading(true);
+      setHasStoredSession(true);
+    };
 
     // Listen to hanko-login event from web component
     const handleLogin = (event: Event) => {
       const customEvent = event as CustomEvent;
       setIsAuthLoading(false);
+      setHasStoredSession(true);
       setUser(customEvent.detail.user);
       try {
         localStorage.setItem(AUTH_CACHE_KEY, JSON.stringify(customEvent.detail.user));
       } catch {}
+      invalidateAuthScopedQueries();
       // Re-check OSM status after login
       checkOsmStatus();
     };
@@ -114,11 +143,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Listen to logout event from web component
     const handleLogout = () => {
       setIsAuthLoading(false);
+      setHasStoredSession(false);
       setUser(null);
       setOsmConnection(null);
       try {
         localStorage.removeItem(AUTH_CACHE_KEY);
       } catch {}
+      invalidateAuthScopedQueries();
     };
 
     // Listen to osm-connected event from web component
@@ -141,13 +172,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
       document.removeEventListener("logout", handleLogout);
       document.removeEventListener("osm-connected", handleOsmConnected);
     };
-  }, []);
+  }, [queryClient]);
+
+  // Bound the trust window. Every time we start trusting a stored session the
+  // web component gets a fixed budget to confirm whose it is; if it never does
+  // (session revoked server-side, component failed to load), stop withholding
+  // controls and let pages render the anonymous view.
+  useEffect(() => {
+    if (!hasStoredSession || user !== null) return;
+    const timer = setTimeout(
+      () => setHasStoredSession(false),
+      SESSION_CONFIRM_TIMEOUT_MS
+    );
+    return () => clearTimeout(timer);
+  }, [hasStoredSession, user]);
 
   const value = {
     user,
     osmConnection,
     isLogin: user !== null,
     isAuthLoading,
+    isSessionUnconfirmed: user === null && hasStoredSession,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

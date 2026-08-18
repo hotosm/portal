@@ -82,11 +82,11 @@ const collisionDetection: CollisionDetection = (args) => {
 
 function MyPlanPage() {
   const { planId } = useParams<{ planId: string }>()
-  const { isLogin, isAuthLoading } = useAuth()
+  const { isLogin, isAuthLoading, isSessionUnconfirmed } = useAuth()
   const { currentLanguage } = useLanguage()
   const isMobile = useIsMobile()
 
-  const { data: ownPlan, isLoading: ownLoading, isError: ownError } = usePlan(planId ?? '')
+  const { data: ownPlan, isPending: ownPending, isError: ownError } = usePlan(planId ?? '')
 
   const {
     data: publicPlan,
@@ -102,6 +102,15 @@ function MyPlanPage() {
   // Owner-only actions (delete, manage permissions) are gated inside PlanMenu
   // via plan.is_owner.
   const canEdit = plan?.can_edit ?? false
+
+  // The public query needs no auth and so almost always answers first, while
+  // usePlan waits for isLogin. Since `plan` falls back to the public payload
+  // (can_edit: false), settling too early showed the plan's own owner the
+  // read-only view. `isPending` — not `isLoading` — is what holds the skeleton
+  // through the gap where the query is enabled but hasn't started fetching; it
+  // needs the isLogin guard because a disabled query stays pending forever.
+  const isLoading = isAuthLoading || (isLogin && ownPending) || (ownPlan == null && publicLoading)
+  const isError = viewingOwn ? ownError : publicError
 
   // Section whose picker is open, if any — what it adds lands in that
   // collection, so the choice of section travels with the dialog.
@@ -121,13 +130,18 @@ function MyPlanPage() {
   const { mutate: refreshPlan, isPending: isRefreshing } = useRefreshPlan(planId ?? '', !viewingOwn)
   const queryClient = useQueryClient()
 
+  // Keyed on the view mode, not just the plan: `refreshPlan` is bound to the
+  // owner or the shared endpoint via `viewingOwn`, so firing while the public
+  // payload was still the only one in hand revalidated (and cached) the wrong
+  // one, and burned the guard so the owner view never got its live hydration.
   const revalidatedRef = useRef<string | null>(null)
   useEffect(() => {
-    if (!plan || !planId) return
-    if (revalidatedRef.current === planId) return
-    revalidatedRef.current = planId
+    if (!plan || !planId || isLoading) return
+    const revalidationKey = `${planId}:${viewingOwn}`
+    if (revalidatedRef.current === revalidationKey) return
+    revalidatedRef.current = revalidationKey
     refreshPlan()
-  }, [plan, planId, refreshPlan])
+  }, [plan, planId, isLoading, viewingOwn, refreshPlan])
 
   const pendingRetriesRef = useRef(0)
   useEffect(() => {
@@ -317,9 +331,6 @@ function MyPlanPage() {
     ])
   }
 
-  const isLoading = isAuthLoading || ownLoading || (ownPlan == null && publicLoading)
-  const isError = viewingOwn ? ownError : publicError
-
   if (!isLoading && isError) {
     return (
       <PageWrapper>
@@ -458,6 +469,9 @@ function MyPlanPage() {
             ? undefined
             : [{ label: m.plan_header(), href: `/${currentLanguage}/plan` }, { label: plan!.name }]
         }
+        // isSessionUnconfirmed: Hanko reports a session but hasn't confirmed
+        // whose it is, so `plan` may still be the anonymous payload — show no
+        // menu rather than tell a potential owner they can only share.
         menu={
           isLoading ? undefined : canEdit ? (
             <div className="flex items-center gap-sm">
@@ -470,7 +484,7 @@ function MyPlanPage() {
               )}
               <PlanMenu plan={plan!} />
             </div>
-          ) : plan!.is_public ? (
+          ) : isSessionUnconfirmed ? undefined : plan!.is_public ? (
             <PlanShareButton plan={plan!} />
           ) : undefined
         }

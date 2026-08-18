@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { m } from '../../paraglide/messages'
 import type { PlanImageRead } from '../types'
-import { planQueryKeys } from './usePlans'
+import { planQueryKeys } from './queryKeys'
 
 export function useUploadPlanImage(planId: string) {
   const queryClient = useQueryClient()

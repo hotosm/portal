@@ -9,15 +9,12 @@ import type {
   PlanProjectItem,
   ProjectPlacement,
 } from '../types'
-import { planQueryKeys } from './usePlans'
+import { collectionQueryKeys, planQueryKeys } from './queryKeys'
 
 const STALE_TIME = 5 * 60 * 1000
 const GC_TIME = 30 * 60 * 1000
 
-export const collectionQueryKeys = {
-  all: ['collections'] as const,
-  ofPlan: (planId: string) => [...collectionQueryKeys.all, planId] as const,
-}
+export { collectionQueryKeys }
 
 /**
  * Read the `detail` field of a FastAPI error response. These endpoints answer
