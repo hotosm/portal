@@ -43,6 +43,7 @@ target/
 .ipynb_checkpoints
 .python-version
 .uv/
+certs/
 
 # Node
 node_modules/

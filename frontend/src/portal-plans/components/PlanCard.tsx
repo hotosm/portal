@@ -1,37 +1,36 @@
-import CardProjectTitle from "../../components/shared/CardProjectTitle";
-import { useLanguage } from "../../contexts/LanguageContext";
-import { m } from "../../paraglide/messages";
-import { APP_META } from "../../utils/appMeta";
-import type { PlanRead } from "../types";
+import CardProjectTitle from '../../components/shared/CardProjectTitle'
+import { useLanguage } from '../../contexts/LanguageContext'
+import { m } from '../../paraglide/messages'
+import { APP_META } from '../../utils/appMeta'
+import type { PlanRead } from '../types'
 
 interface PlanCardProps {
-  plan: PlanRead;
+  plan: PlanRead
 }
 
 const PlanCard = ({ plan }: PlanCardProps) => {
-  const { currentLanguage } = useLanguage();
-  const apps = [...new Set(plan.projects.map((p) => p.app))];
-  const projectCount = plan.projects.length;
-  const detailPath = `/${currentLanguage}/plan/${plan.id}`;
+  const { currentLanguage } = useLanguage()
+  // Tasks that aren't tied to a tool yet contribute no icon.
+  const apps = [...new Set(plan.projects.map((p) => p.app).filter((a) => a != null))]
+  const projectCount = plan.projects.length
+  const detailPath = `/${currentLanguage}/plan/${plan.id}`
 
   return (
     <div
       className="w-full h-full bg-white rounded-xl p-md flex flex-col gap-lg"
-      style={{ boxShadow: "0 0 5px 0 rgba(0, 0, 0, 0.25)" }}
+      style={{ boxShadow: '0 0 5px 0 rgba(0, 0, 0, 0.25)' }}
     >
       <div className="flex flex-col gap-sm">
         <CardProjectTitle href={detailPath} title={plan.name} />
       </div>
       <div className="flex flex-col gap-xs mt-auto">
         <p className="text-sm text-hot-gray-400">
-          {projectCount}{" "}
-          {projectCount === 1
-            ? m.plan_card_projects_singular()
-            : m.plan_card_projects_plural()}
+          {projectCount}{' '}
+          {projectCount === 1 ? m.plan_card_projects_singular() : m.plan_card_projects_plural()}
         </p>
         <div className="flex flex-wrap gap-xs">
           {apps.map((app) => {
-            const meta = APP_META[app];
+            const meta = APP_META[app]
             return (
               <div
                 key={app}
@@ -40,12 +39,12 @@ const PlanCard = ({ plan }: PlanCardProps) => {
               >
                 <img src={meta.icon} alt={meta.label} className="w-5 h-5" />
               </div>
-            );
+            )
           })}
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default PlanCard;
+export default PlanCard

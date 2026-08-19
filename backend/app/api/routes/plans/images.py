@@ -2,17 +2,27 @@
 
 import io
 
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    HTTPException,
+    Path,
+    Request,
+    Response,
+    UploadFile,
+    status,
+)
+from hotosm_auth_fastapi import CurrentUser, CurrentUserOptional
 from PIL import Image
 from sqlalchemy import select, update
-from fastapi import APIRouter, Depends, File, HTTPException, Path, Response, UploadFile, status
-from hotosm_auth_fastapi import CurrentUser, CurrentUserOptional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
 from app.db.models.plan import Plan, PlanImage
 from app.models.plan import PlanImageRead
-from app.services import plans_service, s3_service
+from app.services import permissions, plans_service, s3_service
 
 router = APIRouter(tags=["plan-images"])
 
@@ -27,13 +37,14 @@ def _image_url(plan_id: str, image_id: str) -> str:
 
 @router.get("/{plan_id}/images/{image_id}/content", include_in_schema=False)
 async def get_plan_image_content(
+    request: Request,
     plan_id: str = Path(...),
     image_id: str = Path(...),
     user: CurrentUserOptional = None,
     db: AsyncSession = Depends(get_db),
 ) -> Response:
     result = await db.execute(
-        select(PlanImage, Plan.is_public, Plan.owner_id)
+        select(PlanImage, Plan)
         .join(Plan, Plan.id == PlanImage.plan_id)
         .where(PlanImage.id == image_id, PlanImage.plan_id == plan_id)
     )
@@ -41,10 +52,10 @@ async def get_plan_image_content(
     if row is None:
         raise HTTPException(status_code=404, detail="Image not found")
 
-    image, is_public, owner_id = row
-    if not is_public:
-        if user is None or user.id != owner_id:
-            raise HTTPException(status_code=403, detail="Forbidden")
+    image, plan = row
+    ctx = await permissions.build_context(user, request.cookies.get("hanko"))
+    if not permissions.can_view(plan, ctx):
+        raise HTTPException(status_code=403, detail="Forbidden")
 
     if s3_service.is_local_key(image.s3_key):
         data, content_type = s3_service.get_plan_image_local(image.s3_key)
@@ -56,6 +67,7 @@ async def get_plan_image_content(
 @router.post("/{plan_id}/images", response_model=PlanImageRead, status_code=status.HTTP_201_CREATED)
 async def upload_plan_image(
     user: CurrentUser,
+    request: Request,
     plan_id: str = Path(...),
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
@@ -67,7 +79,8 @@ async def upload_plan_image(
     if len(data) > _MAX_SIZE:
         raise HTTPException(status_code=413, detail="File too large (max 10 MB)")
 
-    plan = await plans_service.get_owned_plan(db, user.id, plan_id)
+    ctx = await permissions.build_context(user, request.cookies.get("hanko"))
+    plan = await plans_service.get_editable_plan(db, ctx, plan_id)
     if plan is None:
         raise HTTPException(status_code=404, detail="Plan not found")
 
@@ -108,11 +121,13 @@ async def upload_plan_image(
 @router.delete("/{plan_id}/images/{image_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_plan_image(
     user: CurrentUser,
+    request: Request,
     plan_id: str = Path(...),
     image_id: str = Path(...),
     db: AsyncSession = Depends(get_db),
 ) -> Response:
-    plan = await plans_service.get_owned_plan(db, user.id, plan_id)
+    ctx = await permissions.build_context(user, request.cookies.get("hanko"))
+    plan = await plans_service.get_editable_plan(db, ctx, plan_id)
     if plan is None:
         raise HTTPException(status_code=404, detail="Plan not found")
 

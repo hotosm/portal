@@ -9,7 +9,7 @@ function PrivacyPolicyPage() {
   return (
     <PageWrapper>
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-3xl font-bold text-hot-gray-950 mb-xl">
+        <h1 className="text-3xl font-bold mb-xl">
           Privacy Policy
         </h1>
 
@@ -49,7 +49,7 @@ function PrivacyPolicyPage() {
 
           {/* Section 1 */}
           <section id="section-1" className="flex flex-col gap-sm">
-            <h2 className="text-xl font-bold text-hot-gray-900">
+            <h2 className="text-xl font-bold">
               1. Information We Collect From You and How We Collect It
             </h2>
             <p>
@@ -69,7 +69,7 @@ function PrivacyPolicyPage() {
               parties consistent with this Privacy Policy.
             </p>
 
-            <h3 className="text-lg font-semibold text-hot-gray-900">
+            <h3 className="text-lg font-semibold">
               Cookies and Similar Technologies
             </h3>
             <p>
@@ -95,7 +95,7 @@ function PrivacyPolicyPage() {
               </li>
             </ul>
 
-            <h3 className="text-lg font-semibold text-hot-gray-900">
+            <h3 className="text-lg font-semibold">
               How to Refuse the Use of Cookies
             </h3>
             <p>
@@ -110,7 +110,7 @@ function PrivacyPolicyPage() {
 
           {/* Section 2 */}
           <section id="section-2" className="flex flex-col gap-sm">
-            <h2 className="text-xl font-bold text-hot-gray-900">
+            <h2 className="text-xl font-bold">
               2. Legal Bases for Collecting and Using Information
             </h2>
             <p>
@@ -134,7 +134,7 @@ function PrivacyPolicyPage() {
 
           {/* Section 3 */}
           <section id="section-3" className="flex flex-col gap-sm">
-            <h2 className="text-xl font-bold text-hot-gray-900">
+            <h2 className="text-xl font-bold">
               3. How and When We Share Information
             </h2>
             <p>
@@ -158,7 +158,7 @@ function PrivacyPolicyPage() {
 
           {/* Section 4 */}
           <section id="section-4" className="flex flex-col gap-sm">
-            <h2 className="text-xl font-bold text-hot-gray-900">
+            <h2 className="text-xl font-bold">
               4. Your Choices Regarding Your Personal Information
             </h2>
             <p>
@@ -203,7 +203,7 @@ function PrivacyPolicyPage() {
 
           {/* Section 5 */}
           <section id="section-5" className="flex flex-col gap-sm">
-            <h2 className="text-xl font-bold text-hot-gray-900">
+            <h2 className="text-xl font-bold">
               5. Third-Party Websites and Services
             </h2>
             <p>
@@ -221,7 +221,7 @@ function PrivacyPolicyPage() {
 
           {/* Section 6 */}
           <section id="section-6" className="flex flex-col gap-sm">
-            <h2 className="text-xl font-bold text-hot-gray-900">
+            <h2 className="text-xl font-bold">
               6. Children's Privacy
             </h2>
             <p>
@@ -243,7 +243,7 @@ function PrivacyPolicyPage() {
 
           {/* Section 7 */}
           <section id="section-7" className="flex flex-col gap-sm">
-            <h2 className="text-xl font-bold text-hot-gray-900">
+            <h2 className="text-xl font-bold">
               7. How to Contact Us
             </h2>
             <p>

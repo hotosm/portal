@@ -12,24 +12,31 @@ from hotosm_auth import AuthConfig
 from hotosm_auth_fastapi import init_auth
 
 from app.api.routes import example, test
-from app.api.routes.drone_tasking_manager.drone_tasking_manager import build_dronetm_cache_key
-from app.api.routes.tasking_manager import tasking_manager
+from app.api.routes import groups as groups_route
+from app.api.routes.chatmap import chatmap
 from app.api.routes.drone_tasking_manager import drone_tasking_manager
-from app.api.routes.open_aerial_map import open_aerial_map
-from app.api.routes.homepage_map import homepage_map
-from app.api.routes.open_aerial_map.open_aerial_map import start_sync_scheduler
-from app.db.models.oam import OAMImage  # noqa: F401 — registers model with Base.metadata
-from app.db.models.map_project import MapProject  # noqa: F401 — registers model with Base.metadata
-from app.db.models.plan import Plan, PlanImage, PlanProject  # noqa: F401 — registers models with Base.metadata
+from app.api.routes.drone_tasking_manager.drone_tasking_manager import build_dronetm_cache_key
+from app.api.routes.export_tool import export_tool
 from app.api.routes.fair import fair
 from app.api.routes.field_tm import field_tm
-from app.api.routes.umap import umap
-from app.api.routes.export_tool import export_tool
-from app.api.routes.chatmap import chatmap
-from app.api.routes.plans import plans as plans_route
+from app.api.routes.homepage_map import homepage_map
+from app.api.routes.open_aerial_map import open_aerial_map
+from app.api.routes.open_aerial_map.open_aerial_map import start_sync_scheduler
 from app.api.routes.plans import images as plan_images_route
+from app.api.routes.plans import plans as plans_route
+from app.api.routes.tasking_manager import tasking_manager
+from app.api.routes.umap import umap
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal, check_db_connection
+from app.db.models.map_project import MapProject  # noqa: F401 — registers model with Base.metadata
+from app.db.models.oam import OAMImage  # noqa: F401 — registers model with Base.metadata
+from app.db.models.plan import (  # noqa: F401 — registers models with Base.metadata
+    Plan,
+    PlanCollection,
+    PlanImage,
+    PlanProject,
+)
+
 
 def get_homepage_map_sync_interval_seconds() -> int:
     return settings.homepage_map_sync_interval_hours * 60 * 60
@@ -56,9 +63,10 @@ async def homepage_map_sync_loop() -> None:
 async def preload_cache():
     """Preload cache with frequently accessed data on startup."""
     import httpx
-    from app.api.routes.tasking_manager.tasking_manager import fetch_and_enrich_in_background
+
     from app.api.routes.fair.fair import enrich_fair_centroids_in_background
-    from app.core.cache import get_cached, set_cached, DEFAULT_TTL
+    from app.api.routes.tasking_manager.tasking_manager import fetch_and_enrich_in_background
+    from app.core.cache import DEFAULT_TTL, get_cached, set_cached
 
     logger.info("Preloading cache in background...")
 
@@ -304,6 +312,11 @@ app.include_router(
 app.include_router(
     plan_images_route.router,
     prefix=f"{settings.api_v1_prefix}/plans",
+)
+
+app.include_router(
+    groups_route.router,
+    prefix=settings.api_v1_prefix,
 )
 
 # Include authentication routers (OSM OAuth)

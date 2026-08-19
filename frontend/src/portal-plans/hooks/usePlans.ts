@@ -9,16 +9,43 @@ import type {
   PlanUpdate,
   ProjectStatus,
   UrlResolveResponse,
+  UserGroup,
 } from '../types'
+import { groupsQueryKey, planQueryKeys } from './queryKeys'
 
 const STALE_TIME = 5 * 60 * 1000
 const GC_TIME = 30 * 60 * 1000
+const GROUPS_STALE_TIME = 60 * 1000
 
-export const planQueryKeys = {
-  all: ['plans'] as const,
-  list: () => [...planQueryKeys.all, 'list'] as const,
-  detail: (id: string) => [...planQueryKeys.all, 'detail', id] as const,
-  public: (id: string) => [...planQueryKeys.detail(id), 'public'] as const,
+// Re-exported for the many call sites that already import them from here.
+export { groupsQueryKey, planQueryKeys }
+
+interface GroupsResponse {
+  groups?: UserGroup[]
+  degraded?: boolean
+}
+
+// Teams and organizations the current user belongs to. Proxied from login; when
+// login is down or the feature flag is off the backend returns an empty (or
+// degraded) list, in which case the UI offers only the "Personal" scope.
+export function useMyGroups() {
+  const { isLogin } = useAuth()
+  return useQuery({
+    queryKey: groupsQueryKey,
+    queryFn: async (): Promise<UserGroup[]> => {
+      const response = await fetch('/api/groups', { credentials: 'include' })
+      if (!response.ok) {
+        throw new Error(`[${response.status}] Failed to fetch groups`)
+      }
+      const data: GroupsResponse = await response.json()
+      if (data.degraded) return []
+      return data.groups ?? []
+    },
+    staleTime: GROUPS_STALE_TIME,
+    gcTime: GC_TIME,
+    enabled: isLogin,
+    retry: 1,
+  })
 }
 
 export function useMyPlans() {
@@ -253,7 +280,12 @@ export function usePlan(id: string) {
       })
       if (response.status === 404) return null
       if (!response.ok) {
-        if (response.status === 401 || response.status === 403) return null
+        // 401/403 must not resolve to null. A null is a *successful* result, so
+        // it would be cached as "this user has no access" for the whole
+        // staleTime — an owner whose request raced ahead of a usable Hanko
+        // session would stay stuck on the public read-only view. Throwing keeps
+        // the query in error state, and AuthContext invalidates it as soon as
+        // auth lands. null stays reserved for a genuine 404.
         throw new Error(`[${response.status}] Failed to fetch plan`)
       }
       return response.json()

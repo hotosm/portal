@@ -1,63 +1,69 @@
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import placeholder from "../../assets/images/placeholder.png";
-import Button from "../../components/shared/Button";
-import Dialog from "../../components/shared/Dialog";
-import Dropdown from "../../components/shared/Dropdown";
-import DropdownItem from "../../components/shared/DropdownItem";
-import boxArrowUpRight from "../../assets/icons/box-arrow-up-right.svg";
-import starFill from "../../assets/icons/star-fill.svg";
-import starOutline from "../../assets/icons/star.svg";
-import Icon from "../../components/shared/Icon";
-import Tag from "../../components/shared/Tag";
-import { m } from "../../paraglide/messages";
-import { APP_META } from "../../utils/appMeta";
-import { formatProjectStatus } from "../../utils/utils";
-import type { HydratedProjectItem, ProjectStatus } from "../types";
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
+import boxArrowUpRight from '../../assets/icons/box-arrow-up-right.svg'
+import starFill from '../../assets/icons/star-fill.svg'
+import starOutline from '../../assets/icons/star.svg'
+import placeholder from '../../assets/images/placeholder.png'
+import Button from '../../components/shared/Button'
+import Dialog from '../../components/shared/Dialog'
+import Dropdown from '../../components/shared/Dropdown'
+import DropdownItem from '../../components/shared/DropdownItem'
+import Icon from '../../components/shared/Icon'
+import Tag from '../../components/shared/Tag'
+import { m } from '../../paraglide/messages'
+import { APP_META } from '../../utils/appMeta'
+import { formatProjectStatus } from '../../utils/utils'
+import { useSetProjectCollection } from '../hooks'
+import type { HydratedProjectItem, ProjectStatus } from '../types'
+import CollectionPicker from './CollectionPicker'
 
-const STATUS_OPTIONS: ProjectStatus[] = ["pending", "in_progress", "done"];
+const STATUS_OPTIONS: ProjectStatus[] = ['pending', 'in_progress', 'done']
 
-function statusVariant(status: ProjectStatus): "neutral" | "success" {
-  return status === "done" ? "success" : "neutral";
+function statusVariant(status: ProjectStatus): 'neutral' | 'success' {
+  return status === 'done' ? 'success' : 'neutral'
 }
 
 interface ProjectDialogProps {
-  open: boolean;
-  onClose: () => void;
-  title: string;
-  href: string;
-  project: HydratedProjectItem;
-  imageUrl?: string;
-  onDelete?: () => void;
-  onStatusChange?: (status: ProjectStatus) => void;
-  initialStatus?: ProjectStatus;
-  onFeaturedChange?: (featured: boolean) => void | Promise<void>;
+  open: boolean
+  onClose: () => void
+  title: string
+  href: string
+  project: HydratedProjectItem
+  imageUrl?: string
+  onDelete?: () => void
+  onStatusChange?: (status: ProjectStatus) => void
+  initialStatus?: ProjectStatus
+  onFeaturedChange?: (featured: boolean) => void | Promise<void>
+  /**
+   * Plan the project is being viewed in. Set it to offer collection assignment;
+   * leave it out for read-only views, like the other edit affordances here.
+   */
+  planId?: string
 }
 
 function extractMeta(upstream: Record<string, unknown> | null) {
-  if (!upstream) return { createdAt: null, author: null };
+  if (!upstream) return { createdAt: null, author: null }
 
-  const rawDate =
-    upstream.created_at ?? upstream.created ?? upstream.uploaded_at;
+  const rawDate = upstream.created_at ?? upstream.created ?? upstream.uploaded_at
   const createdAt =
-    typeof rawDate === "string" && rawDate
+    typeof rawDate === 'string' && rawDate
       ? new Date(rawDate).toLocaleDateString(undefined, {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
         })
-      : null;
+      : null
 
-  const userObj = upstream.user as Record<string, unknown> | null | undefined;
+  const userObj = upstream.user as Record<string, unknown> | null | undefined
   const rawAuthor =
     upstream.author_name ??
     upstream.author ??
     userObj?.username ??
     upstream.organisationName ??
-    upstream.provider;
-  const author = typeof rawAuthor === "string" && rawAuthor ? rawAuthor : null;
+    upstream.provider
+  const author = typeof rawAuthor === 'string' && rawAuthor ? rawAuthor : null
 
-  return { createdAt, author };
+  return { createdAt, author }
 }
 
 function ProjectDialog({
@@ -71,28 +77,39 @@ function ProjectDialog({
   onStatusChange,
   initialStatus,
   onFeaturedChange,
+  planId,
 }: ProjectDialogProps) {
-  const meta = APP_META[project.app];
-  const { createdAt, author } = extractMeta(project.upstream);
-  const [localStatus, setLocalStatus] = useState<ProjectStatus>(initialStatus ?? project.status);
+  // Null only for a task with no tool yet; this dialog is for real projects.
+  const meta = project.app ? APP_META[project.app] : null
+  const { createdAt, author } = extractMeta(project.upstream)
+  const [localStatus, setLocalStatus] = useState<ProjectStatus>(initialStatus ?? project.status)
+
+  const setCollection = useSetProjectCollection(planId ?? '')
 
   useEffect(() => {
-    setLocalStatus(initialStatus ?? project.status);
-  }, [initialStatus, project.status]);
+    setLocalStatus(initialStatus ?? project.status)
+  }, [initialStatus, project.status])
 
   function handleStatusSelect(event: CustomEvent) {
-    const status = event.detail.item.value as ProjectStatus;
-    setLocalStatus(status);
-    onStatusChange?.(status);
+    const status = event.detail.item.value as ProjectStatus
+    setLocalStatus(status)
+    onStatusChange?.(status)
+  }
+
+  function handleCollectionChange(collectionId: string | null) {
+    setCollection.mutate(
+      { planProjectId: project.id, collectionId },
+      { onSuccess: () => toast.success(m.plan_toast_project_collection_saved()) }
+    )
   }
 
   async function handleFeaturedChange() {
-    const next = !project.featured;
+    const next = !project.featured
     try {
-      await onFeaturedChange?.(next);
-      toast.success(next ? m.plan_toast_project_featured() : m.plan_toast_project_unfeatured());
+      await onFeaturedChange?.(next)
+      toast.success(next ? m.plan_toast_project_featured() : m.plan_toast_project_unfeatured())
     } catch {
-      toast.error(m.plan_toast_featured_error());
+      toast.error(m.plan_toast_featured_error())
     }
   }
 
@@ -105,10 +122,13 @@ function ProjectDialog({
             <button
               type="button"
               onClick={handleFeaturedChange}
-              title={project.featured ? "Remove from featured" : "Mark as featured"}
-              className={`shrink-0 leading-none transition-colors ${project.featured ? "text-hot-yellow-600" : "text-hot-gray-300 hover:text-hot-gray-500"}`}
+              title={project.featured ? 'Remove from featured' : 'Mark as featured'}
+              className={`shrink-0 leading-none transition-colors ${project.featured ? 'text-hot-yellow-600' : 'text-hot-gray-300 hover:text-hot-gray-500'}`}
             >
-              <Icon src={project.featured ? starFill : starOutline} label={project.featured ? "Remove from featured" : "Mark as featured"} />
+              <Icon
+                src={project.featured ? starFill : starOutline}
+                label={project.featured ? 'Remove from featured' : 'Mark as featured'}
+              />
             </button>
           ) : project.featured ? (
             <span className="shrink-0 leading-none text-hot-yellow-600">
@@ -122,23 +142,23 @@ function ProjectDialog({
           alt={title}
           className="w-full h-40 object-cover rounded"
           onError={(e) => {
-            e.currentTarget.src = placeholder;
+            e.currentTarget.src = placeholder
           }}
         />
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-sm text-sm text-hot-gray-600">
-            <img src={meta.icon} alt={meta.name} className="w-5 h-5" />
-            <span>{meta.name}</span>
+            {meta && (
+              <>
+                <img src={meta.icon} alt={meta.name} className="w-5 h-5" />
+                <span>{meta.name}</span>
+              </>
+            )}
           </div>
 
           {onStatusChange ? (
             <Dropdown onSelect={handleStatusSelect}>
-              <Tag
-                slot="trigger"
-                variant={statusVariant(localStatus)}
-                className="cursor-pointer"
-              >
+              <Tag slot="trigger" variant={statusVariant(localStatus)} className="cursor-pointer">
                 {formatProjectStatus(localStatus)} ▾
               </Tag>
               {STATUS_OPTIONS.map((s) => (
@@ -148,11 +168,18 @@ function ProjectDialog({
               ))}
             </Dropdown>
           ) : (
-            <Tag variant={statusVariant(localStatus)}>
-              {formatProjectStatus(localStatus)}
-            </Tag>
+            <Tag variant={statusVariant(localStatus)}>{formatProjectStatus(localStatus)}</Tag>
           )}
         </div>
+
+        {planId && (
+          <CollectionPicker
+            planId={planId}
+            value={project.collection_id}
+            onChange={handleCollectionChange}
+            isPending={setCollection.isPending}
+          />
+        )}
 
         {(author || createdAt) && (
           <dl className="grid grid-cols-[auto_1fr] gap-x-md gap-y-xs text-sm">
@@ -178,9 +205,9 @@ function ProjectDialog({
             variant="danger"
             appearance="outlined"
             onClick={() => {
-              onDelete();
-              onClose();
-              toast.success(m.plan_toast_project_removed());
+              onDelete()
+              onClose()
+              toast.success(m.plan_toast_project_removed())
             }}
           >
             Remove from plan
@@ -192,7 +219,7 @@ function ProjectDialog({
         </Button>
       </div>
     </Dialog>
-  );
+  )
 }
 
-export default ProjectDialog;
+export default ProjectDialog

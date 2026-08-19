@@ -8,7 +8,10 @@ import LinkProjectDialog from './LinkProjectDialog'
 import PlanProjectCard from './PlanProjectCard'
 
 interface SortableViewProjectCardProps {
+  /** The plan_project id, which is what every callback below reports. */
   id: string
+  /** Collection the card renders under (ALL_SECTION_ID when unassigned). */
+  sectionId: string
   project: HydratedProjectItem
   planId: string
   onProjectSelected?: (oldKey: string, project: ProjectOption) => void
@@ -18,6 +21,7 @@ interface SortableViewProjectCardProps {
 
 function SortableViewProjectCard({
   id,
+  sectionId,
   project,
   planId,
   onProjectSelected,
@@ -25,7 +29,12 @@ function SortableViewProjectCard({
   onFeaturedToggle,
 }: SortableViewProjectCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    // The plan_project id, kept stable across sections: dnd-kit tracks the
+    // active draggable by id, so an id derived from the section would change
+    // mid-move and abort the drag.
     id,
+    // Read back by the drop handler to know which bucket this card sits in.
+    data: { sectionId, projectId: id },
   })
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -37,7 +46,7 @@ function SortableViewProjectCard({
   const [dialogOpen, setDialogOpen] = useState(false)
 
   function handleStatusChange(status: ProjectStatus) {
-    if (!project.project_id) return
+    if (!project.project_id || !project.app) return
     updateStatus({
       planId,
       app: project.app,
@@ -60,12 +69,18 @@ function SortableViewProjectCard({
         onStatusChange={project.project_exists ? handleStatusChange : undefined}
         onSelectClick={project.project_exists ? undefined : () => setDialogOpen(true)}
         onDelete={project.project_exists ? () => onProjectDeleted?.(id) : undefined}
-        onFeaturedChange={project.project_exists ? (featured) => onFeaturedToggle?.(id, featured) : undefined}
+        onFeaturedChange={
+          project.project_exists ? (featured) => onFeaturedToggle?.(id, featured) : undefined
+        }
+        planId={planId}
       />
       {!project.project_exists && (
         <LinkProjectDialog
           open={dialogOpen}
           app={project.app}
+          planId={planId}
+          planProjectId={id}
+          collectionId={project.collection_id}
           onClose={() => setDialogOpen(false)}
           onDelete={() => onProjectDeleted?.(id)}
           onConfirm={(selected) => onProjectSelected?.(id, selected)}

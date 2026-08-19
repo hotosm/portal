@@ -1,50 +1,50 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { m } from "../../paraglide/messages";
-import type { PlanImageRead } from "../types";
-import { planQueryKeys } from "./usePlans";
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { m } from '../../paraglide/messages'
+import type { PlanImageRead } from '../types'
+import { planQueryKeys } from './queryKeys'
 
 export function useUploadPlanImage(planId: string) {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (file: File): Promise<PlanImageRead> => {
-      const form = new FormData();
-      form.append("file", file);
+      const form = new FormData()
+      form.append('file', file)
       const response = await fetch(`/api/plans/${planId}/images`, {
-        method: "POST",
-        credentials: "include",
+        method: 'POST',
+        credentials: 'include',
         body: form,
-      });
+      })
       if (!response.ok) {
-        throw new Error(`[${response.status}] Failed to upload image`);
+        throw new Error(`[${response.status}] Failed to upload image`)
       }
-      return response.json();
+      return response.json()
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: planQueryKeys.detail(planId) });
-      queryClient.invalidateQueries({ queryKey: planQueryKeys.list() });
+      queryClient.invalidateQueries({ queryKey: planQueryKeys.detail(planId) })
+      queryClient.invalidateQueries({ queryKey: planQueryKeys.list() })
     },
     onError: () => {
-      toast.error(m.plan_toast_image_upload_error());
+      toast.error(m.plan_toast_image_upload_error())
     },
-  });
+  })
 }
 
 export function useDeletePlanImage(planId: string) {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (imageId: string): Promise<void> => {
       const response = await fetch(`/api/plans/${planId}/images/${imageId}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
+        method: 'DELETE',
+        credentials: 'include',
+      })
       if (!response.ok) {
-        throw new Error(`[${response.status}] Failed to delete image`);
+        throw new Error(`[${response.status}] Failed to delete image`)
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: planQueryKeys.detail(planId) });
-      queryClient.invalidateQueries({ queryKey: planQueryKeys.list() });
+      queryClient.invalidateQueries({ queryKey: planQueryKeys.detail(planId) })
+      queryClient.invalidateQueries({ queryKey: planQueryKeys.list() })
     },
-  });
+  })
 }

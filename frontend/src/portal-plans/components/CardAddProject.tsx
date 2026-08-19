@@ -1,7 +1,7 @@
-import plusIcon from "../../assets/icons/plus-circle-fill.svg?url";
+import plusIcon from '../../assets/icons/plus-circle-fill.svg?url'
 
 interface CardAddProjectProps {
-  onButtonClick?: () => void;
+  onButtonClick?: () => void
 }
 
 function CardAddProject({ onButtonClick }: CardAddProjectProps) {
@@ -14,7 +14,7 @@ function CardAddProject({ onButtonClick }: CardAddProjectProps) {
       <img src={plusIcon} alt="" className="w-10 h-10 opacity-60" />
       <span className="text-sm font-medium">Add project</span>
     </button>
-  );
+  )
 }
 
-export default CardAddProject;
+export default CardAddProject
