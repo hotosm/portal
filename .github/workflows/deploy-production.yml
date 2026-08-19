@@ -159,6 +159,7 @@ jobs:
           OSM_REDIRECT_URI=${{ secrets.OSM_REDIRECT_URI }}
           ADMIN_EMAILS=${{ secrets.ADMIN_EMAILS }}
           HANKO_API_URL=https://login.hotosm.org
+          LOGIN_GROUPS_ENABLED=true
           DRONE_TM_BACKEND_URL=https://drone.hotosm.org/api
           FAIR_API_BASE_URL=https://api-prod.fair.hotosm.org/api/v1
           UMAP_BASE_URL=https://umap.hotosm.org
