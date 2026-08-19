@@ -158,6 +158,20 @@ function MyPlanPage() {
   }, [plan, planId, refreshPlan])
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
+  /**
+   * Let the live-hydration effect run once more after a change.
+   *
+   * `GET /plans/{id}` answers from the stored snapshot, where `error` is always
+   * null: "unavailable" only exists once the backend hydrates against each app.
+   * Every mutation invalidates that query, so without releasing the guard the
+   * snapshot has the last word and every project looks available until the page
+   * remounts. The old whole-plan PATCH did this in its onSuccess; the granular
+   * mutations that replaced it have to do the same.
+   */
+  function rehydrateAfterChange() {
+    revalidatedRef.current = null
+  }
+
   function patchCachedProjects(projects: HydratedProjectItem[]) {
     queryClient.setQueryData<PlanReadHydrated | null>(planQueryKeys.detail(planId!), (old) =>
       old ? { ...old, projects } : old
@@ -167,7 +181,7 @@ function MyPlanPage() {
   function handleFeaturedToggle(id: string, featured: boolean) {
     if (!plan) return
     patchCachedProjects(plan.projects.map((p) => (p.id === id ? { ...p, featured } : p)))
-    setFeatured({ planProjectId: id, featured })
+    setFeatured({ planProjectId: id, featured }, { onSuccess: rehydrateAfterChange })
   }
 
   /** Collection the open picker adds into; null is the "All" bucket. */
@@ -176,39 +190,48 @@ function MyPlanPage() {
   }
 
   function handleAddProject(project: ProjectOption) {
-    addProject({
-      app: project.app,
-      project_id: project.project_id,
-      project_exists: true,
-      collection_id: pickerCollectionId(),
-      // Fall back to the resolved title so the card shows a name right away;
-      // some apps only expose the title (no upstream) until rehydration.
-      // Skip that fallback while still resolving (e.g. an OAM TMS URL) — its
-      // "title" is just the raw project_id placeholder, not a real name, and
-      // stashing it in `data` would mark the row as already hydrated, hiding
-      // the pending spinner and never getting replaced by the real title.
-      data:
-        (project.upstream as Record<string, unknown> | null) ??
-        (project.title && !project.isResolving ? { name: project.title } : null),
-    })
+    addProject(
+      {
+        app: project.app,
+        project_id: project.project_id,
+        project_exists: true,
+        collection_id: pickerCollectionId(),
+        // Fall back to the resolved title so the card shows a name right away;
+        // some apps only expose the title (no upstream) until rehydration.
+        // Skip that fallback while still resolving (e.g. an OAM TMS URL) — its
+        // "title" is just the raw project_id placeholder, not a real name, and
+        // stashing it in `data` would mark the row as already hydrated, hiding
+        // the pending spinner and never getting replaced by the real title.
+        data:
+          (project.upstream as Record<string, unknown> | null) ??
+          (project.title && !project.isResolving ? { name: project.title } : null),
+      },
+      { onSuccess: rehydrateAfterChange }
+    )
   }
 
   function handleAddTask(title: string) {
-    addProject({ project_exists: false, data: { title }, collection_id: pickerCollectionId() })
+    addProject(
+      { project_exists: false, data: { title }, collection_id: pickerCollectionId() },
+      { onSuccess: rehydrateAfterChange }
+    )
   }
 
   function handleTaskCompleted(planProjectId: string, project: ProjectOption) {
-    completeTask({
-      planProjectId,
-      app: project.app,
-      projectId: project.project_id,
-    })
+    completeTask(
+      {
+        planProjectId,
+        app: project.app,
+        projectId: project.project_id,
+      },
+      { onSuccess: rehydrateAfterChange }
+    )
   }
 
   function handleProjectDeleted(id: string) {
     if (!plan) return
     patchCachedProjects(plan.projects.filter((p) => p.id !== id))
-    removeProject(id)
+    removeProject(id, { onSuccess: rehydrateAfterChange })
   }
 
   /**
@@ -317,18 +340,21 @@ function MyPlanPage() {
         : projectsOf(plan.projects, fromSection).filter((p) => p.id !== project.id)
 
     placeProjects(landed, origin)
-    reorderProjects([
-      ...landed.map((p, index) => ({
-        id: p.id,
-        collection_id: nextCollectionId,
-        display_order: index,
-      })),
-      ...origin.map((p, index) => ({
-        id: p.id,
-        collection_id: fromSection === ALL_SECTION_ID ? null : fromSection,
-        display_order: index,
-      })),
-    ])
+    reorderProjects(
+      [
+        ...landed.map((p, index) => ({
+          id: p.id,
+          collection_id: nextCollectionId,
+          display_order: index,
+        })),
+        ...origin.map((p, index) => ({
+          id: p.id,
+          collection_id: fromSection === ALL_SECTION_ID ? null : fromSection,
+          display_order: index,
+        })),
+      ],
+      { onSuccess: rehydrateAfterChange }
+    )
   }
 
   if (!isLoading && isError) {
