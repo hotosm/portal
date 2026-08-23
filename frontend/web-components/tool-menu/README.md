@@ -154,7 +154,7 @@ The menu includes the following HOTOSM tools:
 
 **Field**
 
-- Field Mapping Tasking Manager
+- Field Tasking Manager
 - ChatMap
 
 **Data**
