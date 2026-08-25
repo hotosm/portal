@@ -3,8 +3,7 @@
 from datetime import datetime
 from typing import Literal
 
-import nh3
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 AppLiteral = Literal[
     "chatmap",
@@ -25,17 +24,21 @@ GroupType = Literal["team", "organization"]
 
 HydrationError = Literal["not_found", "upstream_unavailable", "upstream_timeout", "pending"]
 
-_ALLOWED_TAGS = frozenset({"p", "h3", "h4", "h5", "strong", "em", "u", "ul", "ol", "li", "br", "a"})
-_ALLOWED_ATTRS: dict[str, set[str]] = {"a": {"href"}}
+# Description fields are stored raw and sanitized on output, not on input.
+#
+# Plan descriptions hold markdown (rendered by react-markdown, which never turns
+# embedded HTML into DOM nodes and drops unsafe URL protocols); collection
+# descriptions are shown as plain text, which React escapes. Both are inert as
+# stored. HTML-sanitizing them on the way in used to corrupt legitimate content:
+# nh3 escaped `>` (breaking blockquotes), dropped `<https://…>` autolinks, and
+# turned `&` into `&amp;` — which the collections view then displayed verbatim.
+#
+# So: whatever renders these must treat them as untrusted. Never feed them to
+# `dangerouslySetInnerHTML`, `rehype-raw`, or an HTML email/PDF template without
+# sanitizing at that point.
 _DESC_MAX_LEN = 10_000
 _NAME_MAX_LEN = 200
 _COLLECTION_DESC_MAX_LEN = 2_000
-
-
-def _sanitize_html(v: str | None) -> str | None:
-    if not v:
-        return v
-    return nh3.clean(v, tags=_ALLOWED_TAGS, attributes=_ALLOWED_ATTRS)
 
 
 class PlanImageRead(BaseModel):
@@ -51,21 +54,11 @@ class PlanCollectionCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=_NAME_MAX_LEN)
     description: str | None = Field(default=None, max_length=_COLLECTION_DESC_MAX_LEN)
 
-    @field_validator("description")
-    @classmethod
-    def sanitize_description(cls, v: str | None) -> str | None:
-        return _sanitize_html(v)
-
 
 class PlanCollectionUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=_NAME_MAX_LEN)
     description: str | None = Field(default=None, max_length=_COLLECTION_DESC_MAX_LEN)
     display_order: int | None = None
-
-    @field_validator("description")
-    @classmethod
-    def sanitize_description(cls, v: str | None) -> str | None:
-        return _sanitize_html(v)
 
 
 class PlanCollectionRead(BaseModel):
@@ -133,21 +126,11 @@ class PlanCreate(PlanScopeMixin):
     description: str | None = Field(default=None, max_length=_DESC_MAX_LEN)
     projects: list[PlanProjectItem] = []
 
-    @field_validator("description")
-    @classmethod
-    def sanitize_description(cls, v: str | None) -> str | None:
-        return _sanitize_html(v)
-
 
 class PlanUpdate(PlanScopeMixin):
     name: str | None = Field(default=None, min_length=1)
     description: str | None = Field(default=None, max_length=_DESC_MAX_LEN)
     projects: list[PlanProjectItem] | None = None
-
-    @field_validator("description")
-    @classmethod
-    def sanitize_description(cls, v: str | None) -> str | None:
-        return _sanitize_html(v)
 
 
 class PlanScopeRead(BaseModel):
