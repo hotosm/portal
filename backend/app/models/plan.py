@@ -23,15 +23,13 @@ Visibility = Literal["private", "group", "public"]
 EditScope = Literal["owner", "group"]
 GroupType = Literal["team", "organization"]
 
-HydrationError = Literal[
-    "not_found", "upstream_unavailable", "upstream_timeout", "pending"
-]
+HydrationError = Literal["not_found", "upstream_unavailable", "upstream_timeout", "pending"]
 
-_ALLOWED_TAGS = frozenset(
-    {"p", "h3", "h4", "h5", "strong", "em", "u", "ul", "ol", "li", "br", "a"}
-)
+_ALLOWED_TAGS = frozenset({"p", "h3", "h4", "h5", "strong", "em", "u", "ul", "ol", "li", "br", "a"})
 _ALLOWED_ATTRS: dict[str, set[str]] = {"a": {"href"}}
 _DESC_MAX_LEN = 10_000
+_NAME_MAX_LEN = 200
+_COLLECTION_DESC_MAX_LEN = 2_000
 
 
 def _sanitize_html(v: str | None) -> str | None:
@@ -49,6 +47,39 @@ class PlanImageRead(BaseModel):
     created_at: datetime
 
 
+class PlanCollectionCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=_NAME_MAX_LEN)
+    description: str | None = Field(default=None, max_length=_COLLECTION_DESC_MAX_LEN)
+
+    @field_validator("description")
+    @classmethod
+    def sanitize_description(cls, v: str | None) -> str | None:
+        return _sanitize_html(v)
+
+
+class PlanCollectionUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=_NAME_MAX_LEN)
+    description: str | None = Field(default=None, max_length=_COLLECTION_DESC_MAX_LEN)
+    display_order: int | None = None
+
+    @field_validator("description")
+    @classmethod
+    def sanitize_description(cls, v: str | None) -> str | None:
+        return _sanitize_html(v)
+
+
+class PlanCollectionRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    plan_id: str
+    name: str
+    description: str | None
+    display_order: int
+    created_at: datetime
+    updated_at: datetime
+
+
 class PlanProjectItem(BaseModel):
     id: str | None = None
     app: AppLiteral | None = None
@@ -57,6 +88,9 @@ class PlanProjectItem(BaseModel):
     status: StatusLiteral = "in_progress"
     featured: bool = False
     data: dict | None = None
+    # Null means "All" — the frontend buckets any item without a collection
+    # under a virtual section; there is no such row in the database.
+    collection_id: str | None = None
 
     @model_validator(mode="after")
     def check_project_fields(self) -> "PlanProjectItem":
@@ -64,8 +98,8 @@ class PlanProjectItem(BaseModel):
             if self.app is None or self.project_id is None:
                 raise ValueError("app and project_id are required when project_exists is True")
         else:
-            if self.app is None:
-                raise ValueError("app is required when project_exists is False")
+            # A task is a plain to-do: it may name the tool it will end up in, but
+            # it does not have to — the app is set when the task is linked.
             if self.project_id is not None:
                 raise ValueError("project_id must be absent when project_exists is False")
         return self
@@ -136,6 +170,7 @@ class PlanRead(PlanScopeRead):
     name: str
     description: str | None
     projects: list[PlanProjectItem]
+    collections: list[PlanCollectionRead] = []
     images: list[PlanImageRead] = []
     created_at: datetime
     updated_at: datetime
@@ -149,6 +184,7 @@ class HydratedProjectItem(BaseModel):
     status: StatusLiteral = "in_progress"
     featured: bool = False
     data: dict | None = None
+    collection_id: str | None = None
     upstream: dict | None = None
     error: HydrationError | None = None
     # True when this item was served from the stored snapshot (row.data) without a
@@ -161,6 +197,7 @@ class PlanReadHydrated(PlanScopeRead):
     name: str
     description: str | None
     projects: list[HydratedProjectItem]
+    collections: list[PlanCollectionRead] = []
     images: list[PlanImageRead] = []
     created_at: datetime
     updated_at: datetime
@@ -173,6 +210,34 @@ class PlanTag(BaseModel):
 
 class ProjectStatusUpdate(BaseModel):
     status: StatusLiteral
+
+
+class ProjectFeaturedUpdate(BaseModel):
+    featured: bool
+
+
+class ProjectCollectionUpdate(BaseModel):
+    """Move one project to a collection of the same plan; null means "All"."""
+
+    collection_id: str | None = None
+
+
+class ProjectPlacement(BaseModel):
+    """Where one project sits after a drag: which collection, in which position."""
+
+    id: str
+    collection_id: str | None = None
+    display_order: int = Field(..., ge=0)
+
+
+class ProjectReorder(BaseModel):
+    """Full placement of every project the drag touched.
+
+    Sent as a set rather than one move at a time so a drag that shifts the
+    positions of several siblings lands in a single request.
+    """
+
+    items: list[ProjectPlacement] = []
 
 
 class UrlResolveRequest(BaseModel):

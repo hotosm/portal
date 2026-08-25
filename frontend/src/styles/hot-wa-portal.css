@@ -88,8 +88,61 @@ wa-card::part(base) {
   }
 }
 
+/* Web Awesome tabs (wa-tab-group)
+
+   The active tab's underline comes from a `::slotted(wa-tab[active])` rule in
+   the tab group's shadow tree. Normal declarations from the outer tree beat an
+   inner tree's ::slotted rules, so Tailwind Preflight's `* { border-width: 0 }`
+   wins and the underline never renders. Restore it here, in the light DOM.
+
+   `--track-width` and `--indicator-color` are set on the tab group's :host and
+   inherit down to the slotted tabs, so the values stay in sync with the
+   component's own layout. */
+wa-tab-group {
+  --indicator-color: var(--hot-color-red-600);
+  /* The tab group's shadow CSS colors the active tab with the Web Awesome
+     brand (blue); point that token at HOT red instead. */
+  --wa-color-brand-on-quiet: var(--hot-color-red-600);
+}
+
+wa-tab[active] {
+  border-block-end: solid var(--track-width, 0.125rem) var(--indicator-color);
+  margin-block-end: calc(-1 * var(--track-width, 0.125rem));
+}
+
+/* Opt-in: tab groups that keep one height across tabs.
+
+   Every panel is stacked in a single grid cell, so the group is always as tall
+   as its tallest panel and switching tabs never resizes it. Inactive panels are
+   hidden with `visibility` rather than the `display: none` the component sets
+   on its own `:host` (document rules beat `:host` rules) — they still occupy
+   the cell, but stay out of both the tab order and the accessibility tree. */
+.wa-tabs-equal-height::part(body) {
+  display: grid;
+}
+
+.wa-tabs-equal-height > wa-tab-panel {
+  grid-area: 1 / 1;
+}
+
+.wa-tabs-equal-height > wa-tab-panel:not([active]) {
+  display: block;
+  visibility: hidden;
+}
+
+/* Opt-in: tighter panels. The component gives them `--wa-space-xl` (2rem) above
+   and below, which is too airy inside a dialog. */
+.wa-tabs-compact > wa-tab-panel {
+  --padding: var(--wa-space-m) 0;
+}
+
 wa-breadcrumb {
   overflow: hidden;
+}
+
+/* Same color for links and the current page */
+wa-breadcrumb-item {
+  color: var(--hot-color-gray-600); /* #716F73 */
 }
 
 wa-breadcrumb-item[aria-current="page"] {

@@ -47,6 +47,21 @@ export default {
         "hot-gray-1000": "#000000",
         "hot-gray-50": "var(--hot-color-gray-50)",
 
+        // Neutrals (blue scale)
+        "hot-neutral-1000": "var(--hot-color-neutral-1000)", // #000
+        "hot-neutral-950": "var(--hot-color-neutral-950)",
+        "hot-neutral-900": "var(--hot-color-neutral-900)",
+        "hot-neutral-800": "var(--hot-color-neutral-800)", // #20365B
+        "hot-neutral-700": "var(--hot-color-neutral-700)",
+        "hot-neutral-600": "var(--hot-color-neutral-600)",
+        "hot-neutral-500": "var(--hot-color-neutral-500)", // #344F7B
+        "hot-neutral-400": "var(--hot-color-neutral-400)",
+        "hot-neutral-300": "var(--hot-color-neutral-300)",
+        "hot-neutral-200": "var(--hot-color-neutral-200)",
+        "hot-neutral-100": "var(--hot-color-neutral-100)",
+        "hot-neutral-50": "var(--hot-color-neutral-50)",
+        "hot-neutral-0": "var(--hot-color-neutral-0)", // #fff
+
         // Semantic colors
         "hot-primary": "var(--hot-color-primary-600)",
         "hot-danger": "var(--hot-color-danger-600)",

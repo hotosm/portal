@@ -1,18 +1,21 @@
 """Pytest configuration and fixtures."""
 
 from collections.abc import AsyncGenerator
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
+import pytest_asyncio
+from hotosm_auth import AuthConfig
+from hotosm_auth.models import HankoUser
+from hotosm_auth_fastapi import init_auth
+from hotosm_auth_fastapi.dependencies import get_current_user, get_current_user_optional
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from app.core.database import Base, get_db
 from app.core.cache import clear_cache
+from app.core.database import Base, get_db
 from app.main import app
-from hotosm_auth import AuthConfig
-from hotosm_auth_fastapi import init_auth
-from hotosm_auth_fastapi.dependencies import get_current_user_optional
 
 init_auth(AuthConfig(
     hanko_api_url="http://test-hanko-api",
@@ -116,3 +119,68 @@ def mock_db_failure():
         return_value=AsyncMock(connected=False, response_time_ms=None),
     ):
         yield
+# ── Authenticated clients, shared by the plans/collections test modules ──────
+
+
+def make_user(user_id: str, email: str = "u@example.com") -> HankoUser:
+    now = datetime.now(UTC)
+    return HankoUser(
+        id=user_id,
+        email=email,
+        email_verified=True,
+        created_at=now,
+        updated_at=now,
+        username=email.split("@")[0],
+    )
+
+
+@pytest_asyncio.fixture
+async def auth_client(test_db_session) -> AsyncGenerator[tuple[AsyncClient, HankoUser], None]:
+    """Client authenticated as a fixed test user (user A)."""
+    user = make_user("user-a-id", "a@example.com")
+
+    async def override_get_db():
+        yield test_db_session
+
+    async def override_current_user():
+        return user
+
+    async def override_current_user_optional():
+        return user
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = override_current_user
+    app.dependency_overrides[get_current_user_optional] = override_current_user_optional
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        yield c, user
+
+    app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
+async def two_auth_clients(test_db_session):
+    """Single client whose current user can be switched between requests.
+
+    Yields (client, user_cell) where user_cell is a 1-element list.
+    Set user_cell[0] = some_user before each request to control auth.
+    """
+    user_cell: list = [None]
+
+    async def override_get_db():
+        yield test_db_session
+
+    async def override_current_user():
+        return user_cell[0]
+
+    async def override_current_user_optional():
+        return user_cell[0]
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = override_current_user
+    app.dependency_overrides[get_current_user_optional] = override_current_user_optional
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        yield c, user_cell
+
+    app.dependency_overrides.clear()

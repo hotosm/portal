@@ -1,33 +1,33 @@
-import { useParams, useNavigate } from "react-router-dom";
-import CardSkeleton from "../components/shared/CardSkeleton";
-import PageWrapper from "../components/shared/PageWrapper";
-import { useLanguage } from "../contexts/LanguageContext";
-import { m } from "../paraglide/messages";
-import PlanForm from "./components/PlanForm";
-import { usePlan, useUpdatePlan } from "./hooks";
-import PlanSectionHeader from "./components/PlanSectionHeader";
+import { useNavigate, useParams } from 'react-router-dom'
+import CardSkeleton from '../components/shared/CardSkeleton'
+import PageWrapper from '../components/shared/PageWrapper'
+import { useLanguage } from '../contexts/LanguageContext'
+import { m } from '../paraglide/messages'
+import PlanForm from './components/PlanForm'
+import PlanSectionHeader from './components/PlanSectionHeader'
+import { usePlan, useUpdatePlan } from './hooks'
 
 function EditPlanPage() {
-  const { planId } = useParams<{ planId: string }>();
-  const navigate = useNavigate();
-  const { currentLanguage } = useLanguage();
-  const { data: plan, isLoading, isError } = usePlan(planId ?? "");
-  const { mutateAsync: updatePlan, isPending } = useUpdatePlan();
+  const { planId } = useParams<{ planId: string }>()
+  const navigate = useNavigate()
+  const { currentLanguage } = useLanguage()
+  const { data: plan, isLoading, isError } = usePlan(planId ?? '')
+  const { mutateAsync: updatePlan, isPending } = useUpdatePlan()
 
-  const detailPath = `/${currentLanguage}/plan/${planId}`;
+  const detailPath = `/${currentLanguage}/plan/${planId}`
 
   return (
     <>
       <PlanSectionHeader
         breadcrumbs={[
           { label: m.plan_header(), href: `/${currentLanguage}/plan` },
-          { label: plan?.name ?? "…", href: detailPath },
+          { label: plan?.name ?? '…', href: detailPath },
           { label: m.plan_menu_edit() },
         ]}
         buttonText={m.plan_cancel()}
         onButtonClick={() => navigate(detailPath)}
       >
-        {plan?.name ?? "…"}
+        {plan?.name ?? '…'}
       </PlanSectionHeader>
       <PageWrapper>
         {isLoading ? (
@@ -43,7 +43,7 @@ function EditPlanPage() {
         ) : (
           <PlanForm
             initialName={plan.name}
-            initialDescription={plan.description ?? ""}
+            initialDescription={plan.description ?? ''}
             initialImages={plan.images ?? []}
             planId={planId}
             submitLabel={m.plan_edit_submit()}
@@ -55,15 +55,15 @@ function EditPlanPage() {
                   name,
                   description: description || undefined,
                 },
-              });
-              navigate(detailPath);
+              })
+              navigate(detailPath)
             }}
             onCancel={() => navigate(detailPath)}
           />
         )}
       </PageWrapper>
     </>
-  );
+  )
 }
 
-export default EditPlanPage;
+export default EditPlanPage

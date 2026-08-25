@@ -1,26 +1,26 @@
-import { useState } from "react";
-import Button from "../../components/shared/Button";
-import { m } from "../../paraglide/messages";
-import type { PlanFormValues, PlanImageRead } from "../types";
-import { usePlanImageUpload } from "../hooks/usePlanImageUpload";
-import PlanNameField from "./form/PlanNameField";
-import PlanDescriptionField from "./form/PlanDescriptionField";
-import PlanImagesField from "./form/PlanImagesField";
+import { useState } from 'react'
+import Button from '../../components/shared/Button'
+import { m } from '../../paraglide/messages'
+import { usePlanImageUpload } from '../hooks/usePlanImageUpload'
+import type { PlanFormValues, PlanImageRead } from '../types'
+import PlanDescriptionField from './form/PlanDescriptionField'
+import PlanImagesField from './form/PlanImagesField'
+import PlanNameField from './form/PlanNameField'
 
 interface PlanFormProps {
-  initialName?: string;
-  initialDescription?: string;
-  initialImages?: PlanImageRead[];
-  planId?: string;
-  submitLabel: string;
-  isPending: boolean;
-  onSubmit: (values: PlanFormValues) => Promise<void>;
-  onCancel: () => void;
+  initialName?: string
+  initialDescription?: string
+  initialImages?: PlanImageRead[]
+  planId?: string
+  submitLabel: string
+  isPending: boolean
+  onSubmit: (values: PlanFormValues) => Promise<void>
+  onCancel: () => void
 }
 
 function PlanForm({
-  initialName = "",
-  initialDescription = "",
+  initialName = '',
+  initialDescription = '',
   initialImages = [],
   planId,
   submitLabel,
@@ -28,8 +28,8 @@ function PlanForm({
   onSubmit,
   onCancel,
 }: PlanFormProps) {
-  const [name, setName] = useState(initialName);
-  const [description, setDescription] = useState(initialDescription);
+  const [name, setName] = useState(initialName)
+  const [description, setDescription] = useState(initialDescription)
 
   const {
     displayImages,
@@ -39,20 +39,17 @@ function PlanForm({
     isDeleting,
     handleFileChange,
     handleRemoveImage,
-  } = usePlanImageUpload({ planId, initialImages });
+  } = usePlanImageUpload({ planId, initialImages })
 
-  const busy = isPending || isUploading || isDeleting;
+  const busy = isPending || isUploading || isDeleting
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await onSubmit({ name, description, pendingImages });
-  };
+    e.preventDefault()
+    await onSubmit({ name, description, pendingImages })
+  }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex flex-col gap-lg px-0 lg:px-2xl py-lg"
-    >
+    <form onSubmit={handleSubmit} className="flex flex-col gap-lg px-0 lg:px-2xl py-lg">
       <PlanNameField value={name} onChange={setName} />
 
       <PlanDescriptionField value={description} onChange={setDescription} />
@@ -77,7 +74,7 @@ function PlanForm({
         </button>
       </div>
     </form>
-  );
+  )
 }
 
-export default PlanForm;
+export default PlanForm

@@ -1,48 +1,45 @@
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
-import PageWrapper from "../components/shared/PageWrapper";
-import { useLanguage } from "../contexts/LanguageContext";
-import { m } from "../paraglide/messages";
-import PlanForm from "./components/PlanForm";
-import { useCreatePlan } from "./hooks";
-import PlanSectionHeader from "./components/PlanSectionHeader";
+import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
+import PageWrapper from '../components/shared/PageWrapper'
+import { useLanguage } from '../contexts/LanguageContext'
+import { m } from '../paraglide/messages'
+import PlanForm from './components/PlanForm'
+import PlanSectionHeader from './components/PlanSectionHeader'
+import { useCreatePlan } from './hooks'
 
 async function uploadImages(planId: string, files: File[]): Promise<void> {
   await Promise.all(
     files.map(async (f) => {
-      const form = new FormData();
-      form.append("file", f);
+      const form = new FormData()
+      form.append('file', f)
       const response = await fetch(`/api/plans/${planId}/images`, {
-        method: "POST",
-        credentials: "include",
+        method: 'POST',
+        credentials: 'include',
         body: form,
-      });
+      })
       if (!response.ok) {
-        throw new Error(`[${response.status}] Failed to upload image`);
+        throw new Error(`[${response.status}] Failed to upload image`)
       }
-    }),
-  );
+    })
+  )
 }
 
 function AddPlanPage() {
-  const navigate = useNavigate();
-  const { currentLanguage } = useLanguage();
-  const { mutateAsync: createPlan, isPending } = useCreatePlan();
-  const planListPath = `/${currentLanguage}/plan`;
+  const navigate = useNavigate()
+  const { currentLanguage } = useLanguage()
+  const { mutateAsync: createPlan, isPending } = useCreatePlan()
+  const planListPath = `/${currentLanguage}/plan`
 
   return (
     <>
-      <PlanSectionHeader
-        buttonText={m.plan_cancel()}
-        onButtonClick={() => navigate(planListPath)}
-      >
+      <PlanSectionHeader buttonText={m.plan_cancel()} onButtonClick={() => navigate(planListPath)}>
         <strong>{m.plan_add_header()}</strong>
       </PlanSectionHeader>
       <PageWrapper>
         <h4 className="mb-xs">Create Your Plan</h4>
         <p>
-          Set the foundation for your goals. <br></br>You'll be able to organize
-          projects here once you're finished.
+          Set the foundation for your goals. <br></br>You'll be able to organize projects here once
+          you're finished.
         </p>
         <PlanForm
           submitLabel={m.plan_add_submit()}
@@ -51,21 +48,21 @@ function AddPlanPage() {
             const plan = await createPlan({
               name,
               description: description || undefined,
-            });
+            })
             if (pendingImages.length > 0) {
               try {
-                await uploadImages(plan.id, pendingImages);
+                await uploadImages(plan.id, pendingImages)
               } catch {
-                toast.error(m.plan_toast_image_upload_error());
+                toast.error(m.plan_toast_image_upload_error())
               }
             }
-            navigate(`/${currentLanguage}/plan/${plan.id}`);
+            navigate(`/${currentLanguage}/plan/${plan.id}`)
           }}
           onCancel={() => navigate(planListPath)}
         />
       </PageWrapper>
     </>
-  );
+  )
 }
 
-export default AddPlanPage;
+export default AddPlanPage

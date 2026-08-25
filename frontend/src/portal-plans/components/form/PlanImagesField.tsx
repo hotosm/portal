@@ -1,13 +1,13 @@
-import type { RefObject } from "react";
-import Button from "../../../components/shared/Button";
-import { m } from "../../../paraglide/messages";
+import type { RefObject } from 'react'
+import Button from '../../../components/shared/Button'
+import { m } from '../../../paraglide/messages'
 
 interface PlanImagesFieldProps {
-  displayImages: { id: string; url: string }[];
-  fileInputRef: RefObject<HTMLInputElement | null>;
-  isUploading: boolean;
-  handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleRemoveImage: (id: string) => void;
+  displayImages: { id: string; url: string }[]
+  fileInputRef: RefObject<HTMLInputElement | null>
+  isUploading: boolean
+  handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  handleRemoveImage: (id: string) => void
 }
 
 function PlanImagesField({
@@ -42,15 +42,8 @@ function PlanImagesField({
       {displayImages.length > 0 && (
         <div className="flex flex-wrap gap-sm">
           {displayImages.map((img) => (
-            <div
-              key={img.id}
-              className="relative w-24 h-24 rounded-lg overflow-hidden group"
-            >
-              <img
-                src={img.url}
-                alt={`Image ${img.id}`}
-                className="w-full h-full object-cover"
-              />
+            <div key={img.id} className="relative w-24 h-24 rounded-lg overflow-hidden group">
+              <img src={img.url} alt={`Image ${img.id}`} className="w-full h-full object-cover" />
               <button
                 type="button"
                 onClick={() => handleRemoveImage(img.id)}
@@ -64,7 +57,7 @@ function PlanImagesField({
         </div>
       )}
     </div>
-  );
+  )
 }
 
-export default PlanImagesField;
+export default PlanImagesField
