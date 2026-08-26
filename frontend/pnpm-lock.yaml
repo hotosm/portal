@@ -53,6 +53,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      hotosm-ui-design:
+        specifier: ^1.4.0
+        version: 1.4.0
       maplibre-gl:
         specifier: ^5.9.0
         version: 5.9.0
@@ -1822,6 +1825,9 @@ packages:
 
   hast-util-whitespace@3.0.0:
     resolution: {integrity: sha512-88JUN06ipLwsnv+dVn+OIYOvAuvBMy/Qoi6O7mQHxdPXpjy+Cd6xRkWwux7DKO+4sYILtLBRIKgsdpS2gQc7qw==}
+
+  hotosm-ui-design@1.4.0:
+    resolution: {integrity: sha512-uXVTfh2p9PfyOexpPl5zoe79d0ZIrocTGRAK5fxROENU6JREJ6ZsSLvtZ8Aq0xfVt2nf5sgamrxjNKaaL6Epig==}
 
   html-encoding-sniffer@4.0.0:
     resolution: {integrity: sha512-Y22oTqIU4uuPgEemfz7NDJz6OeKf12Lsu+QC+s3BVpda64lTiMYCyGwg5ki4vFxkMwQdeZDl2adZoqUgdFuTgQ==}
@@ -4720,6 +4726,8 @@ snapshots:
   hast-util-whitespace@3.0.0:
     dependencies:
       '@types/hast': 3.0.4
+
+  hotosm-ui-design@1.4.0: {}
 
   html-encoding-sniffer@4.0.0:
     dependencies:
