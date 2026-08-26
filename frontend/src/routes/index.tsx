@@ -12,7 +12,7 @@ import HelpPage from "../pages/HelpPage";
 import TestPage from "../pages/TestPage";
 import NotFoundPage from "../pages/NotFoundPage";
 import ForbiddenPage from "../pages/ForbiddenPage";
-import PlanPage from "../portal-plans/PlanPage";
+import PlansPage from "../portal-plans/PlansPage";
 import AddPlanPage from "../portal-plans/AddPlanPage";
 import EditPlanPage from "../portal-plans/EditPlanPage";
 import MyPlanPage from "../portal-plans/MyPlanPage";
@@ -130,7 +130,7 @@ export function AppRoutes() {
           index
           element={
             <ProtectedRoute>
-              <PlanPage />
+              <PlansPage />
             </ProtectedRoute>
           }
         />
