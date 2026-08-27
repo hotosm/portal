@@ -381,7 +381,7 @@ function MyPlanPage() {
 
   const featuredSection =
     featuredProjects.length > 0 ? (
-      <PlanSubSectionAccordion key="featured" title={<strong>Featured</strong>}>
+      <PlanSubSectionAccordion key="featured" title="Featured">
         <PageWrapper>
           <div className="flex flex-wrap gap-lg py-lg">
             {featuredProjects.map((project) => (
@@ -415,14 +415,22 @@ function MyPlanPage() {
   // Every collection of the plan renders, empty ones included: an empty section
   // is where a project gets dropped to join that collection. "All" goes last.
   const sectionDefs = [
-    ...collections.map((collection) => ({ id: collection.id, title: collection.name })),
-    { id: ALL_SECTION_ID, title: m.plan_collections_all_bucket() },
+    ...collections.map((collection) => ({
+      id: collection.id,
+      title: collection.name,
+      description: collection.description ?? undefined,
+    })),
+    { id: ALL_SECTION_ID, title: m.plan_collections_all_bucket(), description: undefined },
   ]
 
   const sections = sectionDefs.map((section) => {
     if (isLoading) {
       return (
-        <PlanSubSectionAccordion key={section.id} title={<strong>{section.title}</strong>}>
+        <PlanSubSectionAccordion
+          key={section.id}
+          title={section.title}
+          description={section.description}
+        >
           <PageWrapper>
             <div className="flex flex-wrap gap-lg py-lg">
               {Array.from({ length: 3 }).map((_, i) => (
@@ -442,7 +450,11 @@ function MyPlanPage() {
     if (!canEdit && sectionProjects.length === 0) return null
 
     return (
-      <PlanSubSectionAccordion key={section.id} title={<strong>{section.title}</strong>}>
+      <PlanSubSectionAccordion
+        key={section.id}
+        title={section.title}
+        description={section.description}
+      >
         <PageWrapper>
           <CollectionSection sectionId={section.id} isDroppable={canEdit}>
             {showAddCard && (
