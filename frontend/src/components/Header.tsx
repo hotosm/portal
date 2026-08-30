@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import "@hotosm/tool-menu";
+import "@hotosm/ui";
 import hotLogo from "../assets/icons/portal.svg";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -55,7 +55,7 @@ function Header() {
           />
           <LanguageSwitcher />
 
-          <hotosm-tool-menu lang={currentLanguage} />
+          <hotosm-tool-menu />
         </div>
       </div>
     </>

@@ -11,7 +11,12 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
-import { SortableContext, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable'
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
@@ -34,11 +39,13 @@ import CollectionSection from './components/CollectionSection'
 import CollectionsDialog from './components/CollectionsDialog'
 import PlanMenu from './components/PlanMenu'
 import PlanProjectCard from './components/PlanProjectCard'
+import PlanProjectRow from './components/PlanProjectRow'
 import PlanSectionHeader from './components/PlanSectionHeader'
 import PlanShareButton from './components/PlanShareButton'
 import PlanSubSectionAccordion from './components/PlanSubSectionAccordion'
 import ProjectPickerDialog from './components/ProjectPickerDialog'
 import SortableViewProjectCard from './components/SortableViewProjectCard'
+import SortableViewProjectRow from './components/SortableViewProjectRow'
 import { ALL_SECTION_ID, isSectionDropId } from './contstants'
 import {
   planQueryKeys,
@@ -53,7 +60,13 @@ import {
   useSharedPlan,
   useUpdateProjectStatus,
 } from './hooks'
-import type { AppName, HydratedProjectItem, PlanReadHydrated, ProjectOption } from './types'
+import type {
+  AppName,
+  HydratedProjectItem,
+  PlanReadHydrated,
+  ProjectOption,
+  ProjectStatus,
+} from './types'
 
 /** Projects of one section, in their stored order. */
 function projectsOf(projects: HydratedProjectItem[], sectionId: string) {
@@ -116,6 +129,9 @@ function MyPlanPage() {
   // collection, so the choice of section travels with the dialog.
   const [pickerSection, setPickerSection] = useState<string | null>(null)
   const [collectionsDialogOpen, setCollectionsDialogOpen] = useState(false)
+  // How the projects of every section are drawn. Deliberately ephemeral: it is
+  // a way of looking at the plan, not a setting, so it resets on navigation.
+  const [view, setView] = useState<'card' | 'list'>('card')
   // The plan carries its collections; the query keeps them fresh after a create
   // or rename without waiting for the plan to refetch.
   const { data: fetchedCollections } = useCollections(viewingOwn ? (planId ?? '') : '')
@@ -378,35 +394,42 @@ function MyPlanPage() {
   }
 
   const featuredProjects = plan ? plan.projects.filter((p) => p.featured) : []
+  const isList = view === 'list'
 
   const featuredSection =
     featuredProjects.length > 0 ? (
-      <PlanSubSectionAccordion key="featured" title={<strong>Featured</strong>}>
+      <PlanSubSectionAccordion key="featured" title="Featured">
         <PageWrapper>
-          <div className="flex flex-wrap gap-lg py-lg">
-            {featuredProjects.map((project) => (
-              <div key={project.id} className={cardClassNames}>
-                <PlanProjectCard
-                  project={project}
-                  onStatusChange={
-                    canEdit && project.project_exists && project.project_id && project.app
-                      ? (status) =>
-                          updateStatus({
-                            planId: planId!,
-                            app: project.app!,
-                            projectId: project.project_id!,
-                            status,
-                          })
-                      : undefined
-                  }
-                  onDelete={canEdit ? () => handleProjectDeleted(project.id) : undefined}
-                  onFeaturedChange={
-                    canEdit ? (featured) => handleFeaturedToggle(project.id, featured) : undefined
-                  }
-                  planId={canEdit ? planId : undefined}
-                />
-              </div>
-            ))}
+          <div className={isList ? 'flex flex-col gap-sm py-lg' : 'flex flex-wrap gap-lg py-lg'}>
+            {featuredProjects.map((project) => {
+              // The card and the row take the same props, so the wiring is
+              // resolved once and only the rendering branches.
+              const projectProps = {
+                project,
+                onStatusChange:
+                  canEdit && project.project_exists && project.project_id && project.app
+                    ? (status: ProjectStatus) =>
+                        updateStatus({
+                          planId: planId!,
+                          app: project.app!,
+                          projectId: project.project_id!,
+                          status,
+                        })
+                    : undefined,
+                onDelete: canEdit ? () => handleProjectDeleted(project.id) : undefined,
+                onFeaturedChange: canEdit
+                  ? (featured: boolean) => handleFeaturedToggle(project.id, featured)
+                  : undefined,
+                planId: canEdit ? planId : undefined,
+              }
+              return isList ? (
+                <PlanProjectRow key={project.id} {...projectProps} />
+              ) : (
+                <div key={project.id} className={cardClassNames}>
+                  <PlanProjectCard {...projectProps} />
+                </div>
+              )
+            })}
           </div>
         </PageWrapper>
       </PlanSubSectionAccordion>
@@ -415,14 +438,22 @@ function MyPlanPage() {
   // Every collection of the plan renders, empty ones included: an empty section
   // is where a project gets dropped to join that collection. "All" goes last.
   const sectionDefs = [
-    ...collections.map((collection) => ({ id: collection.id, title: collection.name })),
-    { id: ALL_SECTION_ID, title: m.plan_collections_all_bucket() },
+    ...collections.map((collection) => ({
+      id: collection.id,
+      title: collection.name,
+      description: collection.description ?? undefined,
+    })),
+    { id: ALL_SECTION_ID, title: m.plan_collections_all_bucket(), description: undefined },
   ]
 
   const sections = sectionDefs.map((section) => {
     if (isLoading) {
       return (
-        <PlanSubSectionAccordion key={section.id} title={<strong>{section.title}</strong>}>
+        <PlanSubSectionAccordion
+          key={section.id}
+          title={section.title}
+          description={section.description}
+        >
           <PageWrapper>
             <div className="flex flex-wrap gap-lg py-lg">
               {Array.from({ length: 3 }).map((_, i) => (
@@ -442,10 +473,18 @@ function MyPlanPage() {
     if (!canEdit && sectionProjects.length === 0) return null
 
     return (
-      <PlanSubSectionAccordion key={section.id} title={<strong>{section.title}</strong>}>
+      <PlanSubSectionAccordion
+        key={section.id}
+        title={section.title}
+        description={section.description}
+      >
         <PageWrapper>
-          <CollectionSection sectionId={section.id} isDroppable={canEdit}>
-            {showAddCard && (
+          <CollectionSection
+            sectionId={section.id}
+            isDroppable={canEdit}
+            layout={isList ? 'list' : 'grid'}
+          >
+            {showAddCard && !isList && (
               <div className={cardClassNames}>
                 <CardAddProject onButtonClick={() => setPickerSection(section.id)} />
               </div>
@@ -453,27 +492,35 @@ function MyPlanPage() {
             {canEdit ? (
               <SortableContext
                 items={sectionProjects.map((p) => p.id)}
-                strategy={rectSortingStrategy}
+                strategy={isList ? verticalListSortingStrategy : rectSortingStrategy}
               >
-                {sectionProjects.map((project) => (
-                  <SortableViewProjectCard
-                    key={project.id}
-                    id={project.id}
-                    sectionId={section.id}
-                    project={project}
-                    planId={plan!.id}
-                    onProjectSelected={handleTaskCompleted}
-                    onProjectDeleted={handleProjectDeleted}
-                    onFeaturedToggle={handleFeaturedToggle}
-                  />
-                ))}
+                {sectionProjects.map((project) => {
+                  const sortableProps = {
+                    id: project.id,
+                    sectionId: section.id,
+                    project,
+                    planId: plan!.id,
+                    onProjectSelected: handleTaskCompleted,
+                    onProjectDeleted: handleProjectDeleted,
+                    onFeaturedToggle: handleFeaturedToggle,
+                  }
+                  return isList ? (
+                    <SortableViewProjectRow key={project.id} {...sortableProps} />
+                  ) : (
+                    <SortableViewProjectCard key={project.id} {...sortableProps} />
+                  )
+                })}
               </SortableContext>
             ) : (
-              sectionProjects.map((project) => (
-                <div key={project.id} className={cardClassNames}>
-                  <PlanProjectCard project={project} />
-                </div>
-              ))
+              sectionProjects.map((project) =>
+                isList ? (
+                  <PlanProjectRow key={project.id} project={project} />
+                ) : (
+                  <div key={project.id} className={cardClassNames}>
+                    <PlanProjectCard project={project} />
+                  </div>
+                )
+              )
             )}
             {canEdit && sectionProjects.length === 0 && (
               <p className="self-center text-sm text-hot-gray-500">
@@ -569,18 +616,46 @@ function MyPlanPage() {
       </PageWrapper>
 
       {/* actions */}
-      {canEdit && (
+      {!isLoading && (
         <PageWrapper>
-          <div>
-            <div className="flex gap-xs">
-              <Button variant="danger" onClick={() => setPickerSection(ALL_SECTION_ID)}>
-                <Icon name="circle-plus" />
-                Add project
-              </Button>
-              <Button onClick={() => setCollectionsDialogOpen(true)}>
-                <Icon name="folder" variant="regular" />
-                Collections
-              </Button>
+          <div className="flex items-center gap-sm">
+            {canEdit && (
+              <div className="flex gap-xs">
+                <Button variant="danger" onClick={() => setPickerSection(ALL_SECTION_ID)}>
+                  <Icon name="circle-plus" />
+                  Add project
+                </Button>
+                <Button onClick={() => setCollectionsDialogOpen(true)}>
+                  <Icon name="folder" variant="regular" />
+                  Collections
+                </Button>
+              </div>
+            )}
+            {/* Read-only viewers get the toggle too: it only changes how the
+                plan is drawn, nothing about the plan itself. */}
+            <div className="ml-auto flex items-center gap-2xs">
+              <button
+                type="button"
+                onClick={() => setView('card')}
+                aria-pressed={!isList}
+                title={m.plan_view_cards()}
+                className={`cursor-pointer px-xs py-2xs rounded transition-colors ${
+                  isList ? 'text-hot-gray-400 hover:text-hot-gray-600' : 'text-hot-red-600'
+                }`}
+              >
+                <Icon name="table-cells" label={m.plan_view_cards()} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setView('list')}
+                aria-pressed={isList}
+                title={m.plan_view_list()}
+                className={`cursor-pointer px-xs py-2xs rounded transition-colors ${
+                  isList ? 'text-hot-red-600' : 'text-hot-gray-400 hover:text-hot-gray-600'
+                }`}
+              >
+                <Icon name="list" label={m.plan_view_list()} />
+              </button>
             </div>
           </div>
         </PageWrapper>
@@ -603,11 +678,17 @@ function MyPlanPage() {
         >
           {sections}
           <DragOverlay>
-            {dragging && (
-              <div style={{ width: dragging.width || undefined }} className="cursor-grabbing">
-                <PlanProjectCard project={dragging.project} />
-              </div>
-            )}
+            {dragging &&
+              (isList ? (
+                // A row spans its section, so the carried width says nothing here.
+                <div className="w-full cursor-grabbing">
+                  <PlanProjectRow project={dragging.project} />
+                </div>
+              ) : (
+                <div style={{ width: dragging.width || undefined }} className="cursor-grabbing">
+                  <PlanProjectCard project={dragging.project} />
+                </div>
+              ))}
           </DragOverlay>
         </DndContext>
       ) : (

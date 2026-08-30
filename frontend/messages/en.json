@@ -194,6 +194,8 @@
   "plan_toast_image_upload_error": "Failed to upload image",
   "plan_refresh_button": "Update from apps",
   "plan_refreshing_button": "Updating…",
+  "plan_view_cards": "Card view",
+  "plan_view_list": "List view",
   "plan_project_missing_badge": "Not found",
   "plan_project_unavailable_badge": "Unavailable",
   "plan_project_pending_badge": "Resolving…",

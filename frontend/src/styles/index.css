@@ -1,9 +1,3 @@
-/* Follow official HOT UI import pattern */
-/* 1. First import WebAwesome base styles */
-/* Local, so the stylesheet always matches the installed component version. */
-@import "../../node_modules/@awesome.me/webawesome/dist/styles/webawesome.css";
-
-/* 2. Then our WebAwesome overrides */
 @import "./hot-wa-portal.css";
 
 @tailwind base;
@@ -93,7 +87,7 @@ hotosm-tool-menu {
   font-weight: var(--hot-font-weight-bold);
 }
 
-/* TODO: move to hot-wa.css in @hotosm/ui-design once the HOT WA theme supports it */
+/* TODO: move to hot-wa.css in @hotosm/ui once the HOT WA theme supports it */
 .accent-link-button::part(base) {
   background: transparent;
   border: none;

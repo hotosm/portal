@@ -108,7 +108,7 @@ function resolveHref(
   }
 }
 
-function usePlanProjectDisplay(project: HydratedProjectItem) {
+export function usePlanProjectDisplay(project: HydratedProjectItem) {
   const [chatmapTitle, setChatmapTitle] = useState<string | null>(null)
 
   useEffect(() => {

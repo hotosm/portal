@@ -23,9 +23,9 @@ importers:
       '@hotosm/hanko-auth':
         specifier: ^0.5.4
         version: 0.5.4
-      '@hotosm/tool-menu':
-        specifier: 0.2.7
-        version: 0.2.7
+      '@hotosm/ui':
+        specifier: ^1.0.0
+        version: 1.0.0(@awesome.me/webawesome@3.11.0(@floating-ui/utils@0.2.10)(@types/node@24.9.1)(@types/react@19.2.2))
       '@lit/react':
         specifier: ^1.0.8
         version: 1.0.8(@types/react@19.2.2)
@@ -56,9 +56,6 @@ importers:
       hotosm-ui-design:
         specifier: ^1.4.0
         version: 1.4.0
-      lit:
-        specifier: ^3.3.1
-        version: 3.3.1
       maplibre-gl:
         specifier: ^5.9.0
         version: 5.9.0
@@ -653,9 +650,11 @@ packages:
   '@hotosm/hanko-auth@0.5.4':
     resolution: {integrity: sha512-SYChf0myeXglzM9gbP0J56UkKnaRX6MjhE4uSrcXC4AVgOA9EgAR8YNbp9Rru2+aZCR30TeeAf3PZ6XQP7xdqQ==}
 
-  '@hotosm/tool-menu@0.2.7':
-    resolution: {integrity: sha512-idPmbJtBfAfmug+vVSKd5QN+ECzvZY+3XQTnO8Mt2tqhNSXFWeYdZg9HVieET2EndW35niwrtpMBQ6IxAaf+4w==}
-    engines: {node: '>=14.17.0'}
+  '@hotosm/ui@1.0.0':
+    resolution: {integrity: sha512-l5MXyrqDvdYDAzd4FWZ2SFS+DDrrPZgkkA1qkmROLZV7rHSLQEnHSe53Dx/V3p/GXjlpi1ZOMIyISFbTyMJYPQ==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      '@awesome.me/webawesome': 3.11.0
 
   '@inlang/detect-json-formatting@1.0.0':
     resolution: {integrity: sha512-o0jeI8U4TgNlsPwI0y92jld8/18Loh2KEgHCYCJ42rCOdxFrA8R60cydlEd2/6jkdHFn5DxKj8rOyiKv3z9uOw==}
@@ -3380,9 +3379,9 @@ snapshots:
       '@teamhanko/hanko-elements': 2.5.0
       lit: 3.3.1
 
-  '@hotosm/tool-menu@0.2.7':
+  '@hotosm/ui@1.0.0(@awesome.me/webawesome@3.11.0(@floating-ui/utils@0.2.10)(@types/node@24.9.1)(@types/react@19.2.2))':
     dependencies:
-      lit: 3.3.1
+      '@awesome.me/webawesome': 3.11.0(@floating-ui/utils@0.2.10)(@types/node@24.9.1)(@types/react@19.2.2)
 
   '@inlang/detect-json-formatting@1.0.0':
     dependencies:

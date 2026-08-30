@@ -7,7 +7,7 @@ import PlanCard from './components/PlanCard'
 import PlanSectionHeader from './components/PlanSectionHeader'
 import { useMyPlans } from './hooks'
 
-function PlanPage() {
+function PlansPage() {
   const navigate = useNavigate()
   const { currentLanguage } = useLanguage()
   const { data: plans = [], isLoading, isError } = useMyPlans()
@@ -39,4 +39,4 @@ function PlanPage() {
   )
 }
 
-export default PlanPage
+export default PlansPage
