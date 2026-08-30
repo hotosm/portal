@@ -194,6 +194,8 @@
   "plan_toast_image_upload_error": "Error al subir la imagen",
   "plan_refresh_button": "Actualizar con apps",
   "plan_refreshing_button": "Actualizando…",
+  "plan_view_cards": "Vista de tarjetas",
+  "plan_view_list": "Vista de lista",
   "plan_project_missing_badge": "No encontrado",
   "plan_project_unavailable_badge": "No disponible",
   "plan_project_pending_badge": "Resolviendo…",

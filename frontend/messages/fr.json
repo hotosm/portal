@@ -194,6 +194,8 @@
   "plan_toast_image_upload_error": "Échec du téléchargement de l'image",
   "plan_refresh_button": "Mettre à jour depuis les apps",
   "plan_refreshing_button": "Mise à jour…",
+  "plan_view_cards": "Vue en cartes",
+  "plan_view_list": "Vue en liste",
   "plan_project_missing_badge": "Introuvable",
   "plan_project_unavailable_badge": "Indisponible",
   "plan_project_pending_badge": "Résolution…",
