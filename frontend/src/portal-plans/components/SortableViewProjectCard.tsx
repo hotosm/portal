@@ -77,7 +77,6 @@ function SortableViewProjectCard({
       {!project.project_exists && (
         <LinkProjectDialog
           open={dialogOpen}
-          app={project.app}
           planId={planId}
           planProjectId={id}
           collectionId={project.collection_id}
