@@ -44,6 +44,8 @@ services:
       DEBUG: ${DEBUG:-false}
       # Authentication settings
       HANKO_API_URL: ${HANKO_API_URL:-https://dev.login.hotosm.org}
+      # Team/organization plan scopes; login exposes GET /api/groups since 0.4.0
+      LOGIN_GROUPS_ENABLED: ${LOGIN_GROUPS_ENABLED:-false}
       JWT_ISSUER: ${JWT_ISSUER:-auto}
       COOKIE_SECRET: ${COOKIE_SECRET}
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}

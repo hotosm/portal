@@ -21,7 +21,7 @@ function ImgWithFallback({
   if (broken) {
     return (
       <div
-        className={`flex items-center justify-center bg-neutral-100 text-neutral-400 ${className ?? ""}`}
+        className={`flex items-center justify-center bg-hot-neutral-100 text-hot-neutral-400 ${className ?? ""}`}
       >
         <Icon name="image" style={{ fontSize: "2rem" }} />
       </div>

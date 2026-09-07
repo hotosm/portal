@@ -1,81 +1,79 @@
-import Button from "../../components/shared/Button";
-import Checkbox from "../../components/shared/Checkbox";
-import Dialog from "../../components/shared/Dialog";
-import { APP_LABELS } from "../hooks";
-import { useLinkProject } from "../hooks/useLinkProject";
-import { AddByUrlSection } from "./AddByUrlSection";
-import type { AppName, ProjectOption } from "../types";
+import { useEffect, useMemo, useState } from 'react'
+import Button from '../../components/shared/Button'
+import Dialog from '../../components/shared/Dialog'
+import { m } from '../../paraglide/messages'
+import { projectKey } from '../../utils/utils'
+import { APP_LABELS, usePlan, useSetProjectCollection } from '../hooks'
+import { useAddProjectByUrl } from '../hooks/useAddProjectByUrl'
+import type { AppName, ProjectOption } from '../types'
+import { AddByUrlSection } from './AddByUrlSection'
+import CollectionPicker from './CollectionPicker'
 
-interface SelectProjectDialogProps {
-  open: boolean;
-  app: AppName;
-  onClose: () => void;
-  onDelete?: () => void;
-  onConfirm: (project: ProjectOption) => void;
+interface LinkProjectDialogProps {
+  open: boolean
+  planId: string
+  /** Plan project (task) row being linked — the collection is stored against it. */
+  planProjectId: string
+  /** Collection the task is already in, or null for the virtual "All" bucket. */
+  collectionId: string | null
+  onClose: () => void
+  onDelete?: () => void
+  onConfirm: (project: ProjectOption) => void
 }
 
 function LinkProjectDialog({
   open,
-  app,
+  planId,
+  planProjectId,
+  collectionId,
   onClose,
   onDelete,
   onConfirm,
-}: SelectProjectDialogProps) {
+}: LinkProjectDialogProps) {
+  const setCollection = useSetProjectCollection(planId)
+  const { data: plan } = usePlan(planId)
+  const existingKeys = useMemo(
+    () =>
+      new Set(
+        (plan?.projects ?? [])
+          .filter((p) => p.project_exists && p.app && p.project_id)
+          .map((p) => projectKey(p.app as AppName, p.project_id as string))
+      ),
+    [plan]
+  )
+  const [selected, setSelected] = useState<ProjectOption | null>(null)
   const {
-    selected,
-    setSelected,
-    allProjects,
-    isLoading,
-    isError,
     urlInput,
     setUrlInput,
     urlError,
     setUrlError,
     isPending,
-    handleAddUrl,
-  } = useLinkProject({ open, app });
+    handleAddUrl: resolveUrl,
+  } = useAddProjectByUrl()
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only reset on open transition
+  useEffect(() => {
+    if (open) {
+      setSelected(null)
+      setUrlInput('')
+      setUrlError(null)
+    }
+  }, [open])
+
+  function handleAddUrl() {
+    resolveUrl({
+      localSelected: existingKeys,
+      onAdded: (project) => setSelected(project),
+    })
+  }
 
   return (
     <Dialog
       open={open}
-      label="Link project"
+      label={m.plan_link_label()}
       onWaHide={onClose}
-      style={{ "--width": "480px" } as React.CSSProperties}
+      style={{ '--width': '480px' } as React.CSSProperties}
     >
-      <p>{`Is this project already created in ${APP_LABELS[app]}? Select it from the list.`}</p>
-      <div className="overflow-y-auto max-h-[50vh] flex flex-col gap-xs">
-        {isLoading && allProjects.length === 0 ? (
-          <>
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="h-10 bg-hot-gray-100 rounded-lg animate-pulse"
-              />
-            ))}
-          </>
-        ) : isError && allProjects.length === 0 ? (
-          <p className="text-sm text-hot-gray-400">Failed to load projects.</p>
-        ) : allProjects.length === 0 ? (
-          <p className="text-sm text-hot-gray-400">
-            No projects found. Add one by URL below.
-          </p>
-        ) : (
-          allProjects.map((p) => (
-            <Checkbox
-              key={p.project_id}
-              checked={selected?.project_id === p.project_id}
-              onChange={() =>
-                setSelected((prev) =>
-                  prev?.project_id === p.project_id ? null : p,
-                )
-              }
-            >
-              {p.title}
-            </Checkbox>
-          ))
-        )}
-      </div>
-
       <AddByUrlSection
         urlInput={urlInput}
         setUrlInput={setUrlInput}
@@ -83,34 +81,55 @@ function LinkProjectDialog({
         setUrlError={setUrlError}
         isPending={isPending}
         onAdd={handleAddUrl}
+        divider={false}
       />
+
+      {/* confirmation */}
+      {selected && (
+        <div className="border border-hot-gray-200 rounded-lg p-sm mt-md flex flex-col gap-2xs">
+          <span className="text-xs font-semibold text-hot-gray-500 uppercase tracking-wide">
+            {m.plan_link_resolved_label()}
+          </span>
+          <span className="text-sm text-hot-gray-800">{selected.title}</span>
+          <span className="text-xs text-hot-gray-400">{APP_LABELS[selected.app]}</span>
+        </div>
+      )}
+
+      <div className="border-t border-hot-gray-200 pt-md mt-md">
+        <CollectionPicker
+          planId={planId}
+          value={collectionId}
+          onChange={(collectionId) => setCollection.mutate({ planProjectId, collectionId })}
+          isPending={setCollection.isPending}
+        />
+      </div>
 
       <div slot="footer" className="flex gap-sm justify-between w-full">
         <Button
           appearance="outlined"
           variant="danger"
           onClick={() => {
-            onDelete?.();
-            onClose();
+            onDelete?.()
+            onClose()
           }}
         >
-          Delete
+          {m.plan_link_delete()}
         </Button>
         <Button
           type="button"
           disabled={!selected}
           onClick={() => {
             if (selected) {
-              onConfirm(selected);
-              onClose();
+              onConfirm(selected)
+              onClose()
             }
           }}
         >
-          Link
+          {m.plan_link_confirm()}
         </Button>
       </div>
     </Dialog>
-  );
+  )
 }
 
-export default LinkProjectDialog;
+export default LinkProjectDialog

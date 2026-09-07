@@ -1,0 +1,41 @@
+/* wa-accordion draws a panel border (transparent under appearance="plain", but
+   still a 1px inset) and clips its content. The item hides its own panel while
+   collapsed and animating, so clipping here would only cut off things that are
+   meant to escape the section: card menus, and cards mid-drag. */
+.plan-subsection-accordion {
+  border: none;
+  overflow: visible;
+}
+
+/* Zero out the item's own padding so the header row and the section body keep
+   the page container's alignment instead of wa-accordion-item's spacing. */
+.plan-subsection-accordion wa-accordion-item {
+  --spacing: 0;
+}
+
+/* The trigger spans the viewport, so the label has to fill it for the container
+   inside to centre correctly. */
+.plan-subsection-accordion wa-accordion-item::part(label) {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Built-in chevron is replaced by one inside the container (see the component). */
+.plan-subsection-accordion wa-accordion-item::part(icon) {
+  display: none;
+}
+
+/* wa-accordion-item dims its panel; section bodies use normal text colors. */
+.plan-subsection-accordion wa-accordion-item::part(panel) {
+  color: inherit;
+}
+
+.plan-subsection-accordion__chevron {
+  flex: 0 0 auto;
+  color: var(--hot-color-neutral-400, #9ca3af);
+  transition: rotate var(--wa-transition-normal, 200ms) var(--wa-transition-easing, ease);
+}
+
+.plan-subsection-accordion wa-accordion-item[expanded] .plan-subsection-accordion__chevron {
+  rotate: 180deg;
+}

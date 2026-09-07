@@ -7,10 +7,11 @@ import App from './App'
 import { AuthProvider } from './contexts/AuthContext'
 import { LanguageProvider } from './contexts/LanguageContext'
 import { Toaster } from 'sonner'
+import '@awesome.me/webawesome/dist/styles/webawesome.css'  // base + layers first
 import 'hotosm-ui-design/dist/hot.css'
 import 'hotosm-ui-design/dist/hot-font-face.css'
 import 'hotosm-ui-design/dist/hot-wa.css'
-import './styles/index.css'
+import './styles/index.css' 
 
 // Import Web Awesome components needed by hanko-auth web component
 import '@awesome.me/webawesome/dist/components/dropdown/dropdown.js'

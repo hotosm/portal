@@ -71,3 +71,20 @@ def is_member(
     if group_type is None or group_id is None:
         return False
     return (group_type, group_id) in ctx.memberships
+
+
+def owns_or_member(
+    owner_id: str,
+    group_type: str | None,
+    group_id: str | None,
+    ctx: PermissionContext,
+) -> bool:
+    """Whether ctx may view/edit a scoped entity (e.g. a Group or Tag).
+
+    True if ctx is the owner, or the entity is shared with a team/organization
+    ctx belongs to. Unlike Plan, these entities have no public visibility and
+    no separate edit_scope — any member of the owning group may edit.
+    """
+    if ctx.user_id is not None and ctx.user_id == owner_id:
+        return True
+    return is_member(ctx, group_type, group_id)
