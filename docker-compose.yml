@@ -96,12 +96,17 @@ services:
       # and token validation would fail.
       HANKO_API_URL: http://hanko:8000
       JWT_ISSUER: https://login.hotosm.test
+      # login-backend serves GET /api/groups; hanko does not. Without this,
+      # login_service falls back to HANKO_API_URL and gets a 404 whenever
+      # group-based permissions are exercised (LOGIN_GROUPS_ENABLED=true).
+      LOGIN_API_URL: http://login-backend:8000
+      LOGIN_GROUPS_ENABLED: ${LOGIN_GROUPS_ENABLED:-false}
       COOKIE_SECRET: ${COOKIE_SECRET}
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-.hotosm.test}
       COOKIE_SECURE: ${COOKIE_SECURE:-true}
       OSM_CLIENT_ID: ${OSM_CLIENT_ID:-}
       OSM_CLIENT_SECRET: ${OSM_CLIENT_SECRET:-}
-      OSM_REDIRECT_URI: ${OSM_REDIRECT_URI:-}
+      OSM_REDIRECT_URI: ${OSM_REDIRECT_URI:-https://portal.hotosm.test/api/auth/osm/callback}
       PORTAL_BASE_URL: ${PORTAL_BASE_URL:-https://portal.hotosm.test}
       UMAP_BASE_URL: ${UMAP_BASE_URL:-https://umap.hotosm.org}
       DRONE_TM_BACKEND_URL: ${DRONE_TM_BACKEND_URL:-}
@@ -119,8 +124,6 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-      hanko:
-        condition: service_started
     command: sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir app --reload-exclude '.venv/*' --reload-exclude 'app/tests/*' --reload-exclude '.pytest_cache/*'"
     profiles:
       - dev
@@ -194,8 +197,8 @@ services:
       target: development
     container_name: portal-frontend-dev
     environment:
-      - VITE_HANKO_URL=https://login.hotosm.test
-      - VITE_API_URL=https://portal.hotosm.test/api
+      - VITE_HANKO_URL=${VITE_HANKO_URL:-https://login.hotosm.test}
+      - VITE_API_URL=${VITE_API_URL:-https://portal.hotosm.test/api}
       - VITE_BACKEND_URL=http://backend-dev:8000
     ports:
       - "${FRONTEND_PORT:-5173}:5173"
@@ -225,7 +228,7 @@ services:
       - login-backend
       - hanko
     profiles:
-      - dev
+      - login
 
   # --- Login / Hanko (built from the sibling ../login repo) ---
 
@@ -245,7 +248,7 @@ services:
     depends_on:
       - login-backend
     profiles:
-      - dev
+      - login
 
   login-backend:
     build:
@@ -270,7 +273,7 @@ services:
       - hanko
       - hanko-db
     profiles:
-      - dev
+      - login
 
   hanko-migrate:
     image: ghcr.io/teamhanko/hanko:v2.5.0
@@ -285,7 +288,7 @@ services:
         condition: service_healthy
     restart: "no"
     profiles:
-      - dev
+      - login
 
   hanko:
     image: ghcr.io/teamhanko/hanko:v2.5.0
@@ -306,7 +309,7 @@ services:
       hanko-migrate:
         condition: service_completed_successfully
     profiles:
-      - dev
+      - login
 
   hanko-db:
     image: postgres:17-alpine
@@ -323,7 +326,7 @@ services:
       timeout: 5s
       retries: 5
     profiles:
-      - dev
+      - login
 
   # Mailhog - catches emails sent by Hanko (password recovery, verification) in dev
   mailhog:
@@ -332,7 +335,7 @@ services:
     ports:
       - "8025:8025"
     profiles:
-      - dev
+      - login
 
 volumes:
   postgres_data:

@@ -48,14 +48,14 @@ dev: certs ## Run Portal + Login standalone with HTTPS via Caddy (no hot-dev-env
 	@echo "Portal: https://portal.hotosm.test"
 	@echo "Login:  https://login.hotosm.test"
 	@echo "Make sure both hosts resolve to 127.0.0.1 in your hosts file."
-	docker compose --profile dev up --build
+	docker compose --profile dev --profile login up --build
 
-dev-standalone: ## Run Portal only, without Traefik (http://localhost:5173)
+dev-standalone: ## Run Portal only (backend-dev + frontend-dev + minio), no Caddy/Hanko/login, at http://localhost:5173
 	@echo "Starting standalone development environment..."
 	docker compose --profile dev up --build
 
 dev-down: ## Stop development environment
-	docker compose --profile dev down
+	docker compose --profile dev --profile login down
 
 # Production (Docker)
 prod: ## Run all services with Docker (production profile)

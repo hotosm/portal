@@ -46,7 +46,7 @@ login.hotosm.test {
 		reverse_proxy login-backend:8000
 	}
 
-	@hankoApi path /registration/* /logout/* /sessions/* /users/* /passcode/* /webauthn/* /token/* /thirdparty/* /profile/* /emails/* /password/* /flow/*
+	@hankoApi path /registration /registration/* /logout /logout/* /sessions /sessions/* /users /users/* /passcode /passcode/* /webauthn /webauthn/* /token /token/* /thirdparty /thirdparty/* /profile /profile/* /emails /emails/* /password /password/* /flow /flow/*
 	handle @hankoApi {
 		reverse_proxy hanko:8000
 	}
