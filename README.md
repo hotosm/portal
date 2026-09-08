@@ -588,12 +588,8 @@ The API is self-documented using FastAPI's built-in OpenAPI support:
 
 ## Contributing
 
-1. Create a feature branch from `develop`
-2. Make your changes
-3. Run tests: `make test`
-4. Run linters: `make lint-fix`
-5. Commit with descriptive message
-6. Push and create a Pull Request
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow and AI
+tool usage policy.
 
 ## License
 
