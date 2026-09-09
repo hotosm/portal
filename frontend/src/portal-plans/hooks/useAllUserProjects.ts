@@ -22,6 +22,7 @@ export const APP_LABELS: Record<AppName, string> = {
   'field-tm': 'Field TM',
   mapswipe: 'MapSwipe',
   'open-aerial-map': 'OpenAerialMap',
+  'sketchmap-tool': 'SketchMap Tool',
   'tasking-manager': 'Tasking Manager',
   umap: 'uMap',
 }

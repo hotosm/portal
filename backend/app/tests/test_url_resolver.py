@@ -144,6 +144,35 @@ from app.services.url_resolver import parse_project_url
         ("https://mapswipe.org/projects/01M12WDGASJF288KP7CDXNM7HY", "mapswipe", "01M12WDGASJF288KP7CDXNM7HY"),
         # pasted without a scheme
         ("mapswipe.org/en/projects/01M12WDGASJF288KP7CDXNM7HY/", "mapswipe", "01M12WDGASJF288KP7CDXNM7HY"),
+        # --- sketchmap-tool ---
+        # no locale in the URL -> empty locale segment in project_id
+        (
+            "https://sketch-map-tool.heigit.org/create/results/4b7d8c9a-1234-5678-abcd-ef0123456789/8.675690624731299,49.402456308151045,8.691593010304569,49.413517109352/",
+            "sketchmap-tool",
+            "create::4b7d8c9a-1234-5678-abcd-ef0123456789:8.675690624731299,49.402456308151045,8.691593010304569,49.413517109352",
+        ),
+        (
+            "https://sketch-map-tool.heigit.org/digitize/results/4b7d8c9a-1234-5678-abcd-ef0123456789/",
+            "sketchmap-tool",
+            "digitize::4b7d8c9a-1234-5678-abcd-ef0123456789",
+        ),
+        # no trailing slash
+        (
+            "https://sketch-map-tool.heigit.org/digitize/results/4b7d8c9a-1234-5678-abcd-ef0123456789",
+            "sketchmap-tool",
+            "digitize::4b7d8c9a-1234-5678-abcd-ef0123456789",
+        ),
+        # with a locale prefix (the real URLs the site produces)
+        (
+            "https://sketch-map-tool.heigit.org/en/create/results/d23e2ec5-3d3e-4c57-a688-9c58279fdb4b/8.659784364020037,49.40550442157789,8.676056038264797,49.414366316023916",
+            "sketchmap-tool",
+            "create:en:d23e2ec5-3d3e-4c57-a688-9c58279fdb4b:8.659784364020037,49.40550442157789,8.676056038264797,49.414366316023916",
+        ),
+        (
+            "https://sketch-map-tool.heigit.org/es/digitize/results/4b7d8c9a-1234-5678-abcd-ef0123456789/",
+            "sketchmap-tool",
+            "digitize:es:4b7d8c9a-1234-5678-abcd-ef0123456789",
+        ),
     ],
 )
 def test_valid_urls(url: str, expected_app: str, expected_id: str) -> None:
@@ -182,6 +211,12 @@ def test_valid_urls(url: str, expected_app: str, expected_id: str) -> None:
         "https://mapswipe.org/en/projects/",
         # mapswipe wrong domain
         "https://evil.org/en/projects/01M12WDGASJF288KP7CDXNM7HY/",
+        # sketchmap-tool: malformed uuid (not 36 chars)
+        "https://sketch-map-tool.heigit.org/digitize/results/not-a-uuid/",
+        # sketchmap-tool: create missing the bbox segment
+        "https://sketch-map-tool.heigit.org/create/results/4b7d8c9a-1234-5678-abcd-ef0123456789/",
+        # sketchmap-tool: wrong domain
+        "https://evil.org/digitize/results/4b7d8c9a-1234-5678-abcd-ef0123456789/",
         # completely unrelated
         "https://example.com",
         "",

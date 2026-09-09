@@ -6,6 +6,7 @@ export type AppName =
   | 'field-tm'
   | 'mapswipe'
   | 'open-aerial-map'
+  | 'sketchmap-tool'
   | 'tasking-manager'
   | 'umap'
 

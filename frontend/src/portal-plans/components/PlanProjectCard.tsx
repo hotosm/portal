@@ -58,6 +58,15 @@ function resolveImageUrl(
     }
   }
 
+  if (app === 'sketchmap-tool') {
+    const bbox = (upstream ?? data)?.bbox as [number, number, number, number] | null | undefined
+    if (Array.isArray(bbox) && bbox.length === 4) {
+      const lat = (bbox[1] + bbox[3]) / 2
+      const lon = (bbox[0] + bbox[2]) / 2
+      return osmTileUrl(lat, lon, 10)
+    }
+  }
+
   const src = upstream ?? data
   if (!src) return placeholder
   const img = src.image_url ?? src.thumbnail_url ?? src.thumbnail ?? src.image
@@ -107,6 +116,18 @@ function resolveHref(
       return `${getChatMapBaseUrl()}/#map/${projectId}`
     case 'mapswipe':
       return `https://mapswipe.org/en/projects/${projectId}/`
+    case 'sketchmap-tool': {
+      // SketchMap Tool 500s on the wrong locale rather than normalizing to a
+      // default, so the exact locale of the pasted URL must be reconstructed
+      // (never hardcoded) and no trailing slash added after the bbox segment.
+      const locale = ((upstream ?? data)?.locale as string | undefined) || 'en'
+      if (projectId.startsWith('create:')) {
+        const [, , uuid, bbox] = projectId.split(':')
+        return `https://sketch-map-tool.heigit.org/${locale}/create/results/${uuid}/${bbox}`
+      }
+      const [, , uuid] = projectId.split(':')
+      return `https://sketch-map-tool.heigit.org/${locale}/digitize/results/${uuid}/`
+    }
   }
 }
 

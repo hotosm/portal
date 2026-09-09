@@ -13,6 +13,7 @@ AppLiteral = Literal[
     "field-tm",
     "mapswipe",
     "open-aerial-map",
+    "sketchmap-tool",
     "tasking-manager",
     "umap",
 ]
