@@ -35,7 +35,7 @@
     "clsx": "^2.1.1",
     "hotosm-ui-design": "^1.4.0",
     "lit": "^3.3.1",
-    "maplibre-gl": "^5.9.0",
+    "maplibre-gl": "^6.4.1",
     "postcss": "^8.5.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
