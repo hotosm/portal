@@ -114,6 +114,36 @@ from app.services.url_resolver import parse_project_url
             "chatmap",
             "aaaabbbb-cccc-dddd-eeee-ffffffffffff",
         ),
+        # --- mapswipe ---
+        (
+            "https://mapswipe.org/en/projects/01K9FKYXQNGN1EV56V3JXWKXCH/",
+            "mapswipe",
+            "01K9FKYXQNGN1EV56V3JXWKXCH",
+        ),
+        (
+            "https://mapswipe.org/en/projects/-MYHDmkVT5rhB6Dqq1OH/",
+            "mapswipe",
+            "-MYHDmkVT5rhB6Dqq1OH",
+        ),
+        (
+            "https://mapswipe.org/en/projects/01M12WDGASJF288KP7CDXNM7HY/",
+            "mapswipe",
+            "01M12WDGASJF288KP7CDXNM7HY",
+        ),
+        (
+            "https://mapswipe.org/en/projects/01M1EZJVXMRB4ZQ19JNDSS4GDX/",
+            "mapswipe",
+            "01M1EZJVXMRB4ZQ19JNDSS4GDX",
+        ),
+        (
+            "https://mapswipe.org/en/projects/01M11DME68PZ7GSWXX4K40FEJ2/",
+            "mapswipe",
+            "01M11DME68PZ7GSWXX4K40FEJ2",
+        ),
+        # no locale segment
+        ("https://mapswipe.org/projects/01M12WDGASJF288KP7CDXNM7HY", "mapswipe", "01M12WDGASJF288KP7CDXNM7HY"),
+        # pasted without a scheme
+        ("mapswipe.org/en/projects/01M12WDGASJF288KP7CDXNM7HY/", "mapswipe", "01M12WDGASJF288KP7CDXNM7HY"),
     ],
 )
 def test_valid_urls(url: str, expected_app: str, expected_id: str) -> None:
@@ -148,6 +178,10 @@ def test_valid_urls(url: str, expected_app: str, expected_id: str) -> None:
         "https://chatmap.hotosm.org/#map/",
         # chatmap wrong path
         "https://chatmap.hotosm.org/map/d4ca5204-2352-406b-8a95-f21be9d86a27",
+        # mapswipe missing ID
+        "https://mapswipe.org/en/projects/",
+        # mapswipe wrong domain
+        "https://evil.org/en/projects/01M12WDGASJF288KP7CDXNM7HY/",
         # completely unrelated
         "https://example.com",
         "",

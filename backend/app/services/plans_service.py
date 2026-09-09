@@ -34,6 +34,7 @@ from app.services import (
     export_tool_service,
     fair_service,
     field_tm_service,
+    mapswipe_service,
     open_aerial_map_service,
     permissions,
     tasking_manager_service,
@@ -71,6 +72,7 @@ APP_FETCHERS = {
     "open-aerial-map": open_aerial_map_service.fetch_imagery_by_id,
     "export-tool": export_tool_service.fetch_job_by_uid,
     "chatmap": chatmap_service.fetch_map_by_id,
+    "mapswipe": mapswipe_service.fetch_project_by_id,
 }
 
 
@@ -1223,6 +1225,7 @@ _CANONICAL_RESOLVE: dict[str, tuple] = {
         "https://api.openaerialmap.org",
     ),
     "umap": (umap_service.fetch_map_by_id, "https://umap.hotosm.org"),
+    "mapswipe": (mapswipe_service.fetch_project_by_id, mapswipe_service.MAPSWIPE_BASE_URL),
 }
 
 # ChatMap plan projects always live on chatmap.hotosm.org, so URL resolution

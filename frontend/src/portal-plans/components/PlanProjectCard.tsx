@@ -105,6 +105,8 @@ function resolveHref(
     }
     case 'chatmap':
       return `${getChatMapBaseUrl()}/#map/${projectId}`
+    case 'mapswipe':
+      return `https://mapswipe.org/en/projects/${projectId}/`
   }
 }
 

@@ -4,6 +4,7 @@ export type AppName =
   | 'export-tool'
   | 'fair'
   | 'field-tm'
+  | 'mapswipe'
   | 'open-aerial-map'
   | 'tasking-manager'
   | 'umap'

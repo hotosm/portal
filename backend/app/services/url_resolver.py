@@ -30,6 +30,10 @@ _PATTERNS: list[tuple[re.Pattern[str], AppLiteral, str]] = [
     (re.compile(r"https?://umap\.hotosm\.org/[a-z]{2,5}/map/[^#/]+_(\d+)", re.I), "umap", ""),
     # ChatMap: https://chatmap.hotosm.org/#map/{uuid}
     (re.compile(r"https?://chatmap\.hotosm\.org/#map/([0-9a-f-]+)", re.I), "chatmap", ""),
+    # MapSwipe: https://mapswipe.org/{locale}/projects/{id}/ — id is either a
+    # legacy Firebase push-id (e.g. "-MYHDmkVT5rhB6Dqq1OH") or a newer ULID
+    # (e.g. "01K9FKYXQNGN1EV56V3JXWKXCH").
+    (re.compile(r"https?://mapswipe\.org/(?:[a-z]{2}/)?projects/([^/\s?#]+)", re.I), "mapswipe", ""),
 ]
 
 
