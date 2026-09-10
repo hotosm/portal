@@ -34,8 +34,10 @@ from app.services import (
     export_tool_service,
     fair_service,
     field_tm_service,
+    mapswipe_service,
     open_aerial_map_service,
     permissions,
+    sketchmap_tool_service,
     tasking_manager_service,
     umap_service,
     url_resolver,
@@ -71,6 +73,8 @@ APP_FETCHERS = {
     "open-aerial-map": open_aerial_map_service.fetch_imagery_by_id,
     "export-tool": export_tool_service.fetch_job_by_uid,
     "chatmap": chatmap_service.fetch_map_by_id,
+    "mapswipe": mapswipe_service.fetch_project_by_id,
+    "sketchmap-tool": sketchmap_tool_service.fetch_project_by_id,
 }
 
 
@@ -940,6 +944,27 @@ async def hydrate_one(
             error=None if upstream else "pending",
         )
 
+    if (
+        row.app == "sketchmap-tool"
+        and row.project_id.startswith("digitize:")
+        and isinstance(row.data, dict)
+        and row.data.get("geojson") is not None
+    ):
+        # SketchMap Tool forgets a digitize job's Celery result after 24h, so a
+        # later "not found" there means "HeiGIT's cleanup ran", not "this never
+        # existed". Once the (small) digitized GeoJSON has been captured and
+        # persisted once, serve that snapshot forever instead of re-checking
+        # upstream — there's nothing more upstream could ever tell us.
+        return HydratedProjectItem(
+            app=row.app,
+            project_id=row.project_id,
+            status=row.status,
+            featured=row.featured,
+            data=row.data,
+            upstream=row.data,
+            error=None,
+        )
+
     fetcher = APP_FETCHERS.get(row.app)
     if fetcher is None:
         return HydratedProjectItem(
@@ -1223,6 +1248,8 @@ _CANONICAL_RESOLVE: dict[str, tuple] = {
         "https://api.openaerialmap.org",
     ),
     "umap": (umap_service.fetch_map_by_id, "https://umap.hotosm.org"),
+    "mapswipe": (mapswipe_service.fetch_project_by_id, mapswipe_service.MAPSWIPE_BASE_URL),
+    "sketchmap-tool": (sketchmap_tool_service.fetch_project_by_id, sketchmap_tool_service.SKETCHMAP_TOOL_BASE_URL),
 }
 
 # ChatMap plan projects always live on chatmap.hotosm.org, so URL resolution
