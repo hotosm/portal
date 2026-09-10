@@ -119,14 +119,14 @@ function resolveHref(
     case 'sketchmap-tool': {
       // SketchMap Tool 500s on the wrong locale rather than normalizing to a
       // default, so the exact locale of the pasted URL must be reconstructed
-      // (never hardcoded) and no trailing slash added after the bbox segment.
+      // (never hardcoded) and no trailing slash added after the uuid/bbox segment.
       const locale = ((upstream ?? data)?.locale as string | undefined) || 'en'
       if (projectId.startsWith('create:')) {
         const [, , uuid, bbox] = projectId.split(':')
         return `https://sketch-map-tool.heigit.org/${locale}/create/results/${uuid}/${bbox}`
       }
       const [, , uuid] = projectId.split(':')
-      return `https://sketch-map-tool.heigit.org/${locale}/digitize/results/${uuid}/`
+      return `https://sketch-map-tool.heigit.org/${locale}/digitize/results/${uuid}`
     }
   }
 }
