@@ -539,46 +539,100 @@ The API is self-documented using FastAPI's built-in OpenAPI support:
 - **OpenAPI JSON**: http://localhost:8000/api/openapi.json (specification)
 
 **Key endpoints:**
-- `GET /health` - Basic health check
-- `GET /ready` - Readiness check with database status
-- `GET /api/health-check` - Detailed health with response times
-- `/api/tasking-manager/projects` - Return all project of Tasking Manager
-- `/api/tasking-manager/countries` - Return all countries of Tasking Manager
-- `/api/tasking-manager/projectid/{project_id}` - ProjectID data of Tasking Manager
-- `/api/tasking-manager/projects/user` - User data of Tasking Manager
-- `/api/drone-tasking-manager/projects?fetch_all=true` - Returns all Drone TM projects without pagination. (Drone Tasking Manager)
-- `/api/drone-tasking-manager/projects` - Return all project of Drone TM (Drone Tasking Manager)
-- `/api/drone-tasking-manager/projects/{project_id}` - ProjectID data of Drone TM (Drone Tasking Manager)
-- `/api/drone-tasking-manager/projects/user` - Project user data of Drone TM (Drone Tasking Manager)
-- `/api/drone-tasking-manager/projects/centroids` - Get project centroids from the DroneTM API.
-- `/api/open-aerial-map/projects` - Return all project of Open Aerial Map
-- `/api/open-aerial-map/projects/all` - Return all OAM imagery (compact snapshot)
-- `/api/open-aerial-map/projects/snapshot` - Return OAM imagery snapshot from DB
-- `/api/open-aerial-map/projects/{image_id}` - ImageID data of Open Aerial Map
-- `/api/open-aerial-map/user/{user_id}` - UserID data of Open Aerial Map
-- `/api/open-aerial-map/user/me` - User data of Open Aerial Map
-- `/api/fair/projects` - Return all project of fAIr
-- `/api/fair/dataset/user/{user_id}` - Get AI models from fAIr API filtered by user ID
-- `/api/fair/model/user/{user_id}` - Get datasets from fAIr API filtered by user ID
-- `/api/fair/me/models` - Get AI models from fAIr API for the authenticated user
-- `/api/fair/me/datasets` - Get datasets from fAIr API for the authenticated user
-- `/api/fair/model/user/{user_id}` - Returns the user models of fAIr
-- `/api/fair/dataset/user/{user_id}` - Returns the user dataset of fAIr
-- `/api/fair/models/centroid` - Get all centroids of fAIr
-- `DELETE /api/fair/models/centroid/cache` - Invalidate fAIr centroids cache
-- `/api/fair/model/{mid}` - Obtain details of a specific model using the centroid model id of fAIr
-- `/api/field-tm/projects` - Return all project of Field Tasking Manager
-- `/api/field-tm/projectid/{project_id}` - ProjectID data of Field Tasking Manager
-- `/api/umap/{location}/{project_id}` - ProjectID data of UMap HOTOSM
-- `/api/umap/user/maps` - UMap HOTOSM user maps information
-- `/api/umap/showcase` - Umap HOTOSM showcase projects
-- `/api/chatmap/user/maps` - Authenticated user's ChatMap maps
-- `/api/chatmap/map/{map_id}` - Public ChatMap map by ID
-- `/api/chatmap/map` - Authenticated user's ChatMap (Hanko cookie)
-- `/api/homepage-map/projects/snapshot` - Unified homepage map snapshot (GeoJSON)
-- `/api/export-tool/jobs` - Data jobs of Export Tool
-- `/api/export-tool/jobs/me` - Authenticated user's Export Tool jobs
-- `/api/export-tool/jobs/{job_uid}` - ID of data jobs of Export Tool
+
+- **Health & system**
+  - `GET /health` - Basic health check
+  - `GET /ready` - Readiness check with database status
+  - `GET /api/health-check` - Detailed health with response times
+  - `GET /` - Root welcome message with docs link
+
+- **Authentication (OSM OAuth)**
+  - `/api/auth/osm/login` - Start OSM OAuth flow (requires Hanko session)
+  - `/api/auth/osm/callback` - Handle OSM OAuth callback, sets encrypted cookie
+  - `/api/auth/osm/status` - Check OSM connection status
+  - `POST /api/auth/osm/disconnect` - Revoke OSM tokens and disconnect account
+
+- **Tasking Manager**
+  - `/api/tasking-manager/projects` - Return all project of Tasking Manager
+  - `/api/tasking-manager/countries` - Return all countries of Tasking Manager
+  - `/api/tasking-manager/projectid/{project_id}` - ProjectID data of Tasking Manager
+  - `/api/tasking-manager/projects/user` - User data of Tasking Manager
+
+- **Drone Tasking Manager**
+  - `/api/drone-tasking-manager/projects` - Return all project of Drone TM (Drone Tasking Manager)
+  - `/api/drone-tasking-manager/projects?fetch_all=true` - Returns all Drone TM projects without pagination. (Drone Tasking Manager)
+  - `/api/drone-tasking-manager/projects/{project_id}` - ProjectID data of Drone TM (Drone Tasking Manager)
+  - `/api/drone-tasking-manager/projects/user` - Project user data of Drone TM (Drone Tasking Manager)
+  - `/api/drone-tasking-manager/projects/centroids` - Get project centroids from the DroneTM API.
+
+- **Open Aerial Map**
+  - `/api/open-aerial-map/projects` - Return all project of Open Aerial Map
+  - `/api/open-aerial-map/projects/all` - Return all OAM imagery (compact snapshot)
+  - `/api/open-aerial-map/projects/snapshot` - Return OAM imagery snapshot from DB
+  - `/api/open-aerial-map/projects/{image_id}` - ImageID data of Open Aerial Map
+  - `/api/open-aerial-map/user/{user_id}` - UserID data of Open Aerial Map
+  - `/api/open-aerial-map/user/me` - User data of Open Aerial Map
+
+- **fAIr**
+  - `/api/fair/projects` - Get AI models from fAIr, paginated/filterable
+  - `/api/fair/models/centroid` - Get all AI model centroids from fAIr as GeoJSON
+  - `DELETE /api/fair/models/centroid/cache` - Invalidate fAIr centroids cache
+  - `/api/fair/model/{mid}` - Obtain details of a specific model of fAIr
+  - `/api/fair/model/user/{user_id}` - Get AI models from fAIr filtered by user ID
+  - `/api/fair/me/models` - Get AI models from fAIr for the authenticated user
+
+- **Field Tasking Manager**
+  - `/api/field-tm/projects` - Return all project of Field Tasking Manager
+  - `/api/field-tm/projectid/{project_id}` - ProjectID data of Field Tasking Manager
+
+- **UMap**
+  - `/api/umap/{location}/{project_id}` - ProjectID data of UMap HOTOSM
+  - `/api/umap/user/maps` - UMap HOTOSM user maps information
+  - `/api/umap/showcase` - Umap HOTOSM showcase projects
+
+- **ChatMap**
+  - `/api/chatmap/user/maps` - Authenticated user's ChatMap maps
+  - `/api/chatmap/map/{map_id}` - Public ChatMap map by ID
+  - `/api/chatmap/map` - Authenticated user's ChatMap (Hanko cookie)
+
+- **Homepage Map**
+  - `/api/homepage-map/projects/snapshot` - Unified homepage map snapshot (GeoJSON)
+
+- **Export Tool**
+  - `/api/export-tool/jobs` - Data jobs of Export Tool
+  - `/api/export-tool/jobs/me` - Authenticated user's Export Tool jobs
+  - `/api/export-tool/jobs/{job_uid}` - ID of data jobs of Export Tool
+
+- **Plans** (user-owned collections of project references)
+  - `/api/plans` - List plans visible to the user (own + group plans)
+  - `POST /api/plans` - Create a new plan
+  - `POST /api/plans/resolve-url` - Parse a project URL and confirm it exists upstream
+  - `/api/plans/shared/{plan_id}` - Return a public plan (no auth required)
+  - `/api/plans/{plan_id}` - Return a plan if the user may view it
+  - `PATCH /api/plans/{plan_id}` - Update name/description/scope/visibility/projects
+  - `DELETE /api/plans/{plan_id}` - Delete a plan (owner only)
+  - `PATCH /api/plans/{plan_id}/projects/{plan_project_id}/toggle-exists` - Toggle project_exists on a plan_project
+  - `PATCH /api/plans/{plan_id}/projects/{plan_project_id}/complete-task` - Resolve a placeholder task against an upstream project
+  - `/api/plans/{plan_id}/collections` - List the collections of a plan
+  - `POST /api/plans/{plan_id}/collections` - Add a collection to a plan
+  - `PATCH /api/plans/{plan_id}/collections/{collection_id}` - Rename/move a collection
+  - `DELETE /api/plans/{plan_id}/collections/{collection_id}` - Delete a collection
+  - `POST /api/plans/{plan_id}/projects` - Append one project/task to a plan
+  - `PATCH /api/plans/{plan_id}/projects/reorder` - Apply drag-and-drop placements (collection + position)
+  - `PATCH /api/plans/{plan_id}/projects/{plan_project_id}/collection` - Move a project to a different collection
+  - `PATCH /api/plans/{plan_id}/projects/{plan_project_id}/featured` - Mark/unmark a project as featured
+  - `DELETE /api/plans/{plan_id}/projects/{plan_project_id}` - Delete one project/task from a plan
+  - `PATCH /api/plans/{plan_id}/projects/{app}/{project_id}` - Update the status of one project inside a plan
+  - `/api/plans/{plan_id}/images/{image_id}/content` - Raw image binary content of a plan image
+  - `POST /api/plans/{plan_id}/images` - Upload an image to a plan
+  - `DELETE /api/plans/{plan_id}/images/{image_id}` - Delete a plan image
+
+- **Groups**
+  - `/api/groups` - List the groups the current user belongs to (proxied from login)
+
+- **Auth testing** (admin-only diagnostic endpoints)
+  - `/api/test/me` - Requires Hanko auth + admin access; returns JWT user info
+  - `/api/test/osm` - Requires Hanko auth + admin + OSM connection; returns OSM connection info
 
 ## Contributing
 

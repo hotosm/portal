@@ -35,7 +35,21 @@ def _image_url(plan_id: str, image_id: str) -> str:
     return f"{base}/api/plans/{plan_id}/images/{image_id}/content"
 
 
-@router.get("/{plan_id}/images/{image_id}/content", include_in_schema=False)
+@router.get(
+    "/{plan_id}/images/{image_id}/content",
+    response_class=Response,
+    responses={
+        200: {
+            "content": {
+                "image/jpeg": {},
+                "image/png": {},
+                "image/svg+xml": {},
+                "image/webp": {},
+            },
+            "description": "Raw image binary content.",
+        }
+    },
+)
 async def get_plan_image_content(
     request: Request,
     plan_id: str = Path(...),
@@ -43,6 +57,11 @@ async def get_plan_image_content(
     user: CurrentUserOptional = None,
     db: AsyncSession = Depends(get_db),
 ) -> Response:
+    """Return the raw image binary for a plan image.
+
+    Content type matches the stored image. Requires the plan to be
+    viewable by the current user context (public, private, or shared).
+    """
     result = await db.execute(
         select(PlanImage, Plan)
         .join(Plan, Plan.id == PlanImage.plan_id)
