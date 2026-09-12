@@ -213,13 +213,13 @@ function MyPlanPage() {
         project_exists: true,
         collection_id: pickerCollectionId(),
         // Fall back to the resolved title so the card shows a name right away;
-        // some apps only expose the title (no upstream) until rehydration.
+        // some apps only expose the title (no resolved data) until rehydration.
         // Skip that fallback while still resolving (e.g. an OAM TMS URL) — its
         // "title" is just the raw project_id placeholder, not a real name, and
         // stashing it in `data` would mark the row as already hydrated, hiding
         // the pending spinner and never getting replaced by the real title.
         data:
-          (project.upstream as Record<string, unknown> | null) ??
+          (project.data as Record<string, unknown> | null) ??
           (project.title && !project.isResolving ? { name: project.title } : null),
       },
       { onSuccess: rehydrateAfterChange }

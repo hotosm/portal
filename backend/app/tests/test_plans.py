@@ -197,10 +197,10 @@ async def test_hydrate_plan_all_ok(auth_client):
             resp = await client.get(f"/api/plans/{plan_id}?refresh=true")
     assert resp.status_code == 200
     by_app = {p["app"]: p for p in resp.json()["projects"]}
-    assert by_app["tasking-manager"]["upstream"] == {"organisationName": "org1"}
+    assert by_app["tasking-manager"]["data"] == {"organisationName": "org1"}
     assert by_app["tasking-manager"]["error"] is None
-    assert by_app["fair"]["upstream"] == {"name": "model2"}
-    assert by_app["field-tm"]["upstream"] == {"name": "proj3"}
+    assert by_app["fair"]["data"] == {"name": "model2"}
+    assert by_app["field-tm"]["data"] == {"name": "proj3"}
 
 
 @pytest.mark.asyncio
@@ -217,7 +217,7 @@ async def test_snapshot_swr_flow(auth_client):
     proj = resp.json()["projects"][0]
     assert proj["from_snapshot"] is True
     assert proj["error"] == "pending"
-    assert proj["upstream"] is None
+    assert proj["data"] is None
 
     # ?refresh=true hydrates live and persists the fresh snapshot.
     with patch.dict(
@@ -227,14 +227,14 @@ async def test_snapshot_swr_flow(auth_client):
         resp = await client.get(f"/api/plans/{plan_id}?refresh=true")
     proj = resp.json()["projects"][0]
     assert proj["from_snapshot"] is False
-    assert proj["upstream"] == {"name": "proj"}
+    assert proj["data"] == {"name": "proj"}
     assert proj["error"] is None
 
     # Default GET now serves the persisted snapshot instantly (no upstream call).
     resp = await client.get(f"/api/plans/{plan_id}")
     proj = resp.json()["projects"][0]
     assert proj["from_snapshot"] is True
-    assert proj["upstream"] == {"name": "proj"}
+    assert proj["data"] == {"name": "proj"}
 
     # Project deleted upstream -> refresh marks it not_found + persists project_exists=False.
     with patch.dict(
@@ -276,7 +276,7 @@ async def test_hydrate_plan_orphan_item(auth_client):
     assert resp.status_code == 200
     by_app = {p["app"]: p for p in resp.json()["projects"]}
     assert by_app["tasking-manager"]["error"] is None
-    assert by_app["fair"]["upstream"] is None
+    assert by_app["fair"]["data"] is None
     assert by_app["fair"]["error"] == "not_found"
 
 
@@ -343,7 +343,7 @@ async def test_hydrate_plan_oam_tms_still_resolving_shows_pending_not_unavailabl
     assert resp.status_code == 200
     project = resp.json()["projects"][0]
     assert project["error"] == "pending"
-    assert project["upstream"] is None
+    assert project["data"] is None
 
 
 @pytest.mark.asyncio
@@ -369,7 +369,7 @@ async def test_hydrate_plan_oam_tms_resolves_once_found(auth_client):
     assert resp.status_code == 200
     project = resp.json()["projects"][0]
     assert project["error"] is None
-    assert project["upstream"]["title"] == "Found it"
+    assert project["data"]["title"] == "Found it"
 
 
 @pytest.mark.asyncio
@@ -593,7 +593,7 @@ async def test_shared_endpoint_public_plan(auth_client):
     body = resp.json()
     assert body["id"] == plan_id
     assert body["is_public"] is True
-    assert body["projects"][0]["upstream"] == {"name": "proj"}
+    assert body["projects"][0]["data"] == {"name": "proj"}
 
 
 @pytest.mark.asyncio
@@ -754,4 +754,4 @@ async def test_complete_task_with_app_project_id(auth_client):
     proj = resp.json()["projects"][0]
     assert proj["project_exists"] is True
     assert proj["project_id"] == "55"
-    assert proj["upstream"] == {"name": "Real project"}
+    assert proj["data"] == {"name": "Real project"}

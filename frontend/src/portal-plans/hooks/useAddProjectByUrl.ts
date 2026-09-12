@@ -65,7 +65,7 @@ export function useAddProjectByUrl() {
           app: result.app,
           project_id: result.project_id,
           title,
-          upstream: resolvedUpstream,
+          data: resolvedUpstream,
           isResolving: isPendingOamTms,
         },
         key

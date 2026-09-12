@@ -134,7 +134,6 @@ export interface HydratedProjectItem {
   // Null means "All" — there is no such collection in the database; the UI
   // buckets every unassigned project under a virtual section.
   collection_id: string | null
-  upstream: Record<string, unknown> | null
   error: HydrationError | null
   from_snapshot?: boolean
 }
@@ -168,7 +167,7 @@ export interface ProjectOption {
   app: AppName
   project_id: string
   title: string
-  upstream?: Record<string, unknown> | null
+  data?: Record<string, unknown> | null
   isResolving?: boolean
 }
 

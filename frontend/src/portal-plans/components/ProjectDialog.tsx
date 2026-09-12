@@ -81,7 +81,7 @@ function ProjectDialog({
 }: ProjectDialogProps) {
   // Null only for a task with no tool yet; this dialog is for real projects.
   const meta = project.app ? APP_META[project.app] : null
-  const { createdAt, author } = extractMeta(project.upstream)
+  const { createdAt, author } = extractMeta(project.data)
   const [localStatus, setLocalStatus] = useState<ProjectStatus>(initialStatus ?? project.status)
 
   const setCollection = useSetProjectCollection(planId ?? '')

@@ -25,32 +25,22 @@ function statusVariant(status: ProjectStatus): 'neutral' | 'success' {
   return status === 'done' ? 'success' : 'neutral'
 }
 
-function resolveTitle(
-  upstream: Record<string, unknown> | null,
-  projectId: string,
-  data: Record<string, unknown> | null
-): string {
-  const src = upstream ?? data
-  if (!src) return projectId
-  const t = src.name ?? src.title ?? src.project_name
+function resolveTitle(projectId: string, data: Record<string, unknown> | null): string {
+  if (!data) return projectId
+  const t = data.name ?? data.title ?? data.project_name
   return typeof t === 'string' && t ? t : projectId
 }
 
-function resolveImageUrl(
-  app: AppName | null,
-  upstream: Record<string, unknown> | null,
-  data: Record<string, unknown> | null
-): string {
+function resolveImageUrl(app: AppName | null, data: Record<string, unknown> | null): string {
   if (app === 'chatmap' || app === 'umap') {
-    const centroid = (upstream?.centroid ?? data?.centroid) as [number, number] | null | undefined
+    const centroid = data?.centroid as [number, number] | null | undefined
     if (Array.isArray(centroid) && centroid.length === 2) {
       return osmTileUrl(centroid[0], centroid[1], 10)
     }
   }
 
   if (app === 'tasking-manager') {
-    const src = upstream ?? data
-    const bbox = src?.aoiBBOX as [number, number, number, number] | null | undefined
+    const bbox = data?.aoiBBOX as [number, number, number, number] | null | undefined
     if (Array.isArray(bbox) && bbox.length === 4) {
       const lat = (bbox[1] + bbox[3]) / 2
       const lon = (bbox[0] + bbox[2]) / 2
@@ -59,7 +49,7 @@ function resolveImageUrl(
   }
 
   if (app === 'sketchmap-tool') {
-    const bbox = (upstream ?? data)?.bbox as [number, number, number, number] | null | undefined
+    const bbox = data?.bbox as [number, number, number, number] | null | undefined
     if (Array.isArray(bbox) && bbox.length === 4) {
       const lat = (bbox[1] + bbox[3]) / 2
       const lon = (bbox[0] + bbox[2]) / 2
@@ -67,16 +57,14 @@ function resolveImageUrl(
     }
   }
 
-  const src = upstream ?? data
-  if (!src) return placeholder
-  const img = src.image_url ?? src.thumbnail_url ?? src.thumbnail ?? src.image
+  if (!data) return placeholder
+  const img = data.image_url ?? data.thumbnail_url ?? data.thumbnail ?? data.image
   return typeof img === 'string' && img ? img : placeholder
 }
 
 function resolveHref(
   app: AppName | null,
   projectId: string,
-  upstream: Record<string, unknown> | null,
   data: Record<string, unknown> | null
 ): string {
   // A task with no tool yet has nowhere to link to.
@@ -87,7 +75,7 @@ function resolveHref(
     case 'drone-tasking-manager':
       return `${getDroneTmBaseUrl()}/projects/${projectId}`
     case 'field-tm': {
-      const base = (data?.base_url ?? upstream?.base_url ?? getFieldTmBaseUrl()) as string
+      const base = (data?.base_url ?? getFieldTmBaseUrl()) as string
       return `${base}/projects/${projectId}`
     }
     case 'fair':
@@ -95,10 +83,7 @@ function resolveHref(
     case 'export-tool':
       return `${getExportToolBaseUrl()}/v3/exports/${projectId}`
     case 'open-aerial-map': {
-      const bbox = (upstream?.bbox ?? data?.bbox) as
-        | [number, number, number, number]
-        | null
-        | undefined
+      const bbox = data?.bbox as [number, number, number, number] | null | undefined
       if (Array.isArray(bbox) && bbox.length === 4) {
         const lng = ((bbox[0] as number) + (bbox[2] as number)) / 2
         const lat = ((bbox[1] as number) + (bbox[3] as number)) / 2
@@ -109,7 +94,7 @@ function resolveHref(
       return `https://map.openaerialmap.org`
     }
     case 'umap': {
-      const href = (upstream?.href ?? data?.href) as string | null | undefined
+      const href = data?.href as string | null | undefined
       return href ?? `${getUmapBaseUrl()}/m/${projectId}/`
     }
     case 'chatmap':
@@ -120,7 +105,7 @@ function resolveHref(
       // SketchMap Tool 500s on the wrong locale rather than normalizing to a
       // default, so the exact locale of the pasted URL must be reconstructed
       // (never hardcoded) and no trailing slash added after the uuid/bbox segment.
-      const locale = ((upstream ?? data)?.locale as string | undefined) || 'en'
+      const locale = (data?.locale as string | undefined) || 'en'
       if (projectId.startsWith('create:')) {
         const [, , uuid, bbox] = projectId.split(':')
         return `https://sketch-map-tool.heigit.org/${locale}/create/results/${uuid}/${bbox}`
@@ -135,7 +120,7 @@ export function usePlanProjectDisplay(project: HydratedProjectItem) {
   const [chatmapTitle, setChatmapTitle] = useState<string | null>(null)
 
   useEffect(() => {
-    if (project.app !== 'chatmap' || project.upstream || project.data) return
+    if (project.app !== 'chatmap' || project.data) return
     fetch(`${getChatMapBaseUrl()}/api/v1/map/${project.project_id}`, {
       credentials: 'include',
       headers: { accept: 'application/json' },
@@ -145,7 +130,7 @@ export function usePlanProjectDisplay(project: HydratedProjectItem) {
         if (typeof d?.name === 'string' && d.name) setChatmapTitle(d.name)
       })
       .catch(() => {})
-  }, [project.app, project.project_id, project.upstream, project.data])
+  }, [project.app, project.project_id, project.data])
 
   const isTask = !project.project_exists
   return {
@@ -153,9 +138,9 @@ export function usePlanProjectDisplay(project: HydratedProjectItem) {
       ? typeof project.data?.title === 'string' && project.data.title
         ? project.data.title
         : 'Untitled task'
-      : (chatmapTitle ?? resolveTitle(project.upstream, project.project_id ?? '', project.data)),
-    imageUrl: resolveImageUrl(project.app, project.upstream, project.data),
-    href: resolveHref(project.app, project.project_id ?? '', project.upstream, project.data),
+      : (chatmapTitle ?? resolveTitle(project.project_id ?? '', project.data)),
+    imageUrl: resolveImageUrl(project.app, project.data),
+    href: resolveHref(project.app, project.project_id ?? '', project.data),
   }
 }
 

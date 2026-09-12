@@ -170,7 +170,6 @@ class HydratedProjectItem(BaseModel):
     featured: bool = False
     data: dict | None = None
     collection_id: str | None = None
-    upstream: dict | None = None
     error: HydrationError | None = None
     # True when this item was served from the stored snapshot (row.data) without a
     # live upstream call, so the frontend can show a subtle "updating…" state.
