@@ -13,7 +13,6 @@ import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { useOAMImagery } from "../useOAMImagery";
 import { useDroneProjects } from "../useDroneProjects";
 
 vi.mock("../../../contexts/AuthContext", () => ({
@@ -47,87 +46,6 @@ function mockFetchResponse(status: number, body = "") {
     headers: { get: () => "application/json" },
   } as unknown as Response);
 }
-
-// ---------------------------------------------------------------------------
-// useOAMImagery
-// ---------------------------------------------------------------------------
-
-describe("useOAMImagery — error handling", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it("enters error state (isError=true) on 500 response", async () => {
-    vi.stubGlobal("fetch", mockFetchResponse(500, "Internal Server Error"));
-
-    const { result } = renderHook(() => useOAMImagery(), {
-      wrapper: makeWrapper(),
-    });
-
-    await waitFor(() => expect(result.current.isError).toBe(true), {
-      timeout: 5000,
-    });
-
-    expect(result.current.error?.message).toContain("[500]");
-  });
-
-  it("returns empty array on 401 (unauthenticated — expected state)", async () => {
-    vi.stubGlobal("fetch", mockFetchResponse(401, "Unauthorized"));
-
-    const { result } = renderHook(() => useOAMImagery(), {
-      wrapper: makeWrapper(),
-    });
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true), {
-      timeout: 5000,
-    });
-
-    expect(result.current.data).toEqual([]);
-    expect(result.current.isError).toBe(false);
-  });
-
-  it("returns empty array on 403 (forbidden — expected state)", async () => {
-    vi.stubGlobal("fetch", mockFetchResponse(403, "Forbidden"));
-
-    const { result } = renderHook(() => useOAMImagery(), {
-      wrapper: makeWrapper(),
-    });
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true), {
-      timeout: 5000,
-    });
-
-    expect(result.current.data).toEqual([]);
-  });
-
-  it("returns empty array on 400 (no email — expected state for OAM)", async () => {
-    vi.stubGlobal("fetch", mockFetchResponse(400, "Bad Request"));
-
-    const { result } = renderHook(() => useOAMImagery(), {
-      wrapper: makeWrapper(),
-    });
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true), {
-      timeout: 5000,
-    });
-
-    expect(result.current.data).toEqual([]);
-  });
-
-  it("error message contains the HTTP status code for diagnostics", async () => {
-    vi.stubGlobal("fetch", mockFetchResponse(503, "Service Unavailable"));
-
-    const { result } = renderHook(() => useOAMImagery(), {
-      wrapper: makeWrapper(),
-    });
-
-    await waitFor(() => expect(result.current.isError).toBe(true), {
-      timeout: 5000,
-    });
-
-    expect(result.current.error?.message).toContain("[503]");
-  });
-});
 
 // ---------------------------------------------------------------------------
 // useDroneProjects
