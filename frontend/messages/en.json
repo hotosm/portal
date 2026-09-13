@@ -89,6 +89,8 @@
   "by": "by",
   "card_data_not_available_title": "User data not available yet",
   "card_data_not_available_description": "Coming soon, stay tuned.",
+  "card_data_error_title": "Couldn't load your data",
+  "card_data_error_description": "The service isn't responding right now. Try again in a few minutes.",
   "section_mapping": "Mapping",
   "section_mapping_by": "by <strong>Tasking Manager</strong>, <strong>fAIr</strong>",
   "mapping_collaborative": "<strong>Collaborative</strong> mapping",

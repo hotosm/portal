@@ -14,6 +14,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useDroneProjects } from "../useDroneProjects";
+import { useExportJobs } from "../../../portal-data/hooks/useExportToolData";
+import { useMyMaps } from "../../../portal-data/hooks/useUMapData";
 
 vi.mock("../../../contexts/AuthContext", () => ({
   useAuth: () => ({ isLogin: true, user: { id: "test-user", email: null, username: null, emailVerified: false }, osmConnection: null, isAuthLoading: false }),
@@ -82,6 +84,98 @@ describe("useDroneProjects — error handling", () => {
     });
 
     expect(result.current.data).toEqual([]);
+    expect(result.current.isError).toBe(false);
+  });
+
+  it("enters error state on 503 response", async () => {
+    vi.stubGlobal("fetch", mockFetchResponse(503, "Drone TM unavailable"));
+
+    const { result } = renderHook(() => useDroneProjects(), {
+      wrapper: makeWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true), {
+      timeout: 5000,
+    });
+
+    expect(result.current.error?.message).toContain("[503]");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// useMyMaps
+// ---------------------------------------------------------------------------
+
+describe("useMyMaps — error handling", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("enters error state on 503 response", async () => {
+    vi.stubGlobal("fetch", mockFetchResponse(503, "uMap unavailable"));
+
+    const { result } = renderHook(() => useMyMaps(), {
+      wrapper: makeWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true), {
+      timeout: 5000,
+    });
+
+    expect(result.current.error?.message).toContain("[503]");
+  });
+
+  it("returns an empty page on 401 without entering error state", async () => {
+    vi.stubGlobal("fetch", mockFetchResponse(401, "Unauthorized"));
+
+    const { result } = renderHook(() => useMyMaps(), {
+      wrapper: makeWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true), {
+      timeout: 5000,
+    });
+
+    expect(result.current.data).toEqual({ items: [], total: 0 });
+    expect(result.current.isError).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// useExportJobs
+// ---------------------------------------------------------------------------
+
+describe("useExportJobs — error handling", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("enters error state on 500 response", async () => {
+    vi.stubGlobal("fetch", mockFetchResponse(500, "Export Tool unreachable"));
+
+    const { result } = renderHook(() => useExportJobs(), {
+      wrapper: makeWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true), {
+      timeout: 5000,
+    });
+
+    expect(result.current.error?.message).toContain("[500]");
+  });
+
+  it("returns an empty page on 401 without entering error state", async () => {
+    vi.stubGlobal("fetch", mockFetchResponse(401, "Unauthorized"));
+
+    const { result } = renderHook(() => useExportJobs(), {
+      wrapper: makeWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true), {
+      timeout: 5000,
+    });
+
+    expect(result.current.data).toEqual({ items: [], total: 0 });
     expect(result.current.isError).toBe(false);
   });
 });

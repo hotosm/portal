@@ -15,7 +15,11 @@ const CHAT_MAPS_PER_PAGE = 5;
 
 function FieldPage() {
   const [chatMapsPage, setChatMapsPage] = useState(1);
-  const { data: chatMaps = [], isLoading: isChatMapLoading } = useChatMapData();
+  const {
+    data: chatMaps = [],
+    isLoading: isChatMapLoading,
+    isError: isChatMapError,
+  } = useChatMapData();
 
   const totalChatMapPages = Math.ceil(chatMaps.length / CHAT_MAPS_PER_PAGE);
   const pagedChatMaps = chatMaps.slice(
@@ -34,6 +38,7 @@ function FieldPage() {
         title={m.field_chat_mapping()}
         toolName="ChatMap"
         isLoading={isChatMapLoading}
+        isError={isChatMapError}
         addCard={
             <CardAddNew
               title={m.field_tm_card_title()}

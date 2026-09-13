@@ -89,6 +89,8 @@
   "by": "por",
   "card_data_not_available_title": "Todavía no hay datos de usuario disponibles",
   "card_data_not_available_description": "Próximamente, estate atento.",
+  "card_data_error_title": "No pudimos cargar tus datos",
+  "card_data_error_description": "El servicio no está respondiendo en este momento. Probá de nuevo en unos minutos.",
   "section_mapping": "Cartografía",
   "section_mapping_by": "por <strong>Tasking Manager</strong>, <strong>fAIr</strong>",
   "mapping_collaborative": "Mapeo <strong>colaborativo</strong>",

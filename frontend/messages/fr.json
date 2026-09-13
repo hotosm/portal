@@ -89,6 +89,8 @@
   "by": "par",
   "card_data_not_available_title": "Données utilisateur pas encore disponibles",
   "card_data_not_available_description": "Bientôt disponible, restez à l'écoute.",
+  "card_data_error_title": "Impossible de charger vos données",
+  "card_data_error_description": "Le service ne répond pas pour le moment. Réessayez dans quelques minutes.",
   "section_mapping": "Cartographie",
   "section_mapping_by": "par <strong>Tasking Manager</strong>, <strong>fAIr</strong>",
   "mapping_collaborative": "Cartographie <strong>collaborative</strong>",

@@ -16,7 +16,7 @@ const PROJECTS_PER_PAGE = 5;
 
 function MappingPage() {
   const [projectsPage, setProjectsPage] = useState(1);
-  const { data: modelsData, isLoading } = useMyModels(
+  const { data: modelsData, isLoading, isError } = useMyModels(
     projectsPage,
     PROJECTS_PER_PAGE,
   );
@@ -65,6 +65,7 @@ function MappingPage() {
         title={m.mapping_ai_assisted()}
         toolName="fAIr"
         isLoading={isLoading}
+        isError={isError}
         addCard={
           <CardAddNew
             title={m.mapping_fair_card_title()}

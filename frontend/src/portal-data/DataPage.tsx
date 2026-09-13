@@ -16,13 +16,18 @@ const MAPS_PER_PAGE = 5;
 function DataPage() {
   const [mapsPage, setMapsPage] = useState(1);
   const [exportsPage, setExportsPage] = useState(1);
-  const { data: mapsData, isLoading: mapsLoading } = useMyMaps(mapsPage, MAPS_PER_PAGE);
+  const {
+    data: mapsData,
+    isLoading: mapsLoading,
+    isError: mapsError,
+  } = useMyMaps(mapsPage, MAPS_PER_PAGE);
   const maps = mapsData?.items ?? [];
   const totalMapPages = Math.ceil((mapsData?.total ?? 0) / MAPS_PER_PAGE);
-  const { data: exportsData, isLoading: exportsLoading } = useExportJobs(
-    exportsPage,
-    EXPORTS_PER_PAGE,
-  );
+  const {
+    data: exportsData,
+    isLoading: exportsLoading,
+    isError: exportsError,
+  } = useExportJobs(exportsPage, EXPORTS_PER_PAGE);
 
   const exports = exportsData?.items ?? [];
   const totalExportPages = Math.ceil(
@@ -40,6 +45,7 @@ function DataPage() {
         title={m.data_maps_creation()}
         toolName="uMap"
         isLoading={mapsLoading}
+        isError={mapsError}
         addCard={
           <CardAddNew
             title={m.data_umap_card_title()}
@@ -69,6 +75,7 @@ function DataPage() {
         title={m.data_osm_export()}
         toolName="Export Tool"
         isLoading={exportsLoading}
+        isError={exportsError}
         skeletonCount={2}
         addCard={
           <CardAddNew

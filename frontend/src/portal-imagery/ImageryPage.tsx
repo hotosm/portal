@@ -17,7 +17,7 @@ const DRONE_PROJECTS_PER_PAGE = 4;
 
 function ImageryPage() {
   const [dronePage, setDronePage] = useState(1);
-  const { data: droneProjects = [], isLoading } = useDroneProjects();
+  const { data: droneProjects = [], isLoading, isError } = useDroneProjects();
 
   const totalDronePages = Math.ceil(
     droneProjects.length / DRONE_PROJECTS_PER_PAGE,
@@ -40,6 +40,7 @@ function ImageryPage() {
         title={m.imagery_drone_capturing()}
         toolName="Drone Tasking Manager"
         isLoading={isLoading}
+        isError={isError}
         addCard={
           <CardAddNew
             title={m.imagery_drone_card_title()}
