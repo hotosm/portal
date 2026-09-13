@@ -10,8 +10,9 @@ import { m } from "../paraglide/messages";
 import FairProjectCard from "./components/FairProjectCard";
 import { useMyModels } from "./hooks";
 import { cardClassNames } from "../constants/classNames";
+import CardTakeCourse from "../components/shared/CardTakeCourse";
 
-const PROJECTS_PER_PAGE = 6;
+const PROJECTS_PER_PAGE = 5;
 
 function MappingPage() {
   const [projectsPage, setProjectsPage] = useState(1);
@@ -43,9 +44,18 @@ function MappingPage() {
           />
         }
         trailingCards={
-          <div className={cardClassNames}>
-            <CardDataNotAvailable />
-          </div>
+          <>
+            <div className={cardClassNames}>
+              <CardDataNotAvailable />
+            </div>
+            <div className={cardClassNames}>
+              <CardTakeCourse
+                title={m.imagery_take_course_title()}
+                subtitle={m.imagery_take_course_subtitle()}
+                href={m.mapping_tm_take_course_href()}
+              />
+            </div>
+          </>
         }
       />
 

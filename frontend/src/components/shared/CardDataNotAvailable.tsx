@@ -1,3 +1,4 @@
+import * as m from "../../paraglide/messages";
 import Icon from "./Icon";
 
 function CardDataNotAvailable() {
@@ -5,8 +6,12 @@ function CardDataNotAvailable() {
     <div className="w-full h-full bg-white rounded-xl border border-dashed border-hot-gray-300 p-md flex flex-col gap-md">
       <Icon name="circle-info" label="Info" className="text-hot-gray-400 text-xl" />
       <div>
-        <p className="font-bold text-base leading-tight">User data not available yet</p>
-        <p className="text-hot-gray-500 text-sm mt-1">Coming soon, stay tuned.</p>
+        <p className="font-bold text-base leading-tight">
+          {m.card_data_not_available_title()}
+        </p>
+        <p className="text-hot-gray-500 text-sm mt-1">
+          {m.card_data_not_available_description()}
+        </p>
       </div>
     </div>
   );
