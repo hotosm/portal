@@ -156,7 +156,6 @@ class Settings(BaseSettings):
     drone_tm_verify_ssl: bool | None = None
     fair_verify_ssl: bool | None = None
     umap_locale: str = "es"
-    homepage_map_sync_interval_hours: int = 7
 
     # --- Computed (not from env) ---
     detected_environment: Environment = Field(
