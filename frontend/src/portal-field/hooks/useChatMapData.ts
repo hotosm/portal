@@ -36,8 +36,6 @@ export function useChatMapData(enabled = true) {
 
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) return [];
-        // Upstream unavailable — render an empty list instead of retrying.
-        if (response.status === 503) return [];
         throw new Error(`[${response.status}] Failed to fetch ChatMap maps`);
       }
 

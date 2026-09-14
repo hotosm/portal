@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { cardClassNames } from "../../constants/classNames";
+import CardDataError from "./CardDataError";
 import CardSkeleton from "./CardSkeleton";
 import PageWrapper from "./PageWrapper";
 import SubSectionHeader from "./SubSectionHeader";
@@ -13,6 +14,8 @@ interface SectionCardGridProps<T> {
   toolName?: string;
   /** When true, render `skeletonCount` skeletons in place of the add card and items. */
   isLoading?: boolean;
+  /** When true, render an error card in place of the items. Ignored while loading. */
+  isError?: boolean;
   /** Number of skeleton cards shown while loading. */
   skeletonCount?: number;
   /** The "add new" card content. Wrapped in a card cell here; hidden while loading. */
@@ -34,6 +37,7 @@ function SectionCardGrid<T extends { id: string | number } = { id: string }>({
   title,
   toolName,
   isLoading = false,
+  isError = false,
   skeletonCount = 1,
   addCard,
   items,
@@ -58,13 +62,17 @@ function SectionCardGrid<T extends { id: string | number } = { id: string }>({
             ) : (
               <>
                 {addCard && <div className={cardClassNames}>{addCard}</div>}
-                {items && renderItem
-                  ? items.map((item) => (
-                      <div key={item.id} className={cardClassNames}>
-                        {renderItem(item)}
-                      </div>
-                    ))
-                  : null}
+                {isError ? (
+                  <div className={cardClassNames}>
+                    <CardDataError />
+                  </div>
+                ) : items && renderItem ? (
+                  items.map((item) => (
+                    <div key={item.id} className={cardClassNames}>
+                      {renderItem(item)}
+                    </div>
+                  ))
+                ) : null}
               </>
             )}
             {trailingCards}

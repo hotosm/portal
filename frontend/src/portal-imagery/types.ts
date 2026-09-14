@@ -2,7 +2,7 @@ export interface IImageryProject {
   id: string;
   title: string;
   href: string;
-  section: "drone" | "oam";
+  section: "drone";
   image: string;
 }
 
@@ -29,35 +29,6 @@ export interface DroneApiResponse {
     per_page: number;
     total: number;
   };
-}
-
-export interface OAMImageryResult {
-  _id: string;
-  uuid?: string;
-  title?: string;
-  provider?: string;
-  contact?: string;
-  bbox?: number[];
-  gsd?: number;
-  acquisition_start?: string;
-  acquisition_end?: string;
-  platform?: string;
-  uploaded_at?: string;
-  properties?: {
-    tms?: string;
-    thumbnail?: string;
-  };
-}
-
-export interface OAMApiResponse {
-  meta: {
-    provided_by?: string;
-    license?: string;
-    page?: number;
-    limit?: number;
-    found?: number;
-  };
-  results: OAMImageryResult[];
 }
 
 export interface ApiProject {

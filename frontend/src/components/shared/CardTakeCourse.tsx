@@ -16,6 +16,7 @@ function CardTakeCourse({
   return (
     <a
       href={href}
+      target="_blank"
       onClick={onClick}
       className="flex flex-col justify-between rounded-xl p-md h-full hover:no-underline"
       style={{
