@@ -6,6 +6,8 @@ import aiIcon from "../assets/icons/ai.svg";
 import fieldIcon from "../assets/icons/field.svg";
 import exportIcon from "../assets/icons/export.svg";
 import umapIcon from "../assets/icons/umap.svg";
+import mapswipeIcon from "../assets/icons/mapswipe.svg";
+import sketchmapToolIcon from "../assets/icons/sketchmaptool.svg";
 import type { AppName } from "../portal-plans/types";
 
 export const APP_META: Record<AppName, { label: string; name: string; icon: string }> = {
@@ -17,4 +19,6 @@ export const APP_META: Record<AppName, { label: string; name: string; icon: stri
   "field-tm": { label: "Field", name: "Field Tasking Manager", icon: fieldIcon },
   "export-tool": { label: "Data Export", name: "Export Tool", icon: exportIcon },
   umap: { label: "Map", name: "uMap", icon: umapIcon },
+  mapswipe: { label: "MapSwipe", name: "MapSwipe", icon: mapswipeIcon },
+  "sketchmap-tool": { label: "SketchMap Tool", name: "SketchMap Tool", icon: sketchmapToolIcon },
 };

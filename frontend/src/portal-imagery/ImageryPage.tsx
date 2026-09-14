@@ -1,6 +1,8 @@
+import { useState } from "react";
 import CardAddNew from "../components/shared/CardAddNew";
 import CardDataNotAvailable from "../components/shared/CardDataNotAvailable";
 import CardTakeCourse from "../components/shared/CardTakeCourse";
+import Pagination from "../components/shared/Pagination";
 import SectionCardGrid from "../components/shared/SectionCardGrid";
 import SectionHeader from "../components/shared/SectionHeader";
 import { m } from "../paraglide/messages";
@@ -10,8 +12,20 @@ import droneIcon from "../assets/icons/drone.svg";
 import oamIcon from "../assets/icons/oam.svg";
 import { cardClassNames } from "../constants/classNames";
 
+// Blocks with a "take the course" card fit one card less per page.
+const DRONE_PROJECTS_PER_PAGE = 4;
+
 function ImageryPage() {
-  const { data: droneProjects = [], isLoading } = useDroneProjects();
+  const [dronePage, setDronePage] = useState(1);
+  const { data: droneProjects = [], isLoading, isError } = useDroneProjects();
+
+  const totalDronePages = Math.ceil(
+    droneProjects.length / DRONE_PROJECTS_PER_PAGE,
+  );
+  const pagedDroneProjects = droneProjects.slice(
+    (dronePage - 1) * DRONE_PROJECTS_PER_PAGE,
+    dronePage * DRONE_PROJECTS_PER_PAGE,
+  );
 
   return (
     <>
@@ -26,6 +40,7 @@ function ImageryPage() {
         title={m.imagery_drone_capturing()}
         toolName="Drone Tasking Manager"
         isLoading={isLoading}
+        isError={isError}
         addCard={
           <CardAddNew
             title={m.imagery_drone_card_title()}
@@ -35,16 +50,27 @@ function ImageryPage() {
             buttonHref="https://drone.hotosm.org/create-project"
           />
         }
-        items={droneProjects}
+        items={pagedDroneProjects}
         renderItem={(project) => <ImageryCard project={project} />}
         trailingCards={
           <div className={cardClassNames}>
             <CardTakeCourse
               title={m.imagery_take_course_title()}
               subtitle={m.imagery_take_course_subtitle()}
-              href="https://learn.hotosm.org/course/drone-tasking-manager"
+              href={m.imagery_drone_take_course_href()}
             />
           </div>
+        }
+        footer={
+          totalDronePages > 1 && (
+            <div className="mt-lg">
+              <Pagination
+                currentPage={dronePage}
+                totalPages={totalDronePages}
+                onPageChange={setDronePage}
+              />
+            </div>
+          )
         }
       />
 

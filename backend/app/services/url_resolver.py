@@ -30,6 +30,33 @@ _PATTERNS: list[tuple[re.Pattern[str], AppLiteral, str]] = [
     (re.compile(r"https?://umap\.hotosm\.org/[a-z]{2,5}/map/[^#/]+_(\d+)", re.I), "umap", ""),
     # ChatMap: https://chatmap.hotosm.org/#map/{uuid}
     (re.compile(r"https?://chatmap\.hotosm\.org/#map/([0-9a-f-]+)", re.I), "chatmap", ""),
+    # MapSwipe: https://mapswipe.org/{locale}/projects/{id}/ — id is either a
+    # legacy Firebase push-id (e.g. "-MYHDmkVT5rhB6Dqq1OH") or a newer ULID
+    # (e.g. "01K9FKYXQNGN1EV56V3JXWKXCH").
+    (re.compile(r"https?://mapswipe\.org/(?:[a-z]{2}/)?projects/([^/\s?#]+)", re.I), "mapswipe", ""),
+    # SketchMap Tool "create" (generate a printable map): locale is captured
+    # (de/en/es/fr/cs — SketchMap Tool 500s if the reconstructed link uses the
+    # wrong one, it doesn't normalize), bbox travels in the URL itself
+    # ("lon_min,lat_min,lon_max,lat_max"), so project_id becomes
+    # "create:<locale>:<uuid>:<bbox>".
+    (
+        re.compile(
+            r"https?://sketch-map-tool\.heigit\.org/(?:([a-z]{2})/)?create/results/([0-9a-fA-F-]{36})/([^/\s?#]+)/?",
+            re.I,
+        ),
+        "sketchmap-tool",
+        "create:",
+    ),
+    # SketchMap Tool "digitize" (upload a scanned/marked-up printed map): locale
+    # captured for the same reason as create; no bbox or other data in the URL,
+    # just the job uuid. project_id becomes "digitize:<locale>:<uuid>".
+    (
+        re.compile(
+            r"https?://sketch-map-tool\.heigit\.org/(?:([a-z]{2})/)?digitize/results/([0-9a-fA-F-]{36})/?", re.I
+        ),
+        "sketchmap-tool",
+        "digitize:",
+    ),
 ]
 
 
@@ -49,6 +76,10 @@ def parse_project_url(url: str) -> tuple[AppLiteral, str] | None:
     for pattern, app, id_prefix in _PATTERNS:
         m = pattern.match(url)
         if m:
-            project_id = ":".join(m.groups()) if len(m.groups()) > 1 else m.group(1)
+            # An optional capturing group (e.g. SketchMap Tool's locale) that
+            # didn't match comes back as None — treat it as absent rather than
+            # literally joining in the string "None".
+            groups = [g or "" for g in m.groups()]
+            project_id = ":".join(groups) if len(groups) > 1 else groups[0]
             return app, f"{id_prefix}{project_id}"
     return None

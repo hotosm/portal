@@ -10,12 +10,13 @@ import { m } from "../paraglide/messages";
 import FairProjectCard from "./components/FairProjectCard";
 import { useMyModels } from "./hooks";
 import { cardClassNames } from "../constants/classNames";
+import CardTakeCourse from "../components/shared/CardTakeCourse";
 
-const PROJECTS_PER_PAGE = 6;
+const PROJECTS_PER_PAGE = 5;
 
 function MappingPage() {
   const [projectsPage, setProjectsPage] = useState(1);
-  const { data: modelsData, isLoading } = useMyModels(
+  const { data: modelsData, isLoading, isError } = useMyModels(
     projectsPage,
     PROJECTS_PER_PAGE,
   );
@@ -43,9 +44,18 @@ function MappingPage() {
           />
         }
         trailingCards={
-          <div className={cardClassNames}>
-            <CardDataNotAvailable />
-          </div>
+          <>
+            <div className={cardClassNames}>
+              <CardDataNotAvailable />
+            </div>
+            <div className={cardClassNames}>
+              <CardTakeCourse
+                title={m.imagery_take_course_title()}
+                subtitle={m.imagery_take_course_subtitle()}
+                href={m.mapping_tm_take_course_href()}
+              />
+            </div>
+          </>
         }
       />
 
@@ -55,6 +65,7 @@ function MappingPage() {
         title={m.mapping_ai_assisted()}
         toolName="fAIr"
         isLoading={isLoading}
+        isError={isError}
         addCard={
           <CardAddNew
             title={m.mapping_fair_card_title()}
