@@ -2,7 +2,6 @@ import { useState } from "react";
 import chatIcon from "../assets/icons/chat.svg";
 import fieldIcon from "../assets/icons/field.svg";
 import CardAddNew from "../components/shared/CardAddNew";
-import CardDataNotAvailable from "../components/shared/CardDataNotAvailable";
 import Pagination from "../components/shared/Pagination";
 import SectionCardGrid from "../components/shared/SectionCardGrid";
 import SectionHeader from "../components/shared/SectionHeader";
@@ -10,6 +9,7 @@ import { m } from "../paraglide/messages";
 import ChatMapCard from "./components/ChatMapCard";
 import { useChatMapData } from "./hooks/useChatMapData";
 import { cardClassNames } from "../constants/classNames";
+import CardTakeCourse from "../components/shared/CardTakeCourse";
 
 const CHAT_MAPS_PER_PAGE = 5;
 
@@ -50,6 +50,15 @@ function FieldPage() {
         }
         items={pagedChatMaps}
         renderItem={(map) => <ChatMapCard project={map} />}
+         trailingCards={
+            <div className={cardClassNames}>
+              <CardTakeCourse
+                title={m.imagery_take_course_title()}
+                subtitle={m.imagery_take_course_subtitle()}
+                href={m.field_chatmap_take_course_href()}
+              />
+            </div>
+        }
         footer={
           totalChatMapPages > 1 && (
             <div className="mt-lg">

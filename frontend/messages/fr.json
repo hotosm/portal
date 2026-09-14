@@ -107,6 +107,7 @@
   "field_tm_card_title": "Créer",
   "field_tm_card_description": "un projet de cartographie",
   "field_tm_card_button": "Nouveau projet",
+  "field_chatmap_take_course_href": "https://learn.hotosm.org/course/learn-chatmap",
   "field_organized_mapping": "Cartographie <strong>organisée</strong> par formulaires",
   "section_data": "Données",
   "section_data_by": "par <strong>Export Tool</strong>, <strong>uMap</strong>",

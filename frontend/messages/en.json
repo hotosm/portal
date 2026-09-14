@@ -107,6 +107,7 @@
   "field_tm_card_title": "Create",
   "field_tm_card_description": "a mapping project",
   "field_tm_card_button": "New project",
+  "field_chatmap_take_course_href": "https://learn.hotosm.org/course/learn-chatmap",
   "field_organized_mapping": "<strong>Organized</strong> form mapping",
   "section_data": "Data",
   "section_data_by": "by <strong>Export Tool</strong>, <strong>uMap</strong>",
