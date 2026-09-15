@@ -11,9 +11,9 @@ const API_BASE_URL = '/api'
  * Prevents double /api/api/ prefixes when the env var already ends with /api.
  *
  * @example
- * // With VITE_API_URL unset → "/api/homepage-map/projects/snapshot"
- * // With VITE_API_URL="https://example.com/api" → "https://example.com/api/homepage-map/..."
- * // With VITE_API_URL="https://example.com" → "https://example.com/api/homepage-map/..."
+ * // With VITE_API_URL unset → "/api/plans"
+ * // With VITE_API_URL="https://example.com/api" → "https://example.com/api/plans"
+ * // With VITE_API_URL="https://example.com" → "https://example.com/api/plans"
  */
 export function buildApiEndpoint(path: string): string {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`

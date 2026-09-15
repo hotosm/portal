@@ -56,9 +56,6 @@ importers:
       hotosm-ui-design:
         specifier: ^1.4.0
         version: 1.4.0
-      maplibre-gl:
-        specifier: ^5.9.0
-        version: 5.9.0
       postcss:
         specifier: ^8.5.6
         version: 8.5.6
