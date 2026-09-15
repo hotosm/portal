@@ -6,6 +6,9 @@ CLAUDE.md
 .env.local
 .env.*.local
 
+# Local dev HTTPS certs (mkcert)
+/certs/
+
 # Python
 __pycache__/
 *.py[cod]
