@@ -82,3 +82,6 @@ Thumbs.db
 
 # OpenAerialMap snapshot cache
 backend/app/data/oam_snapshot.json
+
+# User-uploaded plan images
+backend/uploads/
