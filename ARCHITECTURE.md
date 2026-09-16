@@ -154,9 +154,6 @@ portal/
   - `/api/chatmap/map/{map_id}` - Public ChatMap map by ID
   - `/api/chatmap/map` - Authenticated user's ChatMap (Hanko cookie)
 
-- **Homepage Map**:
-  - `/api/homepage-map/projects/snapshot` - Unified homepage map snapshot (GeoJSON)
-
 - **Export Tool**:
   - `/api/export-tool/jobs` - Data jobs of Export Tool
   - `/api/export-tool/jobs/me` - Authenticated user's Export Tool jobs

@@ -17,16 +17,12 @@ describe("buildApiEndpoint", () => {
 
   it("falls back to /api when VITE_API_URL is empty", () => {
     vi.stubEnv("VITE_API_URL", "");
-    expect(buildApiEndpoint("/homepage-map/projects/snapshot")).toBe(
-      "/api/homepage-map/projects/snapshot",
-    );
+    expect(buildApiEndpoint("/plans")).toBe("/api/plans");
   });
 
   it("adds leading slash to path when missing", () => {
     vi.stubEnv("VITE_API_URL", "");
-    expect(buildApiEndpoint("homepage-map/projects/snapshot")).toBe(
-      "/api/homepage-map/projects/snapshot",
-    );
+    expect(buildApiEndpoint("plans")).toBe("/api/plans");
   });
 
   // --- VITE_API_URL set without /api suffix ---
@@ -61,12 +57,12 @@ describe("buildApiEndpoint", () => {
     expect(url).not.toContain("//health");
   });
 
-  // --- real-world URL used by the snapshot endpoint ---
+  // --- real-world nested URL ---
 
-  it("builds the homepage-map snapshot URL correctly with no env var", () => {
+  it("builds a nested endpoint URL correctly with no env var", () => {
     vi.stubEnv("VITE_API_URL", "");
-    expect(buildApiEndpoint("/homepage-map/projects/snapshot")).toBe(
-      "/api/homepage-map/projects/snapshot",
+    expect(buildApiEndpoint("/plans/shared/abc123")).toBe(
+      "/api/plans/shared/abc123",
     );
   });
 });
