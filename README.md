@@ -2,7 +2,7 @@
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
 
-A centralized web workspace that simplifies access to the HOT (Humanitarian OpenStreetMap Team) Tech Suite ecosystem. Portal provides a unified interface for accessing multiple geospatial tools, managing projects, and streamlining workflows for humanitarian mapping and social change.
+A centralized web workspace that simplifies access to the open mapping ecosystem. 
 
 ## Roadmap
 
