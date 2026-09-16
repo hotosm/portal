@@ -27,6 +27,7 @@ A centralized web workspace that simplifies access to the HOT (Humanitarian Open
 |⚙️| Public profiles
 |⚙️| Links and content to/from Learn & Connect
 |⚙️| Add project from third parties (MapSwipe, SketchMapTool) to plans
+|⚙️| Open Mapping Marketplace section
 |  | Maps for plans / Disaster Dashboard
 |  | More options for Public Profiles
 |  | Visualization options
