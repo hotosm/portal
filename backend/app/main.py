@@ -13,6 +13,7 @@ from hotosm_auth_fastapi import init_auth
 
 from app.api.routes import example, test
 from app.api.routes import groups as groups_route
+from app.api.routes import profile as profile_route
 from app.api.routes.chatmap import chatmap
 from app.api.routes.drone_tasking_manager import drone_tasking_manager
 from app.api.routes.drone_tasking_manager.drone_tasking_manager import build_dronetm_cache_key
@@ -34,6 +35,7 @@ from app.db.models.plan import (  # noqa: F401 — registers models with Base.me
     PlanImage,
     PlanProject,
 )
+from app.db.models.profile import PortalProfile  # noqa: F401 — registers model with Base.metadata
 
 
 async def preload_cache():
@@ -275,6 +277,16 @@ app.include_router(
 
 app.include_router(
     groups_route.router,
+    prefix=settings.api_v1_prefix,
+)
+
+app.include_router(
+    profile_route.router,
+    prefix=settings.api_v1_prefix,
+)
+
+app.include_router(
+    profile_route.public_router,
     prefix=settings.api_v1_prefix,
 )
 
