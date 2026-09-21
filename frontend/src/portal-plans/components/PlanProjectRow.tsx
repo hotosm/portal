@@ -17,6 +17,8 @@ interface PlanProjectRowProps {
   onFeaturedChange?: (featured: boolean) => void
   /** Set on editable views only — lets the dialog offer collection assignment. */
   planId?: string
+  /** Always set (edit or read-only view) — used for the SketchMap Tool download. */
+  viewPlanId?: string
 }
 
 function PlanProjectRow({
@@ -26,8 +28,9 @@ function PlanProjectRow({
   onDelete,
   onFeaturedChange,
   planId,
+  viewPlanId,
 }: PlanProjectRowProps) {
-  const { title, imageUrl, href } = usePlanProjectDisplay(project)
+  const { title, imageUrl, href, appLabel } = usePlanProjectDisplay(project)
   // Null on a task that isn't tied to a tool yet.
   const meta = project.app ? APP_META[project.app] : null
   const [localStatus, setLocalStatus] = useState<ProjectStatus>(project.status)
@@ -56,6 +59,7 @@ function PlanProjectRow({
           onClose={() => setDialogOpen(false)}
           title={title}
           href={href}
+          appLabel={appLabel}
           project={project}
           imageUrl={imageUrl}
           onDelete={onDelete}
@@ -70,6 +74,7 @@ function PlanProjectRow({
           }
           onFeaturedChange={onFeaturedChange}
           planId={planId}
+          viewPlanId={viewPlanId}
         />
       )}
       <div className={rowClassName}>
@@ -86,7 +91,7 @@ function PlanProjectRow({
         {meta && (
           <>
             <img src={meta.icon} alt="" className="w-5 h-5 shrink-0" />
-            <span className="shrink-0 text-sm text-hot-gray-600">{meta.name}</span>
+            <span className="shrink-0 text-sm text-hot-gray-600">{appLabel}</span>
           </>
         )}
         {pending ? (

@@ -221,6 +221,9 @@ function MyPlanPage() {
         data:
           (project.upstream as Record<string, unknown> | null) ??
           (project.title && !project.isResolving ? { name: project.title } : null),
+        // Lives in its own column, not `data` — a live re-hydration overwrites
+        // `data` wholesale with the fresh upstream snapshot (see resolveTitle).
+        custom_title: project.customTitle ?? null,
       },
       { onSuccess: rehydrateAfterChange }
     )
@@ -421,6 +424,7 @@ function MyPlanPage() {
                   ? (featured: boolean) => handleFeaturedToggle(project.id, featured)
                   : undefined,
                 planId: canEdit ? planId : undefined,
+                viewPlanId: planId,
               }
               return isList ? (
                 <PlanProjectRow key={project.id} {...projectProps} />
@@ -514,10 +518,10 @@ function MyPlanPage() {
             ) : (
               sectionProjects.map((project) =>
                 isList ? (
-                  <PlanProjectRow key={project.id} project={project} />
+                  <PlanProjectRow key={project.id} project={project} viewPlanId={planId} />
                 ) : (
                   <div key={project.id} className={cardClassNames}>
-                    <PlanProjectCard project={project} />
+                    <PlanProjectCard project={project} viewPlanId={planId} />
                   </div>
                 )
               )

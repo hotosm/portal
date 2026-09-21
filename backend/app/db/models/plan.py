@@ -153,6 +153,18 @@ class PlanProject(Base):
     featured = Column(Boolean, nullable=False, default=False)
     data = Column(JSON().with_variant(JSONB, "postgresql"), nullable=True)
     added_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+    # User-editable display name, set once at add-time. Lives in its own column
+    # (not `data`) because a live re-hydration overwrites `data` wholesale with
+    # the upstream snapshot — see plans_service.hydrate_all's `row.data = item.upstream`.
+    custom_title = Column(String, nullable=True)
+    # S3/MinIO key of a downloaded artifact (e.g. a SketchMap Tool PDF/GeoJSON)
+    # fetched from upstream once and stored here since upstream's own copy can
+    # expire. Only the key + small metadata live in Postgres; bytes live in
+    # S3/MinIO or the local uploads fallback (see s3_service.py).
+    artifact_s3_key = Column(String, nullable=True)
+    artifact_content_type = Column(String, nullable=True)
+    artifact_size_bytes = Column(Integer, nullable=True)
+    artifact_fetched_at = Column(DateTime(timezone=True), nullable=True)
 
     plan = relationship("Plan", back_populates="projects")
     collection = relationship("PlanCollection", back_populates="projects")

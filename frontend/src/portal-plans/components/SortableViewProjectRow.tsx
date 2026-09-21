@@ -78,6 +78,7 @@ function SortableViewProjectRow({
           project.project_exists ? (featured) => onFeaturedToggle?.(id, featured) : undefined
         }
         planId={planId}
+        viewPlanId={planId}
       />
       {!project.project_exists && (
         <LinkProjectDialog

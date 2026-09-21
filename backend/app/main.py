@@ -24,6 +24,7 @@ from app.api.routes.open_aerial_map import open_aerial_map
 from app.api.routes.open_aerial_map.open_aerial_map import start_sync_scheduler
 from app.api.routes.plans import images as plan_images_route
 from app.api.routes.plans import plans as plans_route
+from app.api.routes.plans import sketchmap_files as plan_sketchmap_files_route
 from app.api.routes.tasking_manager import tasking_manager
 from app.api.routes.umap import umap
 from app.core.config import settings
@@ -272,6 +273,11 @@ app.include_router(
 
 app.include_router(
     plan_images_route.router,
+    prefix=f"{settings.api_v1_prefix}/plans",
+)
+
+app.include_router(
+    plan_sketchmap_files_route.router,
     prefix=f"{settings.api_v1_prefix}/plans",
 )
 

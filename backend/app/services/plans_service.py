@@ -3,6 +3,7 @@
 import asyncio
 import copy
 from collections import defaultdict
+from datetime import UTC, datetime
 from typing import get_args
 
 from sqlalchemy import and_, func, or_, select, update
@@ -10,6 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.config import settings
 from app.db.models.plan import Plan, PlanCollection, PlanProject
 from app.models.plan import (
     AppLiteral,
@@ -19,6 +21,7 @@ from app.models.plan import (
     PlanCollectionUpdate,
     PlanCreate,
     PlanImageRead,
+    PlanProjectArtifact,
     PlanProjectItem,
     PlanRead,
     PlanReadHydrated,
@@ -37,12 +40,13 @@ from app.services import (
     mapswipe_service,
     open_aerial_map_service,
     permissions,
+    s3_service,
     sketchmap_tool_service,
     tasking_manager_service,
     umap_service,
     url_resolver,
 )
-from app.services.exceptions import UpstreamUnavailable
+from app.services.exceptions import ArtifactNotReadyError, UpstreamUnavailable
 from app.services.permissions import PermissionContext
 
 _KNOWN_APPS = frozenset(get_args(AppLiteral))
@@ -102,6 +106,7 @@ def plan_to_read(plan: Plan, ctx: PermissionContext) -> PlanRead:
                 status=row.status,
                 featured=row.featured,
                 data=row.data,
+                custom_title=row.custom_title,
                 collection_id=row.collection_id,
             )
             for row in plan.projects
@@ -261,6 +266,7 @@ async def create_plan(db: AsyncSession, ctx: PermissionContext, payload: PlanCre
                 featured=item.featured,
                 display_order=idx,
                 data=item.data,
+                custom_title=item.custom_title,
             )
         )
 
@@ -323,6 +329,11 @@ async def _merge_projects(db: AsyncSession, plan: Plan, items: list[PlanProjectI
         row.status = item.status
         row.featured = item.featured
         row.data = item.data
+        # Same "absent means leave it alone" rule as collection_id: a payload
+        # that doesn't carry custom_title (e.g. a metadata-only plan edit that
+        # round-trips a partial item) must not blank out a name set elsewhere.
+        if "custom_title" in item.model_fields_set:
+            row.custom_title = item.custom_title
         row.collection_id = collection_id
         row.display_order = next_order[collection_id]
         next_order[collection_id] += 1
@@ -714,6 +725,7 @@ async def add_project(
         status=item.status,
         featured=item.featured,
         data=item.data,
+        custom_title=item.custom_title,
         display_order=await _next_display_order(db, plan_id, item.collection_id),
     )
     db.add(row)
@@ -731,6 +743,7 @@ async def add_project(
         status=row.status,
         featured=row.featured,
         data=row.data,
+        custom_title=row.custom_title,
         collection_id=row.collection_id,
     )
 
@@ -744,9 +757,108 @@ async def remove_project(
     row = await _get_plan_project(db, plan_id, plan_project_id)
     if row is None:
         return False
+    if row.artifact_s3_key:
+        _delete_artifact_file(row.artifact_s3_key)
     await db.delete(row)
     await db.flush()
     return True
+
+
+class ArtifactAppMismatchError(ValueError):
+    """Raised when the artifact endpoint is called on a row that isn't a
+    SketchMap Tool project, or has an unrecognized project_id shape."""
+
+
+# SketchMap Tool project_id prefix -> (SMT result type, content-type, extension).
+# See sketchmap_tool_service.fetch_create_pdf_bytes/fetch_digitize_geojson_bytes.
+_ARTIFACT_BY_FLOW = {
+    "create": ("application/pdf", ".pdf"),
+    "digitize": ("application/geo+json", ".geojson"),
+}
+
+
+def _artifact_download_url(plan_id: str, plan_project_id: str) -> str:
+    base = (settings.portal_base_url or "").rstrip("/")
+    return f"{base}/api/plans/{plan_id}/projects/{plan_project_id}/sketchmap-file/content"
+
+
+def _artifact_read(row: PlanProject) -> PlanProjectArtifact | None:
+    if (
+        not row.artifact_s3_key
+        or row.artifact_content_type is None
+        or row.artifact_size_bytes is None
+        or row.artifact_fetched_at is None
+    ):
+        return None
+    return PlanProjectArtifact(
+        content_type=row.artifact_content_type,
+        size_bytes=row.artifact_size_bytes,
+        fetched_at=row.artifact_fetched_at,
+        download_url=_artifact_download_url(row.plan_id, row.id),
+    )
+
+
+def _delete_artifact_file(s3_key: str) -> None:
+    if s3_service.is_local_key(s3_key):
+        s3_service.delete_plan_project_file_local(s3_key)
+    else:
+        s3_service.delete_plan_project_file(s3_key)
+
+
+async def ensure_sketchmap_artifact(
+    db: AsyncSession, ctx: PermissionContext, plan_id: str, plan_project_id: str
+) -> PlanProjectArtifact | None:
+    """Fetch-if-needed and return the downloadable artifact for a SketchMap
+    Tool plan project: the printable-map PDF for a "create" job, the merged
+    GeoJSON for a "digitize" job.
+
+    None if the plan/project doesn't exist or isn't editable by ctx.
+    Raises ArtifactAppMismatchError if the row isn't a sketchmap-tool project,
+    ArtifactNotReadyError if SketchMap Tool's job hasn't finished yet,
+    UpstreamUnavailable if SketchMap Tool can't be reached.
+
+    Once fetched, the artifact is served from storage forever — SketchMap
+    Tool's own copy can already be gone (digitize results expire after 24h)
+    by the time this is called again, so upstream is never re-queried once
+    `artifact_s3_key` is set.
+    """
+    plan = await get_editable_plan(db, ctx, plan_id)
+    if plan is None:
+        return None
+    row = await _get_plan_project(db, plan_id, plan_project_id)
+    if row is None:
+        return None
+    if row.app != "sketchmap-tool" or not row.project_id:
+        raise ArtifactAppMismatchError("Not a SketchMap Tool project")
+
+    if row.artifact_s3_key:
+        return _artifact_read(row)
+
+    parts = row.project_id.split(":")
+    flow = parts[0]
+    if flow not in _ARTIFACT_BY_FLOW or len(parts) < 3:
+        raise ArtifactAppMismatchError(f"Unrecognized SketchMap Tool project_id: {row.project_id}")
+    uuid = parts[2]
+
+    if flow == "create":
+        data = await sketchmap_tool_service.fetch_create_pdf_bytes(uuid)
+    else:
+        data = await sketchmap_tool_service.fetch_digitize_geojson_bytes(uuid)
+    if data is None:
+        raise ArtifactNotReadyError("SketchMap Tool result is not ready yet")
+
+    content_type, ext = _ARTIFACT_BY_FLOW[flow]
+    if s3_service.is_s3_configured():
+        s3_key = s3_service.upload_plan_project_file(data, content_type, plan_id, row.id, ext)
+    else:
+        s3_key = s3_service.upload_plan_project_file_local(data, content_type, plan_id, row.id, ext)
+
+    row.artifact_s3_key = s3_key
+    row.artifact_content_type = content_type
+    row.artifact_size_bytes = len(data)
+    row.artifact_fetched_at = datetime.now(UTC)
+    await db.flush()
+    return _artifact_read(row)
 
 
 async def hydrate_one(
@@ -762,6 +874,8 @@ async def hydrate_one(
             project_exists=False,
             featured=row.featured,
             data=row.data,
+            custom_title=row.custom_title,
+            artifact=_artifact_read(row),
             upstream=None,
             error=None,
         )
@@ -796,6 +910,8 @@ async def hydrate_one(
                 status=row.status,
                 featured=row.featured,
                 data=row.data,
+                custom_title=row.custom_title,
+                artifact=_artifact_read(row),
                 upstream=None,
                 error="upstream_timeout",
             )
@@ -806,6 +922,8 @@ async def hydrate_one(
                 status=row.status,
                 featured=row.featured,
                 data=row.data,
+                custom_title=row.custom_title,
+                artifact=_artifact_read(row),
                 upstream=None,
                 error="upstream_unavailable",
             )
@@ -816,6 +934,8 @@ async def hydrate_one(
                 status=row.status,
                 featured=row.featured,
                 data=row.data,
+                custom_title=row.custom_title,
+                artifact=_artifact_read(row),
                 upstream=None,
                 error="not_found",
             )
@@ -825,6 +945,8 @@ async def hydrate_one(
             status=row.status,
             featured=row.featured,
             data=row.data,
+            custom_title=row.custom_title,
+            artifact=_artifact_read(row),
             upstream=upstream,
             error=None,
         )
@@ -845,6 +967,8 @@ async def hydrate_one(
                 status=row.status,
                 featured=row.featured,
                 data=row.data,
+                custom_title=row.custom_title,
+                artifact=_artifact_read(row),
                 upstream=None,
                 error="upstream_timeout",
             )
@@ -855,6 +979,8 @@ async def hydrate_one(
                 status=row.status,
                 featured=row.featured,
                 data=row.data,
+                custom_title=row.custom_title,
+                artifact=_artifact_read(row),
                 upstream=None,
                 error="upstream_unavailable",
             )
@@ -865,6 +991,8 @@ async def hydrate_one(
                 status=row.status,
                 featured=row.featured,
                 data=row.data,
+                custom_title=row.custom_title,
+                artifact=_artifact_read(row),
                 upstream=None,
                 error="not_found",
             )
@@ -874,6 +1002,8 @@ async def hydrate_one(
             status=row.status,
             featured=row.featured,
             data=row.data,
+            custom_title=row.custom_title,
+            artifact=_artifact_read(row),
             upstream=upstream,
             error=None,
         )
@@ -896,6 +1026,8 @@ async def hydrate_one(
                 status=row.status,
                 featured=row.featured,
                 data=row.data,
+                custom_title=row.custom_title,
+                artifact=_artifact_read(row),
                 upstream=None,
                 error="upstream_timeout",
             )
@@ -906,6 +1038,8 @@ async def hydrate_one(
                 status=row.status,
                 featured=row.featured,
                 data=row.data,
+                custom_title=row.custom_title,
+                artifact=_artifact_read(row),
                 upstream=None,
                 error="upstream_unavailable",
             )
@@ -915,6 +1049,8 @@ async def hydrate_one(
             status=row.status,
             featured=row.featured,
             data=row.data,
+            custom_title=row.custom_title,
+            artifact=_artifact_read(row),
             upstream=upstream,
             error=None if upstream else "not_found",
         )
@@ -940,6 +1076,8 @@ async def hydrate_one(
             status=row.status,
             featured=row.featured,
             data=row.data,
+            custom_title=row.custom_title,
+            artifact=_artifact_read(row),
             upstream=upstream,
             error=None if upstream else "pending",
         )
@@ -961,6 +1099,8 @@ async def hydrate_one(
             status=row.status,
             featured=row.featured,
             data=row.data,
+            custom_title=row.custom_title,
+            artifact=_artifact_read(row),
             upstream=row.data,
             error=None,
         )
@@ -973,12 +1113,18 @@ async def hydrate_one(
             status=row.status,
             featured=row.featured,
             data=row.data,
+            custom_title=row.custom_title,
+            artifact=_artifact_read(row),
             upstream=None,
             error="not_found",
         )
+    fetch_kwargs: dict = {"force_refresh": force_refresh}
+    prod_base_url = _HYDRATE_PRODUCTION_ONLY.get(row.app)
+    if prod_base_url is not None:
+        fetch_kwargs["base_url"] = prod_base_url
     try:
         upstream = await asyncio.wait_for(
-            fetcher(row.project_id, force_refresh=force_refresh),
+            fetcher(row.project_id, **fetch_kwargs),
             timeout=HYDRATE_FETCHER_TIMEOUT,
         )
     except TimeoutError:
@@ -988,6 +1134,8 @@ async def hydrate_one(
             status=row.status,
             featured=row.featured,
             data=row.data,
+            custom_title=row.custom_title,
+            artifact=_artifact_read(row),
             upstream=None,
             error="upstream_timeout",
         )
@@ -998,6 +1146,8 @@ async def hydrate_one(
             status=row.status,
             featured=row.featured,
             data=row.data,
+            custom_title=row.custom_title,
+            artifact=_artifact_read(row),
             upstream=None,
             error="upstream_unavailable",
         )
@@ -1008,6 +1158,8 @@ async def hydrate_one(
             status=row.status,
             featured=row.featured,
             data=row.data,
+            custom_title=row.custom_title,
+            artifact=_artifact_read(row),
             upstream=None,
             error="not_found",
         )
@@ -1017,6 +1169,8 @@ async def hydrate_one(
         status=row.status,
         featured=row.featured,
         data=row.data,
+        custom_title=row.custom_title,
+        artifact=_artifact_read(row),
         upstream=upstream,
         error=None,
     )
@@ -1036,6 +1190,8 @@ def _item_from_snapshot(row: PlanProject) -> HydratedProjectItem:
         status=row.status,
         featured=row.featured,
         data=row.data,
+        custom_title=row.custom_title,
+        artifact=_artifact_read(row),
         collection_id=row.collection_id,
         upstream=row.data,
         from_snapshot=True,
@@ -1098,6 +1254,14 @@ async def _hydrate_live_and_persist(
         elif item.error == "not_found":
             row.project_exists = False
             item.project_exists = False
+            # A task (project_exists=False) may still name its intended app,
+            # but must not carry a project_id (see PlanProjectItem's
+            # check_project_fields validator) — otherwise this row keeps
+            # occupying the (plan_id, app, project_id) unique slot forever,
+            # so re-adding the same project later fails with a raw duplicate-
+            # key error instead of just... re-adding it.
+            row.project_id = None
+            item.project_id = None
     await db.flush()
     return list(hydrated_items)
 
@@ -1237,9 +1401,13 @@ def attach_plan_tags(
     return items
 
 
-# Canonical production base URLs used only when resolving a user-pasted URL.
-# Plan hydration goes through APP_FETCHERS or explicit special cases, which respect env config.
+# Canonical production base URLs, reused for both resolving a pasted URL and
+# (for the apps below) for ongoing plan hydration.
 _CANONICAL_RESOLVE: dict[str, tuple] = {
+    "tasking-manager": (
+        tasking_manager_service.fetch_project_by_id,
+        "https://tasking-manager-production-api.hotosm.org/api/v2",
+    ),
     "drone-tasking-manager": (drone_tm_service.fetch_project_by_id, "https://api.drone.hotosm.org"),
     "fair": (fair_service.fetch_model_by_id, "https://api-prod.fair.hotosm.org/api/v1"),
     "export-tool": (export_tool_service.fetch_job_by_uid, "https://export.hotosm.org/api"),
@@ -1250,6 +1418,31 @@ _CANONICAL_RESOLVE: dict[str, tuple] = {
     "umap": (umap_service.fetch_map_by_id, "https://umap.hotosm.org"),
     "mapswipe": (mapswipe_service.fetch_project_by_id, mapswipe_service.MAPSWIPE_BASE_URL),
     "sketchmap-tool": (sketchmap_tool_service.fetch_project_by_id, sketchmap_tool_service.SKETCHMAP_TOOL_BASE_URL),
+}
+
+# These apps' add-by-URL pattern (url_resolver.py) only ever matches their
+# production domain, so every stored project_id necessarily refers to a
+# production project — hydrate_one's generic fetch path must therefore always
+# check upstream's real production API here too, never a locally configured
+# host. Otherwise an unreachable local dev host gets misread as "this project
+# was deleted": a locally configured DRONE_TM_BACKEND_URL pointing at a dev
+# host that wasn't running returned a plain 404 (no route registered there),
+# indistinguishable from "the project doesn't exist", and the project got
+# silently marked project_exists=False without clearing project_id — which
+# then made re-adding it fail with a raw duplicate-key error instead of a
+# clean "already in your plan" message.
+#
+# chatmap/umap already hardcode their production URL directly in hydrate_one;
+# field-tm deliberately does NOT force production — its URL pattern also
+# matches local/test hosts, and the exact host it was added from is stored
+# and reused (see the field-tm branch above) so a genuine dev-environment
+# project keeps resolving correctly. open-aerial-map/mapswipe/sketchmap-tool
+# fetchers already hardcode production internally, so forcing it again here
+# would be redundant, not wrong, but they're left out for clarity.
+_HYDRATE_PRODUCTION_ONLY: dict[str, str] = {
+    app: base_url
+    for app, (_, base_url) in _CANONICAL_RESOLVE.items()
+    if app in {"tasking-manager", "drone-tasking-manager", "fair", "export-tool"}
 }
 
 # ChatMap plan projects always live on chatmap.hotosm.org, so URL resolution

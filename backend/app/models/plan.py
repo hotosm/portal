@@ -83,6 +83,9 @@ class PlanProjectItem(BaseModel):
     status: StatusLiteral = "in_progress"
     featured: bool = False
     data: dict | None = None
+    # User-editable display name, set once at add-time (e.g. for a SketchMap
+    # Tool project, which has no name of its own upstream).
+    custom_title: str | None = Field(default=None, max_length=_NAME_MAX_LEN)
     # Null means "All" — the frontend buckets any item without a collection
     # under a virtual section; there is no such row in the database.
     collection_id: str | None = None
@@ -161,6 +164,16 @@ class PlanRead(PlanScopeRead):
     updated_at: datetime
 
 
+class PlanProjectArtifact(BaseModel):
+    """Metadata for a downloaded file backing a plan project (e.g. a SketchMap
+    Tool PDF/GeoJSON). The bytes live in S3/MinIO; this is all Postgres holds."""
+
+    content_type: str
+    size_bytes: int
+    fetched_at: datetime
+    download_url: str
+
+
 class HydratedProjectItem(BaseModel):
     id: str | None = None
     app: AppLiteral | None
@@ -169,6 +182,8 @@ class HydratedProjectItem(BaseModel):
     status: StatusLiteral = "in_progress"
     featured: bool = False
     data: dict | None = None
+    custom_title: str | None = None
+    artifact: PlanProjectArtifact | None = None
     collection_id: str | None = None
     upstream: dict | None = None
     error: HydrationError | None = None
