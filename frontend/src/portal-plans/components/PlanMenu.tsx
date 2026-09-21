@@ -26,8 +26,6 @@ function PlanMenu({ plan }: PlanMenuProps) {
     onCopyLink,
     onNativeShare,
     onCloseShare,
-    publishFirstOpen,
-    onClosePublishFirst,
     permissionsOpen,
     onClosePermissions,
   } = usePlanMenu(plan)
@@ -57,13 +55,7 @@ function PlanMenu({ plan }: PlanMenuProps) {
             {plan.is_public ? m.plan_menu_unpublish() : m.plan_menu_publish()}
           </DropdownItem>
         )}
-        {/* {canEdit && (
-          <DropdownItem value="collections">
-            <Icon slot="icon" library="bootstrap" name="tags" />
-            {m.plan_menu_collections()}
-          </DropdownItem>
-        )} */}
-        {canEdit && (
+        {canEdit && plan.is_public && (
           <DropdownItem value="share">
             <Icon slot="icon" library="bootstrap" name="share" />
             {m.plan_menu_share()}
@@ -110,27 +102,6 @@ function PlanMenu({ plan }: PlanMenuProps) {
               </Button>
             )}
           </div>
-        </div>
-      </Dialog>
-
-      {/* Publish first dialog */}
-      <Dialog
-        open={publishFirstOpen}
-        label={m.plan_publish_first_label()}
-        onWaHide={onClosePublishFirst}
-      >
-        <p>{m.plan_publish_first_message()}</p>
-        <div slot="footer" className="flex gap-sm justify-end">
-          <button
-            type="button"
-            onClick={onClosePublishFirst}
-            className="text-sm text-hot-gray-500 hover:text-hot-gray-700 underline"
-          >
-            {m.plan_cancel()}
-          </button>
-          <Button type="button" onClick={onClosePublishFirst}>
-            {m.plan_publish_first_got_it()}
-          </Button>
         </div>
       </Dialog>
 
