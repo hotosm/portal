@@ -54,6 +54,14 @@ wa-card::part(base) {
   overflow: hidden;
 }
 
+/* Tailwind Preflight sets `border-width: 0` on every element, custom elements
+   included, and a document rule beats the component's own `:host`, so an
+   outlined card never draws its border. Restore it in the light DOM. */
+wa-card:not([appearance]),
+wa-card[appearance="outlined"] {
+  border-width: var(--wa-panel-border-width);
+}
+
 /* Carousel pagination positioning */
 .hero-carousel {
   --wa-carousel-pagination-top: var(--wa-spacing-lg);
