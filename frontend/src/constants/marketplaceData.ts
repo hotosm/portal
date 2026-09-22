@@ -1,15 +1,19 @@
+import droneIcon from "../assets/icons/drone-icon.svg";
 import { m } from "../paraglide/messages";
 import { getLocale } from "../paraglide/runtime";
 
-// Destination for every marketplace CTA. Placeholder until the
-// "Tech request" form exists.
-export const MARKETPLACE_REQUEST_URL = "mailto:info@hotosm.org";
+// "Tech request" Airtable form embedded by every marketplace CTA.
+export const MARKETPLACE_FORM_URL =
+  "https://airtable.com/embed/app1n0WWdVdkFz3cR/pagMhDf2az2UUiynH/form";
 
 export interface MarketplaceService {
   id: string;
   title: string;
   type: "product" | "service";
-  icon: string;
+  /** Web Awesome icon name (classic solid). */
+  icon?: string;
+  /** Local SVG, used when no Web Awesome icon fits. Takes precedence over `icon`. */
+  iconSrc?: string;
 }
 
 export interface MarketplaceCommissionColumn {
@@ -43,7 +47,7 @@ export function getMarketplaceServices(): MarketplaceService[] {
       id: "verification",
       title: m.marketplace_service_verification({}, { locale }),
       type: "product",
-      icon: "clipboard-check",
+      icon: "clipboard-list",
     },
     {
       id: "monitoring",
@@ -61,13 +65,13 @@ export function getMarketplaceServices(): MarketplaceService[] {
       id: "rapid",
       title: m.marketplace_service_rapid({}, { locale }),
       type: "product",
-      icon: "rocket",
+      icon: "angle-double-right",
     },
     {
       id: "drone",
       title: m.marketplace_service_drone({}, { locale }),
       type: "product",
-      icon: "helicopter",
+      iconSrc: droneIcon,
     },
     {
       id: "ai",
