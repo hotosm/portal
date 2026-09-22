@@ -13,6 +13,12 @@ export interface MenuItem {
 
 export const MAIN_MENU_ITEMS: MenuItem[] = [
   {
+    id: "marketplace",
+    label: m.section_marketplace,
+    href: "/marketplace",
+    requiresAuth: false,
+  },
+  {
     id: "imagery",
     label: m.section_imagery,
     href: "/imagery",
