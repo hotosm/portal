@@ -15,6 +15,8 @@ interface PlanProjectRowProps {
   onSelectClick?: () => void
   onDelete?: () => void
   onFeaturedChange?: (featured: boolean) => void
+  /* reserves the star's width so it still lines up */
+  hasStarColumn?: boolean
   /** Set on editable views only — lets the dialog offer collection assignment. */
   planId?: string
   /** Always set (edit or read-only view) — used for the SketchMap Tool download. */
@@ -27,6 +29,7 @@ function PlanProjectRow({
   onSelectClick,
   onDelete,
   onFeaturedChange,
+  hasStarColumn = false,
   planId,
   viewPlanId,
 }: PlanProjectRowProps) {
@@ -48,7 +51,10 @@ function PlanProjectRow({
   }, [project.status])
 
   const rowClassName = `w-full min-w-0 bg-white rounded-lg shadow-[0_0_8px_rgba(0,0,0,0.15)] px-md py-sm flex items-center gap-sm${!project.project_exists ? ' opacity-50' : ''}${unavailable ? ' grayscale opacity-60' : ''}`
-  const titleClassName = `min-w-0 flex-1 truncate text-left text-base font-bold${missing ? ' text-hot-gray-600 line-through' : ''}`
+  // Two of these undo Web Awesome's native <button> styles, which text-left
+  // can't reach: it centres its content (justify-start) and never wraps
+  // (whitespace-normal), which would otherwise keep the clamp on one line.
+  const titleClassName = `min-w-0 flex-1 justify-start whitespace-normal break-words line-clamp-2 text-left text-sm md:text-base font-bold${missing ? ' text-hot-gray-600 line-through' : ''}`
   const featuredLabel = project.featured ? 'Remove from featured' : 'Mark as featured'
 
   return (
@@ -88,30 +94,40 @@ function PlanProjectRow({
             <Icon src={project.featured ? starFill : starOutline} label={featuredLabel} />
           </button>
         )}
-        {meta && (
-          <>
-            <img src={meta.icon} alt="" className="w-5 h-5 shrink-0" />
-            <span className="shrink-0 text-sm text-hot-gray-600">{appLabel}</span>
-          </>
+        {!onFeaturedChange && hasStarColumn && (
+          // Same width as the star button above, so tasks align
+          <span aria-hidden="true" className="w-5 shrink-0" />
         )}
-        {pending ? (
-          <span className="flex min-w-0 flex-1 items-center gap-xs text-sm text-hot-gray-600">
-            <Spinner />
-            {m.plan_project_pending_badge()}
-          </span>
-        ) : unavailable ? (
-          // Upstream can't be reached: nothing to open, but the row can still be
-          // removed below.
-          <span className={titleClassName}>{title}</span>
-        ) : (
-          <button
-            type="button"
-            onClick={project.project_exists ? () => setDialogOpen(true) : onSelectClick}
-            className={`${titleClassName} cursor-pointer`}
-          >
-            {title}
-          </button>
-        )}
+        {meta && <img src={meta.icon} alt="" className="w-5 h-5 shrink-0" />}
+        {/* Two stacked lines on mobile; on desktop the wrapper disappears and
+            label and title flow in the row again. */}
+        <div className="flex min-w-0 flex-1 flex-col md:contents">
+          {meta && (
+            // Width comes from the plan, not from this label: every row of the
+            // plan reserves the same column so the titles line up.
+            <span className="shrink-0 whitespace-nowrap text-sm text-hot-gray-600 md:w-[var(--plan-tool-col,auto)]">
+              {appLabel}
+            </span>
+          )}
+          {pending ? (
+            <span className="flex min-w-0 flex-1 items-center gap-xs text-sm text-hot-gray-600">
+              <Spinner />
+              {m.plan_project_pending_badge()}
+            </span>
+          ) : unavailable ? (
+            // Upstream can't be reached: nothing to open, but the row can still be
+            // removed below.
+            <span className={titleClassName}>{title}</span>
+          ) : (
+            <button
+              type="button"
+              onClick={project.project_exists ? () => setDialogOpen(true) : onSelectClick}
+              className={`${titleClassName} cursor-pointer`}
+            >
+              {title}
+            </button>
+          )}
+        </div>
         {missing && (
           <span className="shrink-0 bg-red-600 text-white text-xs font-medium px-2 py-0.5 rounded">
             {m.plan_project_missing_badge()}
