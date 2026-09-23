@@ -290,7 +290,7 @@
   "marketplace_whatitis_emphasis_highlight": "A process.",
   "marketplace_whatitis_intro": "Most organisations that need local mapping data can’t easily find a local team they trust to deliver it well, and most local mapping teams can’t reach the institutional contracts they’re qualified for.",
   "marketplace_whatitis_body": "HOT sits in between: we scope the need, recommend vetted teams from our roster, manage the contract and payment, and quality-check the result before you receive it.",
-  "marketplace_whatitis_callout": "The first marketplace is not a technology platform, it's a process.",
+  "marketplace_whatitis_callout": "\"The first marketplace is not a technology platform, it's a process.\"",
   "marketplace_whofor_title": "Who it's for",
   "marketplace_whofor_orgs_title": "For organisations that need mapping data",
   "marketplace_whofor_orgs_body": "Development banks, UN agencies, national and local governments, INGOs, NGOs and private-sector teams. Get local, high-quality geospatial data without running your own vendor search.",
@@ -333,6 +333,6 @@
   "marketplace_cta_title": "Start scoping your project",
   "marketplace_cta_body": "Help us understand your mapping and geospatial data needs so we can recommend the right products, services, and scope for your organisation.",
   "marketplace_cta_note": "This form takes approximately 3–5 minutes to complete. All information will be used exclusively to scope your engagement with the Humanitarian OpenStreetMap Team (HOT).",
-  "marketplace_cta_contact": "Questions? Contact us at info@hotosm.org",
+  "marketplace_cta_contact": "Questions? Contact us at",
   "marketplace_cta_button": "Start scoping"
 }

@@ -16,9 +16,15 @@ import {
 import { m } from "../paraglide/messages";
 
 const sectionClassName = "container flex flex-col gap-lg pb-3xl pt-xl";
-const sectionTitleClassName = "text-2xl font-semibold leading-tight";
 const cardTitleClassName = "text-base font-semibold leading-tight";
 const cardBodyClassName = "text-sm leading-relaxed";
+
+function trackStartYourProject() {
+  const paq = (window._paq = window._paq || []);
+  paq.push(["setCustomUrl", "/marketplace#start-your-project"]);
+  paq.push(["setDocumentTitle", "Marketplace > Start your project"]);
+  paq.push(["trackPageView"]);
+}
 
 function MarketplacePage() {
   const audiences = getWhoItsFor();
@@ -26,9 +32,12 @@ function MarketplacePage() {
   const commissionColumns = getCommissionData();
   const services = getMarketplaceServices();
   const [isFormOpen, setIsFormOpen] = useState(false);
+  
+  
 
   function openForm() {
     setIsFormOpen(true);
+    trackStartYourProject();
   }
 
   return (
@@ -46,14 +55,14 @@ function MarketplacePage() {
           <h1 className="max-w-[600px] text-3xl font-semibold leading-tight">
             {m.marketplace_hero_title()}
           </h1>
-          <div className="flex flex-col gap-lg md:flex-row md:items-end md:justify-between">
+          <div className="flex flex-col gap-lg md:flex-row md:items-center md:justify-between">
             <p className="max-w-2xl text-lg leading-relaxed text-hot-gray-800">
               {m.marketplace_hero_subtitle()}
             </p>
             <Button
               variant="danger"
               size="large"
-              className="shrink-0 self-start md:self-end"
+              className="shrink-0 self-start md:self-center"
               onClick={openForm}
             >
               <Icon
@@ -70,13 +79,13 @@ function MarketplacePage() {
       </section>
 
       <section className={sectionClassName}>
-        <h2 className={sectionTitleClassName}>
+        <h3>
           {m.marketplace_whatitis_title()}
-        </h2>
-        <div className="flex flex-col gap-2xl md:flex-row md:items-end">
+        </h3>
+        <div className="flex flex-col gap-2xl md:flex-row md:items-center">
           <div className="flex flex-1 flex-col gap-md">
             <p className="leading-relaxed">
-              {m.marketplace_whatitis_emphasis()}{" "}
+              <i>{m.marketplace_whatitis_emphasis()}{" "}</i>
               <strong className="underline decoration-hot-red-600 decoration-2 underline-offset-4">
                 {m.marketplace_whatitis_emphasis_highlight()}
               </strong>
@@ -101,7 +110,7 @@ function MarketplacePage() {
       </section>
 
       <section className={sectionClassName}>
-        <h2 className={sectionTitleClassName}>{m.marketplace_whofor_title()}</h2>
+        <h3>{m.marketplace_whofor_title()}</h3>
         <div className="grid gap-lg md:grid-cols-2">
           {audiences.map((audience) => (
             <Card key={audience.id} appearance="filled">
@@ -115,7 +124,7 @@ function MarketplacePage() {
       </section>
 
       <section className={sectionClassName}>
-        <h2 className={sectionTitleClassName}>{m.marketplace_how_title()}</h2>
+        <h3>{m.marketplace_how_title()}</h3>
         <ol className="grid list-none gap-lg p-0 md:grid-cols-2 lg:grid-cols-4">
           {steps.map((step, index) => (
             <li key={step.id} className="flex flex-col gap-sm m-0">
@@ -136,14 +145,14 @@ function MarketplacePage() {
       <section className={sectionClassName}>
         <span>
           <p className="leading-relaxed">
-              {m.marketplace_whatitis_emphasis()}{" "}
+              <i>{m.marketplace_whatitis_emphasis()}{" "}</i>
               <strong className="underline decoration-hot-red-600 decoration-2 underline-offset-4">
                 {m.marketplace_whatitis_emphasis_highlight()}
               </strong>
             </p>
-          <h2 className={sectionTitleClassName}>
+          <h3>
             {m.marketplace_commission_title()}
-          </h2>
+          </h3>
         </span>
         <div className="grid gap-lg md:grid-cols-2">
           {commissionColumns.map((column) => (
@@ -151,7 +160,7 @@ function MarketplacePage() {
               <div className="flex flex-col gap-sm">
                 <h3 className={cardTitleClassName}>{column.title}</h3>
                 <ul
-                  className={`${cardBodyClassName} flex list-disc flex-col gap-2xs pl-md`}
+                  className={`${cardBodyClassName} flex list-disc flex-col gap-2xs`}
                 >
                   {column.items.map((item) => (
                     <li key={item}>{item}</li>
@@ -164,13 +173,13 @@ function MarketplacePage() {
       </section>
 
       <section className={sectionClassName}>
-        <h2 className={sectionTitleClassName}>
+        <h3>
           {m.marketplace_services_title()}
-        </h2>
+        </h3>
         <div className="grid gap-lg sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {services.map((service) => (
-            <Card key={service.id} className="grow">
-              <div className="flex flex-col items-start gap-sm">
+            <Card key={service.id} className="grow [&::part(body)]:flex [&::part(body)]:grow">
+              <div className="flex grow flex-col items-start gap-sm">
                 {service.iconSrc ? (
                   <img src={service.iconSrc} alt="" className="h-12 w-12" />
                 ) : (
@@ -186,7 +195,7 @@ function MarketplacePage() {
                 <Tag
                   variant={service.type === "product" ? "neutral" : "success"}
                   appearance="filled"
-                  className="uppercase"
+                  className="mt-auto uppercase"
                 >
                   {service.type === "product"
                     ? m.marketplace_badge_product()
@@ -204,9 +213,9 @@ function MarketplacePage() {
             <h2 className="text-xl font-semibold leading-tight">
               {m.marketplace_cta_title()}
             </h2>
-            <p className={cardBodyClassName}>{m.marketplace_cta_body()}</p>
+            <p className="text-lg">{m.marketplace_cta_body()}</p>
             <p className={cardBodyClassName}>{m.marketplace_cta_note()}</p>
-            <p className={cardBodyClassName}>{m.marketplace_cta_contact()}</p>
+            <p className={cardBodyClassName}>{m.marketplace_cta_contact()}{" "}<strong><a className="bold" href="mailto:info@hotosm.org">info@hotosm.org</a></strong></p>
             <div className="flex justify-end">
               <Button variant="neutral" onClick={openForm}>
                 <Icon
@@ -216,7 +225,7 @@ function MarketplacePage() {
                   name="rocket"
                   label=""
                 />
-                {m.marketplace_cta_button()}
+                {m.marketplace_hero_cta()}
               </Button>
             </div>
           </div>
