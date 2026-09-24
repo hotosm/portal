@@ -77,7 +77,9 @@ function SortableViewProjectRow({
         onFeaturedChange={
           project.project_exists ? (featured) => onFeaturedToggle?.(id, featured) : undefined
         }
+        hasStarColumn
         planId={planId}
+        viewPlanId={planId}
       />
       {!project.project_exists && (
         <LinkProjectDialog

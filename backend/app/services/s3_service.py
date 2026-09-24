@@ -74,3 +74,46 @@ def get_plan_image(s3_key: str) -> tuple[bytes, str]:
 
 def delete_plan_image(s3_key: str) -> None:
     get_s3_client().delete_object(Bucket=settings.s3_bucket_name, Key=s3_key)
+
+
+def upload_plan_project_file_local(
+    data: bytes, content_type: str, plan_id: str, plan_project_id: str, ext: str
+) -> str:
+    """Store a plan-project file (e.g. a downloaded SketchMap Tool artifact) on
+    the local filesystem. Returns storage key."""
+    key = f"local/plans/{plan_id}/projects/{plan_project_id}/{uuid.uuid4()}{ext}"
+    path = _local_path(key)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
+    return key
+
+
+def get_plan_project_file_local(s3_key: str) -> bytes:
+    return _local_path(s3_key).read_bytes()
+
+
+def delete_plan_project_file_local(s3_key: str) -> None:
+    _local_path(s3_key).unlink(missing_ok=True)
+
+
+def upload_plan_project_file(
+    data: bytes, content_type: str, plan_id: str, plan_project_id: str, ext: str
+) -> str:
+    """Upload a plan-project file to S3. Returns s3_key."""
+    s3_key = f"plans/{plan_id}/projects/{plan_project_id}/{uuid.uuid4()}{ext}"
+    get_s3_client().put_object(
+        Bucket=settings.s3_bucket_name,
+        Key=s3_key,
+        Body=data,
+        ContentType=content_type,
+    )
+    return s3_key
+
+
+def get_plan_project_file(s3_key: str) -> bytes:
+    response = get_s3_client().get_object(Bucket=settings.s3_bucket_name, Key=s3_key)
+    return response["Body"].read()
+
+
+def delete_plan_project_file(s3_key: str) -> None:
+    get_s3_client().delete_object(Bucket=settings.s3_bucket_name, Key=s3_key)

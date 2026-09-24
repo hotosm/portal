@@ -13,7 +13,6 @@ export function usePlanMenu(plan: PlanReadHydrated) {
   const updateMutation = useUpdatePlan()
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
-  const [publishFirstOpen, setPublishFirstOpen] = useState(false)
   const [permissionsOpen, setPermissionsOpen] = useState(false)
 
   const planUrl = useMemo(
@@ -52,11 +51,7 @@ export function usePlanMenu(plan: PlanReadHydrated) {
           setPermissionsOpen(true)
           break
         case 'share':
-          if (!plan.is_public) {
-            setPublishFirstOpen(true)
-          } else {
-            setShareOpen(true)
-          }
+          setShareOpen(true)
           break
         case 'delete':
           setConfirmDeleteOpen(true)
@@ -99,7 +94,6 @@ export function usePlanMenu(plan: PlanReadHydrated) {
 
   const onCancelDelete = useCallback(() => setConfirmDeleteOpen(false), [])
   const onCloseShare = useCallback(() => setShareOpen(false), [])
-  const onClosePublishFirst = useCallback(() => setPublishFirstOpen(false), [])
   const onClosePermissions = useCallback(() => setPermissionsOpen(false), [])
 
   return {
@@ -114,8 +108,6 @@ export function usePlanMenu(plan: PlanReadHydrated) {
     onCopyLink,
     onNativeShare,
     onCloseShare,
-    publishFirstOpen,
-    onClosePublishFirst,
     permissionsOpen,
     onClosePermissions,
   }

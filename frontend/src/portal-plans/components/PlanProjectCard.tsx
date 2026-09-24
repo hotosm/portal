@@ -28,12 +28,25 @@ function statusVariant(status: ProjectStatus): 'neutral' | 'success' {
 function resolveTitle(
   upstream: Record<string, unknown> | null,
   projectId: string,
-  data: Record<string, unknown> | null
+  data: Record<string, unknown> | null,
+  customTitle: string | null
 ): string {
+  if (customTitle) return customTitle
   const src = upstream ?? data
   if (!src) return projectId
   const t = src.name ?? src.title ?? src.project_name
   return typeof t === 'string' && t ? t : projectId
+}
+
+/** Mode-aware label shown above a project's title/button. SketchMap Tool has
+ * no name of its own upstream and no visual difference between a "create"
+ * (printable map) and a "digitize" (scanned-map upload) job otherwise. */
+export function resolveAppLabel(app: AppName | null, projectId: string | null): string {
+  if (app === 'sketchmap-tool') {
+    if (projectId?.startsWith('create:')) return 'SketchMap Tool - Sketch Map'
+    if (projectId?.startsWith('digitize:')) return 'SketchMap Tool - Geodata'
+  }
+  return app ? (APP_META[app]?.name ?? '') : ''
 }
 
 function resolveImageUrl(
@@ -153,9 +166,16 @@ export function usePlanProjectDisplay(project: HydratedProjectItem) {
       ? typeof project.data?.title === 'string' && project.data.title
         ? project.data.title
         : 'Untitled task'
-      : (chatmapTitle ?? resolveTitle(project.upstream, project.project_id ?? '', project.data)),
+      : (chatmapTitle ??
+        resolveTitle(
+          project.upstream,
+          project.project_id ?? '',
+          project.data,
+          project.custom_title
+        )),
     imageUrl: resolveImageUrl(project.app, project.upstream, project.data),
     href: resolveHref(project.app, project.project_id ?? '', project.upstream, project.data),
+    appLabel: resolveAppLabel(project.app, project.project_id),
   }
 }
 
@@ -167,6 +187,8 @@ interface PlanProjectCardProps {
   onFeaturedChange?: (featured: boolean) => void
   /** Set on editable views only — lets the dialog offer collection assignment. */
   planId?: string
+  /** Always set (edit or read-only view) — used for the SketchMap Tool download. */
+  viewPlanId?: string
 }
 
 function PlanProjectCard({
@@ -176,8 +198,9 @@ function PlanProjectCard({
   onDelete,
   onFeaturedChange,
   planId,
+  viewPlanId,
 }: PlanProjectCardProps) {
-  const { title, imageUrl, href } = usePlanProjectDisplay(project)
+  const { title, imageUrl, href, appLabel } = usePlanProjectDisplay(project)
   // Null on a task that isn't tied to a tool yet.
   const meta = project.app ? APP_META[project.app] : null
   const [localStatus, setLocalStatus] = useState<ProjectStatus>(project.status)
@@ -260,7 +283,7 @@ function PlanProjectCard({
 
       {project.project_exists ? (
         <div className="flex flex-col justify-start gap-xs">
-          <span className="text-sm text-hot-gray-600">{meta?.name}</span>
+          <span className="text-sm text-hot-gray-600">{appLabel}</span>
           {missing ? (
             <>
               <span className="block whitespace-normal text-base font-bold text-hot-gray-600 line-through line-clamp-2">
@@ -319,9 +342,11 @@ function PlanProjectCard({
           onClose={() => setDialogOpen(false)}
           title={title}
           href={href}
+          appLabel={appLabel}
           project={project}
           imageUrl={imageUrl}
           onDelete={onDelete}
+          viewPlanId={viewPlanId}
           initialStatus={localStatus}
           onStatusChange={
             onStatusChange

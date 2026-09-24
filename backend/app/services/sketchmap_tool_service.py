@@ -105,3 +105,40 @@ async def _fetch_digitize_result(
     if geojson is not None and len(json.dumps(geojson)) <= _MAX_GEOJSON_BYTES:
         result["geojson"] = geojson
     return result
+
+
+async def _fetch_result_bytes(uuid: str, result_type: str, base_url: str | None) -> bytes | None:
+    """Fetch raw result bytes for a finished SketchMap Tool job, for storage.
+
+    `result_type` is SketchMap Tool's own path segment ("sketch-map" for the
+    create-flow PDF, "vector-results" for the digitize-flow GeoJSON — see
+    GIScience/sketch-map-tool's routes.py `REQUEST_TYPES`/`download()`).
+    Returns None if the job hasn't succeeded yet (caller should treat that as
+    "not ready", not "missing") — never calls /api/download before status
+    confirms SUCCESS, since SMT 500s on a download that isn't ready.
+    """
+    base = base_url or SKETCHMAP_TOOL_BASE_URL
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            status_response = await client.get(f"{base}/api/status/{uuid}/{result_type}")
+            if status_response.status_code == 404:
+                return None
+            status_response.raise_for_status()
+            if status_response.json().get("status") != "SUCCESS":
+                return None
+
+            download_response = await client.get(f"{base}/api/download/{uuid}/{result_type}")
+            download_response.raise_for_status()
+            return download_response.content
+    except (httpx.RequestError, httpx.HTTPStatusError) as e:
+        raise UpstreamUnavailable(f"sketchmap-tool: {e}") from e
+
+
+async def fetch_create_pdf_bytes(uuid: str, *, base_url: str | None = None) -> bytes | None:
+    """Fetch the printable-map PDF for a "create" job. None if not ready yet."""
+    return await _fetch_result_bytes(uuid, "sketch-map", base_url)
+
+
+async def fetch_digitize_geojson_bytes(uuid: str, *, base_url: str | None = None) -> bytes | None:
+    """Fetch the merged GeoJSON for a "digitize" job. None if not ready yet."""
+    return await _fetch_result_bytes(uuid, "vector-results", base_url)

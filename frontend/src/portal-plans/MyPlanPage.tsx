@@ -18,7 +18,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import Button from '../components/shared/Button'
 import CardSkeleton from '../components/shared/CardSkeleton'
@@ -67,6 +67,7 @@ import type {
   ProjectOption,
   ProjectStatus,
 } from './types'
+import { toolColumnChars } from './utils'
 
 /** Projects of one section, in their stored order. */
 function projectsOf(projects: HydratedProjectItem[], sectionId: string) {
@@ -173,6 +174,7 @@ function MyPlanPage() {
     return () => clearTimeout(timer)
   }, [plan, planId, refreshPlan])
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
+  const toolColumnWidth = useMemo(() => toolColumnChars(plan?.projects ?? []), [plan?.projects])
 
   /**
    * Let the live-hydration effect run once more after a change.
@@ -221,6 +223,9 @@ function MyPlanPage() {
         data:
           (project.upstream as Record<string, unknown> | null) ??
           (project.title && !project.isResolving ? { name: project.title } : null),
+        // Lives in its own column, not `data` — a live re-hydration overwrites
+        // `data` wholesale with the fresh upstream snapshot (see resolveTitle).
+        custom_title: project.customTitle ?? null,
       },
       { onSuccess: rehydrateAfterChange }
     )
@@ -396,6 +401,8 @@ function MyPlanPage() {
   const featuredProjects = plan ? plan.projects.filter((p) => p.featured) : []
   const isList = view === 'list'
 
+  const listViewStyle = { '--plan-tool-col': `${toolColumnWidth}ch` } as CSSProperties
+
   const featuredSection =
     featuredProjects.length > 0 ? (
       <PlanSubSectionAccordion key="featured" title="Featured">
@@ -421,6 +428,7 @@ function MyPlanPage() {
                   ? (featured: boolean) => handleFeaturedToggle(project.id, featured)
                   : undefined,
                 planId: canEdit ? planId : undefined,
+                viewPlanId: planId,
               }
               return isList ? (
                 <PlanProjectRow key={project.id} {...projectProps} />
@@ -514,10 +522,10 @@ function MyPlanPage() {
             ) : (
               sectionProjects.map((project) =>
                 isList ? (
-                  <PlanProjectRow key={project.id} project={project} />
+                  <PlanProjectRow key={project.id} project={project} viewPlanId={planId} />
                 ) : (
                   <div key={project.id} className={cardClassNames}>
-                    <PlanProjectCard project={project} />
+                    <PlanProjectCard project={project} viewPlanId={planId} />
                   </div>
                 )
               )
@@ -661,39 +669,41 @@ function MyPlanPage() {
         </PageWrapper>
       )}
 
-      {featuredSection}
+      <div style={listViewStyle}>
+        {featuredSection}
 
-      {!isLoading && canEdit ? (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={collisionDetection}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragEnd={handleDragEnd}
-          onDragCancel={() => {
-            setDragging(null)
-            // The hover may have moved the card already; go back to the server's word.
-            queryClient.invalidateQueries({ queryKey: planQueryKeys.detail(planId!) })
-          }}
-        >
-          {sections}
-          <DragOverlay>
-            {dragging &&
-              (isList ? (
-                // A row spans its section, so the carried width says nothing here.
-                <div className="w-full cursor-grabbing">
-                  <PlanProjectRow project={dragging.project} />
-                </div>
-              ) : (
-                <div style={{ width: dragging.width || undefined }} className="cursor-grabbing">
-                  <PlanProjectCard project={dragging.project} />
-                </div>
-              ))}
-          </DragOverlay>
-        </DndContext>
-      ) : (
-        sections
-      )}
+        {!isLoading && canEdit ? (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={collisionDetection}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+            onDragCancel={() => {
+              setDragging(null)
+              // The hover may have moved the card already; go back to the server's word.
+              queryClient.invalidateQueries({ queryKey: planQueryKeys.detail(planId!) })
+            }}
+          >
+            {sections}
+            <DragOverlay>
+              {dragging &&
+                (isList ? (
+                  // A row spans its section, so the carried width says nothing here.
+                  <div className="w-full cursor-grabbing">
+                    <PlanProjectRow project={dragging.project} />
+                  </div>
+                ) : (
+                  <div style={{ width: dragging.width || undefined }} className="cursor-grabbing">
+                    <PlanProjectCard project={dragging.project} />
+                  </div>
+                ))}
+            </DragOverlay>
+          </DndContext>
+        ) : (
+          sections
+        )}
+      </div>
 
       {canEdit && pickerSection && (
         <ProjectPickerDialog

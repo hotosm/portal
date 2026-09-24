@@ -71,8 +71,19 @@ export interface PlanProjectItem {
   status?: ProjectStatus
   featured?: boolean
   data?: Record<string, unknown> | null
+  /** User-editable display name, set once at add-time (e.g. for SketchMap Tool). */
+  custom_title?: string | null
   /** Null means the virtual "All" bucket. */
   collection_id?: string | null
+}
+
+/** Metadata for a downloaded file backing a plan project (e.g. a SketchMap
+ * Tool PDF/GeoJSON). The bytes live in S3/MinIO, not in this response. */
+export interface PlanProjectArtifact {
+  content_type: string
+  size_bytes: number
+  fetched_at: string
+  download_url: string
 }
 
 export interface PlanCreate {
@@ -131,6 +142,9 @@ export interface HydratedProjectItem {
   status: ProjectStatus
   featured: boolean
   data: Record<string, unknown> | null
+  custom_title: string | null
+  /** Set once a downloadable artifact (SketchMap Tool PDF/GeoJSON) has been fetched. */
+  artifact: PlanProjectArtifact | null
   // Null means "All" — there is no such collection in the database; the UI
   // buckets every unassigned project under a virtual section.
   collection_id: string | null
@@ -170,6 +184,8 @@ export interface ProjectOption {
   title: string
   upstream?: Record<string, unknown> | null
   isResolving?: boolean
+  /** User-entered display name (SketchMap Tool's required name step). */
+  customTitle?: string
 }
 
 export interface ProjectSource {

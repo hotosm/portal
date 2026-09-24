@@ -8,6 +8,7 @@ import ImageryPage from "../portal-imagery/ImageryPage";
 import MappingPage from "../portal-mapping/MappingPage";
 import FieldPage from "../portal-field/FieldPage";
 import DataPage from "../portal-data/DataPage";
+import MarketplacePage from "../portal-marketplace/MarketplacePage";
 import HelpPage from "../pages/HelpPage";
 import TestPage from "../pages/TestPage";
 import NotFoundPage from "../pages/NotFoundPage";
@@ -118,6 +119,7 @@ export function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route path="/:locale/marketplace" element={<MarketplacePage />} />
       <Route
         path="/:locale/test"
         element={
