@@ -8,6 +8,7 @@ import { useAddProjectByUrl } from '../hooks/useAddProjectByUrl'
 import type { AppName, ProjectOption } from '../types'
 import { AddByUrlSection } from './AddByUrlSection'
 import CollectionPicker from './CollectionPicker'
+import SketchmapNameStep from './SketchmapNameStep'
 
 interface LinkProjectDialogProps {
   open: boolean
@@ -42,6 +43,7 @@ function LinkProjectDialog({
     [plan]
   )
   const [selected, setSelected] = useState<ProjectOption | null>(null)
+  const [sketchmapName, setSketchmapName] = useState('')
   const {
     urlInput,
     setUrlInput,
@@ -49,19 +51,34 @@ function LinkProjectDialog({
     setUrlError,
     isPending,
     handleAddUrl: resolveUrl,
+    pendingSketchmap,
+    cancelSketchmapAdd,
+    confirmSketchmapAdd,
   } = useAddProjectByUrl()
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: only reset on open transition
   useEffect(() => {
     if (open) {
       setSelected(null)
+      setSketchmapName('')
       setUrlInput('')
       setUrlError(null)
+      cancelSketchmapAdd()
     }
   }, [open])
 
   function handleAddUrl() {
     resolveUrl({
+      localSelected: existingKeys,
+      onAdded: (project) => setSelected(project),
+    })
+  }
+
+  // A SketchMap Tool URL resolves into a name step instead of a project: without
+  // this, resolveUrl just set pendingSketchmap and returned, so pasting one here
+  // showed no error, no resolved project and left the Link button inert.
+  function confirmSketchmap() {
+    confirmSketchmapAdd(sketchmapName, {
       localSelected: existingKeys,
       onAdded: (project) => setSelected(project),
     })
@@ -74,15 +91,29 @@ function LinkProjectDialog({
       onWaHide={onClose}
       style={{ '--width': '480px' } as React.CSSProperties}
     >
-      <AddByUrlSection
-        urlInput={urlInput}
-        setUrlInput={setUrlInput}
-        urlError={urlError}
-        setUrlError={setUrlError}
-        isPending={isPending}
-        onAdd={handleAddUrl}
-        divider={false}
-      />
+      {pendingSketchmap ? (
+        <SketchmapNameStep
+          app={pendingSketchmap.app}
+          projectId={pendingSketchmap.project_id}
+          value={sketchmapName}
+          onChange={setSketchmapName}
+          onConfirm={confirmSketchmap}
+          onBack={() => {
+            setSketchmapName('')
+            cancelSketchmapAdd()
+          }}
+        />
+      ) : (
+        <AddByUrlSection
+          urlInput={urlInput}
+          setUrlInput={setUrlInput}
+          urlError={urlError}
+          setUrlError={setUrlError}
+          isPending={isPending}
+          onAdd={handleAddUrl}
+          divider={false}
+        />
+      )}
 
       {/* confirmation */}
       {selected && (
