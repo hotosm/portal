@@ -412,9 +412,9 @@ Each push to one of those branches runs the workflow, which:
 Migrations then run on the host as a one-shot `migrate` service before the
 backend starts.
 
-**Rolling back**: the host pulls the mutable `:prod` / `:latest` tag, so there
-is no "deploy the previous tag" path — revert on the branch and push again. Note
-that a migration already applied is not undone by rolling the image back.
+**Rolling back**: revert on the branch and push again — that rebuilds and
+redeploys. A migration that already ran is not undone by that, so check whether
+the change included one.
 
 ### GitHub Secrets Configuration
 
@@ -494,8 +494,7 @@ git push origin main      # -> portal.hotosm.org
 
 ### Manual Deployment
 
-Neither workflow has a `workflow_dispatch` trigger, so a redeploy without a new
-commit has to be done on the host.
+To redeploy without a new commit, do it on the host.
 
 ⚠️ The directory and the branch have to match the environment. `/opt/portal` is
 **production** — pulling `develop` there puts unreleased code on

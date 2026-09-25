@@ -214,27 +214,14 @@ container `HEALTHCHECK` and by Traefik.
 | TLS | nginx inside the frontend container, certbot certificates mounted from the host | Traefik, certificates resolved automatically |
 
 Both pipelines run the test suite first, then build and push images to GHCR,
-then SSH to the host, rewrite `.env` from the repository secrets, and run
-`docker compose pull && up -d --force-recreate`.
+then SSH to the host, write `.env` from the repository secrets, and run
+`docker compose pull && up -d --force-recreate`. `.env` is written from the
+workflow on each deploy, so that is the place to add a new variable.
 
 Database migrations run on every deploy as a one-shot `migrate` service
 (`docker-compose.yml`), and the backend waits on it with
 `depends_on: service_completed_successfully` — a migration that fails keeps the
 backend from starting at all.
-
-### Known gaps
-
-Worth knowing before you rely on this pipeline:
-
-- **Rollback is not by tag.** The host pulls the mutable `:prod` tag; the
-  immutable `:prod-<sha>` is pushed but never used. Going back means reverting
-  on `main` and pushing again.
-- **No `workflow_dispatch`.** Neither workflow can be triggered by hand, so a
-  redeploy needs a new commit.
-- **No post-deploy health check** in production, and no database backup before
-  migrations run.
-- **`.env` on the host is overwritten wholesale** on every deploy. Anything not
-  in the workflow's heredoc is lost.
 
 ## 12-factor principles
 
