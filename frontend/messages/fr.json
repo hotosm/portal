@@ -226,6 +226,7 @@
   "plan_sketchmap_download_geojson": "Télécharger le GeoJSON",
   "plan_sketchmap_downloading": "Téléchargement…",
   "plan_sketchmap_not_ready": "Ce fichier n'est pas encore prêt sur SketchMap Tool. Réessayez dans quelques minutes.",
+  "plan_sketchmap_signin_required": "Connectez-vous pour télécharger ce fichier.",
   "plan_sketchmap_download_error": "Échec du téléchargement du fichier.",
   "plan_project_add_to_collection": "Ajouter à une collection",
   "plan_toast_project_collection_saved": "Collection mise à jour",

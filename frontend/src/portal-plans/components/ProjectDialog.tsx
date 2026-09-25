@@ -134,7 +134,9 @@ function ProjectDialog({
         downloadUrl = artifact.download_url
       } catch (e) {
         const msg = e instanceof Error ? e.message : ''
-        toast.error(msg === 'not_ready' ? m.plan_sketchmap_not_ready() : m.plan_sketchmap_download_error())
+        if (msg === 'not_ready') toast.error(m.plan_sketchmap_not_ready())
+        else if (msg === 'signin_required') toast.error(m.plan_sketchmap_signin_required())
+        else toast.error(m.plan_sketchmap_download_error())
         return
       }
     }
