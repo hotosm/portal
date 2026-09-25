@@ -9,7 +9,7 @@ answers 200 with an unexpected payload, say) destroyed the link for good.
 
 This column keeps the last known project_id so the link can be restored.
 
-Revision ID: 019_add_plan_project_former_project_id
+Revision ID: 019_add_former_project_id
 Revises: 018_add_plan_artifact_fields
 Create Date: 2026-09-24
 """
@@ -18,7 +18,7 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision = "019_add_plan_project_former_project_id"
+revision = "019_add_former_project_id"
 down_revision = "018_add_plan_artifact_fields"
 branch_labels = None
 depends_on = None
