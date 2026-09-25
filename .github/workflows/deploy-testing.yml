@@ -56,6 +56,17 @@ jobs:
           PORTAL_BASE_URL: http://localhost:8000
         run: uv run pytest
 
+      - name: Verify migrations apply to a real Postgres
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/test
+          COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
+        # pytest builds its schema from the SQLAlchemy models on SQLite and never
+        # runs Alembic, so a migration that cannot apply still passes every test —
+        # it then fails in the deploy's migrate service, which blocks the backend
+        # from starting. Run the chain here, where a failure costs nothing.
+        run: uv run alembic upgrade head
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
