@@ -22,9 +22,13 @@ function FieldPage() {
   } = useChatMapData();
 
   const totalChatMapPages = Math.ceil(chatMaps.length / CHAT_MAPS_PER_PAGE);
+  // Derived, not stored: a refetch that returns fewer maps shrinks the page
+  // count while chatMapsPage keeps its old value, and the slice then falls past
+  // the end of the list — an empty section with "page 3 of 2" under it.
+  const currentChatMapPage = Math.min(chatMapsPage, Math.max(totalChatMapPages, 1));
   const pagedChatMaps = chatMaps.slice(
-    (chatMapsPage - 1) * CHAT_MAPS_PER_PAGE,
-    chatMapsPage * CHAT_MAPS_PER_PAGE,
+    (currentChatMapPage - 1) * CHAT_MAPS_PER_PAGE,
+    currentChatMapPage * CHAT_MAPS_PER_PAGE,
   );
 
   return (
@@ -63,7 +67,7 @@ function FieldPage() {
           totalChatMapPages > 1 && (
             <div className="mt-lg">
               <Pagination
-                currentPage={chatMapsPage}
+                currentPage={currentChatMapPage}
                 totalPages={totalChatMapPages}
                 onPageChange={setChatMapsPage}
               />
