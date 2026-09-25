@@ -201,7 +201,9 @@ make logs
 make prod-down
 ```
 
-**Note**: `make migrate` auto-detects dev/prod containers. In production deployments, migrations should ideally run as part of your CI/CD pipeline or as a Kubernetes init container.
+**Note**: `make migrate` auto-detects dev/prod containers. On the deployed
+environments you do not run this by hand: both compose files declare a one-shot
+`migrate` service that runs `alembic upgrade head` before the backend starts.
 
 ### Option 2: Local Setup (Without Docker)
 
@@ -390,10 +392,29 @@ make help              # Show all available commands
 
 ## Deployment
 
-Portal uses GitHub Actions for automated deployment to EC2. On every push to `develop`, the workflow:
-1. Runs tests
+Portal deploys to two EC2 hosts over SSH from GitHub Actions. There is no
+Kubernetes: both environments are Docker Compose stacks.
+
+| | Production | Testing |
+|---|---|---|
+| Domain | `portal.hotosm.org` | `dev.portal.hotosm.org` |
+| Branch | `main` | `develop` |
+| Workflow | `deploy-production.yml` | `deploy-testing.yml` |
+| Directory on host | `/opt/portal` | `/opt/portal-test` |
+| Image tags | `:prod` | `:latest` |
+
+Each push to one of those branches runs the workflow, which:
+1. Runs the backend and frontend tests, and applies the migrations to a
+   throwaway Postgres to prove they can be applied
 2. Builds and pushes Docker images to GitHub Container Registry
-3. Deploys to EC2 testing environment
+3. SSHes to the host, rewrites `.env` from the secrets, and recreates the stack
+
+Migrations then run on the host as a one-shot `migrate` service before the
+backend starts.
+
+**Rolling back**: the host pulls the mutable `:prod` / `:latest` tag, so there
+is no "deploy the previous tag" path — revert on the branch and push again. Note
+that a migration already applied is not undone by rolling the image back.
 
 ### GitHub Secrets Configuration
 
@@ -452,7 +473,8 @@ OSM_REDIRECT_URI=http://127.0.0.1:5173/api/auth/osm/callback
 
 ### Deployment Workflow
 
-The GitHub Actions workflow (`.github/workflows/deploy-testing.yml`) handles:
+The GitHub Actions workflows (`.github/workflows/deploy-testing.yml` for
+`develop`, `deploy-production.yml` for `main`) handle:
 
 1. **Testing**: Runs backend and frontend tests
 2. **Building**: Builds production Docker images
@@ -461,32 +483,48 @@ The GitHub Actions workflow (`.github/workflows/deploy-testing.yml`) handles:
 
 **Trigger deployment:**
 ```bash
-git push origin develop
+git push origin develop   # -> dev.portal.hotosm.org
+git push origin main      # -> portal.hotosm.org
 ```
 
 **Monitor deployment:**
 - Check GitHub Actions tab in your repository
 - View logs: `ssh admin@portal.hotosm.org "cd /opt/portal && docker compose logs"`
+  (testing: `ssh admin@dev.portal.hotosm.org "cd /opt/portal-test && docker compose -f compose.test.yaml logs"`)
 
 ### Manual Deployment
 
-If you need to deploy manually:
+Neither workflow has a `workflow_dispatch` trigger, so a redeploy without a new
+commit has to be done on the host.
+
+⚠️ The directory and the branch have to match the environment. `/opt/portal` is
+**production** — pulling `develop` there puts unreleased code on
+`portal.hotosm.org`.
+
+**Production** (`portal.hotosm.org`):
 
 ```bash
-# SSH to server
 ssh admin@portal.hotosm.org
-
-# Navigate to application directory
 cd /opt/portal
-
-# Pull latest code
-git pull origin develop
-
-# Update .env with secrets (if needed)
-# Then pull and restart services
-docker compose pull
+git fetch origin main && git reset --hard origin/main
+export IMAGE_TAG=prod
+docker compose --profile prod pull
 docker compose --profile prod up -d --force-recreate
 ```
+
+**Testing** (`dev.portal.hotosm.org`):
+
+```bash
+ssh admin@dev.portal.hotosm.org
+cd /opt/portal-test
+git fetch origin develop && git reset --hard origin/develop
+docker compose -f compose.test.yaml pull
+docker compose -f compose.test.yaml up -d --force-recreate
+```
+
+Both recreate the `migrate` service too, so migrations are applied. If it fails,
+the backend will not start — check `docker logs portal-migrate-1` (or
+`portal-test-migrate-1`) before anything else.
 
 ## Project Structure
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Portal is a full-stack web application with React 19 frontend, FastAPI backend, and PostgreSQL/PostGIS database. Designed for containerized deployment on EC2 (testing) and Kubernetes (production).
+Portal is a full-stack web application with React 19 frontend, FastAPI backend, and PostgreSQL/PostGIS database. Both environments run as Docker Compose stacks on their own EC2 instance.
 
 ## System Architecture
 
@@ -198,21 +198,47 @@ portal/
 
 ## Deployment
 
-### Phase 1: EC2 Testing (Current)
-- Single EC2 instance
-- Docker Compose orchestration
-- Auto-deploy on push to `develop` branch
-- GitHub Actions CI/CD pipeline
+Both environments are Docker Compose stacks on EC2, deployed over SSH by GitHub
+Actions. There is no Kubernetes anywhere: no manifests, no Helm charts, no
+cluster. The `/health` and `/ready` endpoints are consumed today by the
+container `HEALTHCHECK` and by Traefik.
 
-### Phase 2: Kubernetes Production (Future)
-- HOTOSM Kubernetes cluster
-- Domain: `portal.hotosm.org`
-- JumpCloud SSO integration
-- Helm charts for deployment
+|  | Production | Testing |
+|---|---|---|
+| Domain | `portal.hotosm.org` | `dev.portal.hotosm.org` |
+| Trigger | push to `main` | push to `develop` |
+| Workflow | `deploy-production.yml` | `deploy-testing.yml` |
+| Directory on host | `/opt/portal` | `/opt/portal-test` |
+| Compose file | `docker-compose.yml --profile prod` | `compose.test.yaml` |
+| Image tags | `:prod`, `:prod-<sha>` | `:latest`, `:<sha>` |
+| TLS | nginx inside the frontend container, certbot certificates mounted from the host | Traefik, certificates resolved automatically |
 
-## Kubernetes Readiness
+Both pipelines run the test suite first, then build and push images to GHCR,
+then SSH to the host, rewrite `.env` from the repository secrets, and run
+`docker compose pull && up -d --force-recreate`.
 
-Application implements 12-factor app principles:
+Database migrations run on every deploy as a one-shot `migrate` service
+(`docker-compose.yml`), and the backend waits on it with
+`depends_on: service_completed_successfully` — a migration that fails keeps the
+backend from starting at all.
+
+### Known gaps
+
+Worth knowing before you rely on this pipeline:
+
+- **Rollback is not by tag.** The host pulls the mutable `:prod` tag; the
+  immutable `:prod-<sha>` is pushed but never used. Going back means reverting
+  on `main` and pushing again.
+- **No `workflow_dispatch`.** Neither workflow can be triggered by hand, so a
+  redeploy needs a new commit.
+- **No post-deploy health check** in production, and no database backup before
+  migrations run.
+- **`.env` on the host is overwritten wholesale** on every deploy. Anything not
+  in the workflow's heredoc is lost.
+
+## 12-factor principles
+
+The application follows these regardless of where it runs:
 - ✅ Config via environment variables
 - ✅ Logs to stdout
 - ✅ Stateless processes
