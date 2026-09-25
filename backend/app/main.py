@@ -13,22 +13,22 @@ from hotosm_auth_fastapi import init_auth
 
 from app.api.routes import example, test
 from app.api.routes import groups as groups_route
+from app.api.routes import profile as profile_route
 from app.api.routes.chatmap import chatmap
 from app.api.routes.drone_tasking_manager import drone_tasking_manager
 from app.api.routes.drone_tasking_manager.drone_tasking_manager import build_dronetm_cache_key
 from app.api.routes.export_tool import export_tool
 from app.api.routes.fair import fair
 from app.api.routes.field_tm import field_tm
-from app.api.routes.homepage_map import homepage_map
 from app.api.routes.open_aerial_map import open_aerial_map
 from app.api.routes.open_aerial_map.open_aerial_map import start_sync_scheduler
 from app.api.routes.plans import images as plan_images_route
 from app.api.routes.plans import plans as plans_route
+from app.api.routes.plans import sketchmap_files as plan_sketchmap_files_route
 from app.api.routes.tasking_manager import tasking_manager
 from app.api.routes.umap import umap
 from app.core.config import settings
-from app.core.database import AsyncSessionLocal, check_db_connection
-from app.db.models.map_project import MapProject  # noqa: F401 — registers model with Base.metadata
+from app.core.database import check_db_connection
 from app.db.models.oam import OAMImage  # noqa: F401 — registers model with Base.metadata
 from app.db.models.plan import (  # noqa: F401 — registers models with Base.metadata
     Plan,
@@ -36,28 +36,7 @@ from app.db.models.plan import (  # noqa: F401 — registers models with Base.me
     PlanImage,
     PlanProject,
 )
-
-
-def get_homepage_map_sync_interval_seconds() -> int:
-    return settings.homepage_map_sync_interval_hours * 60 * 60
-
-
-async def homepage_map_sync_loop() -> None:
-    """Continuously sync homepage map projects into DB every configured interval."""
-    from app.services import map_projects_service
-
-    while True:
-        try:
-            async with AsyncSessionLocal() as db:
-                counts = await map_projects_service.sync_from_sources(db)
-                logger.info("Homepage map scheduled sync complete (upserted rows): %s", counts)
-        except asyncio.CancelledError:
-            logger.info("Homepage map scheduled sync cancelled")
-            raise
-        except Exception as e:
-            logger.warning("Homepage map scheduled sync failed (non-critical): %s", e)
-
-        await asyncio.sleep(get_homepage_map_sync_interval_seconds())
+from app.db.models.profile import PortalProfile  # noqa: F401 — registers model with Base.metadata
 
 
 async def preload_cache():
@@ -167,18 +146,7 @@ async def lifespan(app: FastAPI):
     # Preload cache in background (non-blocking)
     await preload_cache()
 
-    # Start homepage map sync scheduler as managed FastAPI app task
-    app.state.homepage_map_sync_task = asyncio.create_task(homepage_map_sync_loop())
-
     yield
-
-    homepage_map_sync_task = getattr(app.state, "homepage_map_sync_task", None)
-    if homepage_map_sync_task is not None:
-        homepage_map_sync_task.cancel()
-        try:
-            await homepage_map_sync_task
-        except asyncio.CancelledError:
-            pass
 
     logger.info("Shutting down...")
 
@@ -269,12 +237,6 @@ app.include_router(
 )
 
 app.include_router(
-    homepage_map.router,
-    prefix=settings.api_v1_prefix,
-    tags=["homepage map"],
-)
-
-app.include_router(
     fair.router,
     prefix=settings.api_v1_prefix,
     tags=["fair"],
@@ -315,7 +277,22 @@ app.include_router(
 )
 
 app.include_router(
+    plan_sketchmap_files_route.router,
+    prefix=f"{settings.api_v1_prefix}/plans",
+)
+
+app.include_router(
     groups_route.router,
+    prefix=settings.api_v1_prefix,
+)
+
+app.include_router(
+    profile_route.router,
+    prefix=settings.api_v1_prefix,
+)
+
+app.include_router(
+    profile_route.public_router,
     prefix=settings.api_v1_prefix,
 )
 

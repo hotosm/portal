@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import boxArrowUpRight from '../../assets/icons/box-arrow-up-right.svg'
+import downloadIcon from '../../assets/icons/download.svg'
 import starFill from '../../assets/icons/star-fill.svg'
 import starOutline from '../../assets/icons/star.svg'
 import placeholder from '../../assets/images/placeholder.png'
@@ -14,6 +15,7 @@ import { m } from '../../paraglide/messages'
 import { APP_META } from '../../utils/appMeta'
 import { formatProjectStatus } from '../../utils/utils'
 import { useSetProjectCollection } from '../hooks'
+import { useEnsureSketchmapArtifact } from '../hooks/useSketchmapFile'
 import type { HydratedProjectItem, ProjectStatus } from '../types'
 import CollectionPicker from './CollectionPicker'
 
@@ -28,6 +30,7 @@ interface ProjectDialogProps {
   onClose: () => void
   title: string
   href: string
+  appLabel: string
   project: HydratedProjectItem
   imageUrl?: string
   onDelete?: () => void
@@ -39,6 +42,12 @@ interface ProjectDialogProps {
    * leave it out for read-only views, like the other edit affordances here.
    */
   planId?: string
+  /**
+   * Plan the project belongs to, always set regardless of edit rights — used
+   * for the SketchMap Tool download, which is a read-only action available to
+   * every viewer (unlike collection assignment, gated by `planId` above).
+   */
+  viewPlanId?: string
 }
 
 function extractMeta(upstream: Record<string, unknown> | null) {
@@ -71,6 +80,7 @@ function ProjectDialog({
   onClose,
   title,
   href,
+  appLabel,
   project,
   imageUrl,
   onDelete,
@@ -78,13 +88,16 @@ function ProjectDialog({
   initialStatus,
   onFeaturedChange,
   planId,
+  viewPlanId,
 }: ProjectDialogProps) {
   // Null only for a task with no tool yet; this dialog is for real projects.
   const meta = project.app ? APP_META[project.app] : null
+  const isSketchmap = project.app === 'sketchmap-tool'
   const { createdAt, author } = extractMeta(project.upstream)
   const [localStatus, setLocalStatus] = useState<ProjectStatus>(initialStatus ?? project.status)
 
   const setCollection = useSetProjectCollection(planId ?? '')
+  const ensureArtifact = useEnsureSketchmapArtifact(viewPlanId ?? '')
 
   useEffect(() => {
     setLocalStatus(initialStatus ?? project.status)
@@ -111,6 +124,23 @@ function ProjectDialog({
     } catch {
       toast.error(m.plan_toast_featured_error())
     }
+  }
+
+  async function handleSketchmapDownload() {
+    let downloadUrl = project.artifact?.download_url
+    if (!downloadUrl) {
+      try {
+        const artifact = await ensureArtifact.mutateAsync(project.id)
+        downloadUrl = artifact.download_url
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : ''
+        if (msg === 'not_ready') toast.error(m.plan_sketchmap_not_ready())
+        else if (msg === 'signin_required') toast.error(m.plan_sketchmap_signin_required())
+        else toast.error(m.plan_sketchmap_download_error())
+        return
+      }
+    }
+    window.location.href = downloadUrl
   }
 
   return (
@@ -150,8 +180,8 @@ function ProjectDialog({
           <div className="flex items-center gap-sm text-sm text-hot-gray-600">
             {meta && (
               <>
-                <img src={meta.icon} alt={meta.name} className="w-5 h-5" />
-                <span>{meta.name}</span>
+                <img src={meta.icon} alt={appLabel} className="w-5 h-5" />
+                <span>{appLabel}</span>
               </>
             )}
           </div>
@@ -213,10 +243,24 @@ function ProjectDialog({
             Remove from plan
           </Button>
         )}
-        <Button href={href} target="_blank" rel="noopener noreferrer">
-          Open Project
-          <Icon slot="end" src={boxArrowUpRight} label="Opens in new tab" />
-        </Button>
+        {isSketchmap ? (
+          <Button
+            onClick={handleSketchmapDownload}
+            disabled={ensureArtifact.isPending || !viewPlanId}
+          >
+            {ensureArtifact.isPending
+              ? m.plan_sketchmap_downloading()
+              : project.project_id?.startsWith('digitize:')
+                ? m.plan_sketchmap_download_geojson()
+                : m.plan_sketchmap_download_pdf()}
+            <Icon slot="end" src={downloadIcon} label="Download" />
+          </Button>
+        ) : (
+          <Button href={href} target="_blank" rel="noopener noreferrer">
+            Open Project
+            <Icon slot="end" src={boxArrowUpRight} label="Opens in new tab" />
+          </Button>
+        )}
       </div>
     </Dialog>
   )

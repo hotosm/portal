@@ -7,6 +7,8 @@ interface CollectionSectionProps {
   sectionId: string
   /** Only an editable plan accepts drops; a read-only view just lays the cards out. */
   isDroppable: boolean
+  /** How the children are laid out: the card grid, or one row per project. */
+  layout?: 'grid' | 'list'
   children: ReactNode
 }
 
@@ -17,7 +19,12 @@ interface CollectionSectionProps {
  * empty collection — with only the cards as targets, a section with nothing in
  * it could never be reached.
  */
-function CollectionSection({ sectionId, isDroppable, children }: CollectionSectionProps) {
+function CollectionSection({
+  sectionId,
+  isDroppable,
+  layout = 'grid',
+  children,
+}: CollectionSectionProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: sectionDropId(sectionId),
     data: { sectionId },
@@ -27,9 +34,9 @@ function CollectionSection({ sectionId, isDroppable, children }: CollectionSecti
   return (
     <div
       ref={setNodeRef}
-      className={`flex flex-wrap gap-lg py-lg min-h-[80px] rounded-lg transition-colors ${
-        isOver ? 'bg-hot-gray-100' : ''
-      }`}
+      className={`${
+        layout === 'list' ? 'flex flex-col gap-sm' : 'flex flex-wrap gap-lg'
+      } py-lg min-h-[80px] rounded-lg transition-colors ${isOver ? 'bg-hot-gray-100' : ''}`}
     >
       {children}
     </div>

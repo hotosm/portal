@@ -11,9 +11,11 @@ import httpx
 import pytest
 import respx
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import select
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.db.models.plan import PlanProject
 from app.services import plans_service
 from app.services.exceptions import UpstreamUnavailable
 from app.tests.conftest import make_user
@@ -278,6 +280,105 @@ async def test_hydrate_plan_orphan_item(auth_client):
     assert by_app["tasking-manager"]["error"] is None
     assert by_app["fair"]["upstream"] is None
     assert by_app["fair"]["error"] == "not_found"
+
+
+@pytest.mark.asyncio
+async def test_orphaned_project_id_is_cleared_so_it_can_be_re_added(auth_client):
+    """A project marked not_found during a refresh must not keep occupying its
+    (plan_id, app, project_id) unique slot — otherwise re-adding the same
+    project later fails with a raw duplicate-key error instead of succeeding.
+    """
+    client, _ = auth_client
+    resp = await client.post(
+        "/api/plans",
+        json={"name": "P", "projects": [{"app": "fair", "project_id": "404"}]},
+    )
+    plan_id = resp.json()["id"]
+
+    fetchers = {
+        "tasking-manager": AsyncMock(return_value=None),
+        "fair": AsyncMock(return_value=None),
+        "field-tm": AsyncMock(return_value=None),
+        "drone-tasking-manager": AsyncMock(return_value=None),
+        "open-aerial-map": AsyncMock(return_value=None),
+        "export-tool": AsyncMock(return_value=None),
+        "umap": AsyncMock(return_value=None),
+    }
+    with patch.dict(plans_service.APP_FETCHERS, fetchers):
+        resp = await client.get(f"/api/plans/{plan_id}?refresh=true")
+    assert resp.status_code == 200
+    orphaned = resp.json()["projects"][0]
+    assert orphaned["project_exists"] is False
+    assert orphaned["project_id"] is None
+    assert orphaned["app"] == "fair"
+
+    resp = await client.post(
+        f"/api/plans/{plan_id}/projects",
+        json={"app": "fair", "project_id": "404"},
+    )
+    assert resp.status_code == 201, resp.text
+
+
+@pytest.mark.asyncio
+async def test_orphaned_project_id_is_kept_in_former_project_id(auth_client, test_db_session):
+    """Clearing project_id frees the unique slot, but hydrate_one returns early
+    for a project_exists=False row, so the id must survive somewhere or a 404
+    that turns out to be wrong destroys the link permanently.
+    """
+    client, _ = auth_client
+    resp = await client.post(
+        "/api/plans",
+        json={"name": "P", "projects": [{"app": "fair", "project_id": "404"}]},
+    )
+    plan_id = resp.json()["id"]
+
+    with patch.dict(plans_service.APP_FETCHERS, {"fair": AsyncMock(return_value=None)}):
+        resp = await client.get(f"/api/plans/{plan_id}?refresh=true")
+    assert resp.status_code == 200
+    assert resp.json()["projects"][0]["project_id"] is None
+
+    row = (await test_db_session.execute(select(PlanProject))).scalars().one()
+    assert row.former_project_id == "404"
+
+    # Linking the task to a project again clears the trace.
+    mock_fetcher = AsyncMock(return_value={"name": "Recovered"})
+    with patch.dict(plans_service.APP_FETCHERS, {"fair": mock_fetcher}):
+        resp = await client.patch(
+            f"/api/plans/{plan_id}/projects/{row.id}/complete-task",
+            json={"app": "fair", "project_id": "404"},
+        )
+    assert resp.status_code == 204, resp.text
+    await test_db_session.refresh(row)
+    assert row.project_id == "404"
+    assert row.former_project_id is None
+
+
+@pytest.mark.asyncio
+async def test_hydrate_forces_production_url_for_env_sensitive_apps(auth_client):
+    """tasking-manager/drone-tasking-manager/fair/export-tool are only ever
+    added from a production URL (url_resolver.py has no local/test pattern for
+    them), so plan hydration must always check their real production API —
+    never whatever host a local dev environment happens to have configured —
+    or an unrelated local outage gets misread as "this project was deleted".
+    """
+    client, _ = auth_client
+    resp = await client.post(
+        "/api/plans",
+        json={
+            "name": "P",
+            "projects": [{"app": "drone-tasking-manager", "project_id": "some-slug"}],
+        },
+    )
+    plan_id = resp.json()["id"]
+
+    mock_fetcher = AsyncMock(return_value={"name": "Real drone-tm project"})
+    with patch.dict(plans_service.APP_FETCHERS, {"drone-tasking-manager": mock_fetcher}):
+        resp = await client.get(f"/api/plans/{plan_id}?refresh=true")
+    assert resp.status_code == 200
+    assert resp.json()["projects"][0]["error"] is None
+    mock_fetcher.assert_awaited_once_with(
+        "some-slug", base_url="https://api.drone.hotosm.org", force_refresh=True
+    )
 
 
 @pytest.mark.asyncio
@@ -734,16 +835,15 @@ async def test_complete_task_with_app_project_id(auth_client):
     plan_id = resp.json()["id"]
     task_id = resp.json()["projects"][0]["id"]
 
-    fetchers = {
-        "tasking-manager": AsyncMock(return_value={"name": "Real project"}),
-        "fair": AsyncMock(return_value=None),
-        "field-tm": AsyncMock(return_value=None),
-        "drone-tasking-manager": AsyncMock(return_value=None),
-        "open-aerial-map": AsyncMock(return_value=None),
-        "export-tool": AsyncMock(return_value=None),
-        "umap": AsyncMock(return_value=None),
-    }
-    with patch.dict(plans_service.APP_FETCHERS, fetchers):
+    # tasking-manager always resolves against its canonical production API (see
+    # _CANONICAL_RESOLVE), not APP_FETCHERS — _CANONICAL_RESOLVE captured the
+    # fetcher as a direct object reference at import time, so patching the
+    # dict entry (not the module attribute) is what actually takes effect.
+    mock_fetcher = AsyncMock(return_value={"name": "Real project"})
+    with patch.dict(
+        plans_service._CANONICAL_RESOLVE,
+        {"tasking-manager": (mock_fetcher, plans_service._CANONICAL_RESOLVE["tasking-manager"][1])},
+    ):
         resp = await client.patch(
             f"/api/plans/{plan_id}/projects/{task_id}/complete-task",
             json={"app": "tasking-manager", "project_id": "55"},

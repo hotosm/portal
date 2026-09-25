@@ -26,9 +26,6 @@ export function useMyModels(page = 1, limit = 20, enabled = true) {
         if (response.status === 401 || response.status === 403) {
           return { items: [], total: 0 };
         }
-        if (response.status === 503) {
-          return { items: [], total: 0 };
-        }
         const errorText = await response.text();
         throw new Error(
           `[${response.status}] Failed to fetch fAIr models: ${errorText}`,

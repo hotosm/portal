@@ -196,6 +196,7 @@ async def complete_task(
             url=payload.url,
             app=payload.app,
             input_project_id=payload.project_id,
+            custom_title=payload.custom_title,
             hanko_cookie=hanko_cookie,
         )
     except InvalidUrlError:

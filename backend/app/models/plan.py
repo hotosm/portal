@@ -3,8 +3,7 @@
 from datetime import datetime
 from typing import Literal
 
-import nh3
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 AppLiteral = Literal[
     "chatmap",
@@ -12,7 +11,9 @@ AppLiteral = Literal[
     "export-tool",
     "fair",
     "field-tm",
+    "mapswipe",
     "open-aerial-map",
+    "sketchmap-tool",
     "tasking-manager",
     "umap",
 ]
@@ -25,17 +26,21 @@ GroupType = Literal["team", "organization"]
 
 HydrationError = Literal["not_found", "upstream_unavailable", "upstream_timeout", "pending"]
 
-_ALLOWED_TAGS = frozenset({"p", "h3", "h4", "h5", "strong", "em", "u", "ul", "ol", "li", "br", "a"})
-_ALLOWED_ATTRS: dict[str, set[str]] = {"a": {"href"}}
+# Description fields are stored raw and sanitized on output, not on input.
+#
+# Plan descriptions hold markdown (rendered by react-markdown, which never turns
+# embedded HTML into DOM nodes and drops unsafe URL protocols); collection
+# descriptions are shown as plain text, which React escapes. Both are inert as
+# stored. HTML-sanitizing them on the way in used to corrupt legitimate content:
+# nh3 escaped `>` (breaking blockquotes), dropped `<https://…>` autolinks, and
+# turned `&` into `&amp;` — which the collections view then displayed verbatim.
+#
+# So: whatever renders these must treat them as untrusted. Never feed them to
+# `dangerouslySetInnerHTML`, `rehype-raw`, or an HTML email/PDF template without
+# sanitizing at that point.
 _DESC_MAX_LEN = 10_000
 _NAME_MAX_LEN = 200
 _COLLECTION_DESC_MAX_LEN = 2_000
-
-
-def _sanitize_html(v: str | None) -> str | None:
-    if not v:
-        return v
-    return nh3.clean(v, tags=_ALLOWED_TAGS, attributes=_ALLOWED_ATTRS)
 
 
 class PlanImageRead(BaseModel):
@@ -51,21 +56,11 @@ class PlanCollectionCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=_NAME_MAX_LEN)
     description: str | None = Field(default=None, max_length=_COLLECTION_DESC_MAX_LEN)
 
-    @field_validator("description")
-    @classmethod
-    def sanitize_description(cls, v: str | None) -> str | None:
-        return _sanitize_html(v)
-
 
 class PlanCollectionUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=_NAME_MAX_LEN)
     description: str | None = Field(default=None, max_length=_COLLECTION_DESC_MAX_LEN)
     display_order: int | None = None
-
-    @field_validator("description")
-    @classmethod
-    def sanitize_description(cls, v: str | None) -> str | None:
-        return _sanitize_html(v)
 
 
 class PlanCollectionRead(BaseModel):
@@ -88,6 +83,9 @@ class PlanProjectItem(BaseModel):
     status: StatusLiteral = "in_progress"
     featured: bool = False
     data: dict | None = None
+    # User-editable display name, set once at add-time (e.g. for a SketchMap
+    # Tool project, which has no name of its own upstream).
+    custom_title: str | None = Field(default=None, max_length=_NAME_MAX_LEN)
     # Null means "All" — the frontend buckets any item without a collection
     # under a virtual section; there is no such row in the database.
     collection_id: str | None = None
@@ -133,21 +131,11 @@ class PlanCreate(PlanScopeMixin):
     description: str | None = Field(default=None, max_length=_DESC_MAX_LEN)
     projects: list[PlanProjectItem] = []
 
-    @field_validator("description")
-    @classmethod
-    def sanitize_description(cls, v: str | None) -> str | None:
-        return _sanitize_html(v)
-
 
 class PlanUpdate(PlanScopeMixin):
     name: str | None = Field(default=None, min_length=1)
     description: str | None = Field(default=None, max_length=_DESC_MAX_LEN)
     projects: list[PlanProjectItem] | None = None
-
-    @field_validator("description")
-    @classmethod
-    def sanitize_description(cls, v: str | None) -> str | None:
-        return _sanitize_html(v)
 
 
 class PlanScopeRead(BaseModel):
@@ -176,6 +164,16 @@ class PlanRead(PlanScopeRead):
     updated_at: datetime
 
 
+class PlanProjectArtifact(BaseModel):
+    """Metadata for a downloaded file backing a plan project (e.g. a SketchMap
+    Tool PDF/GeoJSON). The bytes live in S3/MinIO; this is all Postgres holds."""
+
+    content_type: str
+    size_bytes: int
+    fetched_at: datetime
+    download_url: str
+
+
 class HydratedProjectItem(BaseModel):
     id: str | None = None
     app: AppLiteral | None
@@ -184,6 +182,8 @@ class HydratedProjectItem(BaseModel):
     status: StatusLiteral = "in_progress"
     featured: bool = False
     data: dict | None = None
+    custom_title: str | None = None
+    artifact: PlanProjectArtifact | None = None
     collection_id: str | None = None
     upstream: dict | None = None
     error: HydrationError | None = None
@@ -254,6 +254,9 @@ class CompleteTaskRequest(BaseModel):
     url: str | None = Field(default=None, min_length=1, max_length=2048)
     app: AppLiteral | None = None
     project_id: str | None = None
+    # A SketchMap Tool project has no name upstream, so the one the user typed
+    # when linking the task is the only title the row will ever have.
+    custom_title: str | None = Field(default=None, max_length=_NAME_MAX_LEN)
 
     @model_validator(mode="after")
     def check_exactly_one_input(self) -> "CompleteTaskRequest":

@@ -1,6 +1,5 @@
 import PageWrapper from "../components/shared/PageWrapper";
 import { useDroneProjects } from "../portal-imagery/hooks/useDroneProjects";
-import { useOAMImagery } from "../portal-imagery/hooks/useOAMImagery";
 import { useMyModels } from "../portal-mapping/hooks/useFairData";
 import { useMyMaps } from "../portal-data/hooks/useUMapData";
 import { useExportJobs } from "../portal-data/hooks/useExportToolData";
@@ -8,11 +7,6 @@ import { useChatMapData } from "../portal-field/hooks/useChatMapData";
 
 function TestPage() {
   const { data: projects, isLoading, error } = useDroneProjects();
-  const {
-    data: oamImagery,
-    isLoading: oamLoading,
-    error: oamError,
-  } = useOAMImagery();
   const {
     data: models,
     isLoading: modelsLoading,
@@ -80,55 +74,6 @@ function TestPage() {
                     style={{ fontWeight: 600 }}
                   >
                     {project.title}
-                  </a>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <h2>OAM Imagery</h2>
-
-        {oamLoading && <p>Loading OAM imagery...</p>}
-        {oamError && <p>Error loading OAM imagery: {oamError.message}</p>}
-
-        {oamImagery && oamImagery.length === 0 && !oamLoading && (
-          <p>No OAM imagery found.</p>
-        )}
-
-        {oamImagery && oamImagery.length > 0 && (
-          <ul style={{ listStyle: "none", padding: 0 }}>
-            {oamImagery.map((item) => (
-              <li
-                key={item.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "1rem",
-                  padding: "1rem",
-                  borderBottom: "1px solid #eee",
-                }}
-              >
-                {item.image && (
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    style={{
-                      width: 64,
-                      height: 64,
-                      objectFit: "cover",
-                      borderRadius: 8,
-                    }}
-                  />
-                )}
-                <div>
-                  <a
-                    href={item.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ fontWeight: 600 }}
-                  >
-                    {item.title}
                   </a>
                 </div>
               </li>

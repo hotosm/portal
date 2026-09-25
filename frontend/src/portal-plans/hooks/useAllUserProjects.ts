@@ -20,7 +20,9 @@ export const APP_LABELS: Record<AppName, string> = {
   'export-tool': 'Export Tool',
   fair: 'fAIr',
   'field-tm': 'Field TM',
+  mapswipe: 'MapSwipe',
   'open-aerial-map': 'OpenAerialMap',
+  'sketchmap-tool': 'SketchMap Tool',
   'tasking-manager': 'Tasking Manager',
   umap: 'uMap',
 }

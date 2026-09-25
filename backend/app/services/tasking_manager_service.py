@@ -10,7 +10,7 @@ HOTOSM_API_BASE_URL = settings.tasking_manager_api_url
 
 
 async def fetch_project_by_id(
-    project_id: str, *, force_refresh: bool = False
+    project_id: str, *, base_url: str | None = None, force_refresh: bool = False
 ) -> dict | None:
     """Fetch a single TM project by id. Returns None on 404, raises UpstreamUnavailable on failures."""
     cache_key = f"tasking_manager_project_{project_id}"
@@ -19,7 +19,7 @@ async def fetch_project_by_id(
         if cached is not None:
             return cached
 
-    url = f"{HOTOSM_API_BASE_URL}/projects/{project_id}/"
+    url = f"{base_url or HOTOSM_API_BASE_URL}/projects/{project_id}/"
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(url)

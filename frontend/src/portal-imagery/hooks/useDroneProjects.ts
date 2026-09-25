@@ -30,9 +30,6 @@ export function useDroneProjects(enabled = true) {
           if (response.status === 401 || response.status === 403) {
             return [];
           }
-          if (response.status === 503) {
-            return allProjects;
-          }
           const errorText = await response.text();
           throw new Error(
             `[${response.status}] Failed to fetch drone projects: ${errorText}`,

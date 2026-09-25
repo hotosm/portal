@@ -7,6 +7,7 @@ import { m } from '../../paraglide/messages'
 import { useAddProjectByUrl } from '../hooks/useAddProjectByUrl'
 import type { ProjectPickerDialogProps } from '../types'
 import { AddByUrlSection } from './AddByUrlSection'
+import SketchmapNameStep from './SketchmapNameStep'
 
 type PickerTab = 'projects' | 'tasks'
 
@@ -19,19 +20,44 @@ function ProjectPickerDialog({
 }: ProjectPickerDialogProps) {
   const [tab, setTab] = useState<PickerTab>('projects')
   const [taskTitle, setTaskTitle] = useState('')
-  const { urlInput, setUrlInput, urlError, setUrlError, isPending, handleAddUrl } =
-    useAddProjectByUrl()
+  const [sketchmapName, setSketchmapName] = useState('')
+  const {
+    urlInput,
+    setUrlInput,
+    urlError,
+    setUrlError,
+    isPending,
+    handleAddUrl,
+    pendingSketchmap,
+    cancelSketchmapAdd,
+    confirmSketchmapAdd,
+  } = useAddProjectByUrl()
 
   useEffect(() => {
     if (!open) return
     setTab('projects')
     setTaskTitle('')
+    setSketchmapName('')
     setUrlInput('')
     setUrlError(null)
+    cancelSketchmapAdd()
+    // cancelSketchmapAdd is stable across renders (useState setter), safe to omit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, setUrlInput, setUrlError])
 
   function addProject() {
     handleAddUrl({
+      localSelected: existingKeys,
+      onAdded: (project) => {
+        onAddProject(project)
+        toast.success(m.plan_toast_project_added())
+        onClose()
+      },
+    })
+  }
+
+  function confirmSketchmap() {
+    confirmSketchmapAdd(sketchmapName, {
       localSelected: existingKeys,
       onAdded: (project) => {
         onAddProject(project)
@@ -68,16 +94,30 @@ function ProjectPickerDialog({
         <Tab panel="tasks">{m.plan_picker_tab_tasks()}</Tab>
 
         <TabPanel name="projects">
-          <AddByUrlSection
-            urlInput={urlInput}
-            setUrlInput={setUrlInput}
-            urlError={urlError}
-            setUrlError={setUrlError}
-            isPending={isPending}
-            onAdd={addProject}
-            description={m.plan_picker_url_help()}
-            divider={false}
-          />
+          {pendingSketchmap ? (
+            <SketchmapNameStep
+              app={pendingSketchmap.app}
+              projectId={pendingSketchmap.project_id}
+              value={sketchmapName}
+              onChange={setSketchmapName}
+              onConfirm={confirmSketchmap}
+              onBack={() => {
+                setSketchmapName('')
+                cancelSketchmapAdd()
+              }}
+            />
+          ) : (
+            <AddByUrlSection
+              urlInput={urlInput}
+              setUrlInput={setUrlInput}
+              urlError={urlError}
+              setUrlError={setUrlError}
+              isPending={isPending}
+              onAdd={addProject}
+              description={m.plan_picker_url_help()}
+              divider={false}
+            />
+          )}
         </TabPanel>
 
         <TabPanel name="tasks">

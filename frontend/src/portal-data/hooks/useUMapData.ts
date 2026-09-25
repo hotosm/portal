@@ -47,7 +47,6 @@ export function useMyMaps(page = 1, limit = MAPS_PER_PAGE, enabled = true) {
       if (!response.ok) {
         if (response.status === 401 || response.status === 403)
           return { items: [], total: 0 };
-        if (response.status === 503) return { items: [], total: 0 };
         throw new Error(`[${response.status}] Failed to fetch uMap maps`);
       }
 

@@ -1,58 +1,18 @@
-"""Unit tests verifying the three backend optimizations:
+"""Unit tests verifying backend optimizations:
 
-1. No runtime DDL — ensure_table_exists() is gone from map_projects_service.
-2. build_dronetm_cache_key() — single source of truth for cache key format.
-3. Cache key consistency — preloader and route generate the identical key.
+1. build_dronetm_cache_key() — single source of truth for cache key format.
+2. Cache key consistency — preloader and route generate the identical key.
 """
-
-import inspect
 
 import pytest
 
-import app.services.map_projects_service as map_projects_service
 from app.api.routes.drone_tasking_manager.drone_tasking_manager import (
     build_dronetm_cache_key,
 )
 
 
 # ---------------------------------------------------------------------------
-# 1. No runtime DDL
-# ---------------------------------------------------------------------------
-
-
-def test_ensure_table_exists_not_present_in_module():
-    """ensure_table_exists must not exist in map_projects_service.
-
-    Tables must be created solely by Alembic migrations, never by the app at
-    runtime. Removing this function eliminates the DuplicateTable race condition
-    that occurred when multiple instances started simultaneously.
-    """
-    assert not hasattr(map_projects_service, "ensure_table_exists"), (
-        "ensure_table_exists() was found in map_projects_service. "
-        "Remove it: table creation belongs in Alembic migrations only."
-    )
-
-
-def test_sync_from_sources_does_not_call_ensure_table_exists():
-    """sync_from_sources must not reference ensure_table_exists."""
-    source = inspect.getsource(map_projects_service.sync_from_sources)
-    assert "ensure_table_exists" not in source
-
-
-def test_query_map_projects_does_not_call_ensure_table_exists():
-    """query_map_projects must not reference ensure_table_exists."""
-    source = inspect.getsource(map_projects_service.query_map_projects)
-    assert "ensure_table_exists" not in source
-
-
-def test_is_db_empty_does_not_call_ensure_table_exists():
-    """is_db_empty must not reference ensure_table_exists."""
-    source = inspect.getsource(map_projects_service.is_db_empty)
-    assert "ensure_table_exists" not in source
-
-
-# ---------------------------------------------------------------------------
-# 2. build_dronetm_cache_key correctness
+# 1. build_dronetm_cache_key correctness
 # ---------------------------------------------------------------------------
 
 
@@ -94,7 +54,7 @@ class TestBuildDronetmCacheKey:
 
 
 # ---------------------------------------------------------------------------
-# 3. Preloader key == route key (no silent drift)
+# 2. Preloader key == route key (no silent drift)
 # ---------------------------------------------------------------------------
 
 

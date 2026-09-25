@@ -108,11 +108,11 @@ function PlanPermissionsDialog({ plan, open, onClose }: PlanPermissionsDialogPro
         >
           <Option value="personal">{m.plan_permissions_scope_personal()}</Option>
           {teamGroups.length > 0 && <Option value="team">{m.plan_permissions_scope_team()}</Option>}
-          {/* {orgGroups.length > 0 && (
+          {orgGroups.length > 0 && (
             <Option value="organization">
               {m.plan_permissions_scope_org()}
             </Option>
-          )} */}
+          )}
         </Select>
 
         {!hasGroups && (

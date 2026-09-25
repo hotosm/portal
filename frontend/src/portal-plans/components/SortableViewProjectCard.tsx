@@ -73,11 +73,11 @@ function SortableViewProjectCard({
           project.project_exists ? (featured) => onFeaturedToggle?.(id, featured) : undefined
         }
         planId={planId}
+        viewPlanId={planId}
       />
       {!project.project_exists && (
         <LinkProjectDialog
           open={dialogOpen}
-          app={project.app}
           planId={planId}
           planProjectId={id}
           collectionId={project.collection_id}

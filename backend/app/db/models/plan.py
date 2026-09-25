@@ -147,12 +147,29 @@ class PlanProject(Base):
     app = Column(String, nullable=True)
     project_id = Column(String, nullable=True)
     project_exists = Column(Boolean, nullable=False, default=True)
+    # Last known project_id of a row a 404 turned into a task. project_id itself
+    # has to be cleared (it would keep holding the unique slot, and a task must
+    # not carry one), but hydrate_one never looks at a row with
+    # project_exists=False, so without this the link could never be restored.
+    former_project_id = Column(String, nullable=True)
     status = Column(String, nullable=False, default="in_progress")
     # Position inside the project's collection (or inside "All" when unassigned).
     display_order = Column(Integer, nullable=False, default=0)
     featured = Column(Boolean, nullable=False, default=False)
     data = Column(JSON().with_variant(JSONB, "postgresql"), nullable=True)
     added_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+    # User-editable display name, set once at add-time. Lives in its own column
+    # (not `data`) because a live re-hydration overwrites `data` wholesale with
+    # the upstream snapshot — see plans_service.hydrate_all's `row.data = item.upstream`.
+    custom_title = Column(String, nullable=True)
+    # S3/MinIO key of a downloaded artifact (e.g. a SketchMap Tool PDF/GeoJSON)
+    # fetched from upstream once and stored here since upstream's own copy can
+    # expire. Only the key + small metadata live in Postgres; bytes live in
+    # S3/MinIO or the local uploads fallback (see s3_service.py).
+    artifact_s3_key = Column(String, nullable=True)
+    artifact_content_type = Column(String, nullable=True)
+    artifact_size_bytes = Column(Integer, nullable=True)
+    artifact_fetched_at = Column(DateTime(timezone=True), nullable=True)
 
     plan = relationship("Plan", back_populates="projects")
     collection = relationship("PlanCollection", back_populates="projects")

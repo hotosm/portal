@@ -20,4 +20,5 @@ interface ImportMeta {
 // Global window extensions
 interface Window {
   HANKO_URL?: string;
+  _paq?: unknown[][];
 }
