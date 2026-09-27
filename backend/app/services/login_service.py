@@ -243,9 +243,7 @@ async def get_public_user_groups_by_slug(
 ) -> list[PublicGroup]:
     """Fetch the public organizations/teams a user owns, by slug.
 
-    Calls login's ``GET /api/public/user/{slug}/groups?type=...``. Only call
-    this when the caller has already checked the matching portal_profiles row
-    has the corresponding show_organizations/show_teams flag set to True.
+    Calls login's ``GET /api/public/user/{slug}/groups?type=...``.
     Raises LoginUnavailable on network errors, timeouts, or non-2xx responses
     (a 404 here means the profile itself vanished between calls — treat as
     unavailable rather than silently returning an empty list).

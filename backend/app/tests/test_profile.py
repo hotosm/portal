@@ -108,28 +108,7 @@ async def test_public_profile_404_when_login_reports_not_public(client):
 
 
 @pytest.mark.asyncio
-async def test_public_profile_omits_organizations_when_not_shown(client):
-    groups_mock = AsyncMock(side_effect=AssertionError("must not call groups sub-endpoint"))
-    with patch(
-        "app.services.profile_service.login_service.get_public_account_profile",
-        new=AsyncMock(return_value=_public_account_profile()),
-    ), patch("app.services.profile_service.login_service.get_public_user_groups_by_slug", new=groups_mock):
-        response = await client.get("/api/public/profile/ada")
-    assert response.status_code == 200
-    body = response.json()
-    assert body["organizations"] is None
-    groups_mock.assert_not_called()
-
-
-@pytest.mark.asyncio
-async def test_public_profile_includes_organizations_when_shown(auth_client):
-    c, user = auth_client
-    with patch(
-        "app.services.profile_service.login_service.get_account_profile",
-        new=AsyncMock(return_value=_account_profile(hanko_user_id=user.id, slug="ada")),
-    ):
-        await c.patch("/api/profile/me", json={"show_organizations": True})
-
+async def test_public_profile_includes_organizations_from_login(client):
     public_group = login_service.PublicGroup(
         type="organization",
         name="HOT",
@@ -142,15 +121,12 @@ async def test_public_profile_includes_organizations_when_shown(auth_client):
     )
     with patch(
         "app.services.profile_service.login_service.get_public_account_profile",
-        new=AsyncMock(return_value=_public_account_profile(hanko_user_id=user.id)),
+        new=AsyncMock(return_value=_public_account_profile()),
     ), patch(
         "app.services.profile_service.login_service.get_public_user_groups_by_slug",
         new=AsyncMock(return_value=[public_group]),
     ):
-        # The public route requires no auth; reusing the authenticated client
-        # here (same pattern as test_plans.py's test_shared_endpoint_public_plan)
-        # exercises it identically to an anonymous caller.
-        response = await c.get("/api/public/profile/ada")
+        response = await client.get("/api/public/profile/ada")
     assert response.status_code == 200
     body = response.json()
     assert body["organizations"] == [
@@ -165,6 +141,21 @@ async def test_public_profile_includes_organizations_when_shown(auth_client):
             "members_count": 3,
         }
     ]
+
+
+@pytest.mark.asyncio
+async def test_public_profile_empty_organizations_when_login_has_none(client):
+    with patch(
+        "app.services.profile_service.login_service.get_public_account_profile",
+        new=AsyncMock(return_value=_public_account_profile()),
+    ), patch(
+        "app.services.profile_service.login_service.get_public_user_groups_by_slug",
+        new=AsyncMock(return_value=[]),
+    ):
+        response = await client.get("/api/public/profile/ada")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["organizations"] == []
 
 
 @pytest.mark.asyncio

@@ -77,6 +77,9 @@ async def get_public_profile(db: AsyncSession, slug: str) -> PublicProfileRead |
     (route 404s). Raises login_service.LoginUnavailable on upstream failure
     (route translates to 502) — never falls back to serving portal_profiles
     data without login confirming public visibility first.
+
+    Organizations are always fetched from login, which only exposes orgs that
+    are public and approved; an empty list means the user has none to show.
     """
     account = await login_service.get_public_account_profile(slug)
     if account is None:
@@ -87,10 +90,8 @@ async def get_public_profile(db: AsyncSession, slug: str) -> PublicProfileRead |
     )
     portal = result.scalar_one_or_none()
 
-    organizations = None
-    if portal is not None and portal.show_organizations:
-        groups = await login_service.get_public_user_groups_by_slug(slug, "org")
-        organizations = [asdict(g) for g in groups]
+    groups = await login_service.get_public_user_groups_by_slug(slug, "org")
+    organizations = [asdict(g) for g in groups]
 
     return PublicProfileRead(
         slug=account.slug,
