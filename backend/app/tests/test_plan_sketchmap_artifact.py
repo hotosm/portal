@@ -9,6 +9,9 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from app.services import plans_service
+from app.tests.conftest import make_user
+
 CREATE_PROJECT_ID = "create:en:4b7d8c9a-1234-5678-abcd-ef0123456789:8.1,49.1,8.2,49.2"
 DIGITIZE_PROJECT_ID = "digitize:en:4b7d8c9a-1234-5678-abcd-ef0123456789"
 
@@ -193,3 +196,159 @@ async def test_download_content_streams_stored_bytes(auth_client):
     assert resp.headers["content-type"] == "application/pdf"
     assert "attachment" in resp.headers["content-disposition"]
     assert "My-printable-map.pdf" in resp.headers["content-disposition"]
+
+
+async def _store_and_download(client, plan_id: str, plan_project_id: str, pdf_bytes: bytes):
+    with (
+        patch(
+            "app.services.sketchmap_tool_service.fetch_create_pdf_bytes",
+            AsyncMock(return_value=pdf_bytes),
+        ),
+        patch("app.services.s3_service.is_s3_configured", return_value=False),
+        patch(
+            "app.services.s3_service.upload_plan_project_file_local",
+            return_value="local/plans/x/projects/y/z.pdf",
+        ),
+    ):
+        resp = await client.post(f"/api/plans/{plan_id}/projects/{plan_project_id}/sketchmap-file")
+    assert resp.status_code == 200
+    with patch("app.services.s3_service.get_plan_project_file_local", return_value=pdf_bytes):
+        return await client.get(
+            f"/api/plans/{plan_id}/projects/{plan_project_id}/sketchmap-file/content"
+        )
+
+
+@pytest.mark.asyncio
+async def test_download_content_with_non_latin1_title(auth_client):
+    """Starlette encodes headers as latin-1: a Japanese or Cyrillic title used to
+    raise UnicodeEncodeError and 500 the download of a file that was stored fine.
+    """
+    client, _ = auth_client
+    plan_id, plan_project_id = await _create_plan_with_sketchmap_project(
+        client, CREATE_PROJECT_ID, "地図 Карта"
+    )
+
+    pdf_bytes = b"%PDF-1.4 fake pdf bytes"
+    resp = await _store_and_download(client, plan_id, plan_project_id, pdf_bytes)
+
+    assert resp.status_code == 200
+    assert resp.content == pdf_bytes
+    disposition = resp.headers["content-disposition"]
+    # The title is entirely non-ASCII, so the fallback is the generic name...
+    assert 'filename="sketchmap-tool-create-' in disposition
+    # ...and the real title rides along percent-encoded, which browsers prefer.
+    assert "filename*=UTF-8''%E5%9C%B0%E5%9B%B3-%D0%9A%D0%B0%D1%80%D1%82%D0%B0.pdf" in disposition
+
+
+@pytest.mark.asyncio
+async def test_download_content_ascii_folds_accents_for_fallback(auth_client):
+    """An accented Latin title keeps a readable ASCII fallback rather than
+    losing the name entirely."""
+    client, _ = auth_client
+    plan_id, plan_project_id = await _create_plan_with_sketchmap_project(
+        client, CREATE_PROJECT_ID, "Cartografía de Río Negro"
+    )
+
+    resp = await _store_and_download(client, plan_id, plan_project_id, b"%PDF-1.4 x")
+
+    assert resp.status_code == 200
+    disposition = resp.headers["content-disposition"]
+    assert 'filename="Cartografia-de-Rio-Negro.pdf"' in disposition
+    assert "filename*=UTF-8''Cartograf%C3%ADa-de-R%C3%ADo-Negro.pdf" in disposition
+
+
+@pytest.mark.asyncio
+async def test_viewer_of_public_plan_can_materialize_artifact(two_auth_clients):
+    """Downloading is offered to every viewer, and the GET that serves the bytes
+    only asks for can_view — so the one-off fetch must not be editor-only, or a
+    viewer gets a bare error whenever the owner never pressed Download.
+    """
+    client, user_cell = two_auth_clients
+    owner = make_user("owner-id", "owner@example.com")
+    viewer = make_user("viewer-id", "viewer@example.com")
+
+    user_cell[0] = owner
+    resp = await client.post(
+        "/api/plans",
+        json={
+            "name": "P",
+            "visibility": "public",
+            "projects": [
+                {
+                    "app": "sketchmap-tool",
+                    "project_id": CREATE_PROJECT_ID,
+                    "custom_title": "Shared map",
+                }
+            ],
+        },
+    )
+    assert resp.status_code == 201, resp.text
+    plan_id = resp.json()["id"]
+    plan_project_id = resp.json()["projects"][0]["id"]
+
+    user_cell[0] = viewer
+    with (
+        patch(
+            "app.services.sketchmap_tool_service.fetch_create_pdf_bytes",
+            AsyncMock(return_value=b"%PDF-1.4 x"),
+        ),
+        patch("app.services.s3_service.is_s3_configured", return_value=False),
+        patch(
+            "app.services.s3_service.upload_plan_project_file_local",
+            return_value="local/plans/x/projects/y/z.pdf",
+        ),
+    ):
+        resp = await client.post(f"/api/plans/{plan_id}/projects/{plan_project_id}/sketchmap-file")
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["content_type"] == "application/pdf"
+
+
+@pytest.mark.asyncio
+async def test_non_viewer_still_cannot_materialize_artifact(two_auth_clients):
+    """Widening to can_view must not let a stranger reach a private plan."""
+    client, user_cell = two_auth_clients
+    owner = make_user("owner-id", "owner@example.com")
+    stranger = make_user("stranger-id", "stranger@example.com")
+
+    user_cell[0] = owner
+    plan_id, plan_project_id = await _create_plan_with_sketchmap_project(
+        client, CREATE_PROJECT_ID, "Private map"
+    )
+
+    user_cell[0] = stranger
+    resp = await client.post(f"/api/plans/{plan_id}/projects/{plan_project_id}/sketchmap-file")
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_complete_task_stores_custom_title(auth_client):
+    """Linking a task to a SketchMap Tool project must keep the name the user
+    typed: those projects have no upstream name, so without it the row shows its
+    raw project_id forever."""
+    client, _ = auth_client
+    resp = await client.post(
+        "/api/plans",
+        json={"name": "P", "projects": [{"app": "sketchmap-tool", "project_exists": False}]},
+    )
+    assert resp.status_code == 201, resp.text
+    plan_id = resp.json()["id"]
+    plan_project_id = resp.json()["projects"][0]["id"]
+
+    with patch.dict(
+        plans_service.APP_FETCHERS,
+        {"sketchmap-tool": AsyncMock(return_value={"id": CREATE_PROJECT_ID})},
+    ):
+        resp = await client.patch(
+            f"/api/plans/{plan_id}/projects/{plan_project_id}/complete-task",
+            json={
+                "app": "sketchmap-tool",
+                "project_id": CREATE_PROJECT_ID,
+                "custom_title": "Barrio San Martín",
+            },
+        )
+    assert resp.status_code == 204, resp.text
+
+    resp = await client.get(f"/api/plans/{plan_id}")
+    project = resp.json()["projects"][0]
+    assert project["project_exists"] is True
+    assert project["custom_title"] == "Barrio San Martín"

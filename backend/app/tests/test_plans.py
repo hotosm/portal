@@ -11,9 +11,11 @@ import httpx
 import pytest
 import respx
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import select
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.db.models.plan import PlanProject
 from app.services import plans_service
 from app.services.exceptions import UpstreamUnavailable
 from app.tests.conftest import make_user
@@ -315,6 +317,40 @@ async def test_orphaned_project_id_is_cleared_so_it_can_be_re_added(auth_client)
         json={"app": "fair", "project_id": "404"},
     )
     assert resp.status_code == 201, resp.text
+
+
+@pytest.mark.asyncio
+async def test_orphaned_project_id_is_kept_in_former_project_id(auth_client, test_db_session):
+    """Clearing project_id frees the unique slot, but hydrate_one returns early
+    for a project_exists=False row, so the id must survive somewhere or a 404
+    that turns out to be wrong destroys the link permanently.
+    """
+    client, _ = auth_client
+    resp = await client.post(
+        "/api/plans",
+        json={"name": "P", "projects": [{"app": "fair", "project_id": "404"}]},
+    )
+    plan_id = resp.json()["id"]
+
+    with patch.dict(plans_service.APP_FETCHERS, {"fair": AsyncMock(return_value=None)}):
+        resp = await client.get(f"/api/plans/{plan_id}?refresh=true")
+    assert resp.status_code == 200
+    assert resp.json()["projects"][0]["project_id"] is None
+
+    row = (await test_db_session.execute(select(PlanProject))).scalars().one()
+    assert row.former_project_id == "404"
+
+    # Linking the task to a project again clears the trace.
+    mock_fetcher = AsyncMock(return_value={"name": "Recovered"})
+    with patch.dict(plans_service.APP_FETCHERS, {"fair": mock_fetcher}):
+        resp = await client.patch(
+            f"/api/plans/{plan_id}/projects/{row.id}/complete-task",
+            json={"app": "fair", "project_id": "404"},
+        )
+    assert resp.status_code == 204, resp.text
+    await test_db_session.refresh(row)
+    assert row.project_id == "404"
+    assert row.former_project_id is None
 
 
 @pytest.mark.asyncio

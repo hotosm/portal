@@ -6,6 +6,9 @@ Portal from then on — SketchMap Tool's own copy expires (digitize results
 after 24h) so the "Open Project" link is replaced with a download instead.
 """
 
+import unicodedata
+from urllib.parse import quote
+
 from fastapi import APIRouter, Depends, HTTPException, Path, Request, Response, status
 from hotosm_auth_fastapi import CurrentUser, CurrentUserOptional
 from sqlalchemy import select
@@ -21,15 +24,41 @@ from app.services.plans_service import ArtifactAppMismatchError
 router = APIRouter(tags=["plan-sketchmap-files"])
 
 
+def _generic_filename(row: PlanProject, ext: str) -> str:
+    flow = (row.project_id or "sketchmap-tool").split(":", 1)[0]
+    return f"sketchmap-tool-{flow}-{row.id}{ext}"
+
+
 def _content_filename(row: PlanProject) -> str:
     ext = ".pdf" if row.artifact_content_type == "application/pdf" else ".geojson"
     if row.custom_title:
+        # str.isalnum() is true for any Unicode letter, so this keeps the title
+        # as the user wrote it — Cyrillic, Japanese and all. Encoding it for the
+        # header is _content_disposition's job.
         slug = "".join(c if c.isalnum() or c in "-_ " else "" for c in row.custom_title).strip()
         slug = slug.replace(" ", "-")
         if slug:
             return f"{slug}{ext}"
-    flow = (row.project_id or "sketchmap-tool").split(":", 1)[0]
-    return f"sketchmap-tool-{flow}-{row.id}{ext}"
+    return _generic_filename(row, ext)
+
+
+def _content_disposition(filename: str, fallback: str) -> str:
+    """Build a Content-Disposition header that survives a non-Latin-1 title.
+
+    Starlette encodes raw headers as latin-1, so a plan called e.g. "地図" used
+    to raise UnicodeEncodeError while building the response — a 500 on every
+    download of a perfectly good file. RFC 5987/6266 says to send both forms:
+    an ASCII `filename` for the fallback, and a percent-encoded `filename*`
+    that every current browser prefers.
+    """
+    ascii_name = unicodedata.normalize("NFKD", filename).encode("ascii", "ignore").decode()
+    ascii_name = ascii_name.strip().strip('"')
+    # Folding a fully non-Latin title leaves only the separators and the
+    # extension ("地図 Карта.pdf" -> "-.pdf"), which is not empty but is no
+    # name either — fall back whenever nothing alphanumeric survived.
+    if not any(c.isalnum() for c in ascii_name.rsplit(".", 1)[0]):
+        ascii_name = fallback
+    return f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(filename, safe='')}"
 
 
 @router.post(
@@ -106,8 +135,13 @@ async def get_sketchmap_file_content(
         data = s3_service.get_plan_project_file(project.artifact_s3_key)
 
     filename = _content_filename(project)
+    ext = ".pdf" if project.artifact_content_type == "application/pdf" else ".geojson"
     return Response(
         content=data,
         media_type=project.artifact_content_type or "application/octet-stream",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={
+            "Content-Disposition": _content_disposition(
+                filename, _generic_filename(project, ext)
+            )
+        },
     )

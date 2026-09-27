@@ -409,6 +409,7 @@ async def complete_task(
     url: str | None = None,
     app: str | None = None,
     input_project_id: str | None = None,
+    custom_title: str | None = None,
     hanko_cookie: str | None = None,
 ) -> bool:
     """Set project_exists=True and store upstream data+app on the row.
@@ -436,7 +437,10 @@ async def complete_task(
     row.project_exists = True
     row.app = resolved.app
     row.project_id = resolved.project_id
+    row.former_project_id = None
     row.data = resolved.upstream
+    if custom_title and custom_title.strip():
+        row.custom_title = custom_title.strip()
     try:
         await db.flush()
     except IntegrityError as e:
@@ -812,7 +816,7 @@ async def ensure_sketchmap_artifact(
     Tool plan project: the printable-map PDF for a "create" job, the merged
     GeoJSON for a "digitize" job.
 
-    None if the plan/project doesn't exist or isn't editable by ctx.
+    None if the plan/project doesn't exist or isn't viewable by ctx.
     Raises ArtifactAppMismatchError if the row isn't a sketchmap-tool project,
     ArtifactNotReadyError if SketchMap Tool's job hasn't finished yet,
     UpstreamUnavailable if SketchMap Tool can't be reached.
@@ -822,7 +826,14 @@ async def ensure_sketchmap_artifact(
     by the time this is called again, so upstream is never re-queried once
     `artifact_s3_key` is set.
     """
-    plan = await get_editable_plan(db, ctx, plan_id)
+    # Viewable, not editable: downloading is offered to every viewer of the plan
+    # (ProjectDialog renders the button for anyone, and the GET that serves the
+    # bytes only asks for can_view), so gating the one-off fetch behind can_edit
+    # left viewers with a bare error whenever the owner had not pressed Download
+    # first — and for a digitize job, whose upstream copy expires after 24h,
+    # that could mean the file was gone for good. The route above still requires
+    # a signed-in user, so this is never reachable anonymously.
+    plan = await get_viewable_plan(db, ctx, plan_id)
     if plan is None:
         return None
     row = await _get_plan_project(db, plan_id, plan_project_id)
@@ -1259,7 +1270,12 @@ async def _hydrate_live_and_persist(
             # check_project_fields validator) — otherwise this row keeps
             # occupying the (plan_id, app, project_id) unique slot forever,
             # so re-adding the same project later fails with a raw duplicate-
-            # key error instead of just... re-adding it.
+            # key error instead of just... re-adding it. Keep the id in
+            # former_project_id: hydrate_one returns early for a task, so this
+            # is the only trace left to restore the link from if the 404 turns
+            # out to have been wrong.
+            if row.project_id is not None:
+                row.former_project_id = row.project_id
             row.project_id = None
             item.project_id = None
     await db.flush()

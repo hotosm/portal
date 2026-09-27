@@ -119,7 +119,14 @@ export function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      <Route path="/:locale/marketplace" element={<MarketplacePage />} />
+      <Route
+        path="/:locale/marketplace"
+        element={
+          <ProtectedRoute>
+            <MarketplacePage />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/:locale/test"
         element={

@@ -22,9 +22,12 @@ function ImageryPage() {
   const totalDronePages = Math.ceil(
     droneProjects.length / DRONE_PROJECTS_PER_PAGE,
   );
+  // Derived, not stored — see the same guard in FieldPage: a shorter list must
+  // not leave the user stranded on a page that no longer exists.
+  const currentDronePage = Math.min(dronePage, Math.max(totalDronePages, 1));
   const pagedDroneProjects = droneProjects.slice(
-    (dronePage - 1) * DRONE_PROJECTS_PER_PAGE,
-    dronePage * DRONE_PROJECTS_PER_PAGE,
+    (currentDronePage - 1) * DRONE_PROJECTS_PER_PAGE,
+    currentDronePage * DRONE_PROJECTS_PER_PAGE,
   );
 
   return (
@@ -65,7 +68,7 @@ function ImageryPage() {
           totalDronePages > 1 && (
             <div className="mt-lg">
               <Pagination
-                currentPage={dronePage}
+                currentPage={currentDronePage}
                 totalPages={totalDronePages}
                 onPageChange={setDronePage}
               />

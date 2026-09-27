@@ -254,6 +254,9 @@ class CompleteTaskRequest(BaseModel):
     url: str | None = Field(default=None, min_length=1, max_length=2048)
     app: AppLiteral | None = None
     project_id: str | None = None
+    # A SketchMap Tool project has no name upstream, so the one the user typed
+    # when linking the task is the only title the row will ever have.
+    custom_title: str | None = Field(default=None, max_length=_NAME_MAX_LEN)
 
     @model_validator(mode="after")
     def check_exactly_one_input(self) -> "CompleteTaskRequest":

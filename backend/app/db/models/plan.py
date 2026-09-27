@@ -147,6 +147,11 @@ class PlanProject(Base):
     app = Column(String, nullable=True)
     project_id = Column(String, nullable=True)
     project_exists = Column(Boolean, nullable=False, default=True)
+    # Last known project_id of a row a 404 turned into a task. project_id itself
+    # has to be cleared (it would keep holding the unique slot, and a task must
+    # not carry one), but hydrate_one never looks at a row with
+    # project_exists=False, so without this the link could never be restored.
+    former_project_id = Column(String, nullable=True)
     status = Column(String, nullable=False, default="in_progress")
     # Position inside the project's collection (or inside "All" when unassigned).
     display_order = Column(Integer, nullable=False, default=0)

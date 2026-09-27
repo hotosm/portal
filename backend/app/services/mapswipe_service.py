@@ -71,10 +71,21 @@ async def fetch_project_by_id(
                 return None
             response.raise_for_status()
             page_props = _extract_next_data(response.text)
-    except (httpx.RequestError, httpx.HTTPStatusError, ValueError) as e:
+    # KeyError/TypeError: __NEXT_DATA__ parsed, but props/pageProps is missing or
+    # is not a mapping. Scraping a page means any markup change lands here, and an
+    # uncaught error would escape hydrate_one's asyncio.gather and 500 the whole plan.
+    except (httpx.RequestError, httpx.HTTPStatusError, ValueError, KeyError, TypeError) as e:
         raise UpstreamUnavailable(f"mapswipe: {e}") from e
 
     result = _project_from_next_data(page_props)
-    if result is not None:
-        set_cached(cache_key, result, DEFAULT_TTL)
+    if result is None:
+        # 200 OK, but the payload holds no project name. That is MapSwipe
+        # answering in a shape we do not understand (a markup or field rename),
+        # not MapSwipe telling us the project is gone — only the 404 above means
+        # that. Returning None here would read as a definitive "deleted" and
+        # cost the caller its project_id permanently, so fail transient instead.
+        raise UpstreamUnavailable(
+            f"mapswipe: 200 OK but no project name in __NEXT_DATA__ for {project_id}"
+        )
+    set_cached(cache_key, result, DEFAULT_TTL)
     return result

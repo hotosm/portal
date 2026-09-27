@@ -244,6 +244,7 @@ function MyPlanPage() {
         planProjectId,
         app: project.app,
         projectId: project.project_id,
+        customTitle: project.customTitle,
       },
       { onSuccess: rehydrateAfterChange }
     )

@@ -197,13 +197,21 @@ export function useCompleteTask(planId: string) {
       url,
       app,
       projectId,
+      customTitle,
     }: {
       planProjectId: string
       url?: string
       app?: string
       projectId?: string
+      customTitle?: string
     }): Promise<void> => {
-      const body = url ? { url } : { app, project_id: projectId }
+      // custom_title carries the name typed in the SketchMap step — those
+      // projects have no upstream name, so the row would be titled with its
+      // raw project_id without it.
+      const body = {
+        ...(url ? { url } : { app, project_id: projectId }),
+        ...(customTitle ? { custom_title: customTitle } : {}),
+      }
       const response = await fetch(`/api/plans/${planId}/projects/${planProjectId}/complete-task`, {
         method: 'PATCH',
         credentials: 'include',
