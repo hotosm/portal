@@ -379,5 +379,11 @@
   "profile_edit_error_linkedin_url": "It must start with https://linkedin.com/",
   "profile_edit_error_openstreetmap_username": "Use only your username, without the full link.",
   "profile_edit_error_tasking_manager_username": "Use only your username, without the full link.",
-  "profile_edit_error_bio": "Use up to 2,000 characters."
+  "profile_edit_error_bio": "Use up to 2,000 characters.",
+  "profile_add_link": "Add link",
+  "profile_remove_link": "Remove link",
+  "profile_edit_extra_link_label": "Link",
+  "profile_edit_extra_link_placeholder": "https://…",
+  "profile_edit_error_extra_link": "Enter a valid https:// URL.",
+  "profile_edit_error_extra_links": "Use up to 4 links, without repeating any."
 }

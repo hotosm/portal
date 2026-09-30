@@ -26,6 +26,10 @@ const CONTACT_FIELDS = [
   { field: 'linkedin_url', type: 'url', icon: 'link', variant: 'solid', maxlength: 500, label: () => m.profile_edit_linkedin_url_label(), addText: () => m.profile_add_linkedin() },
 ] as const
 
+// Mirror the backend limits for extra_links (app/models/profile.py).
+const EXTRA_LINKS_MAX = 4
+const EXTRA_LINK_MAXLENGTH = 500
+
 const FIELD_ERROR_MESSAGES: Record<Exclude<EditableField, 'location'>, () => string> = {
   bio: () => m.profile_edit_error_bio(),
   contact_email: () => m.profile_edit_error_contact_email(),
@@ -41,4 +45,4 @@ const EMPTY_FORM: EditForm = {
   linkedin_url: '',
 }
 
-export {CERTIFICATIONS, SECTION_FIELDS, CONTACT_FIELDS, FIELD_ERROR_MESSAGES, EMPTY_FORM}
+export {CERTIFICATIONS, SECTION_FIELDS, CONTACT_FIELDS, EXTRA_LINKS_MAX, EXTRA_LINK_MAXLENGTH, FIELD_ERROR_MESSAGES, EMPTY_FORM}

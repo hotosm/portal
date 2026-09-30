@@ -72,6 +72,15 @@ type ContactInfoProps = SectionEditProps & {
   draft: Pick<EditForm, ContactField>
   onDraftChange: (field: ContactField, value: string) => void
   fieldErrors: Partial<Record<EditableField, string>>
+  // extra_links lives outside EditForm: it's a list, not a string field.
+  extraLinksDraft: string[]
+  onExtraLinkChange: (index: number, value: string) => void
+  onAddExtraLink: () => void
+  onRemoveExtraLink: (index: number) => void
+  // Per-row errors, keyed by the row's index in extraLinksDraft.
+  extraLinkErrors: Partial<Record<number, string>>
+  // A list-wide rejection (too many, duplicates) that no single row can carry.
+  extraLinksError: string | null
 }
 
 export type {

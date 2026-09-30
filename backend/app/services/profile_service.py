@@ -107,7 +107,10 @@ async def get_public_profile(db: AsyncSession, slug: str) -> PublicProfileRead |
         picture_url=account.picture_url,
         bio=portal.bio if portal else None,
         location=portal.location if portal else None,
-        has_contact=bool(portal and (portal.contact_email or portal.phone or portal.linkedin_url)),
+        has_contact=bool(
+            portal
+            and (portal.contact_email or portal.phone or portal.linkedin_url or portal.extra_links)
+        ),
         organizations=organizations,
         teams=teams,
     )
@@ -119,7 +122,7 @@ async def get_public_contact(db: AsyncSession, slug: str) -> PublicContactRead |
     Same visibility gate as get_public_profile: None if login reports the
     profile isn't public or doesn't exist, login_service.LoginUnavailable on
     upstream failure. A public profile with no portal_profiles row yet has no
-    contact details, so every field comes back None.
+    contact details, so every field comes back None (extra_links: []).
     """
     account = await login_service.get_public_account_profile(slug)
     if account is None:
@@ -134,4 +137,5 @@ async def get_public_contact(db: AsyncSession, slug: str) -> PublicContactRead |
         contact_email=portal.contact_email if portal else None,
         phone=portal.phone if portal else None,
         linkedin_url=portal.linkedin_url if portal else None,
+        extra_links=portal.extra_links if portal else [],
     )

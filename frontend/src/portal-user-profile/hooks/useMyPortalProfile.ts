@@ -11,6 +11,7 @@ export interface PortalProfileFields {
   contact_email: string | null;
   phone: string | null;
   linkedin_url: string | null;
+  extra_links: string[];
   openstreetmap_username: string | null;
   tasking_manager_username: string | null;
   show_organizations: boolean;
@@ -45,6 +46,7 @@ export type PortalProfilePatch = Partial<
     | "contact_email"
     | "phone"
     | "linkedin_url"
+    | "extra_links"
     | "openstreetmap_username"
     | "tasking_manager_username"
   >
@@ -56,11 +58,14 @@ export type PortalProfilePatch = Partial<
  */
 export class PortalProfileValidationError extends Error {
   fields: string[];
+  /** Positions in the sent extra_links array whose item was rejected. */
+  extraLinkIndexes: number[];
 
-  constructor(fields: string[]) {
+  constructor(fields: string[], extraLinkIndexes: number[] = []) {
     super("[422] Invalid profile payload");
     this.name = "PortalProfileValidationError";
     this.fields = fields;
+    this.extraLinkIndexes = extraLinkIndexes;
   }
 }
 
@@ -106,9 +111,24 @@ function parseInvalidFields(body: unknown): string[] {
   return detail
     .map((item) => {
       const loc = (item as { loc?: unknown[] })?.loc;
-      return Array.isArray(loc) ? String(loc[loc.length - 1]) : "";
+      if (!Array.isArray(loc)) return "";
+      // A list item's loc ends in its index (["body", "extra_links", 2]).
+      if (loc.includes("extra_links")) return "extra_links";
+      return String(loc[loc.length - 1]);
     })
     .filter(Boolean);
+}
+
+/** Indexes of the extra_links items a FastAPI 422 body rejected, if any. */
+function parseInvalidExtraLinkIndexes(body: unknown): number[] {
+  const detail = (body as { detail?: unknown })?.detail;
+  if (!Array.isArray(detail)) return [];
+  return detail.flatMap((item) => {
+    const loc = (item as { loc?: unknown[] })?.loc;
+    if (!Array.isArray(loc)) return [];
+    const index = loc[loc.indexOf("extra_links") + 1];
+    return loc.includes("extra_links") && typeof index === "number" ? [index] : [];
+  });
 }
 
 export function useUpdateMyPortalProfile() {
@@ -127,7 +147,10 @@ export function useUpdateMyPortalProfile() {
 
       if (response.status === 400 || response.status === 422) {
         const body = await response.json().catch(() => ({}));
-        throw new PortalProfileValidationError(parseInvalidFields(body));
+        throw new PortalProfileValidationError(
+          parseInvalidFields(body),
+          parseInvalidExtraLinkIndexes(body)
+        );
       }
       if (!response.ok) {
         throw new Error(`[${response.status}] Failed to update my profile`);

@@ -54,6 +54,13 @@ function ProfileUserPage() {
   const [form, setForm] = useState<EditForm>(EMPTY_FORM)
   // Fields edited since the last save attempt: their field error is cleared.
   const [touchedFields, setTouchedFields] = useState<ReadonlySet<EditableField>>(new Set())
+  // extra_links is a list, so it's drafted apart from the string-only form.
+  const [extraLinksDraft, setExtraLinksDraft] = useState<string[]>([])
+  // Draft rows edited since the last save attempt: their error is cleared.
+  const [touchedExtraLinks, setTouchedExtraLinks] = useState<ReadonlySet<number>>(new Set())
+  // Blank rows aren't sent, so the backend's item indexes point into the sent
+  // list; this maps each sent index back to its draft row.
+  const [sentExtraLinkRows, setSentExtraLinkRows] = useState<number[]>([])
 
   // Prefill from /api/profile/me rather than from the public payload: it's the
   // owner's own copy, and it's what the PATCH is diffed against.
@@ -65,20 +72,44 @@ function ProfileUserPage() {
       }
       return next
     })
+    if (section === 'contact') {
+      setExtraLinksDraft([...(me?.portal.extra_links ?? [])])
+    }
     updateProfile.reset()
     setTouchedFields(new Set())
+    setTouchedExtraLinks(new Set())
     setEditingSection(section)
   }
 
   const cancelEditing = () => {
     updateProfile.reset()
     setTouchedFields(new Set())
+    setTouchedExtraLinks(new Set())
+    setExtraLinksDraft([...(me?.portal.extra_links ?? [])])
     setEditingSection(null)
   }
 
   const setField = (field: EditableField, value: string) => {
     setForm((previous) => ({ ...previous, [field]: value }))
     setTouchedFields((previous) => (previous.has(field) ? previous : new Set(previous).add(field)))
+  }
+
+  const setExtraLink = (index: number, value: string) => {
+    setExtraLinksDraft((previous) => previous.map((link, i) => (i === index ? value : link)))
+    setTouchedExtraLinks((previous) =>
+      previous.has(index) ? previous : new Set(previous).add(index)
+    )
+  }
+
+  const addExtraLink = () => {
+    setExtraLinksDraft((previous) => [...previous, ''])
+  }
+
+  // Removing a row shifts the ones below it, so no row error can be trusted
+  // to still point at the right input: all of them are cleared.
+  const removeExtraLink = (index: number) => {
+    setExtraLinksDraft((previous) => previous.filter((_, i) => i !== index))
+    setTouchedExtraLinks(new Set(extraLinksDraft.map((_, i) => i)))
   }
 
   // The public profile URL is whatever the visitor is already looking at.
@@ -100,6 +131,22 @@ function ProfileUserPage() {
       const next = form[field].trim() || null
       if (next !== (me?.portal[field] ?? null)) {
         patch[field] = next
+      }
+    }
+
+    if (section === 'contact') {
+      setTouchedExtraLinks(new Set())
+      const rows = extraLinksDraft
+        .map((link, row) => ({ link: link.trim(), row }))
+        .filter(({ link }) => link !== '')
+      const nextLinks = rows.map(({ link }) => link)
+      const currentLinks = me?.portal.extra_links ?? []
+      setSentExtraLinkRows(rows.map(({ row }) => row))
+      if (
+        nextLinks.length !== currentLinks.length ||
+        nextLinks.some((link, i) => link !== currentLinks[i])
+      ) {
+        patch.extra_links = nextLinks
       }
     }
 
@@ -178,10 +225,27 @@ function ProfileUserPage() {
       .map((field) => [field, FIELD_ERROR_MESSAGES[field]()])
   )
 
+  // An item error lands on its row; one without an index (too many links,
+  // duplicates) is shown once for the whole list.
+  const hasExtraLinksError =
+    editingSection === 'contact' && !!validationError?.fields.includes('extra_links')
+  const extraLinkErrors: Partial<Record<number, string>> = hasExtraLinksError
+    ? Object.fromEntries(
+        (validationError?.extraLinkIndexes ?? [])
+          .map((index) => sentExtraLinkRows[index])
+          .filter((row) => row !== undefined && !touchedExtraLinks.has(row))
+          .map((row) => [row, m.profile_edit_error_extra_link()])
+      )
+    : {}
+  const extraLinksError =
+    hasExtraLinksError && validationError?.extraLinkIndexes.length === 0
+      ? m.profile_edit_error_extra_links()
+      : null
+
   // Section-wide only when no field can carry the error itself.
   const saveError = updateProfile.error
     ? validationError
-      ? invalidFields.length > 0
+      ? invalidFields.length > 0 || hasExtraLinksError
         ? null
         : m.profile_edit_error_validation()
       : m.profile_edit_error_save()
@@ -274,6 +338,12 @@ function ProfileUserPage() {
                 draft={form}
                 onDraftChange={setField}
                 fieldErrors={fieldErrors}
+                extraLinksDraft={extraLinksDraft}
+                onExtraLinkChange={setExtraLink}
+                onAddExtraLink={addExtraLink}
+                onRemoveExtraLink={removeExtraLink}
+                extraLinkErrors={extraLinkErrors}
+                extraLinksError={extraLinksError}
                 isEditing={editingSection === 'contact'}
                 canEdit={canEdit}
                 isPending={updateProfile.isPending}

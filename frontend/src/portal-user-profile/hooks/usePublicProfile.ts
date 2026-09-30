@@ -46,6 +46,7 @@ export interface PublicContact {
   contact_email: string | null;
   phone: string | null;
   linkedin_url: string | null;
+  extra_links: string[];
 }
 
 /**
