@@ -2,7 +2,8 @@
 
 from datetime import UTC, datetime
 
-from sqlalchemy import Boolean, Column, DateTime, String, Text
+from sqlalchemy import JSON, Boolean, Column, DateTime, String, Text, text
+from sqlalchemy.dialects.postgresql import JSONB
 
 from app.core.base import Base
 
@@ -22,6 +23,13 @@ class PortalProfile(Base):
     contact_email = Column(String(254), nullable=True)
     phone = Column(String(32), nullable=True)
     linkedin_url = Column(String(500), nullable=True)
+    # List of https:// URL strings, at most 4 (validated in app/models/profile.py).
+    extra_links = Column(
+        JSON().with_variant(JSONB, "postgresql"),
+        nullable=False,
+        default=list,
+        server_default=text("'[]'"),
+    )
     show_organizations = Column(Boolean, nullable=False, default=False)
     show_teams = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)

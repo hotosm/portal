@@ -18,6 +18,7 @@ import AddPlanPage from "../portal-plans/AddPlanPage";
 import EditPlanPage from "../portal-plans/EditPlanPage";
 import MyPlanPage from "../portal-plans/MyPlanPage";
 import PrivacyPolicyPage from "../pages/PrivacyPolicyPage";
+import ProfileUserPage from "../portal-user-profile/ProfileUserPage";
 
 // Component to handle protected routes
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -176,6 +177,9 @@ export function AppRoutes() {
       />
 
       <Route path="/:locale/privacy-policy" element={<PrivacyPolicyPage />} />
+
+      {/* Public: a profile is viewable without a session */}
+      <Route path="/:locale/people/:username" element={<ProfileUserPage />} />
 
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

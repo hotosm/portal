@@ -89,6 +89,11 @@ portal/
 - **Ruff** - 10-100x faster than flake8/black
 - **Biome** - Faster than ESLint + Prettier
 
+**User profiles (portal extras + login identity):**
+- Portal stores only profile extras (bio, location, contact info, visibility toggles) in `portal_profiles`, keyed by `hanko_user_id`
+- Account identity (name, picture, slug, `is_public`, organizations) stays in login and is fetched live on each request — never mirrored in portal
+- The public endpoint returns a profile only when login reports it public; portal never decides visibility on its own
+
 ## Application Design
 
 ### Backend Architecture
@@ -185,6 +190,11 @@ portal/
 
 - **Groups**:
   - `/api/groups` - List the groups the current user belongs to (proxied from login)
+  
+- **Public Profiles**:
+  - `/api/public/profile/{slug}` - Public user profile by slug (no auth); 404 if it doesn't exist or isn't public, 502 if login is unavailable
+  - `/api/profile/me` - Authenticated user's profile: account identity read live from login, merged with portal-owned fields
+  - `PATCH /api/profile/me` - Update portal-owned fields only (bio, location, contact info, org/team visibility toggles)
 
 - **Auth testing** (admin-only diagnostic endpoints):
   - `/api/test/me` - Requires Hanko auth + admin access; returns JWT user info

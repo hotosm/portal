@@ -4,12 +4,18 @@ Account identity (name, picture, slug, is_public) lives in login; portal asks
 for it live on every request and never mirrors it locally.
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from hotosm_auth_fastapi import CurrentUser
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.models.profile import PortalProfileRead, ProfileMeRead, ProfilePatch, PublicProfileRead
+from app.models.profile import (
+    PortalProfileRead,
+    ProfileMeRead,
+    ProfilePatch,
+    PublicContactRead,
+    PublicProfileRead,
+)
 from app.services import login_service, profile_service
 
 router = APIRouter(prefix="/profile", tags=["profile"])
@@ -48,3 +54,23 @@ async def get_public_profile(slug: str, db: AsyncSession = Depends(get_db)) -> P
     if profile is None:
         raise HTTPException(status_code=404, detail="Not found")
     return profile
+
+
+@public_router.get("/{slug}/contact", response_model=PublicContactRead)
+async def get_public_contact(
+    slug: str, response: Response, db: AsyncSession = Depends(get_db)
+) -> PublicContactRead:
+    """Return a public profile's contact details, revealed on demand by the visitor.
+
+    Kept out of the profile payload so it can't be scraped in bulk. This is the
+    hook where reveal clicks will be counted (not implemented yet); no-store
+    keeps every reveal reaching the server.
+    """
+    try:
+        contact = await profile_service.get_public_contact(db, slug)
+    except login_service.LoginUnavailable:
+        raise HTTPException(status_code=502, detail="upstream_unavailable")
+    if contact is None:
+        raise HTTPException(status_code=404, detail="Not found")
+    response.headers["Cache-Control"] = "no-store"
+    return contact
