@@ -72,7 +72,16 @@ class PublicProfileRead(BaseModel):
     picture_url: str | None
     bio: str | None
     location: str | None
+    # Contact details stay out of this payload (anti-scraping); visitors fetch
+    # them on demand from GET /api/public/profile/{slug}/contact.
+    has_contact: bool
+    organizations: list[dict] | None = None
+    teams: list[dict] | None = None
+
+
+class PublicContactRead(BaseModel):
+    """GET /api/public/profile/{slug}/contact response."""
+
     contact_email: str | None
     phone: str | None
     linkedin_url: str | None
-    organizations: list[dict] | None = None
