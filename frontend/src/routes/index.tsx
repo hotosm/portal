@@ -18,7 +18,7 @@ import AddPlanPage from "../portal-plans/AddPlanPage";
 import EditPlanPage from "../portal-plans/EditPlanPage";
 import MyPlanPage from "../portal-plans/MyPlanPage";
 import PrivacyPolicyPage from "../pages/PrivacyPolicyPage";
-import ProfileUserPage from "../pages/ProfileUserPage";
+import ProfileUserPage from "../portal-user-profile/ProfileUserPage";
 
 // Component to handle protected routes
 function ProtectedRoute({ children }: { children: React.ReactNode }) {

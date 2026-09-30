@@ -2,7 +2,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { MAIN_MENU_ITEMS, getVisibleMenuItems } from "../constants/menu";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
-import { useMyPortalProfile } from "../hooks/useMyPortalProfile";
+import { useMyPortalProfile } from "../portal-user-profile/hooks/useMyPortalProfile";
 
 interface NavigationMainProps {
   onLinkClick?: () => void;

@@ -127,3 +127,18 @@ const FIELD_TM_URLS: Record<Environment, string> = {
 export function getFieldTmBaseUrl(): string {
   return FIELD_TM_URLS[getEnvironment()];
 }
+
+/**
+ * Resolve a path login returns relative to its own host (e.g. a group's
+ * "/api/groups/{id}/avatar?v=...") against the login URL. Absolute URLs are
+ * returned unchanged.
+ */
+export function resolveLoginUrl(path: string | null): string | null {
+  if (!path) return null;
+  return new URL(path, window.HANKO_URL).toString();
+}
+
+/**
+ * Photon geocoder (OSM-based). Used for location autocomplete (instead of Nominatim)
+ */
+export const PHOTON_API_URL = "https://photon.komoot.io/api";

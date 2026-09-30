@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 
 /**
- * One public organization as login reports it, proxied by portal.
+ * One public organization or team as login reports it, proxied by portal.
  * (backend/app/services/login_service.py -> PublicGroup).
  */
-export interface PublicProfileOrganization {
-  type: string;
+export interface PublicProfileGroup {
+  type: "organization" | "team";
   name: string;
   slug: string;
   description: string | null;
@@ -19,8 +19,8 @@ export interface PublicProfileOrganization {
  * Shape of GET /api/public/profile/{slug} on the portal backend
  * (backend/app/models/profile.py -> PublicProfileRead).
  *
- * `organizations` is absent when the owner keeps them hidden, so the section
- * disappears rather than rendering empty.
+ * `organizations` and `teams` only hold the groups login exposes publicly
+ * (public, and approved for orgs); an empty list means there's none to show.
  */
 export interface PublicProfile {
   slug: string;
@@ -29,10 +29,23 @@ export interface PublicProfile {
   picture_url: string | null;
   bio: string | null;
   location: string | null;
+  /** Contact details aren't in this payload; fetch them with usePublicContact. */
+  has_contact: boolean;
+  /** Public by design, unlike contact details. */
+  openstreetmap_username: string | null;
+  tasking_manager_username: string | null;
+  organizations?: PublicProfileGroup[] | null;
+  teams?: PublicProfileGroup[] | null;
+}
+
+/**
+ * Shape of GET /api/public/profile/{slug}/contact on the portal backend
+ * (backend/app/models/profile.py -> PublicContactRead).
+ */
+export interface PublicContact {
   contact_email: string | null;
   phone: string | null;
   linkedin_url: string | null;
-  organizations?: PublicProfileOrganization[] | null;
 }
 
 /**
@@ -80,6 +93,42 @@ export function usePublicProfile(slug?: string) {
     refetchOnWindowFocus: false,
     enabled: !!slug,
     // Retrying a down upstream just delays the error state by a round trip.
+    retry: (failureCount, error) =>
+      failureCount < 1 && !(error instanceof PublicProfileUnavailableError),
+  });
+}
+
+// Under the public-profile prefix, so saving the profile invalidates it too.
+export const publicContactQueryKey = (slug: string) =>
+  ["public-profile", slug, "contact"] as const;
+
+/**
+ * Fetches a public profile's contact details. Kept apart from the profile so
+ * they're only requested when the visitor asks to see them: pass `enabled`
+ * once they click "View contact info".
+ *
+ * Resolves to `null` on 404, same as usePublicProfile.
+ */
+export function usePublicContact(slug: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: publicContactQueryKey(slug ?? ""),
+    queryFn: async (): Promise<PublicContact | null> => {
+      const response = await fetch(
+        `/api/public/profile/${encodeURIComponent(slug ?? "")}/contact`
+      );
+
+      if (response.status === 404) return null;
+      if (response.status === 502) throw new PublicProfileUnavailableError();
+      if (!response.ok) {
+        throw new Error(`[${response.status}] Failed to fetch public contact`);
+      }
+
+      return response.json();
+    },
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
+    refetchOnWindowFocus: false,
+    enabled: !!slug && enabled,
     retry: (failureCount, error) =>
       failureCount < 1 && !(error instanceof PublicProfileUnavailableError),
   });

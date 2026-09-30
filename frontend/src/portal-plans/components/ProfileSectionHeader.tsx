@@ -60,8 +60,7 @@ function ProfileSectionHeader({
       <PageWrapper>
         <div
           className="flex flex-col md:flex-row gap-sm w-full justify-between items-start md:items-center" >
-          <div>
-            <div className="text-2xl/tight break-words min-w-0 w-full md:w-auto">{children}</div>
+            <div className="break-words min-w-0 w-full md:w-auto grow">{children}</div>
             {attribution && (
               <span className="flex items-center gap-xs mt-xs text-sm">
                 <span className="text-white font-semibold bg-hot-neutral-800 rounded-xl px-xs py-2xs">
@@ -70,7 +69,6 @@ function ProfileSectionHeader({
                 <span>{attribution.name}</span>
               </span>
             )}
-          </div>
           {menu ??
             ((label || buttonLink) && (
               <Button href={buttonLink} onClick={onButtonClick}>

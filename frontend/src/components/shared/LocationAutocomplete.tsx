@@ -108,10 +108,18 @@ function LocationAutocomplete({
         type="text"
         size="small"
         label={label}
+        className="visually-hidden-label"
         placeholder={m.profile_location_placeholder()}
         value={query}
         onInput={(e) => handleInput(e.currentTarget.value ?? '')}
         onFocus={() => results.length > 0 && setOpen(true)}
+        onKeyDown={(e) => {
+          // An open list swallows Escape; closed, it bubbles up to the editor.
+          if (e.key === 'Escape' && open) {
+            e.stopPropagation()
+            setOpen(false)
+          }
+        }}
       >
         {loading && (
           <span slot="end" className="flex">
@@ -121,17 +129,21 @@ function LocationAutocomplete({
       </Input>
 
       {open && (
-        <ul className="absolute top-full mt-3xs left-0 right-0 z-10 m-0 p-0 list-none bg-white rounded-md shadow-lg border border-hot-gray-200 overflow-hidden max-h-60 overflow-y-auto">
+        <ul className="absolute top-full text-left mt-3xs left-0 right-0 z-10 m-0 p-0 list-none bg-white rounded-md shadow-lg border border-hot-gray-200 overflow-hidden max-h-60 overflow-y-auto">
           {results.length > 0 ? (
             results.map((r) => (
-              <li key={r.label}>
+              <li className="ml-xs" key={r.label}>
+                {/* Most of these undo Web Awesome's native <button> styles, which
+                    text-left can't reach: it centres its content (justify-start),
+                    fixes its height (h-auto) and styles it as an action. The
+                    ellipsis needs its own min-w-0 child inside the flex button. */}
                 <button
                   type="button"
                   onClick={() => handlePick(r)}
-                  className="w-full text-left px-xs py-2xs text-sm text-hot-gray-950 bg-transparent border-0 hover:bg-hot-gray-50 cursor-pointer truncate"
+                  className="w-full min-w-0 h-auto justify-start text-left px-xs py-2xs text-sm font-normal text-hot-gray-950 bg-transparent border-0 rounded-none shadow-none hover:bg-hot-gray-50 cursor-pointer"
                   title={r.label}
                 >
-                  {r.label}
+                  <span className="truncate">{r.label}</span>
                 </button>
               </li>
             ))

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 
 /**
  * The portal-owned half of the profile
@@ -11,6 +11,8 @@ export interface PortalProfileFields {
   contact_email: string | null;
   phone: string | null;
   linkedin_url: string | null;
+  openstreetmap_username: string | null;
+  tasking_manager_username: string | null;
   show_organizations: boolean;
   show_teams: boolean;
   created_at: string;
@@ -38,11 +40,20 @@ export interface MyPortalProfile {
 export type PortalProfilePatch = Partial<
   Pick<
     PortalProfileFields,
-    "bio" | "location" | "contact_email" | "phone" | "linkedin_url"
+    | "bio"
+    | "location"
+    | "contact_email"
+    | "phone"
+    | "linkedin_url"
+    | "openstreetmap_username"
+    | "tasking_manager_username"
   >
 >;
 
-/** The backend rejected the payload (400/422) — bad email or LinkedIn URL. */
+/**
+ * The backend rejected the payload (400/422) — bad email or LinkedIn URL, or a
+ * mapping username that isn't a bare username.
+ */
 export class PortalProfileValidationError extends Error {
   fields: string[];
 

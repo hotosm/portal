@@ -103,6 +103,19 @@ hotosm-tool-menu {
   opacity: 0.8;
 }
 
+/* Keeps a form control's label for assistive tech while hiding it on screen. */
+.visually-hidden-label::part(form-control-label) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .rte-editor {
   overflow-wrap: break-word;
   word-break: break-word;
