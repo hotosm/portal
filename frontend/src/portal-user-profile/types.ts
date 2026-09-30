@@ -1,6 +1,14 @@
 import type { SECTION_FIELDS } from './constants'
 import type { PublicContact, PublicProfileGroup } from './hooks/usePublicProfile'
 
+interface ProfileSectionHeaderProps {
+  children?: any
+  buttonText?: string
+  buttonLink?: string
+  onButtonClick?: () => void
+  menu?: React.ReactNode
+}
+
 type EditableSection = keyof typeof SECTION_FIELDS
 type EditableField = (typeof SECTION_FIELDS)[EditableSection][number]
 type EditForm = Record<EditableField, string>
@@ -84,6 +92,7 @@ type ContactInfoProps = SectionEditProps & {
 }
 
 export type {
+  ProfileSectionHeaderProps,
   EditableSection,
   EditableField,
   EditForm,
