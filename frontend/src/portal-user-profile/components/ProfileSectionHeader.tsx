@@ -1,8 +1,5 @@
 import Button from '../../components/shared/Button'
 import PageWrapper from '../../components/shared/PageWrapper'
-import { useAuth } from '../../contexts/AuthContext'
-import { m } from '../../paraglide/messages'
-import { useMyGroups } from '../../portal-plans/hooks'
 import { ProfileSectionHeaderProps } from '../types'
 
 
@@ -14,8 +11,6 @@ function ProfileSectionHeader({
   menu,
 }: ProfileSectionHeaderProps) {
   const label = buttonText
-  const { user } = useAuth()
-  const { data: groups } = useMyGroups()
 
 
   return (
