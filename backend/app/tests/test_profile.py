@@ -308,6 +308,7 @@ async def test_public_contact_returns_contact_details(client, test_db_session):
         "contact_email": "ada@example.com",
         "phone": "+44 20 0000 0000",
         "linkedin_url": "https://www.linkedin.com/in/ada",
+        "extra_links": [],
     }
 
 
@@ -319,7 +320,7 @@ async def test_public_contact_all_none_without_portal_row(client):
     ):
         response = await client.get("/api/public/profile/ada/contact")
     assert response.status_code == 200
-    assert response.json() == {"contact_email": None, "phone": None, "linkedin_url": None}
+    assert response.json() == {"contact_email": None, "phone": None, "linkedin_url": None, "extra_links": []}
 
 
 @pytest.mark.asyncio
