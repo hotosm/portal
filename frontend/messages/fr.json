@@ -1,5 +1,8 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
+  "profile_learning_title": "Apprentissage",
+  "profile_learning_courses": "cours",
+  "profile_learning_subtitle": "Au HOT Learning Center",
   "header_tagline": "Plateforme de cartographie libre et open source pilotée par la communauté",
   "products_drone_title": "Drone",
   "products_drone_description": "Les habitants locaux utilisent des drones accessibles et produisent des images de haute qualité et régulières.",

@@ -1,6 +1,7 @@
 """Portal-owned profile CRUD, merged with account fields fetched live from login."""
 
 import asyncio
+import logging
 from dataclasses import asdict
 
 from sqlalchemy import select
@@ -15,7 +16,9 @@ from app.models.profile import (
     PublicContactRead,
     PublicProfileRead,
 )
-from app.services import login_service
+from app.services import learnworlds_service, login_service
+
+logger = logging.getLogger(__name__)
 
 
 async def get_or_create_portal_profile(db: AsyncSession, hanko_user_id: str) -> PortalProfile:
@@ -72,6 +75,20 @@ async def update_portal_profile(
     return PortalProfileRead.model_validate(profile)
 
 
+async def _course_summary_or_none(hanko_user_id: str):
+    """Course count, or nothing at all if LearnWorlds misbehaves.
+
+    Unlike login, the LMS is a third party and its data is an extra on this
+    page. Letting a failure there bubble up would turn someone else's outage
+    into a broken profile.
+    """
+    try:
+        return await learnworlds_service.get_course_summary(hanko_user_id)
+    except Exception:  # noqa: BLE001 - an extra must not break the page
+        logger.warning("Could not read LearnWorlds courses", exc_info=True)
+        return None
+
+
 async def get_public_profile(db: AsyncSession, slug: str) -> PublicProfileRead | None:
     """Build the GET /api/public/profile/{slug} response.
 
@@ -93,9 +110,12 @@ async def get_public_profile(db: AsyncSession, slug: str) -> PublicProfileRead |
     )
     portal = result.scalar_one_or_none()
 
-    org_groups, team_groups = await asyncio.gather(
+    # Courses come back alongside the groups: one is a call to login, the
+    # other to LearnWorlds, and neither should wait for the other.
+    org_groups, team_groups, courses = await asyncio.gather(
         login_service.get_public_user_groups_by_slug(slug, "org"),
         login_service.get_public_user_groups_by_slug(slug, "team"),
+        _course_summary_or_none(account.hanko_user_id),
     )
     organizations = [asdict(g) for g in org_groups]
     teams = [asdict(g) for g in team_groups]
@@ -113,6 +133,7 @@ async def get_public_profile(db: AsyncSession, slug: str) -> PublicProfileRead |
         ),
         organizations=organizations,
         teams=teams,
+        courses_count=courses.courses if courses else None,
     )
 
 
