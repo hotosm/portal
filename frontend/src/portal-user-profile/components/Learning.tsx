@@ -66,6 +66,8 @@ export function Learning({
         </a>
       </div>
 
+      {/* The link above already names the school; repeating it here and
+          again under the certificates reads as filler. */}
       <p className="text-hot-gray-600 mt-2xs">
         {stats.map((stat, index) => (
           <span key={stat.label}>
@@ -74,9 +76,6 @@ export function Learning({
             {stat.label}
           </span>
         ))}
-      </p>
-      <p className="text-sm text-hot-gray-500 mt-3xs">
-        {m.profile_learning_subtitle()}
       </p>
     </>
   )

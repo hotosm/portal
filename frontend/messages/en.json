@@ -1,7 +1,6 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
   "profile_learning_title": "Learning",
-  "profile_learning_subtitle": "At the HOT Learning Center",
   "header_tagline": "Free and Open Source Community-led Mapping Platform",
   "products_drone_title": "Drone",
   "products_drone_description": "Local residents use accessible drones and generate consistent, high-quality imagery.",
