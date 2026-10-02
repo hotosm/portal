@@ -23,7 +23,10 @@ export function Certifications({ certificates, locale }: CertificationsProps) {
         {m.profile_certifications_subtitle()}
       </p>
 
-      <ul className="flex flex-col gap-xs list-none p-0 m-0">
+      {/* Auto-fit rather than a fixed two columns: one certificate stretches to
+          the full width instead of sitting half-empty, and several share the
+          row as soon as they fit. */}
+      <ul className="grid gap-xs list-none p-0 m-0 [grid-template-columns:repeat(auto-fit,minmax(280px,1fr))]">
         {certificates.map((certificate) => {
           const issued = certificate.issued
             ? new Date(certificate.issued).toLocaleDateString(locale, {
