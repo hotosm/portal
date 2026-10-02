@@ -85,3 +85,39 @@ async def test_revoked_certificates_are_left_out():
 
     assert valid and valid.title == "Mapping"
     assert revoked is None
+
+
+@pytest.mark.asyncio
+async def test_the_summary_is_assembled_from_every_call(api):
+    """Covers the assembly itself, which mocking the summary away never did.
+
+    A missing field here passed every test and only showed up in production as
+    an empty section, because the caller treats any failure as "nothing to
+    show".
+    """
+
+    async def answer(path, params=None):
+        if path == "courses":
+            return {"meta": {"totalItems": 104}}
+        if path == "certificates":
+            return {"data": [{"title": "Mapping", "status": "active", "issued": 1790954019}]}
+        if path.endswith("users/u/courses"):
+            return {"meta": {"totalItems": 2}, "data": [_course("One", "a")]}
+        return {"status": "completed", "progress_rate": 100, "time_on_course": 7200}
+
+    api.side_effect = answer
+
+    with (
+        patch.object(lw, "_is_configured", return_value=True),
+        patch.object(lw, "_resolve_account_id", new=AsyncMock(return_value="u")),
+        patch.object(lw, "get_cached", return_value=None),
+        patch.object(lw, "set_cached"),
+    ):
+        summary = await lw.get_learning_summary("hanko-1")
+
+    assert summary is not None
+    assert summary.courses == 2
+    assert summary.catalogue == 104
+    assert [c.title for c in summary.enrolled] == ["One"]
+    assert [c.title for c in summary.certificates] == ["Mapping"]
+    assert summary.hours == 2

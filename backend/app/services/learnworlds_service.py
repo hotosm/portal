@@ -288,6 +288,12 @@ async def get_learning_summary(hanko_user_id: str) -> LearningSummary | None:
         logger.warning("LearnWorlds rejected the request for %s: %s", account_id, exc)
         return None
 
-    summary = LearningSummary(courses=courses, certificates=certificates, catalogue=catalogue)
+    summary = LearningSummary(
+        courses=total,
+        certificates=certificates,
+        enrolled=courses,
+        hours=hours,
+        catalogue=catalogue,
+    )
     set_cached(key, summary, _COURSES_TTL)
     return summary
