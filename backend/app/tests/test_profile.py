@@ -402,6 +402,7 @@ def _public_profile_patches(learning):
 async def test_public_profile_includes_course_count(client):
     summary = learnworlds_service.LearningSummary(
         courses=4,
+        catalogue=18,
         certificates=[
             learnworlds_service.Certificate(
                 title="Beginner certificate",
@@ -417,6 +418,7 @@ async def test_public_profile_includes_course_count(client):
     assert response.status_code == 200
     body = response.json()
     assert body["courses_count"] == 4
+    assert body["courses_total"] == 18
     assert [c["title"] for c in body["certificates"]] == ["Beginner certificate"]
     assert body["certificates"][0]["url"] == "https://mycourse.app/abc"
 
@@ -462,3 +464,16 @@ async def test_public_profile_shows_courses_without_certificates(client):
     body = response.json()
     assert body["courses_count"] == 3
     assert body["certificates"] == []
+
+
+@pytest.mark.asyncio
+async def test_public_profile_without_a_catalogue(client):
+    """The school's course count is an extra: its absence hides nothing else."""
+    summary = learnworlds_service.LearningSummary(courses=2, certificates=[], catalogue=None)
+    account, groups, learning = _public_profile_patches(summary)
+    with account, groups, learning:
+        response = await client.get("/api/public/profile/ada")
+
+    body = response.json()
+    assert body["courses_count"] == 2
+    assert body["courses_total"] is None

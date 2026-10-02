@@ -50,6 +50,8 @@ export interface PublicProfile {
    * account, or the LMS did not answer — which is not the same as zero.
    */
   courses_count?: number | null;
+  /** Courses the school offers, so the number above has a scale. */
+  courses_total?: number | null;
   /**
    * Certificates earned. An empty list is a real answer — not every course
    * issues one — while null means we could not ask.

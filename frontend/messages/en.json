@@ -390,5 +390,6 @@
   "profile_edit_error_extra_link": "Enter a valid https:// URL.",
   "profile_edit_error_extra_links": "Use up to 4 links, without repeating any.",
   "profile_certifications_title": "Certifications",
-  "profile_certifications_subtitle": "Earned at the HOT Learning Center"
+  "profile_certifications_subtitle": "Earned at the HOT Learning Center",
+  "profile_learning_of": "of"
 }

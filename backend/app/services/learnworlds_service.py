@@ -65,6 +65,10 @@ class LearningSummary:
 
     courses: int
     certificates: list[Certificate]
+    # How many courses the school offers, so a profile can say "1 of 18"
+    # instead of a number with nothing to compare it to. None when the
+    # catalogue could not be read; the rest still renders.
+    catalogue: int | None = None
 
 
 def _is_configured() -> bool:
@@ -170,6 +174,27 @@ async def _certificates(account_id: str) -> list[Certificate]:
     return sorted(valid, key=lambda c: c.issued or datetime.min.replace(tzinfo=UTC), reverse=True)
 
 
+async def _catalogue_size() -> int | None:
+    """How many courses the school offers.
+
+    The same number for everyone, so it is cached under its own key and shared
+    across profiles rather than fetched per visitor.
+    """
+    key = "learnworlds_catalogue"
+    cached = get_cached(key)
+    if cached is not None:
+        return cached
+
+    try:
+        total = await _count("courses")
+    except (httpx.RequestError, httpx.HTTPStatusError, LearnWorldsUnavailable) as exc:
+        logger.warning("Could not read the LearnWorlds catalogue: %s", exc)
+        return None
+
+    set_cached(key, total, _COURSES_TTL)
+    return total
+
+
 async def get_learning_summary(hanko_user_id: str) -> LearningSummary | None:
     """Courses and certificates for this person, or None when unknown.
 
@@ -190,9 +215,10 @@ async def get_learning_summary(hanko_user_id: str) -> LearningSummary | None:
         return cached
 
     try:
-        courses, certificates = await asyncio.gather(
+        courses, certificates, catalogue = await asyncio.gather(
             _count(f"users/{account_id}/courses"),
             _certificates(account_id),
+            _catalogue_size(),
         )
     except (httpx.RequestError, httpx.HTTPStatusError) as exc:
         logger.warning("LearnWorlds did not answer for %s: %s", account_id, exc)
@@ -201,6 +227,6 @@ async def get_learning_summary(hanko_user_id: str) -> LearningSummary | None:
         logger.warning("LearnWorlds rejected the request for %s: %s", account_id, exc)
         return None
 
-    summary = LearningSummary(courses=courses, certificates=certificates)
+    summary = LearningSummary(courses=courses, certificates=certificates, catalogue=catalogue)
     set_cached(key, summary, _COURSES_TTL)
     return summary

@@ -9,11 +9,20 @@ interface LearningProps {
    * would be worse than saying nothing.
    */
   coursesCount: number | null | undefined
+  /**
+   * Courses the school offers. Shown next to the first number when known: "1"
+   * says little, "1 of 18" says where someone stands.
+   */
+  coursesTotal: number | null | undefined
   /** Where the courses live, so the number is something you can act on. */
   learnUrl: string
 }
 
-export function Learning({ coursesCount, learnUrl }: LearningProps) {
+export function Learning({
+  coursesCount,
+  coursesTotal,
+  learnUrl,
+}: LearningProps) {
   if (coursesCount === null || coursesCount === undefined) return null
 
   return (
@@ -30,7 +39,9 @@ export function Learning({ coursesCount, learnUrl }: LearningProps) {
         </span>
         <span className="min-w-0">
           <span className="block font-bold">
-            {coursesCount} {m.profile_learning_courses()}
+            {coursesCount}
+            {coursesTotal ? ` ${m.profile_learning_of()} ${coursesTotal}` : ''}{' '}
+            {m.profile_learning_courses()}
           </span>
           <span className="block text-sm text-hot-gray-600">
             {m.profile_learning_subtitle()}

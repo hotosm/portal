@@ -134,6 +134,7 @@ async def get_public_profile(db: AsyncSession, slug: str) -> PublicProfileRead |
         organizations=organizations,
         teams=teams,
         courses_count=learning.courses if learning else None,
+        courses_total=learning.catalogue if learning else None,
         certificates=[asdict(c) for c in learning.certificates] if learning else None,
     )
 

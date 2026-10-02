@@ -328,6 +328,7 @@ function ProfileUserPage() {
             <section className='mb-2xl'>
               <Learning
                 coursesCount={profile.courses_count}
+                coursesTotal={profile.courses_total}
                 learnUrl={getLearnBaseUrl()}
               />
             </section>
