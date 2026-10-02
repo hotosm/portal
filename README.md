@@ -24,7 +24,7 @@ A centralized web workspace that simplifies access to the open mapping ecosystem
 |✅| Design and UI/UX improvements
 |✅| Plans (grouping projects from multiple tools)
 |✅| Organizations / teams management
-|✅|| Add project from third parties (MapSwipe, SketchMapTool) to plans
+|✅| Add project from third parties (MapSwipe, SketchMapTool) to plans
 |⚙️| Open Mapping Marketplace section
 |⚙️| Public profiles
 |⚙️| Integration with the HOT Learning Center
