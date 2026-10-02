@@ -23,7 +23,7 @@ export function Certifications({ certificates, locale }: CertificationsProps) {
         {m.profile_certifications_subtitle()}
       </p>
 
-      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-sm list-none p-0 m-0">
+      <ul className="flex flex-col gap-xs list-none p-0 m-0">
         {certificates.map((certificate) => {
           const issued = certificate.issued
             ? new Date(certificate.issued).toLocaleDateString(locale, {
@@ -51,19 +51,24 @@ export function Certifications({ certificates, locale }: CertificationsProps) {
           return (
             <li
               key={`${certificate.title}-${certificate.issued ?? ''}`}
-              className="m-0 flex items-center gap-sm border border-hot-gray-100 rounded-lg p-sm"
+              className="m-0 border border-hot-gray-100 rounded-lg p-sm transition-colors hover:border-hot-gray-300"
             >
               {certificate.url ? (
                 <a
                   href={certificate.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-sm no-underline text-inherit min-w-0"
+                  className="flex items-center gap-sm no-underline text-inherit"
                 >
                   {content}
+                  {/* Says what the card does. A certificate nobody can check
+                      is just a claim. */}
+                  <span className="ml-auto shrink-0 text-sm text-hot-gray-600">
+                    {m.profile_certifications_verify()}
+                  </span>
                 </a>
               ) : (
-                content
+                <span className="flex items-center gap-sm">{content}</span>
               )}
             </li>
           )

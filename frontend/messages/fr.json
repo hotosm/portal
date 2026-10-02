@@ -395,5 +395,10 @@
   "profile_learning_hours": "heures",
   "profile_learning_enrolled": "cours",
   "profile_learning_in_progress": "en cours",
-  "profile_learning_of_your_courses": "de ses cours terminés"
+  "profile_learning_of_your_courses": "de ses cours terminés",
+  "profile_learning_enrolled_one": "cours",
+  "profile_learning_done": "terminés",
+  "profile_learning_done_one": "terminé",
+  "profile_learning_hours_one": "heure",
+  "profile_certifications_verify": "Vérifier"
 }

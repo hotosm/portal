@@ -16,29 +16,14 @@ interface LearningProps {
   learnUrl: string
 }
 
-interface StatProps {
-  value: number
-  label: string
-}
-
 /**
- * One headline number. A handful of counts is a row of these, not a chart: a
- * two-slice donut or a one-bar chart says less and takes more room.
+ * A handful of counts, written as a sentence rather than drawn.
  *
- * Proportional figures on purpose — `tabular-nums` gives every digit the width
- * of a zero, which reads loose at this size.
+ * Three small numbers in a bordered panel left most of the row empty and the
+ * meter beside them read as an underline. At this size the numbers are the
+ * whole content: emphasised in the line, with the certificates below carrying
+ * the visual weight.
  */
-function Stat({ value, label }: StatProps) {
-  return (
-    <div className="flex flex-col">
-      <span className="text-2xl font-bold text-hot-gray-950 leading-none">
-        {value}
-      </span>
-      <span className="text-sm text-hot-gray-600 mt-2xs">{label}</span>
-    </div>
-  )
-}
-
 export function Learning({
   courses,
   coursesCount,
@@ -48,11 +33,24 @@ export function Learning({
   if (!courses || courses.length === 0) return null
 
   const completed = courses.filter((c) => c.status === 'completed').length
-  const inProgress = courses.filter((c) => c.status === 'in_progress').length
   const enrolled = coursesCount ?? courses.length
-  // Of the courses we know about, how many are finished. One ratio against a
-  // limit: a meter, with the unfilled part a lighter step of the same ramp.
-  const share = enrolled > 0 ? Math.round((completed / enrolled) * 100) : 0
+
+  const stats = [
+    {
+      value: enrolled,
+      label: enrolled === 1 ? m.profile_learning_enrolled_one() : m.profile_learning_enrolled(),
+    },
+    completed > 0 && {
+      value: completed,
+      label: completed === 1 ? m.profile_learning_done_one() : m.profile_learning_done(),
+    },
+    hours
+      ? {
+          value: hours,
+          label: hours === 1 ? m.profile_learning_hours_one() : m.profile_learning_hours(),
+        }
+      : null,
+  ].filter(Boolean) as { value: number; label: string }[]
 
   return (
     <>
@@ -67,46 +65,19 @@ export function Learning({
           {m.profile_learning_visit()}
         </a>
       </div>
-      <p className="text-sm text-hot-gray-600 mt-2xs mb-sm">
+
+      <p className="text-hot-gray-600 mt-2xs">
+        {stats.map((stat, index) => (
+          <span key={stat.label}>
+            {index > 0 && <span className="mx-2xs text-hot-gray-300">·</span>}
+            <span className="font-bold text-hot-gray-950">{stat.value}</span>{' '}
+            {stat.label}
+          </span>
+        ))}
+      </p>
+      <p className="text-sm text-hot-gray-500 mt-3xs">
         {m.profile_learning_subtitle()}
       </p>
-
-      <div className="border border-hot-gray-100 rounded-lg p-sm">
-        <div className="flex flex-wrap gap-xl">
-          <Stat value={enrolled} label={m.profile_learning_enrolled()} />
-          {completed > 0 && (
-            <Stat value={completed} label={m.profile_learning_completed()} />
-          )}
-          {inProgress > 0 && (
-            <Stat value={inProgress} label={m.profile_learning_in_progress()} />
-          )}
-          {hours ? <Stat value={hours} label={m.profile_learning_hours()} /> : null}
-        </div>
-
-        {/* Only once something is finished: a meter at 0% says nothing and
-            reads as a judgement. */}
-        {completed > 0 && (
-          <div className="mt-sm">
-            <div
-              className="h-[6px] rounded-full bg-hot-red-50 overflow-hidden"
-              role="progressbar"
-              aria-valuenow={share}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label={m.profile_learning_completed()}
-            >
-              <div
-                className="h-full rounded-full bg-hot-red-600"
-                style={{ width: `${share}%` }}
-              />
-            </div>
-            {/* Direct label rather than a legend: one series, named here. */}
-            <p className="text-sm text-hot-gray-600 mt-2xs">
-              {share}% {m.profile_learning_of_your_courses()}
-            </p>
-          </div>
-        )}
-      </div>
     </>
   )
 }
