@@ -392,6 +392,8 @@
   "profile_certifications_subtitle": "Obtenues au HOT Learning Center",
   "profile_learning_visit": "Aller au Learning Center",
   "profile_learning_completed": "Terminé",
-  "profile_learning_more": "autres cours",
-  "profile_learning_hours": "heures d'apprentissage"
+  "profile_learning_hours": "heures",
+  "profile_learning_enrolled": "cours",
+  "profile_learning_in_progress": "en cours",
+  "profile_learning_of_your_courses": "de ses cours terminés"
 }
