@@ -185,6 +185,10 @@ jobs:
           S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}
           S3_ACCESS_KEY=${{ secrets.S3_ACCESS_KEY }}
           S3_SECRET_KEY=${{ secrets.S3_SECRET_KEY }}
+          LOGIN_INTERNAL_API_KEY=${{ secrets.LOGIN_INTERNAL_API_KEY }}
+          LEARNWORLDS_SCHOOL_URL=https://learn-dev.hotosm.org
+          LEARNWORLDS_CLIENT_ID=6aa31a3b2de5eaa26aea01f1
+          LEARNWORLDS_ACCESS_TOKEN=${{ secrets.LEARNWORLDS_ACCESS_TOKEN }}
           ENVEOF
             echo "✓ Updated .env"
 

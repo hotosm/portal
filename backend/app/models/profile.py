@@ -106,6 +106,10 @@ class PublicProfileRead(BaseModel):
     has_contact: bool
     organizations: list[dict] | None = None
     teams: list[dict] | None = None
+    # How many courses they are taking at learn.hotosm.org. None when there is
+    # nothing to show — no LMS account, or the LMS did not answer — so the
+    # profile can leave the section out instead of claiming zero.
+    courses_count: int | None = None
 
 
 class PublicContactRead(BaseModel):

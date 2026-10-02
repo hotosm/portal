@@ -11,9 +11,11 @@ import { useAuth } from '../contexts/AuthContext'
 import NotFoundPage from '../pages/NotFoundPage'
 import { m } from '../paraglide/messages'
 import ProfileSectionHeader from './components/ProfileSectionHeader'
+import { getLearnBaseUrl } from '../utils/envConfig'
 import { Certifications } from './components/Certifications'
 import { ContactInfo } from './components/ContactInfo'
 import { GroupList } from './components/GroupList'
+import { Learning } from './components/Learning'
 import UserProfileBioField from './components/UserProfileBioField'
 import UserProfileLocationField from './components/UserProfileLocationField'
 import { EMPTY_FORM, FIELD_ERROR_MESSAGES, SECTION_FIELDS } from './constants'
@@ -321,6 +323,13 @@ function ProfileUserPage() {
               <section className='mb-2xl'>
                 <GroupList title={m.profile_teams_title()} groups={teams} variant="team" />
               </section>
+
+            <section className='mb-2xl'>
+              <Learning
+                coursesCount={profile.courses_count}
+                learnUrl={getLearnBaseUrl()}
+              />
+            </section>
 
             <section className='mb-2xl'>
               <Certifications />

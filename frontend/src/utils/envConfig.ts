@@ -142,3 +142,20 @@ export function resolveLoginUrl(path: string | null): string | null {
  * Photon geocoder (OSM-based). Used for location autocomplete (instead of Nominatim)
  */
 export const PHOTON_API_URL = "https://photon.komoot.io/api";
+
+/**
+ * LearnWorlds (the HOT Learning Center) per environment. The dev school is a
+ * separate LearnWorlds account, not a subdomain of the production one.
+ */
+const LEARN_URLS: Record<Environment, string> = {
+  local: "https://learn-dev.hotosm.org",
+  test: "https://learn-dev.hotosm.org",
+  production: "https://learn.hotosm.org",
+};
+
+/**
+ * Get the Learning Center base URL for the current environment.
+ */
+export function getLearnBaseUrl(): string {
+  return LEARN_URLS[getEnvironment()];
+}

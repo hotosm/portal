@@ -36,6 +36,11 @@ export interface PublicProfile {
   tasking_manager_username: string | null;
   organizations?: PublicProfileGroup[] | null;
   teams?: PublicProfileGroup[] | null;
+  /**
+   * Courses at learn.hotosm.org. Null when there is nothing to show — no LMS
+   * account, or the LMS did not answer — which is not the same as zero.
+   */
+  courses_count?: number | null;
 }
 
 /**
