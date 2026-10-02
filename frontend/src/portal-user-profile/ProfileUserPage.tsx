@@ -10,6 +10,7 @@ import Spinner from '../components/shared/Spinner'
 import { useAuth } from '../contexts/AuthContext'
 import NotFoundPage from '../pages/NotFoundPage'
 import { m } from '../paraglide/messages'
+import { getLocale } from '../paraglide/runtime'
 import ProfileSectionHeader from './components/ProfileSectionHeader'
 import { getLearnBaseUrl } from '../utils/envConfig'
 import { Certifications } from './components/Certifications'
@@ -332,8 +333,12 @@ function ProfileUserPage() {
             </section>
 
             <section className='mb-2xl'>
-              <Certifications />
+              <Certifications
+                certificates={profile.certificates}
+                locale={getLocale()}
+              />
             </section>
+
           </div>
 
           <div>

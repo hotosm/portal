@@ -388,5 +388,7 @@
   "profile_edit_extra_link_label": "Link",
   "profile_edit_extra_link_placeholder": "https://…",
   "profile_edit_error_extra_link": "Ingresá una URL válida que empiece con https://",
-  "profile_edit_error_extra_links": "Usá hasta 4 links, sin repetir ninguno."
+  "profile_edit_error_extra_links": "Usá hasta 4 links, sin repetir ninguno.",
+  "profile_certifications_title": "Certificaciones",
+  "profile_certifications_subtitle": "Obtenidas en el HOT Learning Center"
 }

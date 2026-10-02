@@ -110,6 +110,10 @@ class PublicProfileRead(BaseModel):
     # nothing to show — no LMS account, or the LMS did not answer — so the
     # profile can leave the section out instead of claiming zero.
     courses_count: int | None = None
+    # Finished work, not enrolments: title, when it was issued and a link to
+    # check it. Not every course issues one, so an empty list alongside several
+    # courses is ordinary. Null means we could not ask at all.
+    certificates: list[dict] | None = None
 
 
 class PublicContactRead(BaseModel):

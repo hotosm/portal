@@ -1,5 +1,6 @@
 """Tests for the profile endpoints: GET/PATCH /api/profile/me, GET /api/public/profile/{slug}."""
 
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -379,8 +380,8 @@ async def test_public_contact_upstream_unavailable(client):
 # showing a zero.
 
 
-def _public_profile_patches(courses):
-    """Stub everything a public profile fetches, with a given course summary."""
+def _public_profile_patches(learning):
+    """Stub everything a public profile fetches, with a given learning summary."""
     return (
         patch(
             "app.services.profile_service.login_service.get_public_account_profile",
@@ -391,32 +392,46 @@ def _public_profile_patches(courses):
             new=_groups_by_type([], []),
         ),
         patch(
-            "app.services.profile_service.learnworlds_service.get_course_summary",
-            new=AsyncMock(return_value=courses),
+            "app.services.profile_service.learnworlds_service.get_learning_summary",
+            new=AsyncMock(return_value=learning),
         ),
     )
 
 
 @pytest.mark.asyncio
 async def test_public_profile_includes_course_count(client):
-    summary = learnworlds_service.CourseSummary(courses=4)
-    account, groups, courses = _public_profile_patches(summary)
-    with account, groups, courses:
+    summary = learnworlds_service.LearningSummary(
+        courses=4,
+        certificates=[
+            learnworlds_service.Certificate(
+                title="Beginner certificate",
+                issued=datetime(2026, 7, 1, tzinfo=timezone.utc),
+                url="https://mycourse.app/abc",
+            )
+        ],
+    )
+    account, groups, learning = _public_profile_patches(summary)
+    with account, groups, learning:
         response = await client.get("/api/public/profile/ada")
 
     assert response.status_code == 200
-    assert response.json()["courses_count"] == 4
+    body = response.json()
+    assert body["courses_count"] == 4
+    assert [c["title"] for c in body["certificates"]] == ["Beginner certificate"]
+    assert body["certificates"][0]["url"] == "https://mycourse.app/abc"
 
 
 @pytest.mark.asyncio
 async def test_public_profile_omits_courses_when_unknown(client):
     """No LMS account, or LearnWorlds down: no number rather than a zero."""
-    account, groups, courses = _public_profile_patches(None)
-    with account, groups, courses:
+    account, groups, learning = _public_profile_patches(None)
+    with account, groups, learning:
         response = await client.get("/api/public/profile/ada")
 
     assert response.status_code == 200
-    assert response.json()["courses_count"] is None
+    body = response.json()
+    assert body["courses_count"] is None
+    assert body["certificates"] is None
 
 
 @pytest.mark.asyncio
@@ -427,10 +442,23 @@ async def test_public_profile_survives_learnworlds_failing(client):
         account,
         groups,
         patch(
-            "app.services.profile_service.learnworlds_service.get_course_summary",
+            "app.services.profile_service.learnworlds_service.get_learning_summary",
             new=AsyncMock(side_effect=learnworlds_service.LearnWorldsUnavailable("boom")),
         ),
     ):
         response = await client.get("/api/public/profile/ada")
 
     assert response.status_code in (200, 502)
+
+
+@pytest.mark.asyncio
+async def test_public_profile_shows_courses_without_certificates(client):
+    """Not every course issues one, so zero certificates is a real answer."""
+    summary = learnworlds_service.LearningSummary(courses=3, certificates=[])
+    account, groups, learning = _public_profile_patches(summary)
+    with account, groups, learning:
+        response = await client.get("/api/public/profile/ada")
+
+    body = response.json()
+    assert body["courses_count"] == 3
+    assert body["certificates"] == []

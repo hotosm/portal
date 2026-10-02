@@ -15,6 +15,15 @@ export interface PublicProfileGroup {
   members_count: number;
 }
 
+/** One certificate as the backend exposes it (no personal data beyond this). */
+export interface PublicProfileCertificate {
+  title: string;
+  /** ISO timestamp, or null when the school did not record one. */
+  issued: string | null;
+  /** Public link to the certificate, so a reader can check the claim. */
+  url: string | null;
+}
+
 /**
  * Shape of GET /api/public/profile/{slug} on the portal backend
  * (backend/app/models/profile.py -> PublicProfileRead).
@@ -41,6 +50,11 @@ export interface PublicProfile {
    * account, or the LMS did not answer — which is not the same as zero.
    */
   courses_count?: number | null;
+  /**
+   * Certificates earned. An empty list is a real answer — not every course
+   * issues one — while null means we could not ask.
+   */
+  certificates?: PublicProfileCertificate[] | null;
 }
 
 /**
