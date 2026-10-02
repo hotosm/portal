@@ -1,7 +1,6 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
   "profile_learning_title": "Aprendizaje",
-  "profile_learning_courses": "cursos",
   "profile_learning_subtitle": "En el HOT Learning Center",
   "header_tagline": "Plataforma de mapeo libre y de código abierto liderada por la comunidad",
   "products_drone_title": "Dron",
@@ -391,5 +390,8 @@
   "profile_edit_error_extra_links": "Usá hasta 4 links, sin repetir ninguno.",
   "profile_certifications_title": "Certificaciones",
   "profile_certifications_subtitle": "Obtenidas en el HOT Learning Center",
-  "profile_learning_of": "de"
+  "profile_learning_visit": "Ir al Learning Center",
+  "profile_learning_completed": "Completado",
+  "profile_learning_more": "cursos más",
+  "profile_learning_hours": "horas de estudio"
 }

@@ -15,6 +15,14 @@ export interface PublicProfileGroup {
   members_count: number;
 }
 
+/** One course someone is taking, with how far along they are. */
+export interface PublicProfileCourse {
+  title: string;
+  /** completed | in_progress | not_started */
+  status: string;
+  progress_rate: number;
+}
+
 /** One certificate as the backend exposes it (no personal data beyond this). */
 export interface PublicProfileCertificate {
   title: string;
@@ -52,6 +60,12 @@ export interface PublicProfile {
   courses_count?: number | null;
   /** Courses the school offers, so the number above has a scale. */
   courses_total?: number | null;
+  /** The courses themselves, finished ones first. */
+  courses?: PublicProfileCourse[] | null;
+  /** Subjects drawn from those courses: what the person knows. */
+  topics?: string[] | null;
+  /** Whole hours spent learning; absent below one. */
+  learning_hours?: number | null;
   /**
    * Certificates earned. An empty list is a real answer — not every course
    * issues one — while null means we could not ask.

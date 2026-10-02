@@ -403,6 +403,12 @@ async def test_public_profile_includes_course_count(client):
     summary = learnworlds_service.LearningSummary(
         courses=4,
         catalogue=18,
+        enrolled=[
+            learnworlds_service.Course(
+                title="Humanitarian mapping", status="completed", progress_rate=100
+            )
+        ],
+        hours=7,
         certificates=[
             learnworlds_service.Certificate(
                 title="Beginner certificate",
@@ -419,6 +425,8 @@ async def test_public_profile_includes_course_count(client):
     body = response.json()
     assert body["courses_count"] == 4
     assert body["courses_total"] == 18
+    assert [c["title"] for c in body["courses"]] == ["Humanitarian mapping"]
+    assert body["learning_hours"] == 7
     assert [c["title"] for c in body["certificates"]] == ["Beginner certificate"]
     assert body["certificates"][0]["url"] == "https://mycourse.app/abc"
 
@@ -456,7 +464,7 @@ async def test_public_profile_survives_learnworlds_failing(client):
 @pytest.mark.asyncio
 async def test_public_profile_shows_courses_without_certificates(client):
     """Not every course issues one, so zero certificates is a real answer."""
-    summary = learnworlds_service.LearningSummary(courses=3, certificates=[])
+    summary = learnworlds_service.LearningSummary(courses=3, certificates=[], enrolled=[])
     account, groups, learning = _public_profile_patches(summary)
     with account, groups, learning:
         response = await client.get("/api/public/profile/ada")
@@ -469,7 +477,9 @@ async def test_public_profile_shows_courses_without_certificates(client):
 @pytest.mark.asyncio
 async def test_public_profile_without_a_catalogue(client):
     """The school's course count is an extra: its absence hides nothing else."""
-    summary = learnworlds_service.LearningSummary(courses=2, certificates=[], catalogue=None)
+    summary = learnworlds_service.LearningSummary(
+        courses=2, certificates=[], enrolled=[], catalogue=None
+    )
     account, groups, learning = _public_profile_patches(summary)
     with account, groups, learning:
         response = await client.get("/api/public/profile/ada")

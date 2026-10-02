@@ -32,6 +32,10 @@ _HTTP_NOT_FOUND = 404
 # staleness is nobody's problem.
 _COURSES_TTL = LONG_TTL
 
+# Progress costs one call per course, so only the first few are detailed. The
+# total count comes from the listing's own meta and is not affected.
+_MAX_COURSES_DETAILED = 12
+
 APP_NAME = "learnworlds"
 
 
@@ -54,6 +58,15 @@ class Certificate:
 
 
 @dataclass
+class Course:
+    """A course someone is taking, with how far along they are."""
+
+    title: str
+    status: str
+    progress_rate: int
+
+
+@dataclass
 class LearningSummary:
     """What a profile shows about someone's learning.
 
@@ -65,6 +78,9 @@ class LearningSummary:
 
     courses: int
     certificates: list[Certificate]
+    enrolled: list[Course]
+    # Rounded down, and only when it reaches an hour: "0 hours" says nothing.
+    hours: int | None = None
     # How many courses the school offers, so a profile can say "1 of 18"
     # instead of a number with nothing to compare it to. None when the
     # catalogue could not be read; the rest still renders.
@@ -174,6 +190,50 @@ async def _certificates(account_id: str) -> list[Certificate]:
     return sorted(valid, key=lambda c: c.issued or datetime.min.replace(tzinfo=UTC), reverse=True)
 
 
+async def _progress(account_id: str, course_id: str) -> dict:
+    """How far someone got in one course. Empty when it cannot be read."""
+    try:
+        return await _get(f"users/{account_id}/courses/{course_id}/progress")
+    except (httpx.RequestError, httpx.HTTPStatusError, LearnWorldsUnavailable):
+        # One unreadable course should not cost the whole section.
+        return {}
+
+
+async def _enrolled(account_id: str) -> tuple[list[Course], int | None]:
+    """Courses and time spent, in one pass over the enrolments.
+
+    Progress is one call per course, so this is capped: a profile shows a
+    handful of courses, and the rest only moved the counter that
+    ``get_learning_summary`` already has.
+    """
+    payload = await _get(f"users/{account_id}/courses")
+    enrolments = (payload.get("data") or [])[:_MAX_COURSES_DETAILED]
+
+    courses_raw = [(e.get("course") or {}) for e in enrolments]
+    progresses = await asyncio.gather(
+        *(_progress(account_id, c.get("id", "")) for c in courses_raw if c.get("id"))
+    )
+
+    courses: list[Course] = []
+    seconds = 0
+    for course, progress in zip(courses_raw, progresses, strict=False):
+        title = (course.get("title") or "").strip()
+        if title:
+            courses.append(
+                Course(
+                    title=title,
+                    status=progress.get("status") or "not_started",
+                    progress_rate=int(progress.get("progress_rate") or 0),
+                )
+            )
+        seconds += int(progress.get("time_on_course") or 0)
+
+    # Finished first, then by how far along: a profile leads with achievements.
+    courses.sort(key=lambda c: (c.status != "completed", -c.progress_rate))
+    hours = seconds // 3600 or None
+    return courses, hours
+
+
 async def _catalogue_size() -> int | None:
     """How many courses the school offers.
 
@@ -215,10 +275,11 @@ async def get_learning_summary(hanko_user_id: str) -> LearningSummary | None:
         return cached
 
     try:
-        courses, certificates, catalogue = await asyncio.gather(
-            _count(f"users/{account_id}/courses"),
+        (courses, hours), certificates, catalogue, total = await asyncio.gather(
+            _enrolled(account_id),
             _certificates(account_id),
             _catalogue_size(),
+            _count(f"users/{account_id}/courses"),
         )
     except (httpx.RequestError, httpx.HTTPStatusError) as exc:
         logger.warning("LearnWorlds did not answer for %s: %s", account_id, exc)

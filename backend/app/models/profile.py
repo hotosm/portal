@@ -113,6 +113,10 @@ class PublicProfileRead(BaseModel):
     # Courses the school offers, to give the number above something to sit
     # against. None when the catalogue could not be read.
     courses_total: int | None = None
+    # The courses themselves, finished ones first, with how far along they are.
+    courses: list[dict] | None = None
+    # Whole hours spent learning, omitted below one.
+    learning_hours: int | None = None
     # Finished work, not enrolments: title, when it was issued and a link to
     # check it. Not every course issues one, so an empty list alongside several
     # courses is ordinary. Null means we could not ask at all.
