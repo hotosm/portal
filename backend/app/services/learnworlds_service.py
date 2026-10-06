@@ -19,7 +19,7 @@ from datetime import UTC, datetime
 
 import httpx
 
-from app.core.cache import LONG_TTL, get_cached, set_cached
+from app.core.cache import DEFAULT_TTL, LONG_TTL, get_cached, set_cached
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -27,10 +27,15 @@ logger = logging.getLogger(__name__)
 _REQUEST_TIMEOUT = 10.0
 _HTTP_NOT_FOUND = 404
 
-# Public profiles are read far more often than someone finishes a course, and
-# every miss spends a call on a school-wide credential. Fifteen minutes of
-# staleness is nobody's problem.
-_COURSES_TTL = LONG_TTL
+# Someone who just finished a course expects to see it, so this is kept short
+# — and it is the expensive one, since each miss asks LearnWorlds for the
+# progress of every course.
+_COURSES_TTL = DEFAULT_TTL  # 5 minutes
+
+# The mapping and the catalogue barely move: which LearnWorlds account belongs
+# to someone changes once, and courses are added now and then. No reason to
+# spend calls re-reading them.
+_STABLE_TTL = LONG_TTL  # 15 minutes
 
 # Progress costs one call per course, so only the first few are detailed. The
 # total count comes from the listing's own meta and is not affected.
@@ -59,7 +64,12 @@ class Certificate:
 
 @dataclass
 class Course:
-    """A course someone is taking, with how far along they are."""
+    """A course someone is taking, with how far along they are.
+
+    ``status`` is whatever LearnWorlds reports — ``completed`` for finished
+    work, ``not_completed`` for the rest. Callers compare against the first
+    rather than enumerate the others, which are not documented.
+    """
 
     title: str
     status: str
@@ -124,7 +134,7 @@ async def _resolve_account_id(hanko_user_id: str) -> str | None:
 
     # Cache the misses too, so profiles of people who never took a course do
     # not ask login on every view.
-    set_cached(key, account_id or "", _COURSES_TTL)
+    set_cached(key, account_id or "", _STABLE_TTL)
     return account_id
 
 
@@ -251,7 +261,7 @@ async def _catalogue_size() -> int | None:
         logger.warning("Could not read the LearnWorlds catalogue: %s", exc)
         return None
 
-    set_cached(key, total, _COURSES_TTL)
+    set_cached(key, total, _STABLE_TTL)
     return total
 
 

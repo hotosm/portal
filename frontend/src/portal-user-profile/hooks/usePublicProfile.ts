@@ -18,7 +18,11 @@ export interface PublicProfileGroup {
 /** One course someone is taking, with how far along they are. */
 export interface PublicProfileCourse {
   title: string;
-  /** completed | in_progress | not_started */
+  /**
+   * As LearnWorlds reports it: `completed`, or `not_completed` for anything
+   * started but unfinished. Compared against "completed" rather than listing
+   * the others, which the API does not document.
+   */
   status: string;
   progress_rate: number;
 }
