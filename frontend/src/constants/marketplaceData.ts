@@ -6,9 +6,7 @@ import { getLocale } from "../paraglide/runtime";
 export const MARKETPLACE_FORM_URL =
   "https://airtable.com/embed/app1n0WWdVdkFz3cR/pagMhDf2az2UUiynH/form";
 
-export const MARKETPLACE_MORE_INFO_URL =
-  "https://airtable.com/app1n0WWdVdkFz3cR/pagbZT1l8OCcoeUJH/form";
-
+// "Talk to someone" Airtable form, embedded by the more-info and contact buttons.
 export const MARKETPLACE_CONTACT_URL =
   "https://airtable.com/embed/app1n0WWdVdkFz3cR/paghAAbHRUCnIzk6B/form";
 

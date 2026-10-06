@@ -8,7 +8,6 @@ import Icon from "../components/shared/Icon";
 import {
   MARKETPLACE_CONTACT_URL,
   MARKETPLACE_FORM_URL,
-  MARKETPLACE_MORE_INFO_URL,
   getCommissionData,
   getHowItWorksSteps,
   getMarketplaceServices,
@@ -38,6 +37,7 @@ function MarketplacePage() {
   const commissionColumns = getCommissionData();
   const services = getMarketplaceServices();
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isContactOpen, setIsContactOpen] = useState(false);
   
   
 
@@ -81,9 +81,7 @@ function MarketplacePage() {
               appearance="accent"
               size="large"
               className="w-full md:w-auto"
-              href={MARKETPLACE_MORE_INFO_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+              onClick={() => setIsContactOpen(true)}
             >
               {m.marketplace_hero_cta_more_info()}
             </Button>
@@ -237,9 +235,7 @@ function MarketplacePage() {
               <Button
                 variant="neutral"
                 appearance="accent"
-                href={MARKETPLACE_CONTACT_URL}
-                target="_blank"
-                rel="noopener noreferrer"
+                onClick={() => setIsContactOpen(true)}
               >
                 {m.marketplace_cta_contact_us()}
               </Button>
@@ -257,6 +253,22 @@ function MarketplacePage() {
         <iframe
           title={m.marketplace_cta_title()}
           src={MARKETPLACE_FORM_URL}
+          width="100%"
+          height="533"
+          frameBorder="0"
+          className="block rounded-md border border-hot-neutral-100 bg-transparent"
+        />
+      </Dialog>
+
+      <Dialog
+        open={isContactOpen}
+        label={m.marketplace_cta_contact_us()}
+        onWaHide={() => setIsContactOpen(false)}
+        style={{ "--width": "800px" } as React.CSSProperties}
+      >
+        <iframe
+          title={m.marketplace_cta_contact_us()}
+          src={MARKETPLACE_CONTACT_URL}
           width="100%"
           height="533"
           frameBorder="0"
