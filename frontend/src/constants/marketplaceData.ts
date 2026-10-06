@@ -6,10 +6,16 @@ import { getLocale } from "../paraglide/runtime";
 export const MARKETPLACE_FORM_URL =
   "https://airtable.com/embed/app1n0WWdVdkFz3cR/pagMhDf2az2UUiynH/form";
 
+export const MARKETPLACE_MORE_INFO_URL =
+  "https://airtable.com/app1n0WWdVdkFz3cR/pagbZT1l8OCcoeUJH/form";
+
+export const MARKETPLACE_CONTACT_URL =
+  "https://airtable.com/embed/app1n0WWdVdkFz3cR/paghAAbHRUCnIzk6B/form";
+
 export interface MarketplaceService {
   id: string;
   title: string;
-  type: "product" | "service";
+  description: string;
   /** Web Awesome icon name (classic solid). */
   icon?: string;
   /** Local SVG, used when no Web Awesome icon fits. Takes precedence over `icon`. */
@@ -40,55 +46,55 @@ export function getMarketplaceServices(): MarketplaceService[] {
     {
       id: "datasets",
       title: m.marketplace_service_datasets({}, { locale }),
-      type: "product",
+      description: m.marketplace_service_datasets_desc({}, { locale }),
       icon: "map-location-dot",
     },
     {
-      id: "verification",
-      title: m.marketplace_service_verification({}, { locale }),
-      type: "product",
+      id: "analysis",
+      title: m.marketplace_service_analysis({}, { locale }),
+      description: m.marketplace_service_analysis_desc({}, { locale }),
       icon: "clipboard-list",
     },
     {
       id: "monitoring",
       title: m.marketplace_service_monitoring({}, { locale }),
-      type: "product",
+      description: m.marketplace_service_monitoring_desc({}, { locale }),
       icon: "chart-line",
     },
     {
-      id: "analysis",
-      title: m.marketplace_service_analysis({}, { locale }),
-      type: "product",
-      icon: "chart-simple",
-    },
-    {
-      id: "rapid",
-      title: m.marketplace_service_rapid({}, { locale }),
-      type: "product",
-      icon: "angle-double-right",
+      id: "verification",
+      title: m.marketplace_service_verification({}, { locale }),
+      description: m.marketplace_service_verification_desc({}, { locale }),
+      icon: "shield-halved",
     },
     {
       id: "drone",
       title: m.marketplace_service_drone({}, { locale }),
-      type: "product",
+      description: m.marketplace_service_drone_desc({}, { locale }),
       iconSrc: droneIcon,
     },
     {
       id: "ai",
       title: m.marketplace_service_ai({}, { locale }),
-      type: "product",
+      description: m.marketplace_service_ai_desc({}, { locale }),
       icon: "brain",
+    },
+    {
+      id: "rapid",
+      title: m.marketplace_service_rapid({}, { locale }),
+      description: m.marketplace_service_rapid_desc({}, { locale }),
+      icon: "rocket",
     },
     {
       id: "capacity",
       title: m.marketplace_service_capacity({}, { locale }),
-      type: "service",
+      description: m.marketplace_service_capacity_desc({}, { locale }),
       icon: "graduation-cap",
     },
     {
       id: "config",
       title: m.marketplace_service_config({}, { locale }),
-      type: "service",
+      description: m.marketplace_service_config_desc({}, { locale }),
       icon: "sliders",
     },
   ];
