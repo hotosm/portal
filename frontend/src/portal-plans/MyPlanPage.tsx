@@ -20,10 +20,12 @@ import {
 import { useQueryClient } from '@tanstack/react-query'
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { toast } from 'sonner'
 import Button from '../components/shared/Button'
 import CardSkeleton from '../components/shared/CardSkeleton'
 import Carousel from '../components/shared/Carousel'
 import CarouselItem from '../components/shared/CarouselItem'
+import ConfirmDialog from '../components/shared/ConfirmDialog'
 import Icon from '../components/shared/Icon'
 import PageWrapper from '../components/shared/PageWrapper'
 import { RichTextContent } from '../components/shared/RichTextContent'
@@ -41,20 +43,26 @@ import PlanMenu from './components/PlanMenu'
 import PlanProjectCard from './components/PlanProjectCard'
 import PlanProjectRow from './components/PlanProjectRow'
 import PlanSectionHeader from './components/PlanSectionHeader'
+import PlanSelectionBar from './components/PlanSelectionBar'
 import PlanShareButton from './components/PlanShareButton'
 import PlanSubSectionAccordion from './components/PlanSubSectionAccordion'
 import ProjectPickerDialog from './components/ProjectPickerDialog'
+import SelectableOverlay from './components/SelectableOverlay'
 import SortableViewProjectCard from './components/SortableViewProjectCard'
 import SortableViewProjectRow from './components/SortableViewProjectRow'
 import { ALL_SECTION_ID, isSectionDropId } from './contstants'
 import {
+  ProjectSelectionContext,
   planQueryKeys,
+  planRemoveMutationKey,
   useAddProject,
   useCollections,
   useCompleteTask,
   usePlan,
+  useProjectSelection,
   useRefreshPlan,
   useRemoveProject,
+  useRemoveProjects,
   useReorderProjects,
   useSetProjectFeatured,
   useSharedPlan,
@@ -142,6 +150,9 @@ function MyPlanPage() {
   const { mutate: completeTask } = useCompleteTask(planId ?? '')
   const { mutate: addProject } = useAddProject(planId ?? '')
   const { mutate: removeProject } = useRemoveProject(planId ?? '')
+  const { mutate: removeProjects, isPending: isRemovingProjects } = useRemoveProjects(planId ?? '')
+  const selection = useProjectSelection()
+  const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false)
   const { mutate: setFeatured } = useSetProjectFeatured(planId ?? '')
   const { mutate: reorderProjects } = useReorderProjects(planId ?? '')
   const { mutate: refreshPlan, isPending: isRefreshing } = useRefreshPlan(planId ?? '', !viewingOwn)
@@ -187,6 +198,9 @@ function MyPlanPage() {
    * mutations that replaced it have to do the same.
    */
   function rehydrateAfterChange() {
+    // While other removals are still in flight the server's answer would still
+    // list their projects; the last one to settle re-arms the guard.
+    if (queryClient.isMutating({ mutationKey: planRemoveMutationKey(planId!) }) > 1) return
     revalidatedRef.current = null
   }
 
@@ -250,10 +264,38 @@ function MyPlanPage() {
     )
   }
 
+  /**
+   * Drop projects from the cached plan.
+   *
+   * Reads the cache rather than the render's `plan`: removals fired in quick
+   * succession would otherwise each start from a list that still holds the
+   * previous ones and put them back.
+   */
+  function removeCachedProjects(ids: string[]) {
+    const removed = new Set(ids)
+    queryClient.setQueryData<PlanReadHydrated | null>(planQueryKeys.detail(planId!), (old) =>
+      old ? { ...old, projects: old.projects.filter((p) => !removed.has(p.id)) } : old
+    )
+  }
+
   function handleProjectDeleted(id: string) {
     if (!plan) return
-    patchCachedProjects(plan.projects.filter((p) => p.id !== id))
+    removeCachedProjects([id])
     removeProject(id, { onSuccess: rehydrateAfterChange })
+  }
+
+  function handleConfirmRemoveSelected() {
+    const ids = [...selection.selectedIds]
+    setConfirmRemoveOpen(false)
+    if (ids.length === 0) return
+    removeCachedProjects(ids)
+    selection.exit()
+    removeProjects(ids, {
+      onSuccess: () => {
+        rehydrateAfterChange()
+        toast.success(m.plan_toast_projects_removed({ count: ids.length }))
+      },
+    })
   }
 
   /**
@@ -432,10 +474,14 @@ function MyPlanPage() {
                 viewPlanId: planId,
               }
               return isList ? (
-                <PlanProjectRow key={project.id} {...projectProps} />
+                <SelectableOverlay key={project.id} id={project.id}>
+                  <PlanProjectRow {...projectProps} />
+                </SelectableOverlay>
               ) : (
                 <div key={project.id} className={cardClassNames}>
-                  <PlanProjectCard {...projectProps} />
+                  <SelectableOverlay id={project.id}>
+                    <PlanProjectCard {...projectProps} />
+                  </SelectableOverlay>
                 </div>
               )
             })}
@@ -543,7 +589,7 @@ function MyPlanPage() {
   })
 
   return (
-    <>
+    <ProjectSelectionContext.Provider value={selection}>
       <PlanSectionHeader
         plan={isLoading ? undefined : plan!}
         breadcrumbs={
@@ -638,6 +684,15 @@ function MyPlanPage() {
                   <Icon name="folder" variant="regular" />
                   Collections
                 </Button>
+                {plan!.projects.length > 0 && (
+                  <Button
+                    appearance="outlined"
+                    onClick={selection.selectMode ? selection.exit : selection.enter}
+                  >
+                    <Icon name="square-check" variant="regular" />
+                    {selection.selectMode ? m.plan_cancel() : m.plan_select_button()}
+                  </Button>
+                )}
               </div>
             )}
             {/* Read-only viewers get the toggle too: it only changes how the
@@ -668,6 +723,16 @@ function MyPlanPage() {
             </div>
           </div>
         </PageWrapper>
+      )}
+
+      {!isLoading && canEdit && selection.selectMode && (
+        <PlanSelectionBar
+          selectedCount={selection.selectedIds.size}
+          totalCount={plan!.projects.length}
+          onSelectAll={() => selection.selectAll(plan!.projects.map((p) => p.id))}
+          onCancel={selection.exit}
+          onRemove={() => setConfirmRemoveOpen(true)}
+        />
       )}
 
       <div style={listViewStyle}>
@@ -706,6 +771,18 @@ function MyPlanPage() {
         )}
       </div>
 
+      {canEdit && (
+        <ConfirmDialog
+          open={confirmRemoveOpen}
+          label={m.plan_select_confirm_label()}
+          message={m.plan_select_confirm_message({ count: selection.selectedIds.size })}
+          confirmLabel={m.plan_select_remove_button({ count: selection.selectedIds.size })}
+          isPending={isRemovingProjects}
+          onConfirm={handleConfirmRemoveSelected}
+          onCancel={() => setConfirmRemoveOpen(false)}
+        />
+      )}
+
       {canEdit && pickerSection && (
         <ProjectPickerDialog
           open
@@ -729,7 +806,7 @@ function MyPlanPage() {
           onClose={() => setCollectionsDialogOpen(false)}
         />
       )}
-    </>
+    </ProjectSelectionContext.Provider>
   )
 }
 

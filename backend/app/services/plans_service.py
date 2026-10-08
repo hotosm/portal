@@ -768,6 +768,29 @@ async def remove_project(
     return True
 
 
+async def remove_projects(
+    db: AsyncSession, ctx: PermissionContext, plan_id: str, plan_project_ids: list[str]
+) -> bool:
+    """Delete several projects/tasks from a plan in one transaction.
+
+    Ids that do not belong to the plan are ignored. Returns False if the plan
+    is missing or not editable by the caller.
+    """
+    if await get_editable_plan(db, ctx, plan_id) is None:
+        return False
+    stmt = select(PlanProject).where(
+        PlanProject.plan_id == plan_id,
+        PlanProject.id.in_(plan_project_ids),
+    )
+    rows = (await db.execute(stmt)).scalars().all()
+    for row in rows:
+        if row.artifact_s3_key:
+            _delete_artifact_file(row.artifact_s3_key)
+        await db.delete(row)
+    await db.flush()
+    return True
+
+
 class ArtifactAppMismatchError(ValueError):
     """Raised when the artifact endpoint is called on a row that isn't a
     SketchMap Tool project, or has an unrecognized project_id shape."""

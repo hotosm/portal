@@ -222,6 +222,10 @@ class ProjectCollectionUpdate(BaseModel):
     collection_id: str | None = None
 
 
+class ProjectsRemove(BaseModel):
+    ids: list[str] = Field(min_length=1, max_length=500)
+
+
 class ProjectPlacement(BaseModel):
     """Where one project sits after a drag: which collection, in which position."""
 

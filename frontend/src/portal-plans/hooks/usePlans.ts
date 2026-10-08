@@ -11,7 +11,7 @@ import type {
   UrlResolveResponse,
   UserGroup,
 } from '../types'
-import { groupsQueryKey, planQueryKeys } from './queryKeys'
+import { groupsQueryKey, planQueryKeys, planRemoveMutationKey } from './queryKeys'
 
 const STALE_TIME = 5 * 60 * 1000
 const GC_TIME = 30 * 60 * 1000
@@ -250,6 +250,9 @@ export function useRefreshPlan(id: string, isPublic = false) {
       return response.json()
     },
     onSuccess: (data) => {
+      // A read that raced a removal still lists the removed projects; the
+      // plan is refetched once the removals settle, so drop this one.
+      if (queryClient.isMutating({ mutationKey: planRemoveMutationKey(id) }) > 0) return
       if (data) {
         const key = isPublic ? planQueryKeys.public(id) : planQueryKeys.detail(id)
         queryClient.setQueryData(key, data)

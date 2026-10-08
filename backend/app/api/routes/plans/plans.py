@@ -20,6 +20,7 @@ from app.models.plan import (
     ProjectCollectionUpdate,
     ProjectFeaturedUpdate,
     ProjectReorder,
+    ProjectsRemove,
     ProjectStatusUpdate,
     UrlResolveRequest,
     UrlResolveResponse,
@@ -355,6 +356,20 @@ async def set_project_featured(
     )
     if not ok:
         raise HTTPException(status_code=404, detail="Plan or project not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/{plan_id}/projects/remove", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_projects(
+    payload: ProjectsRemove,
+    ctx: PermCtx,
+    plan_id: str = Path(..., description="Plan UUID"),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Delete several projects/tasks from a plan at once."""
+    ok = await plans_service.remove_projects(db, ctx, plan_id, payload.ids)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Plan not found")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

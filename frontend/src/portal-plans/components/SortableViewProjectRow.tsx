@@ -1,10 +1,11 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useState } from 'react'
-import { useUpdateProjectStatus } from '../hooks'
+import { useProjectSelectionContext, useUpdateProjectStatus } from '../hooks'
 import type { HydratedProjectItem, ProjectOption, ProjectStatus } from '../types'
 import LinkProjectDialog from './LinkProjectDialog'
 import PlanProjectRow from './PlanProjectRow'
+import SelectableOverlay from './SelectableOverlay'
 
 interface SortableViewProjectRowProps {
   /** The plan_project id, which is what every callback below reports. */
@@ -33,6 +34,7 @@ function SortableViewProjectRow({
   onProjectDeleted,
   onFeaturedToggle,
 }: SortableViewProjectRowProps) {
+  const { selectMode } = useProjectSelectionContext()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     // The plan_project id, kept stable across sections: dnd-kit tracks the
     // active draggable by id, so an id derived from the section would change
@@ -40,6 +42,8 @@ function SortableViewProjectRow({
     id,
     // Read back by the drop handler to know which bucket this row sits in.
     data: { sectionId, projectId: id },
+    // Dragging would fight the click that toggles the selection.
+    disabled: selectMode,
   })
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -62,25 +66,29 @@ function SortableViewProjectRow({
 
   return (
     <div ref={setNodeRef} style={style} className="w-full flex items-center gap-xs">
-      <div
-        {...attributes}
-        {...listeners}
-        className="shrink-0 cursor-grab active:cursor-grabbing text-hot-gray-400 hover:text-hot-gray-600 leading-none select-none text-base"
-      >
-        ⠿
-      </div>
-      <PlanProjectRow
-        project={project}
-        onStatusChange={project.project_exists ? handleStatusChange : undefined}
-        onSelectClick={project.project_exists ? undefined : () => setDialogOpen(true)}
-        onDelete={project.project_exists ? () => onProjectDeleted?.(id) : undefined}
-        onFeaturedChange={
-          project.project_exists ? (featured) => onFeaturedToggle?.(id, featured) : undefined
-        }
-        hasStarColumn
-        planId={planId}
-        viewPlanId={planId}
-      />
+      {!selectMode && (
+        <div
+          {...attributes}
+          {...listeners}
+          className="shrink-0 cursor-grab active:cursor-grabbing text-hot-gray-400 hover:text-hot-gray-600 leading-none select-none text-base"
+        >
+          ⠿
+        </div>
+      )}
+      <SelectableOverlay id={id} className="flex-1 min-w-0">
+        <PlanProjectRow
+          project={project}
+          onStatusChange={project.project_exists ? handleStatusChange : undefined}
+          onSelectClick={project.project_exists ? undefined : () => setDialogOpen(true)}
+          onDelete={project.project_exists ? () => onProjectDeleted?.(id) : undefined}
+          onFeaturedChange={
+            project.project_exists ? (featured) => onFeaturedToggle?.(id, featured) : undefined
+          }
+          hasStarColumn
+          planId={planId}
+          viewPlanId={planId}
+        />
+      </SelectableOverlay>
       {!project.project_exists && (
         <LinkProjectDialog
           open={dialogOpen}
