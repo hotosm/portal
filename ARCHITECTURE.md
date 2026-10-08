@@ -165,7 +165,7 @@ portal/
   - `/api/export-tool/jobs/{job_uid}` - ID of data jobs of Export Tool
 
 - **Plans** (user-owned collections of project references):
-  - `/api/plans` - List plans visible to the user (own + group plans)
+  - `/api/plans` - List plans visible to the user (own + group plans) as summaries: `id`, `name`, `project_count`, `apps`
   - `POST /api/plans` - Create a new plan
   - `POST /api/plans/resolve-url` - Parse a project URL and confirm it exists upstream
   - `/api/plans/shared/{plan_id}` - Return a public plan (no auth required)

@@ -9,7 +9,7 @@ import type {
   PlanProjectItem,
   ProjectPlacement,
 } from '../types'
-import { collectionQueryKeys, planQueryKeys } from './queryKeys'
+import { collectionQueryKeys, planQueryKeys, planRemoveMutationKey } from './queryKeys'
 
 const STALE_TIME = 5 * 60 * 1000
 const GC_TIME = 30 * 60 * 1000
@@ -212,6 +212,34 @@ export function useAddProject(planId: string) {
 }
 
 /** Delete one project/task from the plan. */
+/**
+ * Options shared by the single and bulk removals.
+ *
+ * Several removals can be in flight at once (quick successive clicks, or a
+ * selection followed by another). Refetching after each one let an early
+ * response, which still lists projects removed since, overwrite the cache and
+ * bring them back for a moment. So in-flight plan reads are cancelled without
+ * reverting (the caller already patched the cache) and the plan is only
+ * invalidated once the last removal has settled.
+ */
+function removalOptions(planId: string, queryClient: ReturnType<typeof useQueryClient>) {
+  return {
+    mutationKey: planRemoveMutationKey(planId),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: planQueryKeys.detail(planId) }, { revert: false })
+    },
+    onSettled: () => {
+      if (queryClient.isMutating({ mutationKey: planRemoveMutationKey(planId) }) > 1) return
+      queryClient.invalidateQueries({ queryKey: planQueryKeys.detail(planId) })
+      queryClient.invalidateQueries({ queryKey: planQueryKeys.list() })
+    },
+    onError: (error: Error) => {
+      toast.error(error.message)
+    },
+  }
+}
+
+/** Remove one project/task from a plan. */
 export function useRemoveProject(planId: string) {
   const queryClient = useQueryClient()
   return useMutation({
@@ -224,13 +252,26 @@ export function useRemoveProject(planId: string) {
         throw new Error(await errorDetail(response, m.plan_toast_update_error()))
       }
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: planQueryKeys.detail(planId) })
-      queryClient.invalidateQueries({ queryKey: planQueryKeys.list() })
+    ...removalOptions(planId, queryClient),
+  })
+}
+
+/** Remove several projects/tasks from a plan in one request. */
+export function useRemoveProjects(planId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (planProjectIds: string[]): Promise<void> => {
+      const response = await fetch(`/api/plans/${planId}/projects/remove`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: planProjectIds }),
+      })
+      if (!response.ok) {
+        throw new Error(await errorDetail(response, m.plan_toast_update_error()))
+      }
     },
-    onError: (error: Error) => {
-      toast.error(error.message)
-    },
+    ...removalOptions(planId, queryClient),
   })
 }
 

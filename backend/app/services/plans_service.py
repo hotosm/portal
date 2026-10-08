@@ -142,8 +142,8 @@ def check_no_duplicates(items: list[PlanProjectItem]) -> None:
 async def list_plans(db: AsyncSession, ctx: PermissionContext) -> list[PlanSummary]:
     """List plans visible to the user: their own, plus group plans of groups
     they belong to. Membership is resolved once (in ctx) and the project count
-    and apps are aggregated in SQL, so this stays a single SELECT that never
-    loads project rows, collections or images."""
+    and apps are aggregated in SQL, so this is two SELECTs (plans, then a
+    per-app count) that never load project rows, collections or images."""
     conditions = [Plan.owner_id == ctx.user_id]
     group_conditions = [
         and_(Plan.group_type == gtype, Plan.group_id == gid) for (gtype, gid) in ctx.memberships
@@ -784,6 +784,29 @@ async def remove_project(
     if row.artifact_s3_key:
         _delete_artifact_file(row.artifact_s3_key)
     await db.delete(row)
+    await db.flush()
+    return True
+
+
+async def remove_projects(
+    db: AsyncSession, ctx: PermissionContext, plan_id: str, plan_project_ids: list[str]
+) -> bool:
+    """Delete several projects/tasks from a plan in one transaction.
+
+    Ids that do not belong to the plan are ignored. Returns False if the plan
+    is missing or not editable by the caller.
+    """
+    if await get_editable_plan(db, ctx, plan_id) is None:
+        return False
+    stmt = select(PlanProject).where(
+        PlanProject.plan_id == plan_id,
+        PlanProject.id.in_(plan_project_ids),
+    )
+    rows = (await db.execute(stmt)).scalars().all()
+    for row in rows:
+        if row.artifact_s3_key:
+            _delete_artifact_file(row.artifact_s3_key)
+        await db.delete(row)
     await db.flush()
     return True
 
