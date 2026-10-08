@@ -145,6 +145,7 @@ class PlanScopeRead(BaseModel):
     visibility: Visibility
     group_type: GroupType | None = None
     group_id: str | None = None
+    group_name: str | None = None
     edit_scope: EditScope
     owner_id: str
     is_owner: bool = False

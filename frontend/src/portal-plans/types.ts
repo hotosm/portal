@@ -130,6 +130,9 @@ export interface PlanRead {
   visibility: Visibility
   group_type: GroupType | null
   group_id: string | null
+  // The group's name as the backend last saw it; set even for viewers who
+  // aren't in the group.
+  group_name?: string | null
   edit_scope: EditScope
   is_owner: boolean
   can_edit: boolean
@@ -169,6 +172,9 @@ export interface PlanReadHydrated {
   visibility: Visibility
   group_type: GroupType | null
   group_id: string | null
+  // The group's name as the backend last saw it; set even for viewers who
+  // aren't in the group.
+  group_name?: string | null
   edit_scope: EditScope
   is_owner: boolean
   can_edit: boolean

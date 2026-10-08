@@ -49,6 +49,10 @@ class Plan(Base):
     visibility = Column(String, nullable=False, default="private")
     group_type = Column(String, nullable=True)
     group_id = Column(String, nullable=True)
+    # The group's name as last seen from one of its members. Login only tells
+    # a user about their own groups, so this is what lets a visitor who is not
+    # in the group (or not signed in) see who a public plan belongs to.
+    group_name = Column(String, nullable=True)
     edit_scope = Column(String, nullable=False, default="owner")
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at = Column(
