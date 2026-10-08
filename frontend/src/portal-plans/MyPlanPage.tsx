@@ -474,12 +474,12 @@ function MyPlanPage() {
                 viewPlanId: planId,
               }
               return isList ? (
-                <SelectableOverlay key={project.id} id={project.id}>
+                <SelectableOverlay key={project.id} id={project.id} rounded="rounded-lg">
                   <PlanProjectRow {...projectProps} />
                 </SelectableOverlay>
               ) : (
                 <div key={project.id} className={cardClassNames}>
-                  <SelectableOverlay id={project.id}>
+                  <SelectableOverlay id={project.id} className="h-full">
                     <PlanProjectCard {...projectProps} />
                   </SelectableOverlay>
                 </div>

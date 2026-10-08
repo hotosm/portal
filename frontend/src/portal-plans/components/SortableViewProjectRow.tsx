@@ -75,7 +75,7 @@ function SortableViewProjectRow({
           ⠿
         </div>
       )}
-      <SelectableOverlay id={id} className="flex-1 min-w-0">
+      <SelectableOverlay id={id} className="flex-1 min-w-0" rounded="rounded-lg">
         <PlanProjectRow
           project={project}
           onStatusChange={project.project_exists ? handleStatusChange : undefined}

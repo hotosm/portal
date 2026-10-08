@@ -70,7 +70,7 @@ function SortableViewProjectCard({
           ⠿
         </div>
       )}
-      <SelectableOverlay id={id}>
+      <SelectableOverlay id={id} className="h-full">
         <PlanProjectCard
           project={project}
           onStatusChange={project.project_exists ? handleStatusChange : undefined}

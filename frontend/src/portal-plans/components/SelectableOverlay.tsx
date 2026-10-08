@@ -7,6 +7,8 @@ interface SelectableOverlayProps {
   id: string
   children: React.ReactNode
   className?: string
+  /** Corner radius of the selection frame; match the wrapped card or row. */
+  rounded?: string
 }
 
 /**
@@ -16,7 +18,12 @@ interface SelectableOverlayProps {
  * layer covers the content, so a click toggles the selection instead of
  * opening the project dialog, and it also sits over the drag handle.
  */
-function SelectableOverlay({ id, children, className = '' }: SelectableOverlayProps) {
+function SelectableOverlay({
+  id,
+  children,
+  className = '',
+  rounded = 'rounded-xl',
+}: SelectableOverlayProps) {
   const { selectMode, selectedIds, toggle } = useProjectSelectionContext()
   const selected = selectedIds.has(id)
 
@@ -29,7 +36,7 @@ function SelectableOverlay({ id, children, className = '' }: SelectableOverlayPr
           aria-pressed={selected}
           aria-label={m.plan_select_item_label()}
           onClick={() => toggle(id)}
-          className={`absolute inset-0 z-30 cursor-pointer rounded-lg border-2 transition-colors ${
+          className={`absolute inset-0 z-30 h-full w-full cursor-pointer ${rounded} border-2 transition-colors ${
             selected ? 'border-hot-red-600 bg-hot-red-600/10' : 'border-transparent bg-white/30'
           }`}
         >
