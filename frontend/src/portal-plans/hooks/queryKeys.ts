@@ -15,6 +15,10 @@ export const planQueryKeys = {
   public: (id: string) => [...planQueryKeys.all, 'public', id] as const,
 }
 
+/** Key shared by every mutation that removes projects from one plan. */
+export const planRemoveMutationKey = (planId: string) =>
+  [...planQueryKeys.all, 'remove', planId] as const
+
 export const collectionQueryKeys = {
   all: ['collections'] as const,
   ofPlan: (planId: string) => [...collectionQueryKeys.all, planId] as const,

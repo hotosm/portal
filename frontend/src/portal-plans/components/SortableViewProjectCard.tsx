@@ -2,10 +2,11 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useState } from 'react'
 import { cardClassNames } from '../../constants/classNames'
-import { useUpdateProjectStatus } from '../hooks'
+import { useProjectSelectionContext, useUpdateProjectStatus } from '../hooks'
 import type { HydratedProjectItem, ProjectOption, ProjectStatus } from '../types'
 import LinkProjectDialog from './LinkProjectDialog'
 import PlanProjectCard from './PlanProjectCard'
+import SelectableOverlay from './SelectableOverlay'
 
 interface SortableViewProjectCardProps {
   /** The plan_project id, which is what every callback below reports. */
@@ -28,6 +29,7 @@ function SortableViewProjectCard({
   onProjectDeleted,
   onFeaturedToggle,
 }: SortableViewProjectCardProps) {
+  const { selectMode } = useProjectSelectionContext()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     // The plan_project id, kept stable across sections: dnd-kit tracks the
     // active draggable by id, so an id derived from the section would change
@@ -35,6 +37,8 @@ function SortableViewProjectCard({
     id,
     // Read back by the drop handler to know which bucket this card sits in.
     data: { sectionId, projectId: id },
+    // Dragging would fight the click that toggles the selection.
+    disabled: selectMode,
   })
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -57,24 +61,28 @@ function SortableViewProjectCard({
 
   return (
     <div ref={setNodeRef} style={style} className={`${cardClassNames} relative`}>
-      <div
-        {...attributes}
-        {...listeners}
-        className="absolute top-2 left-2 z-20 cursor-grab active:cursor-grabbing bg-black/30 text-white rounded px-1 leading-none select-none text-base"
-      >
-        ⠿
-      </div>
-      <PlanProjectCard
-        project={project}
-        onStatusChange={project.project_exists ? handleStatusChange : undefined}
-        onSelectClick={project.project_exists ? undefined : () => setDialogOpen(true)}
-        onDelete={project.project_exists ? () => onProjectDeleted?.(id) : undefined}
-        onFeaturedChange={
-          project.project_exists ? (featured) => onFeaturedToggle?.(id, featured) : undefined
-        }
-        planId={planId}
-        viewPlanId={planId}
-      />
+      {!selectMode && (
+        <div
+          {...attributes}
+          {...listeners}
+          className="absolute top-2 left-2 z-20 cursor-grab active:cursor-grabbing bg-black/30 text-white rounded px-1 leading-none select-none text-base"
+        >
+          ⠿
+        </div>
+      )}
+      <SelectableOverlay id={id} className="h-full">
+        <PlanProjectCard
+          project={project}
+          onStatusChange={project.project_exists ? handleStatusChange : undefined}
+          onSelectClick={project.project_exists ? undefined : () => setDialogOpen(true)}
+          onDelete={project.project_exists ? () => onProjectDeleted?.(id) : undefined}
+          onFeaturedChange={
+            project.project_exists ? (featured) => onFeaturedToggle?.(id, featured) : undefined
+          }
+          planId={planId}
+          viewPlanId={planId}
+        />
+      </SelectableOverlay>
       {!project.project_exists && (
         <LinkProjectDialog
           open={dialogOpen}

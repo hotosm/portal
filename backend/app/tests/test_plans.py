@@ -168,6 +168,82 @@ async def test_unique_constraint_duplicate_in_payload(auth_client):
     assert resp.status_code == 422
 
 
+@pytest.mark.asyncio
+async def test_remove_projects_bulk(auth_client, test_db_session):
+    client, _ = auth_client
+    resp = await client.post(
+        "/api/plans",
+        json={
+            "name": "P",
+            "projects": [
+                {"app": "tasking-manager", "project_id": "1"},
+                {"app": "tasking-manager", "project_id": "2"},
+                {"app": "tasking-manager", "project_id": "3"},
+            ],
+        },
+    )
+    created = resp.json()
+    ids = [p["id"] for p in created["projects"]]
+
+    resp = await client.post(f"/api/plans/{created['id']}/projects/remove", json={"ids": ids[:2]})
+    assert resp.status_code == 204
+
+    rows = (await test_db_session.execute(select(PlanProject))).scalars().all()
+    assert [r.id for r in rows] == [ids[2]]
+
+
+@pytest.mark.asyncio
+async def test_remove_projects_ignores_other_plans(auth_client, test_db_session):
+    client, _ = auth_client
+    plan_a = (
+        await client.post(
+            "/api/plans",
+            json={"name": "A", "projects": [{"app": "tasking-manager", "project_id": "1"}]},
+        )
+    ).json()
+    plan_b = (
+        await client.post(
+            "/api/plans",
+            json={"name": "B", "projects": [{"app": "tasking-manager", "project_id": "1"}]},
+        )
+    ).json()
+
+    resp = await client.post(
+        f"/api/plans/{plan_a['id']}/projects/remove",
+        json={"ids": [plan_b["projects"][0]["id"]]},
+    )
+    assert resp.status_code == 204
+
+    rows = (await test_db_session.execute(select(PlanProject))).scalars().all()
+    assert len(rows) == 2
+
+
+@pytest.mark.asyncio
+async def test_remove_projects_requires_edit_rights(two_auth_clients):
+    client, user_cell = two_auth_clients
+    user_cell[0] = make_user("user-a-id", "a@example.com")
+    plan = (
+        await client.post(
+            "/api/plans",
+            json={"name": "A", "projects": [{"app": "tasking-manager", "project_id": "1"}]},
+        )
+    ).json()
+
+    user_cell[0] = make_user("user-b-id", "b@example.com")
+    resp = await client.post(
+        f"/api/plans/{plan['id']}/projects/remove", json={"ids": [plan["projects"][0]["id"]]}
+    )
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_remove_projects_rejects_empty_ids(auth_client):
+    client, _ = auth_client
+    plan = (await client.post("/api/plans", json={"name": "A", "projects": []})).json()
+    resp = await client.post(f"/api/plans/{plan['id']}/projects/remove", json={"ids": []})
+    assert resp.status_code == 422
+
+
 # ───────────────────────── User isolation ────────────────────────────────────
 
 
