@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import Button from '../../components/shared/Button'
 import Icon from '../../components/shared/Icon'
 import Input from '../../components/shared/Input'
@@ -32,9 +31,9 @@ export function ContactInfo({
   onSave,
   onCancel,
 }: ContactInfoProps) {
-  const [revealedSlug, setRevealedSlug] = useState<string | null>(null)
-  const contactRevealed = !!slug && revealedSlug === slug
-  const publicContact = usePublicContact(slug, contactRevealed && !isMine)
+  // Visitors get the contact details straight away, from their own endpoint.
+  const canLoadContact = !isOwnerUnknown && !isMine && hasContact
+  const publicContact = usePublicContact(slug, canLoadContact)
 
   const contact = isMine ? ownContact : publicContact.data
   const contactRows = CONTACT_FIELDS.map((item) => ({ ...item, value: contact?.[item.field] }))
@@ -42,26 +41,12 @@ export function ContactInfo({
   const extraLinks = contact?.extra_links ?? []
   const hasContactInfo = contactInfo.length > 0 || extraLinks.length > 0
 
-  const canRevealContact = !isOwnerUnknown && !isMine && hasContact
-  const showRevealButton = canRevealContact && (!contactRevealed || publicContact.isPending)
-  const contactError = canRevealContact && contactRevealed && !!publicContact.error
+  const contactError = canLoadContact && !!publicContact.error
   const showVisitorContact =
-    canRevealContact &&
-    contactRevealed &&
-    !publicContact.isPending &&
-    (contactError || hasContactInfo)
+    canLoadContact && !publicContact.isPending && (contactError || hasContactInfo)
 
   return (
     <>
-      {showRevealButton && (
-        <div className="py-lg">
-          <Button loading={contactRevealed} onClick={() => setRevealedSlug(slug ?? null)}>
-            <Icon slot="start" family="classic" variant="regular" name="contact-book" />
-            {m.profile_view_contact()}
-          </Button>
-        </div>
-      )}
-
       {(isMine || showVisitorContact) && (
         <section className="border border-dashed border-hot-gray-300 rounded-md p-md">
           <h2 className="flex items-center gap-xs text-base font-bold mb-sm h-[38px]">

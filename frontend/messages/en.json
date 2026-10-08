@@ -381,7 +381,6 @@
   "profile_location_error": "Location search is unavailable right now.",
   "profile_organizations_title": "Organizations",
   "profile_teams_title": "Teams",
-  "profile_view_contact": "View contact info",
   "profile_contact_error": "Contact info could not be loaded. Try again later.",
   "profile_mapping_title": "Mapping profiles",
   "profile_edit_mapping_button": "Edit mapping profiles",

@@ -75,7 +75,7 @@ type ContactInfoProps = SectionEditProps & {
   // Signed in but /api/profile/me hasn't answered yet: owner or visitor is unknown.
   isOwnerUnknown: boolean
   hasContact: boolean
-  // The owner's own copy (me.portal); visitors get theirs from the reveal.
+  // The owner's own copy (me.portal); visitors get theirs from the contact endpoint.
   ownContact: PublicContact | undefined
   draft: Pick<EditForm, ContactField>
   onDraftChange: (field: ContactField, value: string) => void
