@@ -230,3 +230,16 @@ async def test_concurrent_failure_raises_for_all_and_is_not_cached(enable_groups
     route.mock(return_value=httpx.Response(200, json={"groups": []}))
     assert await login_service.get_user_groups("u-sf-fail", "cookie") == []
     assert route.call_count == 2
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_force_refresh_does_not_join_inflight_call(enable_groups):
+    route = respx.get("http://login-test/api/groups").mock(
+        return_value=httpx.Response(200, json={"groups": []})
+    )
+    await asyncio.gather(
+        login_service.get_user_groups("u-sf-force", "cookie"),
+        login_service.get_user_groups("u-sf-force", "cookie", force_refresh=True),
+    )
+    assert route.call_count == 2

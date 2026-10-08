@@ -89,7 +89,9 @@ async def get_user_groups(
     # Concurrent cold-cache callers for the same user (e.g. GET /api/plans and
     # GET /api/groups on page load) share one request to login. The task is
     # shielded so one caller disconnecting does not cancel it for the others.
-    task = _inflight.get(key)
+    # A forced refresh never joins an in-flight call: that one may have started
+    # before the change the caller wants to see.
+    task = None if force_refresh else _inflight.get(key)
     if task is None:
         task = asyncio.create_task(_fetch_user_groups(key, hanko_cookie))
         _inflight[key] = task

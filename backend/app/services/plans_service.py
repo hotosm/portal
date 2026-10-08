@@ -142,8 +142,8 @@ def check_no_duplicates(items: list[PlanProjectItem]) -> None:
 async def list_plans(db: AsyncSession, ctx: PermissionContext) -> list[PlanSummary]:
     """List plans visible to the user: their own, plus group plans of groups
     they belong to. Membership is resolved once (in ctx) and the project count
-    and apps are aggregated in SQL, so this stays a single SELECT that never
-    loads project rows, collections or images."""
+    and apps are aggregated in SQL, so this is two SELECTs (plans, then a
+    per-app count) that never load project rows, collections or images."""
     conditions = [Plan.owner_id == ctx.user_id]
     group_conditions = [
         and_(Plan.group_type == gtype, Plan.group_id == gid) for (gtype, gid) in ctx.memberships
