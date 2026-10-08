@@ -1,5 +1,7 @@
 """Tests for the login group-membership client + cache."""
 
+import asyncio
+
 import httpx
 import pytest
 import respx
@@ -63,18 +65,14 @@ async def test_parses_groups(enable_groups):
 @pytest.mark.asyncio
 @respx.mock
 async def test_401_returns_empty(enable_groups):
-    respx.get("http://login-test/api/groups").mock(
-        return_value=httpx.Response(401)
-    )
+    respx.get("http://login-test/api/groups").mock(return_value=httpx.Response(401))
     assert await login_service.get_user_groups("u-401", "cookie") == []
 
 
 @pytest.mark.asyncio
 @respx.mock
 async def test_network_error_raises_unavailable(enable_groups):
-    respx.get("http://login-test/api/groups").mock(
-        side_effect=httpx.ConnectError("boom")
-    )
+    respx.get("http://login-test/api/groups").mock(side_effect=httpx.ConnectError("boom"))
     with pytest.raises(login_service.LoginUnavailable):
         await login_service.get_user_groups("u-err", "cookie")
 
@@ -188,3 +186,47 @@ async def test_get_public_user_groups_by_slug_parses(login_base_url):
     assert len(groups) == 1
     assert groups[0].slug == "hot"
     assert groups[0].members_count == 5
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_concurrent_cold_calls_share_one_request(enable_groups):
+    route = respx.get("http://login-test/api/groups").mock(
+        return_value=httpx.Response(200, json={"groups": []})
+    )
+    results = await asyncio.gather(
+        login_service.get_user_groups("u-single-flight", "cookie"),
+        login_service.get_user_groups("u-single-flight", "cookie"),
+    )
+    assert results == [[], []]
+    assert route.call_count == 1
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_concurrent_calls_for_different_users_are_separate(enable_groups):
+    route = respx.get("http://login-test/api/groups").mock(
+        return_value=httpx.Response(200, json={"groups": []})
+    )
+    await asyncio.gather(
+        login_service.get_user_groups("u-sf-a", "cookie"),
+        login_service.get_user_groups("u-sf-b", "cookie"),
+    )
+    assert route.call_count == 2
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_concurrent_failure_raises_for_all_and_is_not_cached(enable_groups):
+    route = respx.get("http://login-test/api/groups").mock(side_effect=httpx.ConnectError("boom"))
+    results = await asyncio.gather(
+        login_service.get_user_groups("u-sf-fail", "cookie"),
+        login_service.get_user_groups("u-sf-fail", "cookie"),
+        return_exceptions=True,
+    )
+    assert all(isinstance(r, login_service.LoginUnavailable) for r in results)
+    assert route.call_count == 1
+
+    route.mock(return_value=httpx.Response(200, json={"groups": []}))
+    assert await login_service.get_user_groups("u-sf-fail", "cookie") == []
+    assert route.call_count == 2
