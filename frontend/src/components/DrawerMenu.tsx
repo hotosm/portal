@@ -21,7 +21,12 @@ function DrawerMenuContent() {
 function DrawerMenu() {
   return (
     <>
-      <WaDrawer placement="top" label="Portal" id="mobile-drawer">
+      <WaDrawer
+        placement="top"
+        label="Portal"
+        id="mobile-drawer"
+        style={{ "--size": "auto" } as React.CSSProperties}
+      >
         <div slot="label">
           <PortalBrand onClick={closeDrawer} />
         </div>
