@@ -9,9 +9,7 @@ _BIO_MAX_LEN = 2_000
 _LOCATION_MAX_LEN = 200
 _CONTACT_EMAIL_MAX_LEN = 254
 _PHONE_MAX_LEN = 32
-_LINKEDIN_MAX_LEN = 500
-_LINKEDIN_PATTERN = r"^https://([\w-]+\.)?linkedin\.com/.*$"
-_EXTRA_LINKS_MAX = 4
+_EXTRA_LINKS_MAX = 5
 _EXTRA_LINK_MAX_LEN = 500
 _EXTRA_LINK_PATTERN = r"^https://[^\s/$.?#].[^\s]*$"
 # Light shape check, not full RFC validation — avoids adding an email-validator
@@ -32,9 +30,6 @@ class ProfilePatch(BaseModel):
         default=None, max_length=_CONTACT_EMAIL_MAX_LEN, pattern=_EMAIL_PATTERN
     )
     phone: str | None = Field(default=None, max_length=_PHONE_MAX_LEN)
-    linkedin_url: str | None = Field(
-        default=None, max_length=_LINKEDIN_MAX_LEN, pattern=_LINKEDIN_PATTERN
-    )
     # Replaces the whole list when present; [] (or null) empties it.
     extra_links: (
         list[Annotated[str, Field(max_length=_EXTRA_LINK_MAX_LEN, pattern=_EXTRA_LINK_PATTERN)]]
@@ -70,7 +65,6 @@ class PortalProfileRead(BaseModel):
     location: str | None
     contact_email: str | None
     phone: str | None
-    linkedin_url: str | None
     extra_links: list[str]
     show_organizations: bool
     show_teams: bool
@@ -128,5 +122,4 @@ class PublicContactRead(BaseModel):
 
     contact_email: str | None
     phone: str | None
-    linkedin_url: str | None
     extra_links: list[str]

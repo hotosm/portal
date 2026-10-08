@@ -22,8 +22,7 @@ class PortalProfile(Base):
     location = Column(String(200), nullable=True)
     contact_email = Column(String(254), nullable=True)
     phone = Column(String(32), nullable=True)
-    linkedin_url = Column(String(500), nullable=True)
-    # List of https:// URL strings, at most 4 (validated in app/models/profile.py).
+    # List of https:// URL strings, at most 5 (validated in app/models/profile.py).
     extra_links = Column(
         JSON().with_variant(JSONB, "postgresql"),
         nullable=False,

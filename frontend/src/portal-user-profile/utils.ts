@@ -19,4 +19,10 @@ function formatLinkLabel(url: string): string {
   }
 }
 
-export {getInitials, formatLinkLabel}
+// mailto: for the email; tel: for the phone, minus the spaces, dashes and
+// brackets people type for readability, which a dialer doesn't want.
+function contactHref(field: 'contact_email' | 'phone', value: string): string {
+  return field === 'contact_email' ? `mailto:${value}` : `tel:${value.replace(/[^\d+]/g, '')}`
+}
+
+export {getInitials, formatLinkLabel, contactHref}

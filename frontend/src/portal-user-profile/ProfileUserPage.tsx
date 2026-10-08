@@ -129,8 +129,8 @@ function ProfileUserPage() {
     setTouchedFields(new Set())
 
     for (const field of SECTION_FIELDS[section]) {
-      // A cleared field has to go out as null: "" fails the backend's email and
-      // LinkedIn patterns, and null is how the column is emptied.
+      // A cleared field has to go out as null: "" fails the backend's email
+      // pattern, and null is how the column is emptied.
       const next = form[field].trim() || null
       if (next !== (me?.portal[field] ?? null)) {
         patch[field] = next

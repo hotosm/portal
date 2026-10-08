@@ -127,10 +127,7 @@ async def get_public_profile(db: AsyncSession, slug: str) -> PublicProfileRead |
         picture_url=account.picture_url,
         bio=portal.bio if portal else None,
         location=portal.location if portal else None,
-        has_contact=bool(
-            portal
-            and (portal.contact_email or portal.phone or portal.linkedin_url or portal.extra_links)
-        ),
+        has_contact=bool(portal and (portal.contact_email or portal.phone or portal.extra_links)),
         organizations=organizations,
         teams=teams,
         courses_count=learning.courses if learning else None,
@@ -161,6 +158,5 @@ async def get_public_contact(db: AsyncSession, slug: str) -> PublicContactRead |
     return PublicContactRead(
         contact_email=portal.contact_email if portal else None,
         phone=portal.phone if portal else None,
-        linkedin_url=portal.linkedin_url if portal else None,
         extra_links=portal.extra_links if portal else [],
     )

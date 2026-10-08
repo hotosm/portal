@@ -85,15 +85,6 @@ async def test_patch_me_partial_update_never_calls_login(auth_client):
 
 
 @pytest.mark.asyncio
-async def test_patch_me_invalid_linkedin_url(auth_client):
-    c, _user = auth_client
-    response = await c.patch(
-        "/api/profile/me", json={"linkedin_url": "https://not-linkedin.com/in/ada"}
-    )
-    assert response.status_code == 422
-
-
-@pytest.mark.asyncio
 async def test_patch_me_invalid_contact_email(auth_client):
     c, _user = auth_client
     response = await c.patch("/api/profile/me", json={"contact_email": "not-an-email"})
@@ -240,7 +231,7 @@ async def test_public_profile_hides_contact_but_flags_it(client, test_db_session
     assert response.status_code == 200
     body = response.json()
     assert body["has_contact"] is True
-    for field in ("contact_email", "phone", "linkedin_url"):
+    for field in ("contact_email", "phone", "extra_links"):
         assert field not in body
 
 
@@ -314,7 +305,7 @@ async def test_public_contact_returns_contact_details(client, test_db_session):
             hanko_user_id="user-a-id",
             contact_email="ada@example.com",
             phone="+44 20 0000 0000",
-            linkedin_url="https://www.linkedin.com/in/ada",
+            extra_links=["https://www.linkedin.com/in/ada"],
         )
     )
     await test_db_session.flush()
@@ -328,8 +319,7 @@ async def test_public_contact_returns_contact_details(client, test_db_session):
     assert response.json() == {
         "contact_email": "ada@example.com",
         "phone": "+44 20 0000 0000",
-        "linkedin_url": "https://www.linkedin.com/in/ada",
-        "extra_links": [],
+        "extra_links": ["https://www.linkedin.com/in/ada"],
     }
 
 
@@ -344,7 +334,6 @@ async def test_public_contact_all_none_without_portal_row(client):
     assert response.json() == {
         "contact_email": None,
         "phone": None,
-        "linkedin_url": None,
         "extra_links": [],
     }
 

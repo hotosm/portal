@@ -6,7 +6,7 @@ import { m } from '../../paraglide/messages'
 import { CONTACT_FIELDS, EXTRA_LINKS_MAX, EXTRA_LINK_MAXLENGTH } from '../constants'
 import { usePublicContact } from '../hooks/usePublicProfile'
 import type { ContactInfoProps } from '../types'
-import { formatLinkLabel } from '../utils'
+import { contactHref, formatLinkLabel } from '../utils'
 import { EditActions, EditError, EditTrigger } from './EditActions'
 
 export function ContactInfo({
@@ -157,19 +157,24 @@ export function ContactInfo({
           ) : hasContactInfo ? (
             <ul className="flex flex-col gap-xs list-none p-0 m-0 text-sm">
               {(isMine ? contactRows : contactInfo).map((item) => (
-                <li key={item.field} className="flex items-center gap-xs ml-0 h-[38px]">
+                <li key={item.field} className="flex items-center gap-xs ml-0 h-[38px] min-w-0">
                   <Icon
                     name={item.icon}
                     variant={item.variant}
                     label=""
-                    className="text-hot-gray-800"
+                    className="text-hot-gray-800 shrink-0"
                   />
-                  {item.value ||
-                    (canEdit && (
+                  {item.value ? (
+                    <a href={contactHref(item.field, item.value)} className="truncate min-w-0">
+                      {item.value}
+                    </a>
+                  ) : (
+                    canEdit && (
                       <span className="text-hot-gray-600">
                         <i>{item.addText()}</i>
                       </span>
-                    ))}
+                    )
+                  )}
                 </li>
               ))}
               {extraLinks.map((url) => (
@@ -190,6 +195,21 @@ export function ContactInfo({
                   </a>
                 </li>
               ))}
+              {isMine && extraLinks.length === 0 && (
+                <li className="flex items-center gap-xs ml-0 h-[38px]">
+                  <Icon
+                    name="link"
+                    variant="solid"
+                    label=""
+                    className="text-hot-gray-800 shrink-0"
+                  />
+                  {canEdit && (
+                    <span className="text-hot-gray-600">
+                      <i>{m.profile_add_link()}</i>
+                    </span>
+                  )}
+                </li>
+              )}
             </ul>
           ) : (
             canEdit && <EditTrigger text={m.profile_add_contact()} onClick={onStartEditing} />

@@ -10,7 +10,6 @@ export interface PortalProfileFields {
   location: string | null;
   contact_email: string | null;
   phone: string | null;
-  linkedin_url: string | null;
   extra_links: string[];
   openstreetmap_username: string | null;
   tasking_manager_username: string | null;
@@ -45,7 +44,6 @@ export type PortalProfilePatch = Partial<
     | "location"
     | "contact_email"
     | "phone"
-    | "linkedin_url"
     | "extra_links"
     | "openstreetmap_username"
     | "tasking_manager_username"
@@ -53,7 +51,7 @@ export type PortalProfilePatch = Partial<
 >;
 
 /**
- * The backend rejected the payload (400/422) — bad email or LinkedIn URL, or a
+ * The backend rejected the payload (400/422) — bad email or link, or a
  * mapping username that isn't a bare username.
  */
 export class PortalProfileValidationError extends Error {
