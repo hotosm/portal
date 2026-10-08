@@ -42,7 +42,7 @@ function NavigationMain({ onLinkClick }: NavigationMainProps) {
         const isActive = isActiveItem(href);
         const linkContent = (
           <span className="flex items-center gap-2xs">
-            {item.icon && (
+            {item.icon ? (
               <>
                 {/* @ts-ignore */}
                 <wa-icon
@@ -52,6 +52,8 @@ function NavigationMain({ onLinkClick }: NavigationMainProps) {
                   style={{ fontSize: "16px" }}
                 />
               </>
+            ) : (
+              <span className="inline-block w-4 lg:hidden" aria-hidden="true" />
             )}
             {item.label()}
           </span>

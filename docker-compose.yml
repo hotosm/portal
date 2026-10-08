@@ -261,6 +261,7 @@ services:
     environment:
       - VITE_HANKO_URL=https://login.hotosm.test
       - VITE_BACKEND_URL=https://login.hotosm.test/api
+      - VITE_PORTAL_URL=https://portal.hotosm.test
     depends_on:
       - login-backend
     profiles:

@@ -697,6 +697,7 @@ function MyPlanPage() {
                 </Button>
                 {plan!.projects.length > 0 && (
                   <Button
+                    className="hidden"
                     appearance="outlined"
                     onClick={selection.selectMode ? selection.exit : selection.enter}
                   >

@@ -295,25 +295,24 @@ function ProfileUserPage() {
       </ProfileSectionHeader>
 
       <PageWrapper>
-        <section className='mb-2xl'>
-          <UserProfileBioField
-            bio={profile.bio}
-            draft={form.bio}
-            onDraftChange={(v) => setField('bio', v)}
-            fieldError={fieldErrors.bio}
-            isEditing={editingSection === 'bio'}
-            canEdit={canEdit}
-            isPending={updateProfile.isPending}
-            saveError={saveError}
-            onStartEditing={() => startEditing('bio')}
-            onSave={() => saveEditing('bio')}
-            onCancel={cancelEditing}
-          />
-        </section>
-        
-      {/* 2 col layout */}
+        {/* 2 col layout */}
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-xl">
           <div>
+            <section className='mb-2xl'>
+              <UserProfileBioField
+                bio={profile.bio}
+                draft={form.bio}
+                onDraftChange={(v) => setField('bio', v)}
+                fieldError={fieldErrors.bio}
+                isEditing={editingSection === 'bio'}
+                canEdit={canEdit}
+                isPending={updateProfile.isPending}
+                saveError={saveError}
+                onStartEditing={() => startEditing('bio')}
+                onSave={() => saveEditing('bio')}
+                onCancel={cancelEditing}
+              />
+            </section>
             <section className='mb-2xl'>
                 <GroupList
                   title={m.profile_organizations_title()}
