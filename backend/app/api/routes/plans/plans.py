@@ -16,6 +16,7 @@ from app.models.plan import (
     PlanProjectItem,
     PlanRead,
     PlanReadHydrated,
+    PlanSummary,
     PlanUpdate,
     ProjectCollectionUpdate,
     ProjectFeaturedUpdate,
@@ -47,12 +48,12 @@ async def permission_ctx(request: Request, user: CurrentUser) -> PermissionConte
 PermCtx = Annotated[PermissionContext, Depends(permission_ctx)]
 
 
-@router.get("", response_model=list[PlanRead])
+@router.get("", response_model=list[PlanSummary])
 async def list_my_plans(
     ctx: PermCtx,
     db: AsyncSession = Depends(get_db),
-) -> list[PlanRead]:
-    """List plans visible to the user: their own plus group plans they can see."""
+) -> list[PlanSummary]:
+    """List plans visible to the user (own plus group plans) as lightweight summaries."""
     return await plans_service.list_plans(db, ctx)
 
 

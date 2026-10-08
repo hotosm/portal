@@ -114,6 +114,13 @@ export interface PlanImageRead {
   created_at: string
 }
 
+export interface PlanSummary {
+  id: string
+  name: string
+  project_count: number
+  apps: AppName[]
+}
+
 export interface PlanRead {
   id: string
   name: string
