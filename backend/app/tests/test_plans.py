@@ -185,9 +185,7 @@ async def test_remove_projects_bulk(auth_client, test_db_session):
     created = resp.json()
     ids = [p["id"] for p in created["projects"]]
 
-    resp = await client.post(
-        f"/api/plans/{created['id']}/projects/remove", json={"ids": ids[:2]}
-    )
+    resp = await client.post(f"/api/plans/{created['id']}/projects/remove", json={"ids": ids[:2]})
     assert resp.status_code == 204
 
     rows = (await test_db_session.execute(select(PlanProject))).scalars().all()

@@ -17,7 +17,7 @@ import {
   rectSortingStrategy,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import { useQueryClient } from '@tanstack/react-query'
+import { useIsMutating, useQueryClient } from '@tanstack/react-query'
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -153,6 +153,9 @@ function MyPlanPage() {
   const { mutate: removeProjects, isPending: isRemovingProjects } = useRemoveProjects(planId ?? '')
   const selection = useProjectSelection()
   const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false)
+  // Kept apart from the live selection, which is emptied on confirm while the
+  // dialog is still animating out.
+  const [confirmRemoveCount, setConfirmRemoveCount] = useState(0)
   const { mutate: setFeatured } = useSetProjectFeatured(planId ?? '')
   const { mutate: reorderProjects } = useReorderProjects(planId ?? '')
   const { mutate: refreshPlan, isPending: isRefreshing } = useRefreshPlan(planId ?? '', !viewingOwn)
@@ -198,11 +201,22 @@ function MyPlanPage() {
    * mutations that replaced it have to do the same.
    */
   function rehydrateAfterChange() {
-    // While other removals are still in flight the server's answer would still
-    // list their projects; the last one to settle re-arms the guard.
-    if (queryClient.isMutating({ mutationKey: planRemoveMutationKey(planId!) }) > 1) return
     revalidatedRef.current = null
   }
+
+  // Removals re-arm the guard here rather than in their own onSuccess: while
+  // others are still in flight the server's answer would still list their
+  // projects, so only the last one to settle may trigger the live hydration.
+  const removalsInFlight = useIsMutating({ mutationKey: planRemoveMutationKey(planId ?? '') })
+  const hadRemovalsRef = useRef(false)
+  useEffect(() => {
+    if (removalsInFlight > 0) {
+      hadRemovalsRef.current = true
+    } else if (hadRemovalsRef.current) {
+      hadRemovalsRef.current = false
+      revalidatedRef.current = null
+    }
+  }, [removalsInFlight])
 
   function patchCachedProjects(projects: HydratedProjectItem[]) {
     queryClient.setQueryData<PlanReadHydrated | null>(planQueryKeys.detail(planId!), (old) =>
@@ -281,7 +295,7 @@ function MyPlanPage() {
   function handleProjectDeleted(id: string) {
     if (!plan) return
     removeCachedProjects([id])
-    removeProject(id, { onSuccess: rehydrateAfterChange })
+    removeProject(id)
   }
 
   function handleConfirmRemoveSelected() {
@@ -291,10 +305,7 @@ function MyPlanPage() {
     removeCachedProjects(ids)
     selection.exit()
     removeProjects(ids, {
-      onSuccess: () => {
-        rehydrateAfterChange()
-        toast.success(m.plan_toast_projects_removed({ count: ids.length }))
-      },
+      onSuccess: () => toast.success(m.plan_toast_projects_removed({ count: ids.length })),
     })
   }
 
@@ -731,7 +742,10 @@ function MyPlanPage() {
           totalCount={plan!.projects.length}
           onSelectAll={() => selection.selectAll(plan!.projects.map((p) => p.id))}
           onCancel={selection.exit}
-          onRemove={() => setConfirmRemoveOpen(true)}
+          onRemove={() => {
+            setConfirmRemoveCount(selection.selectedIds.size)
+            setConfirmRemoveOpen(true)
+          }}
         />
       )}
 
@@ -775,8 +789,8 @@ function MyPlanPage() {
         <ConfirmDialog
           open={confirmRemoveOpen}
           label={m.plan_select_confirm_label()}
-          message={m.plan_select_confirm_message({ count: selection.selectedIds.size })}
-          confirmLabel={m.plan_select_remove_button({ count: selection.selectedIds.size })}
+          message={m.plan_select_confirm_message({ count: confirmRemoveCount })}
+          confirmLabel={m.plan_select_remove_button({ count: confirmRemoveCount })}
           isPending={isRemovingProjects}
           onConfirm={handleConfirmRemoveSelected}
           onCancel={() => setConfirmRemoveOpen(false)}
