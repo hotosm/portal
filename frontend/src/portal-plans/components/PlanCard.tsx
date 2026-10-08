@@ -2,17 +2,15 @@ import CardProjectTitle from '../../components/shared/CardProjectTitle'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { m } from '../../paraglide/messages'
 import { APP_META } from '../../utils/appMeta'
-import type { PlanRead } from '../types'
+import type { PlanSummary } from '../types'
 
 interface PlanCardProps {
-  plan: PlanRead
+  plan: PlanSummary
 }
 
 const PlanCard = ({ plan }: PlanCardProps) => {
   const { currentLanguage } = useLanguage()
-  // Tasks that aren't tied to a tool yet contribute no icon.
-  const apps = [...new Set(plan.projects.map((p) => p.app).filter((a) => a != null))]
-  const projectCount = plan.projects.length
+  const { apps, project_count: projectCount } = plan
   const detailPath = `/${currentLanguage}/plan/${plan.id}`
 
   return (
