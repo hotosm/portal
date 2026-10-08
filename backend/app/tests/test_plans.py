@@ -46,7 +46,37 @@ async def test_create_and_list_plan(auth_client):
     plans = resp.json()
     assert len(plans) == 1
     assert plans[0]["id"] == plan_id
-    assert {p["app"] for p in plans[0]["projects"]} == {"tasking-manager", "fair"}
+    assert plans[0]["name"] == "My plan"
+    assert plans[0]["project_count"] == 2
+    assert plans[0]["apps"] == ["fair", "tasking-manager"]
+    assert set(plans[0]) == {"id", "name", "project_count", "apps"}
+
+
+@pytest.mark.asyncio
+async def test_list_plans_counts_distinct_apps_and_empty_plans(auth_client):
+    client, _ = auth_client
+    resp = await client.post(
+        "/api/plans",
+        json={
+            "name": "Two TM",
+            "projects": [
+                {"app": "tasking-manager", "project_id": "1"},
+                {"app": "tasking-manager", "project_id": "2"},
+                {"project_exists": False},
+            ],
+        },
+    )
+    assert resp.status_code == 201, resp.text
+    resp = await client.post("/api/plans", json={"name": "Empty", "projects": []})
+    assert resp.status_code == 201, resp.text
+
+    resp = await client.get("/api/plans")
+    assert resp.status_code == 200
+    by_name = {p["name"]: p for p in resp.json()}
+    assert by_name["Two TM"]["project_count"] == 3
+    assert by_name["Two TM"]["apps"] == ["tasking-manager"]
+    assert by_name["Empty"]["project_count"] == 0
+    assert by_name["Empty"]["apps"] == []
 
 
 @pytest.mark.asyncio
@@ -272,8 +302,11 @@ async def test_hydrate_plan_all_ok(auth_client):
         "umap": AsyncMock(return_value=None),
     }
     from app.services import field_tm_service
+
     with patch.dict(plans_service.APP_FETCHERS, fetchers):
-        with patch.object(field_tm_service, "fetch_project_by_id", new=AsyncMock(return_value={"name": "proj3"})):
+        with patch.object(
+            field_tm_service, "fetch_project_by_id", new=AsyncMock(return_value={"name": "proj3"})
+        ):
             resp = await client.get(f"/api/plans/{plan_id}?refresh=true")
     assert resp.status_code == 200
     by_app = {p["app"]: p for p in resp.json()["projects"]}
@@ -722,9 +755,7 @@ async def test_create_plan_is_public_default_false(auth_client):
 @pytest.mark.asyncio
 async def test_create_plan_public(auth_client):
     client, _ = auth_client
-    resp = await client.post(
-        "/api/plans", json={"name": "P", "is_public": True, "projects": []}
-    )
+    resp = await client.post("/api/plans", json={"name": "P", "is_public": True, "projects": []})
     assert resp.status_code == 201
     assert resp.json()["is_public"] is True
 

@@ -25,6 +25,7 @@ from app.models.plan import (
     PlanProjectItem,
     PlanRead,
     PlanReadHydrated,
+    PlanSummary,
     PlanTag,
     PlanUpdate,
     ProjectPlacement,
@@ -138,10 +139,11 @@ def check_no_duplicates(items: list[PlanProjectItem]) -> None:
         seen.add(key)
 
 
-async def list_plans(db: AsyncSession, ctx: PermissionContext) -> list[PlanRead]:
+async def list_plans(db: AsyncSession, ctx: PermissionContext) -> list[PlanSummary]:
     """List plans visible to the user: their own, plus group plans of groups
-    they belong to. Membership is resolved once (in ctx) so this stays a single
-    SELECT with no N+1."""
+    they belong to. Membership is resolved once (in ctx) and the project count
+    and apps are aggregated in SQL, so this is two SELECTs (plans, then a
+    per-app count) that never load project rows, collections or images."""
     conditions = [Plan.owner_id == ctx.user_id]
     group_conditions = [
         and_(Plan.group_type == gtype, Plan.group_id == gid) for (gtype, gid) in ctx.memberships
@@ -154,19 +156,37 @@ async def list_plans(db: AsyncSession, ctx: PermissionContext) -> list[PlanRead]
             )
         )
 
-    stmt = (
-        select(Plan)
-        .where(or_(*conditions))
-        .options(
-            selectinload(Plan.projects),
-            selectinload(Plan.collections),
-            selectinload(Plan.images),
+    visible = or_(*conditions)
+    plans = (
+        await db.execute(select(Plan.id, Plan.name).where(visible).order_by(Plan.created_at.desc()))
+    ).all()
+    if not plans:
+        return []
+
+    counts_stmt = (
+        select(PlanProject.plan_id, PlanProject.app, func.count(PlanProject.id))
+        .where(
+            PlanProject.plan_id.in_(select(Plan.id).where(visible)),
+            or_(PlanProject.project_exists.is_(False), PlanProject.app.in_(_KNOWN_APPS)),
         )
-        .order_by(Plan.created_at.desc())
+        .group_by(PlanProject.plan_id, PlanProject.app)
     )
-    result = await db.execute(stmt)
-    plans = result.scalars().all()
-    return [plan_to_read(p, ctx) for p in plans]
+    project_count: dict[str, int] = defaultdict(int)
+    apps: dict[str, set[str]] = defaultdict(set)
+    for plan_id, app, count in (await db.execute(counts_stmt)).all():
+        project_count[plan_id] += count
+        if app is not None:
+            apps[plan_id].add(app)
+
+    return [
+        PlanSummary(
+            id=plan_id,
+            name=name,
+            project_count=project_count[plan_id],
+            apps=sorted(apps[plan_id]),
+        )
+        for plan_id, name in plans
+    ]
 
 
 async def _load_plan(db: AsyncSession, plan_id: str) -> Plan | None:
@@ -1456,7 +1476,10 @@ _CANONICAL_RESOLVE: dict[str, tuple] = {
     ),
     "umap": (umap_service.fetch_map_by_id, "https://umap.hotosm.org"),
     "mapswipe": (mapswipe_service.fetch_project_by_id, mapswipe_service.MAPSWIPE_BASE_URL),
-    "sketchmap-tool": (sketchmap_tool_service.fetch_project_by_id, sketchmap_tool_service.SKETCHMAP_TOOL_BASE_URL),
+    "sketchmap-tool": (
+        sketchmap_tool_service.fetch_project_by_id,
+        sketchmap_tool_service.SKETCHMAP_TOOL_BASE_URL,
+    ),
 }
 
 # These apps' add-by-URL pattern (url_resolver.py) only ever matches their

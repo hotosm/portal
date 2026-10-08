@@ -6,6 +6,7 @@ import type {
   PlanCreate,
   PlanRead,
   PlanReadHydrated,
+  PlanSummary,
   PlanUpdate,
   ProjectStatus,
   UrlResolveResponse,
@@ -52,7 +53,7 @@ export function useMyPlans() {
   const { isLogin } = useAuth()
   return useQuery({
     queryKey: planQueryKeys.list(),
-    queryFn: async (): Promise<PlanRead[]> => {
+    queryFn: async (): Promise<PlanSummary[]> => {
       const response = await fetch('/api/plans', { credentials: 'include' })
       if (!response.ok) {
         throw new Error(`[${response.status}] Failed to fetch plans`)

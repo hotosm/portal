@@ -151,6 +151,15 @@ class PlanScopeRead(BaseModel):
     can_edit: bool = False
 
 
+class PlanSummary(BaseModel):
+    """Minimal plan shape for the plans list: name, project count and project apps."""
+
+    id: str
+    name: str
+    project_count: int
+    apps: list[AppLiteral] = []
+
+
 class PlanRead(PlanScopeRead):
     model_config = ConfigDict(from_attributes=True)
 
