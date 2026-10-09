@@ -1,6 +1,7 @@
 # portal/backend/app/api/routes/fair/fair.py
 
 import asyncio
+import hashlib
 import logging
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -11,6 +12,7 @@ from hotosm_auth_fastapi import CurrentUser, CurrentUserOptional
 from app.core.cache import get_cached, set_cached, delete_cached, DEFAULT_TTL, LONG_TTL
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.http_client import get_http_client
 from app.services import fair_service, plans_service
 from app.services.exceptions import UpstreamUnavailable
 
@@ -414,51 +416,65 @@ async def get_my_fair_models(
     cookie_header = {"Cookie": f"hanko={hanko_cookie}"} if hanko_cookie else {}
     headers = {"accept": "application/json", **cookie_header}
 
-    async with httpx.AsyncClient(timeout=10.0, verify=FAIR_USER_VERIFY_SSL) as client:
+    client = get_http_client(verify=FAIR_USER_VERIFY_SSL)
+    empty_result = {"count": 0, "next": None, "previous": None, "results": []}
+
+    # The fAIr user id only changes with the session, so resolve it once per token.
+    user_id_key = (
+        f"fair_user_id_{hashlib.sha256(hanko_cookie.encode()).hexdigest()}"
+        if hanko_cookie
+        else None
+    )
+    fair_user_id = get_cached(user_id_key) if user_id_key else None
+
+    if fair_user_id is None:
         try:
             status_response = await client.get(
                 f"{FAIR_USER_API_URL}/auth/status/",
                 headers=headers,
+                timeout=10.0,
             )
             status_response.raise_for_status()
             status_data = status_response.json()
         except Exception as e:
             logger.warning(f"fAIr auth/status/ failed ({FAIR_USER_API_URL}): {e}")
-            return {"count": 0, "next": None, "previous": None, "results": []}
+            return empty_result
 
-        fair_user = status_data.get("user") or {}
-        fair_user_id = fair_user.get("osm_id")
+        fair_user_id = (status_data.get("user") or {}).get("osm_id")
         if not status_data.get("authenticated") or fair_user_id is None:
-            return {"count": 0, "next": None, "previous": None, "results": []}
+            return empty_result
+        if user_id_key:
+            set_cached(user_id_key, fair_user_id, LONG_TTL)
 
-        params = {
-            "limit": limit,
-            "offset": offset,
-            "user": fair_user_id,
-        }
-        if search is not None:
-            params["search"] = search
-        if ordering:
-            params["ordering"] = ordering
-        if id is not None:
-            params["id"] = id
+    params = {
+        "limit": limit,
+        "offset": offset,
+        "user": fair_user_id,
+    }
+    if search is not None:
+        params["search"] = search
+    if ordering:
+        params["ordering"] = ordering
+    if id is not None:
+        params["id"] = id
 
-        try:
-            response = await client.get(
-                f"{FAIR_USER_API_URL}/model/",
-                params=params,
-                headers={"accept": "application/json"},
-            )
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPStatusError as e:
-            raise HTTPException(
-                status_code=e.response.status_code,
-                detail=f"Error from fAIr API: {e.response.text}"
-            )
-        except httpx.RequestError as e:
-            logger.warning(f"fAIr /model/ upstream unavailable: {e}")
-            raise HTTPException(status_code=503, detail="fAIr upstream unavailable")
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+    try:
+        response = await client.get(
+            f"{FAIR_USER_API_URL}/model/",
+            params=params,
+            headers={"accept": "application/json"},
+            timeout=10.0,
+        )
+        response.raise_for_status()
+        return response.json()
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(
+            status_code=e.response.status_code,
+            detail=f"Error from fAIr API: {e.response.text}"
+        )
+    except httpx.RequestError as e:
+        logger.warning(f"fAIr /model/ upstream unavailable: {e}")
+        raise HTTPException(status_code=503, detail="fAIr upstream unavailable")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 

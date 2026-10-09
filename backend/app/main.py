@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from hotosm_auth import AuthConfig
 from hotosm_auth_fastapi import init_auth
 
@@ -29,6 +30,7 @@ from app.api.routes.tasking_manager import tasking_manager
 from app.api.routes.umap import umap
 from app.core.config import settings
 from app.core.database import check_db_connection
+from app.core.http_client import close_http_clients
 from app.db.models.oam import OAMImage  # noqa: F401 — registers model with Base.metadata
 from app.db.models.plan import (  # noqa: F401 — registers models with Base.metadata
     Plan,
@@ -149,6 +151,7 @@ async def lifespan(app: FastAPI):
     yield
 
     logger.info("Shutting down...")
+    await close_http_clients()
 
 
 # Create FastAPI application
@@ -170,6 +173,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 
 # Health check endpoints (K8s-ready)
