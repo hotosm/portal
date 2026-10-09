@@ -1,11 +1,10 @@
-import { Link } from "react-router-dom";
 import "@hotosm/ui";
-import hotLogo from "../assets/icons/portal.svg";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import DrawerMenu from "./DrawerMenu";
 import LanguageSwitcher from "./LanguageSwitcher";
 import NavigationMain from "./NavigationMain";
+import PortalBrand from "./PortalBrand";
 import { m } from "../paraglide/messages";
 
 function Header() {
@@ -21,19 +20,7 @@ function Header() {
               <DrawerMenu />
             </div>
           )}
-          <Link
-            to={`/${currentLanguage}/`}
-            className="flex items-center gap-lg hover:no-underline"
-          >
-            <img src={hotLogo} alt="HOT Logo" className="w-8 h-8" />
-
-            <span
-              className="text-[20px] font-bold text-hot-gray-950 leading-tight"
-              style={{ fontFamily: "Barlow, sans-serif" }}
-            >
-              Portal
-            </span>
-          </Link>
+          <PortalBrand />
 
           <div className="hidden lg:flex items-center gap-xl">
             <span className="w-px h-5 bg-hot-gray-300" aria-hidden="true" />

@@ -32,9 +32,9 @@ def _user(uid: str) -> HankoUser:
     )
 
 
-def _group(gid="t1", gtype="team"):
+def _group(gid="t1", gtype="team", name=None):
     return login_service.UserGroup(
-        id=gid, type=gtype, slug=gid, name=gid, role="member", status="approved"
+        id=gid, type=gtype, slug=gid, name=name or gid, role="member", status="approved"
     )
 
 
@@ -189,3 +189,38 @@ async def test_public_group_plan_served_by_shared(group_ctx):
     resp = await client.get(f"/api/plans/shared/{plan_id}")
     assert resp.status_code == 200
     assert resp.json()["visibility"] == "public"
+
+
+@pytest.mark.asyncio
+async def test_public_group_plan_names_its_group_to_anonymous(group_ctx):
+    client, user_cell, memberships = group_ctx
+    memberships["owner"] = [_group(name="Mappers United")]
+
+    user_cell[0] = _user("owner")
+    created = (await _create_group_plan(client, visibility="public")).json()
+    assert created["group_name"] == "Mappers United"
+
+    app.dependency_overrides.pop(get_current_user_optional, None)
+    resp = await client.get(f"/api/plans/shared/{created['id']}")
+    assert resp.status_code == 200
+    assert resp.json()["group_name"] == "Mappers United"
+
+
+@pytest.mark.asyncio
+async def test_member_read_refreshes_stored_group_name(group_ctx):
+    client, user_cell, memberships = group_ctx
+    memberships["owner"] = [_group(name="Old name")]
+
+    user_cell[0] = _user("owner")
+    created = (await _create_group_plan(client, visibility="public")).json()
+
+    # The group is renamed in login; the next member read picks it up, without
+    # passing for an edit of the plan.
+    memberships["owner"] = [_group(name="New name")]
+    resp = await client.get(f"/api/plans/{created['id']}")
+    assert resp.json()["group_name"] == "New name"
+    assert resp.json()["updated_at"].rstrip("Z") == created["updated_at"].rstrip("Z")
+
+    app.dependency_overrides.pop(get_current_user_optional, None)
+    resp = await client.get(f"/api/plans/shared/{created['id']}")
+    assert resp.json()["group_name"] == "New name"

@@ -46,6 +46,14 @@ services:
       HANKO_API_URL: ${HANKO_API_URL:-https://dev.login.hotosm.org}
       # Team/organization plan scopes; login exposes GET /api/groups since 0.4.0
       LOGIN_GROUPS_ENABLED: ${LOGIN_GROUPS_ENABLED:-false}
+      # LearnWorlds (the HOT Learning Center). Portal only reads course data;
+      # the SSO flow lives in login, which holds its own token. The token is
+      # school-wide, so it stays server-side and the user id always comes from
+      # the mapping login resolves.
+      LOGIN_INTERNAL_API_KEY: ${LOGIN_INTERNAL_API_KEY:-}
+      LEARNWORLDS_SCHOOL_URL: ${LEARNWORLDS_SCHOOL_URL:-https://learn-dev.hotosm.org}
+      LEARNWORLDS_CLIENT_ID: ${LEARNWORLDS_CLIENT_ID:-}
+      LEARNWORLDS_ACCESS_TOKEN: ${LEARNWORLDS_ACCESS_TOKEN:-}
       JWT_ISSUER: ${JWT_ISSUER:-auto}
       COOKIE_SECRET: ${COOKIE_SECRET}
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
@@ -101,6 +109,14 @@ services:
       # group-based permissions are exercised (LOGIN_GROUPS_ENABLED=true).
       LOGIN_API_URL: http://login-backend:8000
       LOGIN_GROUPS_ENABLED: ${LOGIN_GROUPS_ENABLED:-false}
+      # LearnWorlds (the HOT Learning Center). Portal only reads course data;
+      # the SSO flow lives in login, which holds its own token. The token is
+      # school-wide, so it stays server-side and the user id always comes from
+      # the mapping login resolves.
+      LOGIN_INTERNAL_API_KEY: ${LOGIN_INTERNAL_API_KEY:-}
+      LEARNWORLDS_SCHOOL_URL: ${LEARNWORLDS_SCHOOL_URL:-https://learn-dev.hotosm.org}
+      LEARNWORLDS_CLIENT_ID: ${LEARNWORLDS_CLIENT_ID:-}
+      LEARNWORLDS_ACCESS_TOKEN: ${LEARNWORLDS_ACCESS_TOKEN:-}
       COOKIE_SECRET: ${COOKIE_SECRET}
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-.hotosm.test}
       COOKIE_SECURE: ${COOKIE_SECURE:-true}
@@ -245,6 +261,7 @@ services:
     environment:
       - VITE_HANKO_URL=https://login.hotosm.test
       - VITE_BACKEND_URL=https://login.hotosm.test/api
+      - VITE_PORTAL_URL=https://portal.hotosm.test
     depends_on:
       - login-backend
     profiles:

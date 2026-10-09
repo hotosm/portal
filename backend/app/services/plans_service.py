@@ -10,6 +10,7 @@ from sqlalchemy import and_, func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy.orm.attributes import set_committed_value
 
 from app.core.config import settings
 from app.db.models.plan import Plan, PlanCollection, PlanProject
@@ -25,6 +26,7 @@ from app.models.plan import (
     PlanProjectItem,
     PlanRead,
     PlanReadHydrated,
+    PlanSummary,
     PlanTag,
     PlanUpdate,
     ProjectPlacement,
@@ -91,6 +93,7 @@ def plan_to_read(plan: Plan, ctx: PermissionContext) -> PlanRead:
         visibility=plan.visibility,
         group_type=plan.group_type,
         group_id=plan.group_id,
+        group_name=plan.group_name,
         edit_scope=plan.edit_scope,
         owner_id=plan.owner_id,
         is_owner=ctx.user_id is not None and ctx.user_id == plan.owner_id,
@@ -138,10 +141,11 @@ def check_no_duplicates(items: list[PlanProjectItem]) -> None:
         seen.add(key)
 
 
-async def list_plans(db: AsyncSession, ctx: PermissionContext) -> list[PlanRead]:
+async def list_plans(db: AsyncSession, ctx: PermissionContext) -> list[PlanSummary]:
     """List plans visible to the user: their own, plus group plans of groups
-    they belong to. Membership is resolved once (in ctx) so this stays a single
-    SELECT with no N+1."""
+    they belong to. Membership is resolved once (in ctx) and the project count
+    and apps are aggregated in SQL, so this is two SELECTs (plans, then a
+    per-app count) that never load project rows, collections or images."""
     conditions = [Plan.owner_id == ctx.user_id]
     group_conditions = [
         and_(Plan.group_type == gtype, Plan.group_id == gid) for (gtype, gid) in ctx.memberships
@@ -154,19 +158,37 @@ async def list_plans(db: AsyncSession, ctx: PermissionContext) -> list[PlanRead]
             )
         )
 
-    stmt = (
-        select(Plan)
-        .where(or_(*conditions))
-        .options(
-            selectinload(Plan.projects),
-            selectinload(Plan.collections),
-            selectinload(Plan.images),
+    visible = or_(*conditions)
+    plans = (
+        await db.execute(select(Plan.id, Plan.name).where(visible).order_by(Plan.created_at.desc()))
+    ).all()
+    if not plans:
+        return []
+
+    counts_stmt = (
+        select(PlanProject.plan_id, PlanProject.app, func.count(PlanProject.id))
+        .where(
+            PlanProject.plan_id.in_(select(Plan.id).where(visible)),
+            or_(PlanProject.project_exists.is_(False), PlanProject.app.in_(_KNOWN_APPS)),
         )
-        .order_by(Plan.created_at.desc())
+        .group_by(PlanProject.plan_id, PlanProject.app)
     )
-    result = await db.execute(stmt)
-    plans = result.scalars().all()
-    return [plan_to_read(p, ctx) for p in plans]
+    project_count: dict[str, int] = defaultdict(int)
+    apps: dict[str, set[str]] = defaultdict(set)
+    for plan_id, app, count in (await db.execute(counts_stmt)).all():
+        project_count[plan_id] += count
+        if app is not None:
+            apps[plan_id].add(app)
+
+    return [
+        PlanSummary(
+            id=plan_id,
+            name=name,
+            project_count=project_count[plan_id],
+            apps=sorted(apps[plan_id]),
+        )
+        for plan_id, name in plans
+    ]
 
 
 async def _load_plan(db: AsyncSession, plan_id: str) -> Plan | None:
@@ -234,6 +256,28 @@ class GroupMembershipError(ValueError):
     """Raised when assigning a plan to a group the user does not belong to."""
 
 
+def _known_group_name(ctx: PermissionContext, plan: Plan) -> str | None:
+    """The name of the plan's group, when the caller is one of its members."""
+    if plan.group_id is None:
+        return None
+    return ctx.group_names.get((plan.group_type, plan.group_id))
+
+
+async def _sync_group_name(db: AsyncSession, ctx: PermissionContext, plan: Plan) -> None:
+    """Store the group's name whenever a member reads the plan.
+
+    Covers plans saved before the name was kept and groups renamed since.
+    updated_at is pinned so a read never looks like an edit.
+    """
+    name = _known_group_name(ctx, plan)
+    if name is None or name == plan.group_name:
+        return
+    await db.execute(
+        update(Plan).where(Plan.id == plan.id).values(group_name=name, updated_at=Plan.updated_at)
+    )
+    set_committed_value(plan, "group_name", name)
+
+
 async def create_plan(db: AsyncSession, ctx: PermissionContext, payload: PlanCreate) -> PlanRead:
     check_no_duplicates(payload.projects)
 
@@ -250,6 +294,7 @@ async def create_plan(db: AsyncSession, ctx: PermissionContext, payload: PlanCre
         visibility=scope.get("visibility", "private"),
         group_type=group_type,
         group_id=group_id,
+        group_name=ctx.group_names.get((group_type, group_id)) if group_id else None,
         edit_scope=scope.get("edit_scope", "owner"),
     )
     db.add(plan)
@@ -364,6 +409,10 @@ async def update_plan(
         raise GroupMembershipError("Not a member of the target group")
     for field, value in scope.items():
         setattr(plan, field, value)
+    if plan.group_id is None:
+        plan.group_name = None
+    elif "group_id" in scope or _known_group_name(ctx, plan):
+        plan.group_name = _known_group_name(ctx, plan)
 
     if payload.projects is not None:
         check_no_duplicates(payload.projects)
@@ -764,6 +813,29 @@ async def remove_project(
     if row.artifact_s3_key:
         _delete_artifact_file(row.artifact_s3_key)
     await db.delete(row)
+    await db.flush()
+    return True
+
+
+async def remove_projects(
+    db: AsyncSession, ctx: PermissionContext, plan_id: str, plan_project_ids: list[str]
+) -> bool:
+    """Delete several projects/tasks from a plan in one transaction.
+
+    Ids that do not belong to the plan are ignored. Returns False if the plan
+    is missing or not editable by the caller.
+    """
+    if await get_editable_plan(db, ctx, plan_id) is None:
+        return False
+    stmt = select(PlanProject).where(
+        PlanProject.plan_id == plan_id,
+        PlanProject.id.in_(plan_project_ids),
+    )
+    rows = (await db.execute(stmt)).scalars().all()
+    for row in rows:
+        if row.artifact_s3_key:
+            _delete_artifact_file(row.artifact_s3_key)
+        await db.delete(row)
     await db.flush()
     return True
 
@@ -1221,6 +1293,7 @@ def _build_plan_response(
         visibility=plan.visibility,
         group_type=plan.group_type,
         group_id=plan.group_id,
+        group_name=plan.group_name,
         edit_scope=plan.edit_scope,
         owner_id=plan.owner_id,
         is_owner=ctx.user_id is not None and ctx.user_id == plan.owner_id,
@@ -1295,6 +1368,7 @@ async def get_plan_hydrated(
     plan = await get_viewable_plan(db, ctx, plan_id)
     if plan is None:
         return None
+    await _sync_group_name(db, ctx, plan)
 
     if not refresh:
         return _build_plan_response(plan, [_item_from_snapshot(row) for row in plan.projects], ctx)
@@ -1433,7 +1507,10 @@ _CANONICAL_RESOLVE: dict[str, tuple] = {
     ),
     "umap": (umap_service.fetch_map_by_id, "https://umap.hotosm.org"),
     "mapswipe": (mapswipe_service.fetch_project_by_id, mapswipe_service.MAPSWIPE_BASE_URL),
-    "sketchmap-tool": (sketchmap_tool_service.fetch_project_by_id, sketchmap_tool_service.SKETCHMAP_TOOL_BASE_URL),
+    "sketchmap-tool": (
+        sketchmap_tool_service.fetch_project_by_id,
+        sketchmap_tool_service.SKETCHMAP_TOOL_BASE_URL,
+    ),
 }
 
 # These apps' add-by-URL pattern (url_resolver.py) only ever matches their

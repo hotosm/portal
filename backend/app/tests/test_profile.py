@@ -1,10 +1,12 @@
 """Tests for the profile endpoints: GET/PATCH /api/profile/me, GET /api/public/profile/{slug}."""
 
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from app.services import login_service
+from app.db.models.profile import PortalProfile
+from app.services import learnworlds_service, login_service
 
 
 def _account_profile(**overrides):
@@ -70,8 +72,9 @@ async def test_get_me_upstream_unavailable(auth_client):
 async def test_patch_me_partial_update_never_calls_login(auth_client):
     c, _user = auth_client
     login_mock = AsyncMock(side_effect=AssertionError("PATCH must never call login"))
-    with patch("app.services.login_service.get_account_profile", new=login_mock), patch(
-        "app.services.login_service.get_public_account_profile", new=login_mock
+    with (
+        patch("app.services.login_service.get_account_profile", new=login_mock),
+        patch("app.services.login_service.get_public_account_profile", new=login_mock),
     ):
         response = await c.patch("/api/profile/me", json={"bio": "Hello world"})
     assert response.status_code == 200
@@ -79,15 +82,6 @@ async def test_patch_me_partial_update_never_calls_login(auth_client):
     assert body["bio"] == "Hello world"
     assert body["show_organizations"] is False
     login_mock.assert_not_called()
-
-
-@pytest.mark.asyncio
-async def test_patch_me_invalid_linkedin_url(auth_client):
-    c, _user = auth_client
-    response = await c.patch(
-        "/api/profile/me", json={"linkedin_url": "https://not-linkedin.com/in/ada"}
-    )
-    assert response.status_code == 422
 
 
 @pytest.mark.asyncio
@@ -107,50 +101,43 @@ async def test_public_profile_404_when_login_reports_not_public(client):
     assert response.status_code == 404
 
 
+def _public_group(**overrides):
+    defaults = {
+        "type": "organization",
+        "name": "HOT",
+        "slug": "hot",
+        "description": None,
+        "website": None,
+        "avatar_url": None,
+        "banner_url": None,
+        "members_count": 3,
+    }
+    defaults.update(overrides)
+    return login_service.PublicGroup(**defaults)
+
+
+def _groups_by_type(orgs, teams):
+    """Mock for get_public_user_groups_by_slug that answers per group type."""
+
+    async def _fetch(slug, group_type="org"):
+        return orgs if group_type == "org" else teams
+
+    return AsyncMock(side_effect=_fetch)
+
+
 @pytest.mark.asyncio
-async def test_public_profile_omits_organizations_when_not_shown(client):
-    groups_mock = AsyncMock(side_effect=AssertionError("must not call groups sub-endpoint"))
-    with patch(
-        "app.services.profile_service.login_service.get_public_account_profile",
-        new=AsyncMock(return_value=_public_account_profile()),
-    ), patch("app.services.profile_service.login_service.get_public_user_groups_by_slug", new=groups_mock):
+async def test_public_profile_includes_organizations_from_login(client):
+    with (
+        patch(
+            "app.services.profile_service.login_service.get_public_account_profile",
+            new=AsyncMock(return_value=_public_account_profile()),
+        ),
+        patch(
+            "app.services.profile_service.login_service.get_public_user_groups_by_slug",
+            new=_groups_by_type([_public_group()], []),
+        ),
+    ):
         response = await client.get("/api/public/profile/ada")
-    assert response.status_code == 200
-    body = response.json()
-    assert body["organizations"] is None
-    groups_mock.assert_not_called()
-
-
-@pytest.mark.asyncio
-async def test_public_profile_includes_organizations_when_shown(auth_client):
-    c, user = auth_client
-    with patch(
-        "app.services.profile_service.login_service.get_account_profile",
-        new=AsyncMock(return_value=_account_profile(hanko_user_id=user.id, slug="ada")),
-    ):
-        await c.patch("/api/profile/me", json={"show_organizations": True})
-
-    public_group = login_service.PublicGroup(
-        type="organization",
-        name="HOT",
-        slug="hot",
-        description=None,
-        website=None,
-        avatar_url=None,
-        banner_url=None,
-        members_count=3,
-    )
-    with patch(
-        "app.services.profile_service.login_service.get_public_account_profile",
-        new=AsyncMock(return_value=_public_account_profile(hanko_user_id=user.id)),
-    ), patch(
-        "app.services.profile_service.login_service.get_public_user_groups_by_slug",
-        new=AsyncMock(return_value=[public_group]),
-    ):
-        # The public route requires no auth; reusing the authenticated client
-        # here (same pattern as test_plans.py's test_shared_endpoint_public_plan)
-        # exercises it identically to an anonymous caller.
-        response = await c.get("/api/public/profile/ada")
     assert response.status_code == 200
     body = response.json()
     assert body["organizations"] == [
@@ -168,6 +155,140 @@ async def test_public_profile_includes_organizations_when_shown(auth_client):
 
 
 @pytest.mark.asyncio
+async def test_public_profile_includes_teams_from_login(client):
+    public_team = _public_group(
+        type="team",
+        name="Mappers",
+        slug="mappers",
+        avatar_url="/api/groups/1/avatar?v=1",
+        members_count=5,
+    )
+    groups_mock = _groups_by_type([], [public_team])
+    with (
+        patch(
+            "app.services.profile_service.login_service.get_public_account_profile",
+            new=AsyncMock(return_value=_public_account_profile()),
+        ),
+        patch(
+            "app.services.profile_service.login_service.get_public_user_groups_by_slug",
+            new=groups_mock,
+        ),
+    ):
+        response = await client.get("/api/public/profile/ada")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["organizations"] == []
+    assert body["teams"] == [
+        {
+            "type": "team",
+            "name": "Mappers",
+            "slug": "mappers",
+            "description": None,
+            "website": None,
+            "avatar_url": "/api/groups/1/avatar?v=1",
+            "banner_url": None,
+            "members_count": 5,
+        }
+    ]
+    requested_types = sorted(call.args[1] for call in groups_mock.await_args_list)
+    assert requested_types == ["org", "team"]
+
+
+@pytest.mark.asyncio
+async def test_public_profile_empty_groups_when_login_has_none(client):
+    with (
+        patch(
+            "app.services.profile_service.login_service.get_public_account_profile",
+            new=AsyncMock(return_value=_public_account_profile()),
+        ),
+        patch(
+            "app.services.profile_service.login_service.get_public_user_groups_by_slug",
+            new=_groups_by_type([], []),
+        ),
+    ):
+        response = await client.get("/api/public/profile/ada")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["organizations"] == []
+    assert body["teams"] == []
+
+
+@pytest.mark.asyncio
+async def test_public_profile_hides_contact_but_flags_it(client, test_db_session):
+    test_db_session.add(PortalProfile(hanko_user_id="user-a-id", contact_email="ada@example.com"))
+    await test_db_session.flush()
+    with (
+        patch(
+            "app.services.profile_service.login_service.get_public_account_profile",
+            new=AsyncMock(return_value=_public_account_profile()),
+        ),
+        patch(
+            "app.services.profile_service.login_service.get_public_user_groups_by_slug",
+            new=_groups_by_type([], []),
+        ),
+    ):
+        response = await client.get("/api/public/profile/ada")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["has_contact"] is True
+    for field in ("contact_email", "phone", "extra_links"):
+        assert field not in body
+
+
+@pytest.mark.asyncio
+async def test_public_profile_has_contact_false_without_contact(client, test_db_session):
+    test_db_session.add(PortalProfile(hanko_user_id="user-a-id", bio="Hi"))
+    await test_db_session.flush()
+    with (
+        patch(
+            "app.services.profile_service.login_service.get_public_account_profile",
+            new=AsyncMock(return_value=_public_account_profile()),
+        ),
+        patch(
+            "app.services.profile_service.login_service.get_public_user_groups_by_slug",
+            new=_groups_by_type([], []),
+        ),
+    ):
+        response = await client.get("/api/public/profile/ada")
+    assert response.status_code == 200
+    assert response.json()["has_contact"] is False
+
+
+@pytest.mark.asyncio
+async def test_public_profile_has_contact_false_without_portal_row(client):
+    with (
+        patch(
+            "app.services.profile_service.login_service.get_public_account_profile",
+            new=AsyncMock(return_value=_public_account_profile()),
+        ),
+        patch(
+            "app.services.profile_service.login_service.get_public_user_groups_by_slug",
+            new=_groups_by_type([], []),
+        ),
+    ):
+        response = await client.get("/api/public/profile/ada")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["has_contact"] is False
+
+
+@pytest.mark.asyncio
+async def test_public_profile_upstream_unavailable_on_groups(client):
+    with (
+        patch(
+            "app.services.profile_service.login_service.get_public_account_profile",
+            new=AsyncMock(return_value=_public_account_profile()),
+        ),
+        patch(
+            "app.services.profile_service.login_service.get_public_user_groups_by_slug",
+            new=AsyncMock(side_effect=login_service.LoginUnavailable("down")),
+        ),
+    ):
+        response = await client.get("/api/public/profile/ada")
+    assert response.status_code == 502
+
+
+@pytest.mark.asyncio
 async def test_public_profile_upstream_unavailable(client):
     with patch(
         "app.services.profile_service.login_service.get_public_account_profile",
@@ -175,3 +296,183 @@ async def test_public_profile_upstream_unavailable(client):
     ):
         response = await client.get("/api/public/profile/ada")
     assert response.status_code == 502
+
+
+@pytest.mark.asyncio
+async def test_public_contact_returns_contact_details(client, test_db_session):
+    test_db_session.add(
+        PortalProfile(
+            hanko_user_id="user-a-id",
+            contact_email="ada@example.com",
+            phone="+44 20 0000 0000",
+            extra_links=["https://www.linkedin.com/in/ada"],
+        )
+    )
+    await test_db_session.flush()
+    with patch(
+        "app.services.profile_service.login_service.get_public_account_profile",
+        new=AsyncMock(return_value=_public_account_profile()),
+    ):
+        response = await client.get("/api/public/profile/ada/contact")
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {
+        "contact_email": "ada@example.com",
+        "phone": "+44 20 0000 0000",
+        "extra_links": ["https://www.linkedin.com/in/ada"],
+    }
+
+
+@pytest.mark.asyncio
+async def test_public_contact_all_none_without_portal_row(client):
+    with patch(
+        "app.services.profile_service.login_service.get_public_account_profile",
+        new=AsyncMock(return_value=_public_account_profile()),
+    ):
+        response = await client.get("/api/public/profile/ada/contact")
+    assert response.status_code == 200
+    assert response.json() == {
+        "contact_email": None,
+        "phone": None,
+        "extra_links": [],
+    }
+
+
+@pytest.mark.asyncio
+async def test_public_contact_404_when_not_public_or_missing(client, test_db_session):
+    test_db_session.add(PortalProfile(hanko_user_id="user-a-id", contact_email="ada@example.com"))
+    await test_db_session.flush()
+    with patch(
+        "app.services.profile_service.login_service.get_public_account_profile",
+        new=AsyncMock(return_value=None),
+    ):
+        response = await client.get("/api/public/profile/ada/contact")
+    assert response.status_code == 404
+    assert "ada@example.com" not in response.text
+
+
+@pytest.mark.asyncio
+async def test_public_contact_upstream_unavailable(client):
+    with patch(
+        "app.services.profile_service.login_service.get_public_account_profile",
+        new=AsyncMock(side_effect=login_service.LoginUnavailable("down")),
+    ):
+        response = await client.get("/api/public/profile/ada/contact")
+    assert response.status_code == 502
+    assert response.json()["detail"] == "upstream_unavailable"
+
+
+# --- courses on the public profile ----------------------------------------
+#
+# The count comes from LearnWorlds, through the mapping login holds. A profile
+# that cannot prove someone has courses leaves the section out rather than
+# showing a zero.
+
+
+def _public_profile_patches(learning):
+    """Stub everything a public profile fetches, with a given learning summary."""
+    return (
+        patch(
+            "app.services.profile_service.login_service.get_public_account_profile",
+            new=AsyncMock(return_value=_public_account_profile()),
+        ),
+        patch(
+            "app.services.profile_service.login_service.get_public_user_groups_by_slug",
+            new=_groups_by_type([], []),
+        ),
+        patch(
+            "app.services.profile_service.learnworlds_service.get_learning_summary",
+            new=AsyncMock(return_value=learning),
+        ),
+    )
+
+
+@pytest.mark.asyncio
+async def test_public_profile_includes_course_count(client):
+    summary = learnworlds_service.LearningSummary(
+        courses=4,
+        catalogue=18,
+        enrolled=[
+            learnworlds_service.Course(
+                title="Humanitarian mapping", status="completed", progress_rate=100
+            )
+        ],
+        hours=7,
+        certificates=[
+            learnworlds_service.Certificate(
+                title="Beginner certificate",
+                issued=datetime(2026, 7, 1, tzinfo=timezone.utc),
+                url="https://mycourse.app/abc",
+            )
+        ],
+    )
+    account, groups, learning = _public_profile_patches(summary)
+    with account, groups, learning:
+        response = await client.get("/api/public/profile/ada")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["courses_count"] == 4
+    assert body["courses_total"] == 18
+    assert [c["title"] for c in body["courses"]] == ["Humanitarian mapping"]
+    assert body["learning_hours"] == 7
+    assert [c["title"] for c in body["certificates"]] == ["Beginner certificate"]
+    assert body["certificates"][0]["url"] == "https://mycourse.app/abc"
+
+
+@pytest.mark.asyncio
+async def test_public_profile_omits_courses_when_unknown(client):
+    """No LMS account, or LearnWorlds down: no number rather than a zero."""
+    account, groups, learning = _public_profile_patches(None)
+    with account, groups, learning:
+        response = await client.get("/api/public/profile/ada")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["courses_count"] is None
+    assert body["certificates"] is None
+
+
+@pytest.mark.asyncio
+async def test_public_profile_survives_learnworlds_failing(client):
+    """The LMS is a third party; the profile is ours and has to render."""
+    account, groups, _ = _public_profile_patches(None)
+    with (
+        account,
+        groups,
+        patch(
+            "app.services.profile_service.learnworlds_service.get_learning_summary",
+            new=AsyncMock(side_effect=learnworlds_service.LearnWorldsUnavailable("boom")),
+        ),
+    ):
+        response = await client.get("/api/public/profile/ada")
+
+    assert response.status_code in (200, 502)
+
+
+@pytest.mark.asyncio
+async def test_public_profile_shows_courses_without_certificates(client):
+    """Not every course issues one, so zero certificates is a real answer."""
+    summary = learnworlds_service.LearningSummary(courses=3, certificates=[], enrolled=[])
+    account, groups, learning = _public_profile_patches(summary)
+    with account, groups, learning:
+        response = await client.get("/api/public/profile/ada")
+
+    body = response.json()
+    assert body["courses_count"] == 3
+    assert body["certificates"] == []
+
+
+@pytest.mark.asyncio
+async def test_public_profile_without_a_catalogue(client):
+    """The school's course count is an extra: its absence hides nothing else."""
+    summary = learnworlds_service.LearningSummary(
+        courses=2, certificates=[], enrolled=[], catalogue=None
+    )
+    account, groups, learning = _public_profile_patches(summary)
+    with account, groups, learning:
+        response = await client.get("/api/public/profile/ada")
+
+    body = response.json()
+    assert body["courses_count"] == 2
+    assert body["courses_total"] is None

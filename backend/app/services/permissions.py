@@ -6,7 +6,7 @@ owner can always view/edit their plans even if login is down; non-owner access
 to group plans fails closed when membership can't be verified.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from app.services import login_service
 
@@ -18,6 +18,8 @@ class PermissionContext:
     user_id: str | None
     memberships: frozenset[tuple[str, str]]  # {(group_type, group_id)}
     login_ok: bool
+    # {(group_type, group_id): name} for the same groups, to label their plans.
+    group_names: dict[tuple[str, str], str] = field(default_factory=dict)
 
 
 async def build_context(user, hanko_cookie: str | None) -> PermissionContext:
@@ -33,7 +35,8 @@ async def build_context(user, hanko_cookie: str | None) -> PermissionContext:
     except login_service.LoginUnavailable:
         return PermissionContext(user.id, frozenset(), False)
     memberships = frozenset((g.type, g.id) for g in groups)
-    return PermissionContext(user.id, memberships, True)
+    group_names = {(g.type, g.id): g.name for g in groups if g.name}
+    return PermissionContext(user.id, memberships, True, group_names)
 
 
 def can_view(plan, ctx: PermissionContext) -> bool:

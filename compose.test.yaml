@@ -51,6 +51,12 @@ services:
       - HANKO_API_URL=https://dev.login.hotosm.org
       - JWT_ISSUER=auto
       - LOGIN_GROUPS_ENABLED=true
+      # LearnWorlds: course counts on public profiles. Portal asks login which
+      # account belongs to the person, then reads the LMS with its own token.
+      - LOGIN_INTERNAL_API_KEY=${LOGIN_INTERNAL_API_KEY:-}
+      - LEARNWORLDS_SCHOOL_URL=${LEARNWORLDS_SCHOOL_URL:-https://learn-dev.hotosm.org}
+      - LEARNWORLDS_CLIENT_ID=${LEARNWORLDS_CLIENT_ID:-}
+      - LEARNWORLDS_ACCESS_TOKEN=${LEARNWORLDS_ACCESS_TOKEN:-}
       - COOKIE_SECRET=${COOKIE_SECRET}
       - COOKIE_DOMAIN=.hotosm.org
       - OSM_CLIENT_ID=${OSM_CLIENT_ID}

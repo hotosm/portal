@@ -2,6 +2,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { MAIN_MENU_ITEMS, getVisibleMenuItems } from "../constants/menu";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
+import { useMyPortalProfile } from "../portal-user-profile/hooks/useMyPortalProfile";
 
 interface NavigationMainProps {
   onLinkClick?: () => void;
@@ -9,6 +10,7 @@ interface NavigationMainProps {
 
 function NavigationMain({ onLinkClick }: NavigationMainProps) {
   const { isLogin } = useAuth();
+  const { data: me } = useMyPortalProfile();
   const { currentLanguage } = useLanguage();
   const location = useLocation();
   const visibleItems = getVisibleMenuItems(MAIN_MENU_ITEMS, isLogin);
@@ -21,13 +23,26 @@ function NavigationMain({ onLinkClick }: NavigationMainProps) {
     return basePath === itemHref || pathname === itemHref;
   };
 
+  // Some hrefs carry a :username token (profile link). Only the real slug from
+  // the portal profile resolves it: without one there's no public profile to
+  // link to (not public yet, or the profile hasn't loaded), so the item isn't
+  // rendered at all instead of pointing at a broken URL.
+  const resolveHref = (href: string) => {
+    if (!href.includes(":username")) return href;
+    if (!me?.slug) return null;
+    return href.replace(":username", encodeURIComponent(me.slug));
+  };
+
   return (
     <div className="flex gap-sm flex-col lg:flex-row">
       {visibleItems.map((item) => {
-        const isActive = isActiveItem(item.href);
+        const href = resolveHref(item.href);
+        if (href === null) return null;
+
+        const isActive = isActiveItem(href);
         const linkContent = (
           <span className="flex items-center gap-2xs">
-            {item.icon && (
+            {item.icon ? (
               <>
                 {/* @ts-ignore */}
                 <wa-icon
@@ -37,6 +52,8 @@ function NavigationMain({ onLinkClick }: NavigationMainProps) {
                   style={{ fontSize: "16px" }}
                 />
               </>
+            ) : (
+              <span className="inline-block w-4 lg:hidden" aria-hidden="true" />
             )}
             {item.label()}
           </span>
@@ -47,7 +64,7 @@ function NavigationMain({ onLinkClick }: NavigationMainProps) {
             <a
               key={item.id}
               className="nav-main-link text-hot-gray-800 hover:no-underline text-sm px-sm py-xs"
-              href={item.href}
+              href={href}
               target="_blank"
               rel="noopener noreferrer"
               onClick={onLinkClick}
@@ -57,7 +74,7 @@ function NavigationMain({ onLinkClick }: NavigationMainProps) {
           );
         }
 
-        const localizedHref = `/${currentLanguage}${item.href}`;
+        const localizedHref = `/${currentLanguage}${href}`;
         return (
           <NavLink
             key={item.id}

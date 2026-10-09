@@ -38,17 +38,21 @@ function PlanSectionHeader({
   // A plan is shared when it carries a group; otherwise it's personal and we
   // credit the owner. The owner's name is only known when they're the viewer —
   // plan reads expose owner_id, not a display name.
-  const sharedGroup =
-    plan?.group_type && plan?.group_id ? groups?.find((g) => g.id === plan.group_id) : undefined
+  // The viewer's own groups give the freshest name; anyone outside the group,
+  // signed in or not, falls back to the name the plan carries.
+  const hasGroup = !!plan?.group_type && !!plan?.group_id
+  const groupName = hasGroup
+    ? (groups?.find((g) => g.id === plan.group_id)?.name ?? plan.group_name)
+    : null
   const ownerName = plan?.is_owner ? (user?.username ?? user?.email) : null
 
-  const attribution = sharedGroup
+  const attribution = groupName
     ? {
         label:
-          sharedGroup.type === 'organization'
+          plan?.group_type === 'organization'
             ? m.plan_permissions_scope_org()
             : m.plan_permissions_scope_team(),
-        name: sharedGroup.name,
+        name: groupName,
       }
     : ownerName
       ? { label: m.plan_header_owner_author(), name: ownerName }

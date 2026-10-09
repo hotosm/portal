@@ -12,6 +12,7 @@ Portal never mirrors login's account fields (name, picture, slug, is_public)
 in its own database; it asks login live on every request.
 """
 
+import asyncio
 from dataclasses import dataclass
 from typing import Literal
 
@@ -24,6 +25,9 @@ from app.core.config import settings
 GROUPS_TTL = SHORT_TTL  # 60s
 # Below the hydrate fetcher timeout (8s) and Traefik's gateway timeout (30s).
 _REQUEST_TIMEOUT = 5.0
+
+# In-flight group lookups keyed by cache key, so concurrent misses share one call.
+_inflight: dict[str, asyncio.Task[list["UserGroup"]]] = {}
 
 
 @dataclass(frozen=True)
@@ -82,6 +86,27 @@ async def get_user_groups(
     if not settings.login_groups_enabled:
         return []
 
+    # Concurrent cold-cache callers for the same user (e.g. GET /api/plans and
+    # GET /api/groups on page load) share one request to login. The task is
+    # shielded so one caller disconnecting does not cancel it for the others.
+    # A forced refresh never joins an in-flight call: that one may have started
+    # before the change the caller wants to see.
+    task = None if force_refresh else _inflight.get(key)
+    if task is None:
+        task = asyncio.create_task(_fetch_user_groups(key, hanko_cookie))
+        _inflight[key] = task
+        task.add_done_callback(lambda t: _forget_inflight(key, t))
+    return await asyncio.shield(task)
+
+
+def _forget_inflight(key: str, task: asyncio.Task) -> None:
+    if _inflight.get(key) is task:
+        del _inflight[key]
+    if not task.cancelled():
+        task.exception()
+
+
+async def _fetch_user_groups(key: str, hanko_cookie: str | None) -> list[UserGroup]:
     base = (settings.login_api_url or settings.hanko_api_url or "").rstrip("/")
     try:
         async with httpx.AsyncClient(timeout=_REQUEST_TIMEOUT) as client:
@@ -243,9 +268,7 @@ async def get_public_user_groups_by_slug(
 ) -> list[PublicGroup]:
     """Fetch the public organizations/teams a user owns, by slug.
 
-    Calls login's ``GET /api/public/user/{slug}/groups?type=...``. Only call
-    this when the caller has already checked the matching portal_profiles row
-    has the corresponding show_organizations/show_teams flag set to True.
+    Calls login's ``GET /api/public/user/{slug}/groups?type=...``.
     Raises LoginUnavailable on network errors, timeouts, or non-2xx responses
     (a 404 here means the profile itself vanished between calls — treat as
     unavailable rather than silently returning an empty list).
