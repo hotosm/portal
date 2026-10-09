@@ -1,13 +1,14 @@
 import WaDrawer from "@awesome.me/webawesome/dist/react/drawer/index.js";
 import NavigationMain from "./NavigationMain";
+import PortalBrand from "./PortalBrand";
 import Icon from "./shared/Icon";
 
-function DrawerMenuContent() {
-  const closeDrawer = () => {
-    const drawer = document.getElementById("mobile-drawer") as any;
-    if (drawer) drawer.open = false;
-  };
+const closeDrawer = () => {
+  const drawer = document.getElementById("mobile-drawer") as any;
+  if (drawer) drawer.open = false;
+};
 
+function DrawerMenuContent() {
   return (
     <div className="flex flex-col gap-md">
       <NavigationMain onLinkClick={closeDrawer} />
@@ -20,7 +21,15 @@ function DrawerMenuContent() {
 function DrawerMenu() {
   return (
     <>
-      <WaDrawer placement="top" label="HOT Portal" id="mobile-drawer">
+      <WaDrawer
+        placement="top"
+        label="Portal"
+        id="mobile-drawer"
+        style={{ "--size": "auto" } as React.CSSProperties}
+      >
+        <div slot="label">
+          <PortalBrand onClick={closeDrawer} />
+        </div>
         <DrawerMenuContent />
       </WaDrawer>
 

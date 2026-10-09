@@ -6,12 +6,13 @@ import type {
   PlanCreate,
   PlanRead,
   PlanReadHydrated,
+  PlanSummary,
   PlanUpdate,
   ProjectStatus,
   UrlResolveResponse,
   UserGroup,
 } from '../types'
-import { groupsQueryKey, planQueryKeys } from './queryKeys'
+import { groupsQueryKey, planQueryKeys, planRemoveMutationKey } from './queryKeys'
 
 const STALE_TIME = 5 * 60 * 1000
 const GC_TIME = 30 * 60 * 1000
@@ -52,7 +53,7 @@ export function useMyPlans() {
   const { isLogin } = useAuth()
   return useQuery({
     queryKey: planQueryKeys.list(),
-    queryFn: async (): Promise<PlanRead[]> => {
+    queryFn: async (): Promise<PlanSummary[]> => {
       const response = await fetch('/api/plans', { credentials: 'include' })
       if (!response.ok) {
         throw new Error(`[${response.status}] Failed to fetch plans`)
@@ -250,6 +251,9 @@ export function useRefreshPlan(id: string, isPublic = false) {
       return response.json()
     },
     onSuccess: (data) => {
+      // A read that raced a removal still lists the removed projects; the
+      // plan is refetched once the removals settle, so drop this one.
+      if (queryClient.isMutating({ mutationKey: planRemoveMutationKey(id) }) > 0) return
       if (data) {
         const key = isPublic ? planQueryKeys.public(id) : planQueryKeys.detail(id)
         queryClient.setQueryData(key, data)

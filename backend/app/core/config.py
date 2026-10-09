@@ -93,9 +93,9 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api"
     debug: bool = False
     db_echo: bool = False
-    backend_cors_origins: Annotated[
-        list[str], BeforeValidator(parse_cors_origins)
-    ] = ["http://localhost:5173"]
+    backend_cors_origins: Annotated[list[str], BeforeValidator(parse_cors_origins)] = [
+        "http://localhost:5173"
+    ]
     cookie_domain: str | None = None
 
     # --- OSM OAuth ---
@@ -110,6 +110,19 @@ class Settings(BaseSettings):
     # when unset (fine where hanko_api_url is the public login host that routes
     # /api to the login backend, e.g. https://login.hotosm.org).
     login_api_url: str | None = None
+    # Shared secret for server-to-server calls to login (mapping lookups).
+    # Same key login uses to resolve personal access tokens.
+    login_internal_api_key: str | None = None
+
+    # --- LearnWorlds (learn.hotosm.org) ---
+    # Portal reads course data with its own token: login holds a separate one
+    # for the SSO flow, so either can be revoked without breaking the other.
+    # The token is school-wide — it can read every user and open a session as
+    # anyone — so it stays on the backend and the user id always comes from the
+    # mapping login resolves, never from a request parameter.
+    learnworlds_school_url: str | None = None
+    learnworlds_client_id: str | None = None
+    learnworlds_access_token: str | None = None
 
     # --- Service Base URLs (auto-filled from detected environment) ---
     hanko_api_url: str | None = None
@@ -158,9 +171,7 @@ class Settings(BaseSettings):
     umap_locale: str = "es"
 
     # --- Computed (not from env) ---
-    detected_environment: Environment = Field(
-        default=Environment.PRODUCTION, exclude=True
-    )
+    detected_environment: Environment = Field(default=Environment.PRODUCTION, exclude=True)
 
     @model_validator(mode="after")
     def detect_env_and_fill_defaults(self) -> "Settings":
@@ -182,11 +193,11 @@ class Settings(BaseSettings):
         # Each tuple: (legacy_attr, base_attr, suffixes_to_strip_in_order)
         legacy_overrides = [
             ("drone_tm_backend_url", "drone_tm_base_url", ["/api"]),
-            ("fair_backend_url",     "fair_base_url",     ["/api/v1", "/api"]),
-            ("fair_api_base_url",    "fair_base_url",     ["/api/v1", "/api"]),
+            ("fair_backend_url", "fair_base_url", ["/api/v1", "/api"]),
+            ("fair_api_base_url", "fair_base_url", ["/api/v1", "/api"]),
             ("export_tool_api_base_url", "export_tool_base_url", ["/api"]),
-            ("chatmap_api_base_url", "chatmap_base_url",  ["/api/v1", "/api"]),
-            ("oam_stac_api_url",     "oam_api_url",       []),
+            ("chatmap_api_base_url", "chatmap_base_url", ["/api/v1", "/api"]),
+            ("oam_stac_api_url", "oam_api_url", []),
         ]
         for legacy_attr, base_attr, suffixes in legacy_overrides:
             legacy_val = getattr(self, legacy_attr, None)

@@ -1,15 +1,17 @@
 """Pydantic schemas for the Profile feature."""
 
 from datetime import datetime
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 _BIO_MAX_LEN = 2_000
 _LOCATION_MAX_LEN = 200
 _CONTACT_EMAIL_MAX_LEN = 254
 _PHONE_MAX_LEN = 32
-_LINKEDIN_MAX_LEN = 500
-_LINKEDIN_PATTERN = r"^https://([\w-]+\.)?linkedin\.com/.*$"
+_EXTRA_LINKS_MAX = 5
+_EXTRA_LINK_MAX_LEN = 500
+_EXTRA_LINK_PATTERN = r"^https://[^\s/$.?#].[^\s]*$"
 # Light shape check, not full RFC validation — avoids adding an email-validator
 # dependency for this one field.
 _EMAIL_PATTERN = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
@@ -28,11 +30,32 @@ class ProfilePatch(BaseModel):
         default=None, max_length=_CONTACT_EMAIL_MAX_LEN, pattern=_EMAIL_PATTERN
     )
     phone: str | None = Field(default=None, max_length=_PHONE_MAX_LEN)
-    linkedin_url: str | None = Field(
-        default=None, max_length=_LINKEDIN_MAX_LEN, pattern=_LINKEDIN_PATTERN
-    )
+    # Replaces the whole list when present; [] (or null) empties it.
+    extra_links: (
+        list[Annotated[str, Field(max_length=_EXTRA_LINK_MAX_LEN, pattern=_EXTRA_LINK_PATTERN)]]
+        | None
+    ) = Field(default=None, max_length=_EXTRA_LINKS_MAX)
     show_organizations: bool | None = None
     show_teams: bool | None = None
+
+    @field_validator("extra_links", mode="before")
+    @classmethod
+    def _clean_extra_links(cls, value: object) -> object:
+        # Strip and drop blanks before the per-item pattern and the list cap run.
+        if not isinstance(value, list):
+            return value
+        cleaned = [item.strip() if isinstance(item, str) else item for item in value]
+        return [item for item in cleaned if item != ""]
+
+    @field_validator("extra_links")
+    @classmethod
+    def _unique_extra_links(cls, value: list[str] | None) -> list[str]:
+        # The column is NOT NULL, so an explicit null means "no links".
+        if value is None:
+            return []
+        if len(set(value)) != len(value):
+            raise ValueError("extra_links must not contain duplicates")
+        return value
 
 
 class PortalProfileRead(BaseModel):
@@ -42,7 +65,7 @@ class PortalProfileRead(BaseModel):
     location: str | None
     contact_email: str | None
     phone: str | None
-    linkedin_url: str | None
+    extra_links: list[str]
     show_organizations: bool
     show_teams: bool
     created_at: datetime
@@ -72,7 +95,31 @@ class PublicProfileRead(BaseModel):
     picture_url: str | None
     bio: str | None
     location: str | None
+    # Contact details stay out of this payload (anti-scraping); visitors fetch
+    # them on demand from GET /api/public/profile/{slug}/contact.
+    has_contact: bool
+    organizations: list[dict] | None = None
+    teams: list[dict] | None = None
+    # How many courses they are taking at learn.hotosm.org. None when there is
+    # nothing to show — no LMS account, or the LMS did not answer — so the
+    # profile can leave the section out instead of claiming zero.
+    courses_count: int | None = None
+    # Courses the school offers, to give the number above something to sit
+    # against. None when the catalogue could not be read.
+    courses_total: int | None = None
+    # The courses themselves, finished ones first, with how far along they are.
+    courses: list[dict] | None = None
+    # Whole hours spent learning, omitted below one.
+    learning_hours: int | None = None
+    # Finished work, not enrolments: title, when it was issued and a link to
+    # check it. Not every course issues one, so an empty list alongside several
+    # courses is ordinary. Null means we could not ask at all.
+    certificates: list[dict] | None = None
+
+
+class PublicContactRead(BaseModel):
+    """GET /api/public/profile/{slug}/contact response."""
+
     contact_email: str | None
     phone: str | None
-    linkedin_url: str | None
-    organizations: list[dict] | None = None
+    extra_links: list[str]

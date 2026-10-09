@@ -50,6 +50,14 @@ export const MAIN_MENU_ITEMS: MenuItem[] = [
     icon: "patch-check",
     external: true
   },
+  {
+    id: "profile",
+    label: m.nav_profile,
+    href: "/people/:username",
+    requiresAuth: true,
+    icon: "user",
+    external: false
+  },
 ];
 
 export const getVisibleMenuItems = (

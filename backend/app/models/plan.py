@@ -145,10 +145,20 @@ class PlanScopeRead(BaseModel):
     visibility: Visibility
     group_type: GroupType | None = None
     group_id: str | None = None
+    group_name: str | None = None
     edit_scope: EditScope
     owner_id: str
     is_owner: bool = False
     can_edit: bool = False
+
+
+class PlanSummary(BaseModel):
+    """Minimal plan shape for the plans list: name, project count and project apps."""
+
+    id: str
+    name: str
+    project_count: int
+    apps: list[AppLiteral] = []
 
 
 class PlanRead(PlanScopeRead):
@@ -220,6 +230,10 @@ class ProjectCollectionUpdate(BaseModel):
     """Move one project to a collection of the same plan; null means "All"."""
 
     collection_id: str | None = None
+
+
+class ProjectsRemove(BaseModel):
+    ids: list[str] = Field(min_length=1, max_length=500)
 
 
 class ProjectPlacement(BaseModel):
