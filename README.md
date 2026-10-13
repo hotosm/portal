@@ -25,11 +25,13 @@ A centralized web workspace that simplifies access to the open mapping ecosystem
 |✅| Plans (grouping projects from multiple tools)
 |✅| Organizations / teams management
 |✅| Add project from third parties (MapSwipe, SketchMapTool) to plans
-|⚙️| Open Mapping Marketplace section
-|⚙️| Public profiles
+|✅| Add any HOT project to a plan by pasting its link
+|✅| Collections, with categories and descriptions
+|✅| Open Mapping Marketplace section
+|✅| Public profiles
 |⚙️| Integration with the HOT Learning Center
-|  | Maps for plans / Disaster Dashboard
-|  | More options for Public Profiles
+|⚙️| Maps for plans / Disaster Dashboard
+|⚙️| More options for Public Profiles (e.g. for vendors)
 |  | Visualization options
 |  | Story maps
 |  | Metrics
