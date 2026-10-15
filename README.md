@@ -2,7 +2,7 @@
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
 
-A centralized web workspace that simplifies access to the HOT (Humanitarian OpenStreetMap Team) Tech Suite ecosystem. Portal provides a unified interface for accessing multiple geospatial tools, managing projects, and streamlining workflows for humanitarian mapping and social change.
+A centralized web workspace that simplifies access to the open mapping ecosystem. 
 
 ## Roadmap
 
@@ -21,10 +21,18 @@ A centralized web workspace that simplifies access to the HOT (Humanitarian Open
 |✅| Sections for Imagery, Mapping, Field and Data, for showing tools and user's data on each
 |✅| Public integration with all tools
 |✅| User data integration
-|⚙️| Design and UI/UX improvements
-| | Plans (grouping projects from multiple tools)
-| | Links and content to/from Learn & Connect
-| | Public profiles
+|✅| Design and UI/UX improvements
+|✅| Plans (grouping projects from multiple tools)
+|✅| Organizations / teams management
+|✅| Add project from third parties (MapSwipe, SketchMapTool) to plans
+|⚙️| Open Mapping Marketplace section
+|⚙️| Public profiles
+|⚙️| Integration with the HOT Learning Center
+|  | Maps for plans / Disaster Dashboard
+|  | More options for Public Profiles
+|  | Visualization options
+|  | Story maps
+|  | Metrics
 
 ## Table of Contents
 
@@ -670,12 +678,8 @@ The API is self-documented using FastAPI's built-in OpenAPI support:
 
 ## Contributing
 
-1. Create a feature branch from `develop`
-2. Make your changes
-3. Run tests: `make test`
-4. Run linters: `make lint-fix`
-5. Commit with descriptive message
-6. Push and create a Pull Request
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow and AI
+tool usage policy.
 
 ## License
 
