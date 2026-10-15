@@ -176,6 +176,7 @@
   "plan_picker_tab_tasks": "Tâches",
   "plan_picker_url_heading": "Ajouter par URL",
   "plan_picker_url_help": "Ajoutez un projet existant depuis l'un des outils HOTOSM ou un service tiers.",
+  "plan_picker_url_supported_tools": "Pris en charge : Tasking Manager, Drone TM, Field-TM, fAIr, Export Tool, OpenAerialMap, uMap, ChatMap, MapSwipe et SketchMap Tool.",
   "plan_picker_url_placeholder": "https://tasks.hotosm.org/projects/123",
   "plan_picker_url_add": "Ajouter",
   "plan_picker_url_checking": "Vérification…",
