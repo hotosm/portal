@@ -29,7 +29,6 @@ import ConfirmDialog from '../components/shared/ConfirmDialog'
 import Icon from '../components/shared/Icon'
 import PageWrapper from '../components/shared/PageWrapper'
 import { RichTextContent } from '../components/shared/RichTextContent'
-import Tag from '../components/shared/Tag'
 import { cardClassNames } from '../constants/classNames'
 import { useAuth } from '../contexts/AuthContext'
 import { useLanguage } from '../contexts/LanguageContext'
@@ -603,6 +602,7 @@ function MyPlanPage() {
     <ProjectSelectionContext.Provider value={selection}>
       <PlanSectionHeader
         plan={isLoading ? undefined : plan!}
+        showPublicTag={!isLoading && plan!.is_public && canEdit}
         breadcrumbs={
           isLoading
             ? undefined
@@ -644,11 +644,6 @@ function MyPlanPage() {
           </div>
         ) : (
           <>
-            {plan!.is_public && canEdit && (
-              <Tag variant="neutral" appearance="filled" size="large" className="mb-[10px]">
-                {m.plan_public_tag()}
-              </Tag>
-            )}
             {plan!.description && (
               <RichTextContent content={plan!.description ?? ''} className="py-md" />
             )}

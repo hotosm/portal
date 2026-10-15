@@ -2,6 +2,7 @@ import Breadcrumb from '../../components/shared/Breadcrumb'
 import BreadcrumbItem from '../../components/shared/BreadcrumbItem'
 import Button from '../../components/shared/Button'
 import PageWrapper from '../../components/shared/PageWrapper'
+import Tag from '../../components/shared/Tag'
 import { useAuth } from '../../contexts/AuthContext'
 import { m } from '../../paraglide/messages'
 import { useMyGroups } from '../hooks'
@@ -20,6 +21,7 @@ interface PlanSectionHeaderProps {
   menu?: React.ReactNode
   breadcrumbs?: BreadcrumbItemDef[]
   plan?: PlanRead | PlanReadHydrated
+  showPublicTag?: boolean
 }
 
 function PlanSectionHeader({
@@ -30,6 +32,7 @@ function PlanSectionHeader({
   menu,
   breadcrumbs,
   plan,
+  showPublicTag = false,
 }: PlanSectionHeaderProps) {
   const label = buttonText
   const { user } = useAuth()
@@ -78,7 +81,14 @@ function PlanSectionHeader({
           className={`flex flex-col md:flex-row gap-sm w-full justify-between items-start md:items-center ${breadcrumbs && breadcrumbs.length > 0 ? '' : 'pt-md'}`}
         >
           <div>
-            <div className="text-2xl/tight break-words min-w-0 w-full md:w-auto">{children}</div>
+            <div className="flex items-center gap-xs">
+              <div className="text-2xl/tight break-words min-w-0 w-full md:w-auto">{children}</div>
+              {showPublicTag && (
+                <Tag variant="neutral" appearance="filled" size="small" className="shrink-0">
+                  {m.plan_public_tag()}
+                </Tag>
+              )}
+            </div>
             {attribution && (
               <span className="flex items-center gap-xs mt-xs text-sm">
                 <span className="text-white font-semibold bg-hot-neutral-800 rounded-xl px-xs py-2xs">
