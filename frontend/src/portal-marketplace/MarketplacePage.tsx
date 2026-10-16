@@ -15,7 +15,6 @@ import {
 } from "../constants/marketplaceData";
 import { m } from "../paraglide/messages";
 import MarketplaceSubNav from "./MarketplaceSubNav";
-import { renderBold } from "./renderBold";
 
 const sectionClassName =
   "container flex flex-col gap-lg pb-3xl pt-xl scroll-mt-[72px]";
@@ -57,8 +56,13 @@ function MarketplacePage() {
           <h1 className="max-w-[600px] text-3xl font-semibold leading-tight">
             {m.marketplace_hero_title()}
           </h1>
-          <p className="max-w-2xl text-lg leading-relaxed text-hot-gray-800">
-            {renderBold(m.marketplace_hero_subtitle())}
+          {/* Translation strings are trusted i18n resources, never user input. */}
+          <p
+            className="max-w-2xl text-lg leading-relaxed text-hot-gray-800"
+            dangerouslySetInnerHTML={{ __html: m.marketplace_hero_subtitle() }}
+          />
+          <p className="text-lg font-semibold text-hot-gray-800">
+            {m.marketplace_hero_tagline()}
           </p>
           <div className="flex flex-col gap-md md:flex-row md:flex-wrap">
             <Button
@@ -95,9 +99,11 @@ function MarketplacePage() {
         </h3>
         <div className="flex flex-col gap-2xl md:flex-row md:items-center">
           <div className="flex flex-1 flex-col gap-md">
-            <p className="leading-relaxed text-hot-gray-800">
-              {renderBold(m.marketplace_whatitis_intro())}
-            </p>
+            {/* Translation strings are trusted i18n resources, never user input. */}
+            <p
+              className="leading-relaxed text-hot-gray-800"
+              dangerouslySetInnerHTML={{ __html: m.marketplace_whatitis_intro() }}
+            />
             <p className="leading-relaxed text-hot-gray-800">
               {m.marketplace_whatitis_body()}
             </p>
