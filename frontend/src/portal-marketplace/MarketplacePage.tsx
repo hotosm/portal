@@ -260,6 +260,7 @@ function MarketplacePage() {
 
       <Dialog
         open={isFormOpen}
+        className="marketplace-form-dialog"
         label=" "
         aria-label={m.marketplace_cta_title()}
         onWaHide={() => setIsFormOpen(false)}
@@ -276,6 +277,7 @@ function MarketplacePage() {
 
       <Dialog
         open={isContactOpen}
+        className="marketplace-form-dialog"
         label=" "
         aria-label={m.marketplace_cta_contact_us()}
         onWaHide={() => setIsContactOpen(false)}
