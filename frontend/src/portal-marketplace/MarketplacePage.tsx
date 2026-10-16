@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Badge from "../components/shared/Badge";
 import Button from "../components/shared/Button";
 import Callout from "../components/shared/Callout";
@@ -14,7 +14,9 @@ import {
   getWhoItsFor,
 } from "../constants/marketplaceData";
 import { m } from "../paraglide/messages";
+import { getLocale } from "../paraglide/runtime";
 import MarketplaceSubNav from "./MarketplaceSubNav";
+import MarketplaceConsentBanner from "./components/MarketplaceConsentBanner";
 
 const sectionClassName =
   "container flex flex-col gap-lg pb-3xl pt-xl scroll-mt-[72px]";
@@ -25,7 +27,7 @@ const brandGradient =
 
 function trackStartYourProject() {
   const paq = (window._paq = window._paq || []);
-  paq.push(["setCustomUrl", "/marketplace#start-your-project"]);
+  paq.push(["setCustomUrl", `/${getLocale()}/marketplace#start-your-project`]);
   paq.push(["setDocumentTitle", "Marketplace > Start your project"]);
   paq.push(["trackPageView"]);
 }
@@ -37,6 +39,11 @@ function MarketplacePage() {
   const services = getMarketplaceServices();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
+
+  useEffect(() => {
+    const id = window.location.hash.slice(1);
+    if (id) document.getElementById(id)?.scrollIntoView({ behavior: "instant" });
+  }, []);
   
   
 
@@ -46,8 +53,9 @@ function MarketplacePage() {
   }
 
   return (
-    <div className="mb-3xl">
+    <div className="marketplace-page mb-3xl">
       <MarketplaceSubNav />
+      <MarketplaceConsentBanner />
       <section className="mb-3xl" style={{ background: brandGradient }}>
         <div className="container flex flex-col gap-lg py-4xl">
           <span className="text-sm text-hot-red-600 font-semibold leading-tight tracking-[0.12em]">
@@ -252,7 +260,8 @@ function MarketplacePage() {
 
       <Dialog
         open={isFormOpen}
-        label={m.marketplace_cta_title()}
+        label=" "
+        aria-label={m.marketplace_cta_title()}
         onWaHide={() => setIsFormOpen(false)}
         style={{ "--width": "800px" } as React.CSSProperties}
       >
@@ -260,15 +269,15 @@ function MarketplacePage() {
           title={m.marketplace_cta_title()}
           src={MARKETPLACE_FORM_URL}
           width="100%"
-          height="533"
           frameBorder="0"
-          className="block rounded-md border border-hot-neutral-100 bg-transparent"
+          className="block h-[75vh] w-full bg-transparent"
         />
       </Dialog>
 
       <Dialog
         open={isContactOpen}
-        label={m.marketplace_cta_contact_us()}
+        label=" "
+        aria-label={m.marketplace_cta_contact_us()}
         onWaHide={() => setIsContactOpen(false)}
         style={{ "--width": "800px" } as React.CSSProperties}
       >
@@ -276,9 +285,8 @@ function MarketplacePage() {
           title={m.marketplace_cta_contact_us()}
           src={MARKETPLACE_CONTACT_URL}
           width="100%"
-          height="533"
           frameBorder="0"
-          className="block rounded-md border border-hot-neutral-100 bg-transparent"
+          className="block h-[75vh] w-full bg-transparent"
         />
       </Dialog>
     </div>

@@ -81,6 +81,16 @@ hotosm-tool-menu {
   font-weight: var(--hot-font-weight-bold);
 }
 
+html:has(.marketplace-page) {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:has(.marketplace-page) {
+    scroll-behavior: auto;
+  }
+}
+
 /* TODO: move to hot-wa.css in @hotosm/ui once the HOT WA theme supports it */
 .accent-link-button::part(base) {
   background: transparent;
