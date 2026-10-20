@@ -73,7 +73,10 @@ function CollectionListItem({
 
   if (isEditing) {
     return (
-      <li className="flex items-center gap-sm ms-0" style={{ minHeight: `${ROW_HEIGHT_REM}rem` }}>
+      <li
+        className="flex items-center gap-sm ms-0"
+        style={{ minHeight: `${ROW_HEIGHT_REM}rem`, marginBottom: '5px', paddingTop: '5px' }}
+      >
         <div className="flex-1 min-w-0">
           <Input
             type="text"
