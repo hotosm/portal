@@ -19,6 +19,8 @@ import type { Collection } from '../types'
 
 /** Collections shown per page on the manage tab. */
 const PAGE_SIZE = 5
+/** Longest description the edit form accepts. */
+const DESCRIPTION_MAX_LENGTH = 60
 /** Minimum height of one row, in rem. The list reserves a full page of these
  *  so a short last page doesn't shrink the dialog. */
 const ROW_HEIGHT_REM = 2
@@ -39,7 +41,7 @@ interface CollectionListItemProps {
   onDelete: () => void
   onStartEditing: () => void
   onCancelEditing: () => void
-  onSave: (name: string) => void
+  onSave: (name: string, description: string) => void
 }
 
 /** One existing collection: renamed from its pencil button, deleted from its trash button. */
@@ -54,47 +56,71 @@ function CollectionListItem({
   onSave,
 }: CollectionListItemProps) {
   const [draft, setDraft] = useState(collection.name)
+  const [descriptionDraft, setDescriptionDraft] = useState(collection.description ?? '')
 
   useEffect(() => {
-    if (isEditing) setDraft(collection.name)
-  }, [isEditing, collection.name])
+    if (!isEditing) return
+    setDraft(collection.name)
+    setDescriptionDraft(collection.description ?? '')
+  }, [isEditing, collection.name, collection.description])
 
   const trimmedDraft = draft.trim()
-  const canSave = trimmedDraft.length > 0 && !isSaving
+  const trimmedDescription = descriptionDraft.trim()
+  // The native maxlength never truncates a value that is already longer, so an
+  // old long description has to be shortened by hand before it can be saved.
+  const canSave =
+    trimmedDraft.length > 0 && trimmedDescription.length <= DESCRIPTION_MAX_LENGTH && !isSaving
 
   function save() {
     if (!canSave) return
-    if (trimmedDraft === collection.name) {
+    if (trimmedDraft === collection.name && trimmedDescription === (collection.description ?? '')) {
       onCancelEditing()
       return
     }
-    onSave(trimmedDraft)
+    onSave(trimmedDraft, trimmedDescription)
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      save()
+    } else if (e.key === 'Escape') {
+      e.stopPropagation()
+      onCancelEditing()
+    }
   }
 
   if (isEditing) {
     return (
       <li
-        className="flex items-center gap-sm ms-0"
+        className="flex items-start gap-sm ms-0"
         style={{ minHeight: `${ROW_HEIGHT_REM}rem`, marginBottom: '5px', paddingTop: '5px' }}
       >
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 flex flex-col gap-2xs">
           <Input
             type="text"
             size="small"
+            className="collection-edit-input"
             value={draft}
             autoFocus
             aria-label={m.plan_collections_rename()}
             onInput={(e) => setDraft(e.currentTarget.value ?? '')}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                save()
-              } else if (e.key === 'Escape') {
-                e.stopPropagation()
-                onCancelEditing()
-              }
-            }}
+            onKeyDown={handleKeyDown}
           />
+          <Input
+            type="text"
+            size="small"
+            className="collection-edit-input"
+            value={descriptionDraft}
+            maxlength={DESCRIPTION_MAX_LENGTH}
+            placeholder={m.plan_collections_description_placeholder()}
+            aria-label={m.plan_collections_edit_description_label()}
+            onInput={(e) => setDescriptionDraft(e.currentTarget.value ?? '')}
+            onKeyDown={handleKeyDown}
+          />
+          <span className="self-end text-xs text-hot-gray-500">
+            {descriptionDraft.length}/{DESCRIPTION_MAX_LENGTH}
+          </span>
         </div>
         <div className="flex items-center gap-xs shrink-0">
           <Button appearance="accent" size="small" onClick={save} disabled={!canSave}>
@@ -195,9 +221,10 @@ function CollectionsDialog({ planId, open, onClose, onCreated }: CollectionsDial
     })
   }
 
-  function rename(id: string, newName: string) {
+  function update(id: string, newName: string, newDescription: string) {
     updateCollection.mutate(
-      { id, payload: { name: newName } },
+      // An empty string clears the description; null would leave it untouched.
+      { id, payload: { name: newName, description: newDescription } },
       {
         onSuccess: () => {
           toast.success(m.plan_collections_toast_collection_updated())
@@ -287,7 +314,7 @@ function CollectionsDialog({ planId, open, onClose, onCreated }: CollectionsDial
                     onDelete={() => remove(collection.id)}
                     onStartEditing={() => setEditingId(collection.id)}
                     onCancelEditing={() => setEditingId(null)}
-                    onSave={(newName) => rename(collection.id, newName)}
+                    onSave={(newName, newDescription) => update(collection.id, newName, newDescription)}
                   />
                 ))}
               </ul>

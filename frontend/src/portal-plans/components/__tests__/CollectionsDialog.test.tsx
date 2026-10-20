@@ -15,9 +15,11 @@ vi.mock('../../../components/shared/Button', () => ({
   ),
 }))
 vi.mock('../../../components/shared/Input', () => ({
-  default: ({ value, onInput, onKeyDown, ...rest }: any) => (
+  default: ({ value, onInput, onKeyDown, maxlength, placeholder, ...rest }: any) => (
     <input
       value={value}
+      maxLength={maxlength}
+      placeholder={placeholder}
       aria-label={rest['aria-label']}
       onChange={(e) => onInput?.({ currentTarget: e.currentTarget })}
       onKeyDown={onKeyDown}
@@ -41,7 +43,7 @@ const COLLECTION = {
   id: 'c1',
   plan_id: 'plan-1',
   name: 'Roads',
-  description: null,
+  description: 'Main roads',
   display_order: 0,
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
@@ -76,16 +78,17 @@ afterEach(() => {
 })
 
 describe('CollectionsDialog rename', () => {
-  it('sends only the new name and keeps the dialog open', async () => {
+  it('sends the new name and description and keeps the dialog open', async () => {
     const { fetchMock, onClose } = setup()
     const input = await openEditor()
     fireEvent.change(input, { target: { value: 'Highways' } })
+    fireEvent.change(screen.getByLabelText('Edit description'), { target: { value: 'Big roads' } })
     fireEvent.click(screen.getByText('Save'))
 
     await waitFor(() => {
       const patch = fetchMock.mock.calls.find(([, init]) => init?.method === 'PATCH')
       expect(patch?.[0]).toBe('/api/plans/plan-1/collections/c1')
-      expect(JSON.parse(patch?.[1]?.body as string)).toEqual({ name: 'Highways' })
+      expect(JSON.parse(patch?.[1]?.body as string)).toEqual({ name: 'Highways', description: 'Big roads' })
     })
     expect(onClose).not.toHaveBeenCalled()
   })
@@ -94,6 +97,29 @@ describe('CollectionsDialog rename', () => {
     const { fetchMock } = setup()
     await openEditor()
     fireEvent.click(screen.getByText('Cancel'))
+
+    expect(await screen.findByText('Roads')).toBeTruthy()
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'PATCH')).toBe(false)
+  })
+
+  it('clears the description with an empty string', async () => {
+    const { fetchMock } = setup()
+    await openEditor()
+    fireEvent.change(screen.getByLabelText('Edit description'), { target: { value: '' } })
+    fireEvent.click(screen.getByText('Save'))
+
+    await waitFor(() => {
+      const patch = fetchMock.mock.calls.find(([, init]) => init?.method === 'PATCH')
+      expect(JSON.parse(patch?.[1]?.body as string)).toEqual({ name: 'Roads', description: '' })
+    })
+  })
+
+  it('limits the description to 60 characters and sends no request when nothing changed', async () => {
+    const { fetchMock } = setup()
+    await openEditor()
+    const description = screen.getByLabelText('Edit description') as HTMLInputElement
+    expect(description.maxLength).toBe(60)
+    fireEvent.click(screen.getByText('Save'))
 
     expect(await screen.findByText('Roads')).toBeTruthy()
     expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'PATCH')).toBe(false)
