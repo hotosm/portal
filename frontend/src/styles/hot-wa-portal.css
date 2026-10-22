@@ -40,6 +40,15 @@ wa-button[appearance="plain"]::part(base):active {
   transform: none;
 }
 
+/* Collection edit inputs: no thick focus ring, no replacement border. */
+wa-input.collection-edit-input {
+  --wa-focus-ring: none;
+}
+
+wa-input.collection-edit-input::part(base) {
+  outline: none;
+}
+
 wa-card::part(header) {
   border: none;
 }

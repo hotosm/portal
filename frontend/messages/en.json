@@ -267,6 +267,7 @@
   "plan_collections_section_assign": "Assign to this plan",
   "plan_collections_new_collection_placeholder": "New collection name",
   "plan_collections_description_placeholder": "Optional description",
+  "plan_collections_edit_description_label": "Edit description",
   "plan_collections_add": "Add",
   "plan_collections_adding": "Adding…",
   "plan_collections_dialog_add_label": "Add collection",
