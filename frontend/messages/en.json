@@ -412,5 +412,17 @@
   "profile_learning_done": "completed",
   "profile_learning_done_one": "completed",
   "profile_learning_hours_one": "hour",
-  "profile_certifications_verify": "Verify"
+  "profile_certifications_verify": "Verify",
+  "org_profile_loading": "Loading organization",
+  "org_profile_content_fallback": "Some content is only available in {language}",
+  "org_profile_video_title": "{name} video",
+  "org_profile_see_video": "See the video",
+  "org_profile_share": "Share",
+  "org_profile_copy_link": "Copy link",
+  "org_profile_link_copied": "Link copied",
+  "org_profile_working_on_now": "Working on now",
+  "org_profile_plans": "Plans",
+  "org_profile_contact_info": "Contact info",
+  "org_profile_language": "Language",
+  "org_profile_language_original": "(original)"
 }
