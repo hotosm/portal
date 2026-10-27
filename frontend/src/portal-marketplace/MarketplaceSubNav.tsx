@@ -23,7 +23,7 @@ export default function MarketplaceSubNav() {
         window.innerHeight + window.scrollY >=
         document.documentElement.scrollHeight - 1;
       if (atBottom) {
-        setActiveId(sectionIds[sectionIds.length - 1]);
+        setActiveId(sectionIds[sectionIds.length - 1] ?? null);
         return;
       }
       let current: string | null = null;
