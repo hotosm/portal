@@ -422,5 +422,9 @@
   "profile_learning_done": "completados",
   "profile_learning_done_one": "completado",
   "profile_learning_hours_one": "hora",
-  "profile_certifications_verify": "Verificar"
+  "profile_certifications_verify": "Verificar",
+  "user_menu_no_profile_title": "Aún no tienes perfil público",
+  "user_menu_no_profile_message": "Todavía no tienes un perfil público. Créalo para que otras personas puedan ver tu trabajo en las herramientas de HOT.",
+  "user_menu_create_profile": "Crear perfil público",
+  "user_menu_close": "Cerrar"
 }
