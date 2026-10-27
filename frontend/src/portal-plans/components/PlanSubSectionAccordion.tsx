@@ -1,7 +1,6 @@
 import Accordion from '../../components/shared/Accordion'
 import AccordionItem from '../../components/shared/AccordionItem'
 import Icon from '../../components/shared/Icon'
-import './PlanSubSectionAccordion.css'
 
 interface PlanSubSectionAccordionProps {
   title: string

@@ -426,5 +426,16 @@
   "user_menu_no_profile_title": "Aún no tienes perfil público",
   "user_menu_no_profile_message": "Todavía no tienes un perfil público. Créalo para que otras personas puedan ver tu trabajo en las herramientas de HOT.",
   "user_menu_create_profile": "Crear perfil público",
-  "user_menu_close": "Cerrar"
+  "user_menu_close": "Cerrar",
+  "org_profile_loading": "Cargando organización",
+  "org_profile_content_fallback": "Parte del contenido solo está disponible en {language}",
+  "org_profile_video_title": "Video de {name}",
+  "org_profile_see_video": "Ver el video",
+  "org_profile_share": "Compartir",
+  "org_profile_copy_link": "Copiar enlace",
+  "org_profile_link_copied": "Enlace copiado",
+  "org_profile_working_on_now": "En qué estamos trabajando",
+  "org_profile_plans": "Planes",
+  "org_profile_contact_info": "Contacto",
+  "org_profile_language_original": "(original)"
 }

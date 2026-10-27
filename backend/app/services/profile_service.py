@@ -89,6 +89,25 @@ async def _learning_or_none(hanko_user_id: str):
         return None
 
 
+# Fields PublicGroup carries for the org's own page only.
+_ORG_PAGE_ONLY_FIELDS = (
+    "contact_email",
+    "default_locale",
+    "field_locales",
+    "available_locales",
+    "tagline",
+    "video_url",
+    "id",
+)
+
+
+def _group_listing(group: login_service.PublicGroup) -> dict:
+    listing = asdict(group)
+    for name in _ORG_PAGE_ONLY_FIELDS:
+        listing.pop(name, None)
+    return listing
+
+
 async def get_public_profile(db: AsyncSession, slug: str) -> PublicProfileRead | None:
     """Build the GET /api/public/profile/{slug} response.
 
@@ -117,8 +136,9 @@ async def get_public_profile(db: AsyncSession, slug: str) -> PublicProfileRead |
         login_service.get_public_user_groups_by_slug(slug, "team"),
         _learning_or_none(account.hanko_user_id),
     )
-    organizations = [asdict(g) for g in org_groups]
-    teams = [asdict(g) for g in team_groups]
+    # Org-page-only fields (contact email, locales) stay off a user's profile.
+    organizations = [_group_listing(g) for g in org_groups]
+    teams = [_group_listing(g) for g in team_groups]
 
     return PublicProfileRead(
         slug=account.slug,
