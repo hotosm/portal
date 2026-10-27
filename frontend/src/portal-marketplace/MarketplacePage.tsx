@@ -92,7 +92,8 @@ function MarketplacePage() {
                 name="rocket"
                 label=""
               />
-              {m.marketplace_hero_cta()}
+              <span className="md:hidden">{m.marketplace_hero_cta_short()}</span>
+              <span className="hidden md:inline">{m.marketplace_hero_cta()}</span>
             </Button>
             <Button
               variant="neutral"
@@ -101,7 +102,8 @@ function MarketplacePage() {
               className="w-full md:w-auto"
               onClick={() => setIsContactOpen(true)}
             >
-              {m.marketplace_hero_cta_more_info()}
+              <span className="md:hidden">{m.marketplace_hero_cta_more_info_short()}</span>
+              <span className="hidden md:inline">{m.marketplace_hero_cta_more_info()}</span>
             </Button>
           </div>
         </div>

@@ -298,6 +298,8 @@
   "marketplace_hero_tagline": "Local knowledge. Global impact. The first open mapping marketplace.",
   "marketplace_hero_cta": "I’m ready. Start my project",
   "marketplace_hero_cta_more_info": "I want more info. Talk to someone",
+  "marketplace_hero_cta_short": "Start now",
+  "marketplace_hero_cta_more_info_short": "Talk to someone",
   "marketplace_meta_title": "Open Mapping Marketplace | Geospatial Data",
   "marketplace_meta_description": "Connect with certified local mappers for geospatial data, drone imagery, and mapping services. Fast delivery, verified quality, transparent pricing by HOT.",
   "marketplace_consent_text": "We use Microsoft Clarity to understand how visitors use this page, through usage metrics, heatmaps and session recordings. HOT and Microsoft collect this data to improve the marketplace. Do you accept?",
