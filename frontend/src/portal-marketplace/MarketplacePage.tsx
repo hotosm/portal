@@ -13,6 +13,7 @@ import {
   getMarketplaceServices,
   getWhoItsFor,
 } from "../constants/marketplaceData";
+import { usePageMeta } from "../hooks/usePageMeta";
 import { m } from "../paraglide/messages";
 import { getLocale } from "../paraglide/runtime";
 import MarketplaceSubNav from "./MarketplaceSubNav";
@@ -39,6 +40,11 @@ function MarketplacePage() {
   const services = getMarketplaceServices();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
+
+  usePageMeta({
+    title: m.marketplace_meta_title(),
+    description: m.marketplace_meta_description(),
+  });
 
   useEffect(() => {
     const id = window.location.hash.slice(1);
