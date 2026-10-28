@@ -13,7 +13,8 @@ in its own database; it asks login live on every request.
 """
 
 import asyncio
-from dataclasses import dataclass
+import re
+from dataclasses import dataclass, field
 from typing import Literal
 
 import httpx
@@ -291,6 +292,23 @@ class PublicGroup:
     avatar_url: str | None
     banner_url: str | None
     members_count: int
+    contact_email: str | None = None
+    # Only filled by get_public_organization; the user's group listings carry
+    # base values and keep these defaults.
+    default_locale: str = "en"
+    # Locale each translatable field was actually returned in.
+    field_locales: dict[str, str] = field(default_factory=dict)
+    available_locales: tuple[str, ...] = ()
+    tagline: str | None = None
+    # Normalized by login to https://www.youtube.com/watch?v=ID.
+    video_url: str | None = None
+    # Internal join key (e.g. for the org's plans); never expose to clients.
+    id: str | None = None
+
+
+# Shape of a content locale (two-letter ISO 639-1); login decides whether it
+# exists. Anything else is dropped before the call.
+_CONTENT_LOCALE_RE = re.compile(r"[a-z]{2}")
 
 
 async def get_public_user_groups_by_slug(
@@ -331,8 +349,58 @@ async def get_public_user_groups_by_slug(
             avatar_url=g.get("avatar_url"),
             banner_url=g.get("banner_url"),
             members_count=g.get("members_count", 0),
+            contact_email=g.get("contact_email"),
         )
         for g in data.get("items", [])
     ]
     set_cached(key, groups, _PROFILE_TTL)
     return groups
+
+
+async def get_public_organization(slug: str, locale: str | None = None) -> PublicGroup | None:
+    """Fetch a public organization by slug from login.
+
+    Calls login's ``GET /api/public/org/{slug}``, asking for its content in
+    ``locale`` (login falls back to the org's base locale field by field). A
+    locale that isn't a two-letter code is treated as none. Returns None on a
+    404 (doesn't exist, not public, or not approved). Raises LoginUnavailable on network
+    errors, timeouts, or other non-2xx/404 responses. Never cached, so edits
+    in login show up right away.
+    """
+    locale = locale.lower() if locale else None
+    if locale is not None and not _CONTENT_LOCALE_RE.fullmatch(locale):
+        locale = None
+
+    base = _login_base_url()
+    try:
+        async with httpx.AsyncClient(timeout=_REQUEST_TIMEOUT) as client:
+            response = await client.get(
+                f"{base}/api/public/org/{slug}",
+                params={"locale": locale} if locale is not None else None,
+                headers={"accept": "application/json"},
+            )
+            if response.status_code == 404:
+                return None
+            response.raise_for_status()
+            data = response.json()
+    except (httpx.RequestError, httpx.HTTPStatusError) as exc:
+        raise LoginUnavailable(str(exc)) from exc
+
+    org = PublicGroup(
+        type=data.get("type", ""),
+        name=data.get("name", ""),
+        slug=data.get("slug", ""),
+        description=data.get("description"),
+        website=data.get("website"),
+        avatar_url=data.get("avatar_url"),
+        banner_url=data.get("banner_url"),
+        members_count=data.get("members_count", 0),
+        contact_email=data.get("contact_email"),
+        default_locale=data.get("default_locale", "en"),
+        field_locales=data.get("field_locales", {}),
+        available_locales=tuple(data.get("available_locales", ())),
+        tagline=data.get("tagline"),
+        video_url=data.get("video_url"),
+        id=data.get("id"),
+    )
+    return org

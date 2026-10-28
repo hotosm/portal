@@ -20,6 +20,7 @@ import EditPlanPage from "../portal-plans/EditPlanPage";
 import MyPlanPage from "../portal-plans/MyPlanPage";
 import PrivacyPolicyPage from "../pages/PrivacyPolicyPage";
 import ProfileUserPage from "../portal-user-profile/ProfileUserPage";
+import ProfileOrgPage from "../portal-org-profile/ProfileOrgPage";
 
 // Component to handle protected routes
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -178,6 +179,7 @@ export function AppRoutes() {
 
       {/* Public: a profile is viewable without a session */}
       <Route path="/:locale/people/:username" element={<ProfileUserPage />} />
+      <Route path="/:locale/org/:slug" element={<ProfileOrgPage />} />
 
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

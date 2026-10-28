@@ -1109,11 +1109,48 @@ async def test_owner_name_is_stored_on_create_and_backfilled(auth_client, test_d
 
 
 @pytest.mark.asyncio
-async def test_owner_name_falls_back_to_login_profile_name(auth_client, test_db_session):
+async def test_owner_name_uses_email_local_part_without_asking_login(auth_client, test_db_session):
     from app.services import login_service
 
     client, user = auth_client
     user.username = None
+    user.email = "ada.lovelace@example.com"
+    lookup = AsyncMock()
+    with patch.object(login_service, "get_account_profile", lookup):
+        created = await client.post("/api/plans", json={"name": "Mine", "is_public": True})
+    assert created.status_code == 201, created.text
+
+    public = (await client.get("/api/plans/public")).json()["items"]
+    assert public[0]["owner_name"] == "ada.lovelace"
+    lookup.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_owner_name_rewrites_stored_full_name_to_email_local_part(
+    auth_client, test_db_session
+):
+    client, user = auth_client
+    user.username = None
+    user.email = "ada.lovelace@example.com"
+    created = await client.post("/api/plans", json={"name": "Mine"})
+    plan = (
+        await test_db_session.execute(select(Plan).where(Plan.id == created.json()["id"]))
+    ).scalar_one()
+    plan.owner_name = "Ada Lovelace"
+    await test_db_session.commit()
+
+    assert (await client.get("/api/plans")).status_code == 200
+    await test_db_session.refresh(plan)
+    assert plan.owner_name == "ada.lovelace"
+
+
+@pytest.mark.asyncio
+async def test_owner_name_falls_back_to_osm_username_without_an_email(auth_client, test_db_session):
+    from app.services import login_service
+
+    client, user = auth_client
+    user.username = None
+    user.email = ""
     profile = login_service.AccountProfile(
         hanko_user_id=user.id,
         first_name="Ada",
@@ -1129,7 +1166,7 @@ async def test_owner_name_falls_back_to_login_profile_name(auth_client, test_db_
     assert created.status_code == 201, created.text
 
     public = (await client.get("/api/plans/public")).json()["items"]
-    assert public[0]["owner_name"] == "Ada Lovelace"
+    assert public[0]["owner_name"] == "ada_osm"
 
 
 @pytest.mark.asyncio
@@ -1138,6 +1175,7 @@ async def test_owner_name_stays_empty_when_login_is_down(auth_client, test_db_se
 
     client, user = auth_client
     user.username = None
+    user.email = ""
     with patch.object(
         login_service,
         "get_account_profile",

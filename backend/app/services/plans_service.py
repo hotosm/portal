@@ -163,10 +163,28 @@ async def list_plans(db: AsyncSession, ctx: PermissionContext) -> list[PlanSumma
             )
         )
 
-    visible = or_(*conditions)
-    plans = (
-        await db.execute(select(Plan.id, Plan.name).where(visible).order_by(Plan.created_at.desc()))
-    ).all()
+    return await _summarize_plans(db, or_(*conditions), Plan.created_at.desc())
+
+
+async def list_public_group_plans(
+    db: AsyncSession, group_type: str, group_id: str
+) -> list[PlanSummary]:
+    """Public plans of one group, most recently updated first. Same shape and
+    queries as list_plans, for unauthenticated pages like an org's profile."""
+    visible = and_(
+        Plan.visibility == "public",
+        Plan.group_type == group_type,
+        Plan.group_id == group_id,
+    )
+    return await _summarize_plans(db, visible, Plan.updated_at.desc())
+
+
+async def _summarize_plans(db: AsyncSession, visible, order_by) -> list[PlanSummary]:
+    """PlanSummary rows for the plans matching `visible`, in `order_by` order.
+
+    Two SELECTs: the plans, then a per-app project count aggregated in SQL, so
+    project rows, collections and images are never loaded."""
+    plans = (await db.execute(select(Plan.id, Plan.name).where(visible).order_by(order_by))).all()
     if not plans:
         return []
 
@@ -471,12 +489,26 @@ def _known_group_name(ctx: PermissionContext, plan: Plan) -> str | None:
     return ctx.group_names.get((plan.group_type, plan.group_id))
 
 
+def _name_from_email(email: str | None) -> str | None:
+    """The part of an email before the "@" (empty becomes None)."""
+    local = (email or "").strip().split("@", 1)[0].strip()
+    return local or None
+
+
+def _local_owner_name(ctx: PermissionContext) -> str | None:
+    """The author label the session itself can provide: the username, else the
+    part of the email before the "@"."""
+    return ctx.user_name or _name_from_email(ctx.user_email)
+
+
 async def _owner_display_name(ctx: PermissionContext) -> str | None:
-    """The name to show as a plan's author: the username when the session has
-    one, else the name on the user's login profile (first + last name, or the
-    connected OSM username). Never the email. None when login can't say."""
-    if ctx.user_name:
-        return ctx.user_name
+    """The name to show as a plan's author: the username, else the part of the
+    email before the "@", else the connected OSM username on the user's login
+    profile. Never the full email or the first/last name. None when login can't
+    say."""
+    local_name = _local_owner_name(ctx)
+    if local_name:
+        return local_name
     if ctx.user_id is None:
         return None
     try:
@@ -485,20 +517,19 @@ async def _owner_display_name(ctx: PermissionContext) -> str | None:
         return None
     if profile is None:
         return None
-    full_name = " ".join(part for part in (profile.first_name, profile.last_name) if part)
-    return full_name or profile.osm_username or None
+    return profile.osm_username or None
 
 
 async def sync_owner_name(db: AsyncSession, ctx: PermissionContext) -> None:
     """Store the caller's display name on every plan they own.
 
     Covers plans saved before the name was kept and names changed since. Login
-    is only asked when the session has no username and some owned plan has no
-    name yet. updated_at is pinned so a read never looks like an edit.
+    is only asked when the session can't name the user itself and some owned
+    plan has no name yet. updated_at is pinned so a read never looks like an edit.
     """
     if ctx.user_id is None:
         return
-    if not ctx.user_name:
+    if not _local_owner_name(ctx):
         missing = await db.execute(
             select(Plan.id).where(Plan.owner_id == ctx.user_id, Plan.owner_name.is_(None)).limit(1)
         )

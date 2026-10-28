@@ -20,8 +20,11 @@ class PermissionContext:
     login_ok: bool
     # {(group_type, group_id): name} for the same groups, to label their plans.
     group_names: dict[tuple[str, str], str] = field(default_factory=dict)
-    # The user's username (never the email), stored on the plans they create.
+    # The user's username, stored on the plans they create.
     user_name: str | None = None
+    # Only used to derive the author label (the part before the "@"); the full
+    # address is never stored or returned.
+    user_email: str | None = None
 
 
 async def build_context(user, hanko_cookie: str | None) -> PermissionContext:
@@ -33,13 +36,16 @@ async def build_context(user, hanko_cookie: str | None) -> PermissionContext:
     if user is None:
         return PermissionContext(None, frozenset(), True)
     user_name = getattr(user, "username", None) or None
+    user_email = getattr(user, "email", None) or None
     try:
         groups = await login_service.get_user_groups(user.id, hanko_cookie)
     except login_service.LoginUnavailable:
-        return PermissionContext(user.id, frozenset(), False, user_name=user_name)
+        return PermissionContext(
+            user.id, frozenset(), False, user_name=user_name, user_email=user_email
+        )
     memberships = frozenset((g.type, g.id) for g in groups)
     group_names = {(g.type, g.id): g.name for g in groups if g.name}
-    return PermissionContext(user.id, memberships, True, group_names, user_name)
+    return PermissionContext(user.id, memberships, True, group_names, user_name, user_email)
 
 
 def can_view(plan, ctx: PermissionContext) -> bool:
