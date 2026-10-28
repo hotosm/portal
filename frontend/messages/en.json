@@ -427,7 +427,6 @@
   "profile_learning_done_one": "completed",
   "profile_learning_hours_one": "hour",
   "profile_certifications_verify": "Verify",
-<<<<<<< HEAD
   "plan_public_title": "Public plans",
   "plan_public_see_my_plans": "See my plans",
   "plan_public_intro": "Open plans published by organizations and teams across the HOT community. Each plan brings together the projects coordinated across HOT tools, and everything they produce is open data.",
@@ -442,8 +441,7 @@
   "plan_public_error": "Something went wrong while loading public plans.",
   "plan_public_showing": "Showing {shown} of {total} plans",
   "plan_public_view_list": "List view",
-  "plan_public_view_grid": "Grid view"
-=======
+  "plan_public_view_grid": "Grid view",
   "user_menu_no_profile_title": "No public profile yet",
   "user_menu_no_profile_message": "You don't have a public profile yet. Create one so others can see your work on HOT tools.",
   "user_menu_create_profile": "Create public profile",
@@ -459,5 +457,4 @@
   "org_profile_plans": "Plans",
   "org_profile_contact_info": "Contact info",
   "org_profile_language_original": "(original)"
->>>>>>> 082c1b6eb784c72efd1d75ad7ab8f6f03bbc08fa
 }
