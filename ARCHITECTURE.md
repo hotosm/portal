@@ -168,6 +168,7 @@ portal/
   - `/api/plans` - List plans visible to the user (own + group plans) as summaries: `id`, `name`, `project_count`, `apps`
   - `POST /api/plans` - Create a new plan
   - `POST /api/plans/resolve-url` - Parse a project URL and confirm it exists upstream
+  - `/api/plans/public` - Paginated list of public plans, newest first (no auth required); query params `search` (plan name), `org` (group_id), `page`, `page_size`; each item carries `owner_name` (creator's username, stored on the plan), `cover_image_url` and a reduced `cover_project` (map location of the main project) for the grid view; also returns the `organizations` that own public plans
   - `/api/plans/shared/{plan_id}` - Return a public plan (no auth required)
   - `/api/plans/{plan_id}` - Return a plan if the user may view it
   - `PATCH /api/plans/{plan_id}` - Update name/description/scope/visibility/projects

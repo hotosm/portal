@@ -416,5 +416,20 @@
   "profile_learning_done": "terminés",
   "profile_learning_done_one": "terminé",
   "profile_learning_hours_one": "heure",
-  "profile_certifications_verify": "Vérifier"
+  "profile_certifications_verify": "Vérifier",
+  "plan_public_title": "Plans publics",
+  "plan_public_see_my_plans": "Voir mes plans",
+  "plan_public_intro": "Plans ouverts publiés par des organisations et des équipes de la communauté HOT. Chaque plan rassemble les projets coordonnés dans les outils HOT, et tout ce qu'ils produisent est en données ouvertes.",
+  "plan_public_count": "{count} plans publics",
+  "plan_public_count_one": "1 plan public",
+  "plan_public_search_label": "Rechercher",
+  "plan_public_search_placeholder": "Rechercher des plans par nom / créateur...",
+  "plan_public_col_plan": "Plan",
+  "plan_public_col_org": "Créé par",
+  "plan_public_col_projects": "Projets",
+  "plan_public_empty": "Il n'y a aucun plan public à afficher.",
+  "plan_public_error": "Une erreur s'est produite lors du chargement des plans publics.",
+  "plan_public_showing": "Affichage de {shown} plans sur {total}",
+  "plan_public_view_list": "Vue en liste",
+  "plan_public_view_grid": "Vue en grille"
 }

@@ -13,7 +13,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.orm.attributes import set_committed_value
 
 from app.core.config import settings
-from app.db.models.plan import Plan, PlanCollection, PlanProject
+from app.db.models.plan import Plan, PlanCollection, PlanImage, PlanProject
 from app.models.plan import (
     AppLiteral,
     HydratedProjectItem,
@@ -30,6 +30,10 @@ from app.models.plan import (
     PlanTag,
     PlanUpdate,
     ProjectPlacement,
+    PublicCoverProject,
+    PublicOrganization,
+    PublicPlanList,
+    PublicPlanSummary,
     StatusLiteral,
     UrlResolveResponse,
 )
@@ -39,6 +43,7 @@ from app.services import (
     export_tool_service,
     fair_service,
     field_tm_service,
+    login_service,
     mapswipe_service,
     open_aerial_map_service,
     permissions,
@@ -191,6 +196,209 @@ async def list_plans(db: AsyncSession, ctx: PermissionContext) -> list[PlanSumma
     ]
 
 
+def _escape_like(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+# How many of a plan's projects are looked at to find one with a cover. The
+# main project (featured first) wins; the rest only matter when it has none.
+_COVER_PROJECT_CANDIDATES = 8
+
+_COVER_IMAGE_KEYS = ("image_url", "thumbnail_url", "thumbnail", "image")
+
+
+def _is_coords(value: object, length: int) -> bool:
+    return isinstance(value, list) and len(value) == length
+
+
+def _cover_data(app: str, snapshot: dict) -> dict | None:
+    """The part of a project snapshot the client can draw a cover from: its map
+    location (the keys each app uses) or an image the upstream supplied. None
+    when the snapshot has neither. Everything else in the snapshot is left out
+    of the public list."""
+    data: dict = {}
+    if app in ("chatmap", "umap") and _is_coords(snapshot.get("centroid"), 2):
+        data["centroid"] = snapshot["centroid"]
+    if app == "tasking-manager" and _is_coords(snapshot.get("aoiBBOX"), 4):
+        data["aoiBBOX"] = snapshot["aoiBBOX"]
+    if app == "sketchmap-tool" and _is_coords(snapshot.get("bbox"), 4):
+        data["bbox"] = snapshot["bbox"]
+    for key in _COVER_IMAGE_KEYS:
+        value = snapshot.get(key)
+        if isinstance(value, str) and value:
+            data[key] = value
+    return data or None
+
+
+async def _public_plan_covers(
+    db: AsyncSession, plan_ids: list[str]
+) -> tuple[dict[str, str], dict[str, PublicCoverProject]]:
+    """First image and main project (featured first) of each plan, in two queries."""
+    if not plan_ids:
+        return {}, {}
+
+    first_image = (
+        select(
+            PlanImage.plan_id,
+            PlanImage.url,
+            func.row_number()
+            .over(
+                partition_by=PlanImage.plan_id,
+                order_by=(PlanImage.display_order, PlanImage.created_at),
+            )
+            .label("rn"),
+        )
+        .where(PlanImage.plan_id.in_(plan_ids))
+        .subquery()
+    )
+    image_rows = await db.execute(
+        select(first_image.c.plan_id, first_image.c.url).where(first_image.c.rn == 1)
+    )
+    images: dict[str, str] = dict(image_rows.all())
+
+    main_project = (
+        select(
+            PlanProject.plan_id,
+            PlanProject.app,
+            PlanProject.data,
+            func.row_number()
+            .over(
+                partition_by=PlanProject.plan_id,
+                order_by=(PlanProject.featured.desc(), PlanProject.display_order, PlanProject.id),
+            )
+            .label("rn"),
+        )
+        .where(
+            PlanProject.plan_id.in_(plan_ids),
+            PlanProject.project_exists.is_(True),
+            PlanProject.app.in_(_KNOWN_APPS),
+        )
+        .subquery()
+    )
+    projects: dict[str, PublicCoverProject] = {}
+    candidates = await db.execute(
+        select(main_project.c.plan_id, main_project.c.app, main_project.c.data)
+        .where(main_project.c.rn <= _COVER_PROJECT_CANDIDATES)
+        .order_by(main_project.c.plan_id, main_project.c.rn)
+    )
+    for plan_id, app, data in candidates.all():
+        if plan_id in projects:
+            continue
+        cover = _cover_data(app, data if isinstance(data, dict) else {})
+        if cover is not None:
+            projects[plan_id] = PublicCoverProject(app=app, data=cover)
+    return images, projects
+
+
+async def list_public_plans(
+    db: AsyncSession,
+    *,
+    search: str | None = None,
+    org: str | None = None,
+    page: int = 1,
+    page_size: int = 20,
+) -> PublicPlanList:
+    """List plans with visibility=public, newest first, for anonymous visitors.
+
+    Filters by a case-insensitive substring of the plan name or of its "created
+    by" label (the group name, or the owner name for personal plans), and by
+    organization (group_id). The organizations list covers every public plan, independent of
+    the filters, so the select keeps all options while the table narrows."""
+    public = [Plan.visibility == "public"]
+    if search and search.strip():
+        pattern = f"%{_escape_like(search.strip())}%"
+        public_filtered = [
+            *public,
+            or_(
+                Plan.name.ilike(pattern, escape="\\"),
+                func.coalesce(Plan.group_name, Plan.owner_name).ilike(pattern, escape="\\"),
+            ),
+        ]
+    else:
+        public_filtered = list(public)
+    if org:
+        public_filtered.append(Plan.group_id == org)
+
+    total = (await db.execute(select(func.count(Plan.id)).where(*public_filtered))).scalar_one()
+    rows = (
+        await db.execute(
+            select(
+                Plan.id,
+                Plan.name,
+                Plan.description,
+                Plan.group_id,
+                Plan.group_name,
+                Plan.owner_id,
+                Plan.owner_name,
+                Plan.created_at,
+            )
+            .where(*public_filtered)
+            .order_by(Plan.created_at.desc(), Plan.id)
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+    ).all()
+
+    project_count: dict[str, int] = defaultdict(int)
+    apps: dict[str, set[str]] = defaultdict(set)
+    if rows:
+        counts_stmt = (
+            select(PlanProject.plan_id, PlanProject.app, func.count(PlanProject.id))
+            .where(
+                PlanProject.plan_id.in_([row.id for row in rows]),
+                or_(PlanProject.project_exists.is_(False), PlanProject.app.in_(_KNOWN_APPS)),
+            )
+            .group_by(PlanProject.plan_id, PlanProject.app)
+        )
+        for plan_id, app, count in (await db.execute(counts_stmt)).all():
+            project_count[plan_id] += count
+            if app is not None:
+                apps[plan_id].add(app)
+
+    cover_images, cover_projects = await _public_plan_covers(db, [row.id for row in rows])
+    # "Created by" shows the group name when there is one, so only plans that
+    # fall back to the owner's name can link to a person's public profile.
+    owner_slugs = await login_service.get_public_owner_slugs(
+        [row.owner_id for row in rows if row.group_name is None]
+    )
+
+    org_rows = (
+        await db.execute(
+            select(Plan.group_id, func.max(Plan.group_name))
+            .where(*public, Plan.group_id.is_not(None))
+            .group_by(Plan.group_id)
+            .order_by(func.max(Plan.group_name), Plan.group_id)
+        )
+    ).all()
+
+    return PublicPlanList(
+        items=[
+            PublicPlanSummary(
+                id=row.id,
+                name=row.name,
+                description=row.description,
+                project_count=project_count[row.id],
+                apps=sorted(apps[row.id]),
+                group_id=row.group_id,
+                group_name=row.group_name,
+                owner_name=row.owner_name,
+                owner_slug=owner_slugs.get(row.owner_id) if row.group_name is None else None,
+                cover_image_url=cover_images.get(row.id),
+                cover_project=cover_projects.get(row.id),
+                created_at=row.created_at,
+            )
+            for row in rows
+        ],
+        total=total,
+        page=page,
+        page_size=page_size,
+        organizations=[
+            PublicOrganization(group_id=group_id, group_name=group_name)
+            for group_id, group_name in org_rows
+        ],
+    )
+
+
 async def _load_plan(db: AsyncSession, plan_id: str) -> Plan | None:
     stmt = (
         select(Plan)
@@ -263,6 +471,49 @@ def _known_group_name(ctx: PermissionContext, plan: Plan) -> str | None:
     return ctx.group_names.get((plan.group_type, plan.group_id))
 
 
+async def _owner_display_name(ctx: PermissionContext) -> str | None:
+    """The name to show as a plan's author: the username when the session has
+    one, else the name on the user's login profile (first + last name, or the
+    connected OSM username). Never the email. None when login can't say."""
+    if ctx.user_name:
+        return ctx.user_name
+    if ctx.user_id is None:
+        return None
+    try:
+        profile = await login_service.get_account_profile(ctx.user_id)
+    except login_service.LoginUnavailable:
+        return None
+    if profile is None:
+        return None
+    full_name = " ".join(part for part in (profile.first_name, profile.last_name) if part)
+    return full_name or profile.osm_username or None
+
+
+async def sync_owner_name(db: AsyncSession, ctx: PermissionContext) -> None:
+    """Store the caller's display name on every plan they own.
+
+    Covers plans saved before the name was kept and names changed since. Login
+    is only asked when the session has no username and some owned plan has no
+    name yet. updated_at is pinned so a read never looks like an edit.
+    """
+    if ctx.user_id is None:
+        return
+    if not ctx.user_name:
+        missing = await db.execute(
+            select(Plan.id).where(Plan.owner_id == ctx.user_id, Plan.owner_name.is_(None)).limit(1)
+        )
+        if missing.first() is None:
+            return
+    name = await _owner_display_name(ctx)
+    if not name:
+        return
+    await db.execute(
+        update(Plan)
+        .where(Plan.owner_id == ctx.user_id, Plan.owner_name.is_distinct_from(name))
+        .values(owner_name=name, updated_at=Plan.updated_at)
+    )
+
+
 async def _sync_group_name(db: AsyncSession, ctx: PermissionContext, plan: Plan) -> None:
     """Store the group's name whenever a member reads the plan.
 
@@ -295,6 +546,7 @@ async def create_plan(db: AsyncSession, ctx: PermissionContext, payload: PlanCre
         group_type=group_type,
         group_id=group_id,
         group_name=ctx.group_names.get((group_type, group_id)) if group_id else None,
+        owner_name=await _owner_display_name(ctx),
         edit_scope=scope.get("edit_scope", "owner"),
     )
     db.add(plan)
@@ -1369,6 +1621,7 @@ async def get_plan_hydrated(
     if plan is None:
         return None
     await _sync_group_name(db, ctx, plan)
+    await sync_owner_name(db, ctx)
 
     if not refresh:
         return _build_plan_response(plan, [_item_from_snapshot(row) for row in plan.projects], ctx)

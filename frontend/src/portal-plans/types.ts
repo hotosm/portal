@@ -222,3 +222,32 @@ export interface PlanFormValues {
   description: string
   pendingImages: File[]
 }
+
+/** One row of GET /api/plans/public. */
+export interface PublicPlanSummary {
+  id: string
+  name: string
+  description: string | null
+  project_count: number
+  apps: AppName[]
+  group_id: string | null
+  group_name: string | null
+  owner_name: string | null
+  owner_slug: string | null
+  cover_image_url: string | null
+  cover_project: { app: AppName | null; data: Record<string, unknown> } | null
+  created_at: string
+}
+
+export interface PublicOrganization {
+  group_id: string
+  group_name: string | null
+}
+
+export interface PublicPlanList {
+  items: PublicPlanSummary[]
+  total: number
+  page: number
+  page_size: number
+  organizations: PublicOrganization[]
+}

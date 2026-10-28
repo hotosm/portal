@@ -20,6 +20,8 @@ class PermissionContext:
     login_ok: bool
     # {(group_type, group_id): name} for the same groups, to label their plans.
     group_names: dict[tuple[str, str], str] = field(default_factory=dict)
+    # The user's username (never the email), stored on the plans they create.
+    user_name: str | None = None
 
 
 async def build_context(user, hanko_cookie: str | None) -> PermissionContext:
@@ -30,13 +32,14 @@ async def build_context(user, hanko_cookie: str | None) -> PermissionContext:
     """
     if user is None:
         return PermissionContext(None, frozenset(), True)
+    user_name = getattr(user, "username", None) or None
     try:
         groups = await login_service.get_user_groups(user.id, hanko_cookie)
     except login_service.LoginUnavailable:
-        return PermissionContext(user.id, frozenset(), False)
+        return PermissionContext(user.id, frozenset(), False, user_name=user_name)
     memberships = frozenset((g.type, g.id) for g in groups)
     group_names = {(g.type, g.id): g.name for g in groups if g.name}
-    return PermissionContext(user.id, memberships, True, group_names)
+    return PermissionContext(user.id, memberships, True, group_names, user_name)
 
 
 def can_view(plan, ctx: PermissionContext) -> bool:
@@ -47,9 +50,7 @@ def can_view(plan, ctx: PermissionContext) -> bool:
         return True
     if plan.group_id is None:
         return False
-    if plan.visibility == "group" and is_member(
-        ctx, plan.group_type, plan.group_id
-    ):
+    if plan.visibility == "group" and is_member(ctx, plan.group_type, plan.group_id):
         return True
     return False
 
@@ -67,9 +68,7 @@ def can_edit(plan, ctx: PermissionContext) -> bool:
     )
 
 
-def is_member(
-    ctx: PermissionContext, group_type: str | None, group_id: str | None
-) -> bool:
+def is_member(ctx: PermissionContext, group_type: str | None, group_id: str | None) -> bool:
     """Whether the context's user belongs to the given group."""
     if group_type is None or group_id is None:
         return False
