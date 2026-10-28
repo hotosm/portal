@@ -15,7 +15,7 @@ from sqlalchemy import select
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.db.models.plan import PlanProject
+from app.db.models.plan import Plan, PlanImage, PlanProject
 from app.services import plans_service
 from app.services.exceptions import UpstreamUnavailable
 from app.tests.conftest import make_user
@@ -858,6 +858,345 @@ async def test_shared_endpoint_no_auth_required(test_db_session):
     assert resp.json()["id"] == plan_id
 
     app.dependency_overrides.clear()
+
+
+# ─────────────────────────── public plans list ───────────────────────────────
+
+
+async def _add_public_plan(
+    db,
+    name,
+    *,
+    visibility="public",
+    group_id=None,
+    group_name=None,
+    owner_name=None,
+    description=None,
+    created_at=None,
+    projects=(),
+):
+    plan = Plan(
+        owner_id="owner-id",
+        name=name,
+        description=description,
+        visibility=visibility,
+        group_type="organization" if group_id else None,
+        group_id=group_id,
+        group_name=group_name,
+        owner_name=owner_name,
+    )
+    if created_at is not None:
+        plan.created_at = created_at
+    db.add(plan)
+    await db.flush()
+    for app, project_id in projects:
+        db.add(PlanProject(plan_id=plan.id, app=app, project_id=project_id, project_exists=True))
+    await db.commit()
+    return plan.id
+
+
+@pytest.mark.asyncio
+async def test_public_list_requires_no_auth_and_only_returns_public(client, test_db_session):
+    pub = await _add_public_plan(test_db_session, "Open plan")
+    await _add_public_plan(test_db_session, "Secret", visibility="private")
+    await _add_public_plan(test_db_session, "Team only", visibility="group", group_id="g1")
+
+    resp = await client.get("/api/plans/public")
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["total"] == 1
+    assert [item["id"] for item in body["items"]] == [pub]
+    assert set(body["items"][0]) == {
+        "id",
+        "name",
+        "description",
+        "project_count",
+        "apps",
+        "group_id",
+        "group_name",
+        "owner_name",
+        "owner_slug",
+        "cover_image_url",
+        "cover_project",
+        "created_at",
+    }
+
+
+@pytest.mark.asyncio
+async def test_public_list_orders_newest_first_and_counts_projects(client, test_db_session):
+    from datetime import UTC, datetime, timedelta
+
+    now = datetime.now(UTC)
+    await _add_public_plan(test_db_session, "Old", created_at=now - timedelta(days=2))
+    new_id = await _add_public_plan(
+        test_db_session,
+        "New",
+        created_at=now,
+        projects=[("tasking-manager", "1"), ("tasking-manager", "2"), ("fair", "9")],
+    )
+
+    items = (await client.get("/api/plans/public")).json()["items"]
+    assert [i["name"] for i in items] == ["New", "Old"]
+    assert items[0]["id"] == new_id
+    assert items[0]["project_count"] == 3
+    assert items[0]["apps"] == ["fair", "tasking-manager"]
+    assert items[1]["project_count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_public_list_search_and_org_filter(client, test_db_session):
+    await _add_public_plan(test_db_session, "Flood response", group_id="g1", group_name="Org One")
+    await _add_public_plan(test_db_session, "Flood baseline", group_id="g2", group_name="Org Two")
+    await _add_public_plan(test_db_session, "Schools map", group_id="g2", group_name="Org Two")
+
+    body = (await client.get("/api/plans/public", params={"search": "FLOOD"})).json()
+    assert body["total"] == 2
+
+    body = (await client.get("/api/plans/public", params={"org": "g2"})).json()
+    assert {i["name"] for i in body["items"]} == {"Flood baseline", "Schools map"}
+
+    body = (await client.get("/api/plans/public", params={"search": "flood", "org": "g2"})).json()
+    assert [i["name"] for i in body["items"]] == ["Flood baseline"]
+    assert {o["group_id"] for o in body["organizations"]} == {"g1", "g2"}
+
+    body = (await client.get("/api/plans/public", params={"org": "unknown"})).json()
+    assert body["items"] == [] and body["total"] == 0
+
+
+@pytest.mark.asyncio
+async def test_public_list_search_matches_created_by(client, test_db_session):
+    await _add_public_plan(
+        test_db_session, "Alpha", group_id="g1", group_name="Red Cross", owner_name="Ana Perez"
+    )
+    await _add_public_plan(test_db_session, "Beta", owner_name="Ana Gomez")
+    await _add_public_plan(test_db_session, "Gamma", owner_name="Luis Diaz")
+
+    body = (await client.get("/api/plans/public", params={"search": "red cross"})).json()
+    assert [i["name"] for i in body["items"]] == ["Alpha"]
+
+    body = (await client.get("/api/plans/public", params={"search": "ana"})).json()
+    assert [i["name"] for i in body["items"]] == ["Beta"]
+
+    body = (await client.get("/api/plans/public", params={"search": "gam"})).json()
+    assert [i["name"] for i in body["items"]] == ["Gamma"]
+
+
+@pytest.mark.asyncio
+async def test_public_list_links_personal_plans_to_public_owner_profiles(
+    client, test_db_session, monkeypatch
+):
+    from app.services import login_service
+
+    await _add_public_plan(test_db_session, "Personal", owner_name="Ana Perez")
+    await _add_public_plan(test_db_session, "Grouped", group_id="g1", group_name="Red Cross")
+    lookup = AsyncMock(return_value={"owner-id": "ana-perez"})
+    monkeypatch.setattr(login_service, "get_public_owner_slugs", lookup)
+
+    items = {i["name"]: i for i in (await client.get("/api/plans/public")).json()["items"]}
+
+    assert items["Personal"]["owner_slug"] == "ana-perez"
+    assert items["Grouped"]["owner_slug"] is None
+    lookup.assert_awaited_once_with(["owner-id"])
+
+
+@pytest.mark.asyncio
+async def test_public_list_search_treats_wildcards_literally(client, test_db_session):
+    await _add_public_plan(test_db_session, "100% mapped")
+    await _add_public_plan(test_db_session, "Other plan")
+
+    body = (await client.get("/api/plans/public", params={"search": "%"})).json()
+    assert [i["name"] for i in body["items"]] == ["100% mapped"]
+    body = (await client.get("/api/plans/public", params={"search": "_"})).json()
+    assert body["items"] == []
+
+
+@pytest.mark.asyncio
+async def test_public_list_pagination_and_organizations(client, test_db_session):
+    for i in range(5):
+        await _add_public_plan(
+            test_db_session, f"Plan {i}", group_id=f"g{i % 2}", group_name=f"Org {i % 2}"
+        )
+    await _add_public_plan(test_db_session, "Private", visibility="private", group_id="hidden")
+
+    page2 = (await client.get("/api/plans/public", params={"page": 2, "page_size": 2})).json()
+    assert page2["total"] == 5
+    assert page2["page"] == 2 and page2["page_size"] == 2
+    assert len(page2["items"]) == 2
+    assert [o["group_id"] for o in page2["organizations"]] == ["g0", "g1"]
+
+    past_end = (await client.get("/api/plans/public", params={"page": 9, "page_size": 2})).json()
+    assert past_end["items"] == [] and past_end["total"] == 5
+
+
+@pytest.mark.asyncio
+async def test_public_list_cover_prefers_image_then_featured_project(client, test_db_session):
+    with_image = await _add_public_plan(
+        test_db_session, "With image", projects=[("tasking-manager", "1")]
+    )
+    test_db_session.add(PlanImage(plan_id=with_image, s3_key="k2", url="/img/2", display_order=2))
+    test_db_session.add(PlanImage(plan_id=with_image, s3_key="k1", url="/img/1", display_order=1))
+    map_only = await _add_public_plan(
+        test_db_session, "Map only", projects=[("tasking-manager", "7"), ("umap", "8")]
+    )
+    bare = await _add_public_plan(test_db_session, "Bare")
+    rows = (
+        (await test_db_session.execute(select(PlanProject).where(PlanProject.plan_id == map_only)))
+        .scalars()
+        .all()
+    )
+    for row in rows:
+        if row.app == "umap":
+            row.featured = True
+            row.data = {"centroid": [10.5, 20.5], "secret": "never sent"}
+    await test_db_session.commit()
+
+    items = {i["id"]: i for i in (await client.get("/api/plans/public")).json()["items"]}
+    assert items[with_image]["cover_image_url"] == "/img/1"
+    assert items[map_only]["cover_image_url"] is None
+    assert items[map_only]["cover_project"] == {"app": "umap", "data": {"centroid": [10.5, 20.5]}}
+    assert items[bare]["cover_image_url"] is None
+    assert items[bare]["cover_project"] is None
+
+
+@pytest.mark.asyncio
+async def test_public_list_cover_skips_projects_without_a_map(client, test_db_session):
+    plan_id = await _add_public_plan(
+        test_db_session,
+        "Later project has the map",
+        projects=[("fair", "1"), ("drone-tasking-manager", "2"), ("tasking-manager", "3")],
+    )
+    rows = (
+        (await test_db_session.execute(select(PlanProject).where(PlanProject.plan_id == plan_id)))
+        .scalars()
+        .all()
+    )
+    snapshots = {
+        "fair": {"name": "no image", "thumbnail_url": None},
+        "drone-tasking-manager": {"image_url": "https://img/drone.png", "outline": {"big": 1}},
+        "tasking-manager": {"aoiBBOX": [1, 2, 3, 4]},
+    }
+    for row in rows:
+        row.display_order = {"fair": 0, "drone-tasking-manager": 1, "tasking-manager": 2}[row.app]
+        row.data = snapshots[row.app]
+    await test_db_session.commit()
+
+    item = (await client.get("/api/plans/public")).json()["items"][0]
+    assert item["cover_project"] == {
+        "app": "drone-tasking-manager",
+        "data": {"image_url": "https://img/drone.png"},
+    }
+
+
+@pytest.mark.asyncio
+async def test_owner_name_is_stored_on_create_and_backfilled(auth_client, test_db_session):
+    client, user = auth_client
+    created = await client.post("/api/plans", json={"name": "Mine", "is_public": True})
+    assert created.status_code == 201, created.text
+    plan_id = created.json()["id"]
+
+    plan = (await test_db_session.execute(select(Plan).where(Plan.id == plan_id))).scalar_one()
+    assert plan.owner_name == user.username
+
+    plan.owner_name = None
+    await test_db_session.commit()
+    assert (await client.get("/api/plans")).status_code == 200
+    await test_db_session.refresh(plan)
+    assert plan.owner_name == user.username
+
+    public = (await client.get("/api/plans/public")).json()["items"]
+    assert public[0]["owner_name"] == user.username
+    assert "@" not in (public[0]["owner_name"] or "")
+
+
+@pytest.mark.asyncio
+async def test_owner_name_uses_email_local_part_without_asking_login(auth_client, test_db_session):
+    from app.services import login_service
+
+    client, user = auth_client
+    user.username = None
+    user.email = "ada.lovelace@example.com"
+    lookup = AsyncMock()
+    with patch.object(login_service, "get_account_profile", lookup):
+        created = await client.post("/api/plans", json={"name": "Mine", "is_public": True})
+    assert created.status_code == 201, created.text
+
+    public = (await client.get("/api/plans/public")).json()["items"]
+    assert public[0]["owner_name"] == "ada.lovelace"
+    lookup.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_owner_name_rewrites_stored_full_name_to_email_local_part(
+    auth_client, test_db_session
+):
+    client, user = auth_client
+    user.username = None
+    user.email = "ada.lovelace@example.com"
+    created = await client.post("/api/plans", json={"name": "Mine"})
+    plan = (
+        await test_db_session.execute(select(Plan).where(Plan.id == created.json()["id"]))
+    ).scalar_one()
+    plan.owner_name = "Ada Lovelace"
+    await test_db_session.commit()
+
+    assert (await client.get("/api/plans")).status_code == 200
+    await test_db_session.refresh(plan)
+    assert plan.owner_name == "ada.lovelace"
+
+
+@pytest.mark.asyncio
+async def test_owner_name_falls_back_to_osm_username_without_an_email(auth_client, test_db_session):
+    from app.services import login_service
+
+    client, user = auth_client
+    user.username = None
+    user.email = ""
+    profile = login_service.AccountProfile(
+        hanko_user_id=user.id,
+        first_name="Ada",
+        last_name="Lovelace",
+        picture_url=None,
+        slug=None,
+        is_public=False,
+        osm_username="ada_osm",
+        osm_avatar_url=None,
+    )
+    with patch.object(login_service, "get_account_profile", AsyncMock(return_value=profile)):
+        created = await client.post("/api/plans", json={"name": "Mine", "is_public": True})
+    assert created.status_code == 201, created.text
+
+    public = (await client.get("/api/plans/public")).json()["items"]
+    assert public[0]["owner_name"] == "ada_osm"
+
+
+@pytest.mark.asyncio
+async def test_owner_name_stays_empty_when_login_is_down(auth_client, test_db_session):
+    from app.services import login_service
+
+    client, user = auth_client
+    user.username = None
+    user.email = ""
+    with patch.object(
+        login_service,
+        "get_account_profile",
+        AsyncMock(side_effect=login_service.LoginUnavailable()),
+    ):
+        created = await client.post("/api/plans", json={"name": "Mine", "is_public": True})
+        assert (await client.get("/api/plans")).status_code == 200
+    assert created.status_code == 201, created.text
+
+    public = (await client.get("/api/plans/public")).json()["items"]
+    assert public[0]["owner_name"] is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "params",
+    [{"page": 0}, {"page_size": 0}, {"page_size": 101}, {"page": "x"}],
+)
+async def test_public_list_rejects_invalid_pagination(client, params):
+    resp = await client.get("/api/plans/public", params=params)
+    assert resp.status_code == 422
 
 
 @pytest.mark.asyncio

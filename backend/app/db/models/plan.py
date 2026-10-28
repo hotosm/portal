@@ -53,6 +53,10 @@ class Plan(Base):
     # a user about their own groups, so this is what lets a visitor who is not
     # in the group (or not signed in) see who a public plan belongs to.
     group_name = Column(String, nullable=True)
+    # The owner's username as last seen when they created or opened a plan. The
+    # plan only stores owner_id, so this is what lets anyone see who made a
+    # public plan that has no group.
+    owner_name = Column(String, nullable=True)
     edit_scope = Column(String, nullable=False, default="owner")
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at = Column(

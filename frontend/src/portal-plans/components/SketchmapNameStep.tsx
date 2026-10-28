@@ -1,4 +1,5 @@
 import Button from '../../components/shared/Button'
+import Icon from '../../components/shared/Icon'
 import { m } from '../../paraglide/messages'
 import type { AppName } from '../types'
 import { resolveAppLabel } from './PlanProjectCard'
@@ -29,37 +30,53 @@ function SketchmapNameStep({
   onBack,
 }: SketchmapNameStepProps) {
   return (
-    <div className="flex flex-col gap-xs">
-      <span className="text-xs font-semibold text-hot-gray-500 uppercase tracking-wide">
-        {m.plan_picker_sketchmap_name_heading()}
-      </span>
-      <p className="text-xs text-hot-gray-400">{resolveAppLabel(app, projectId)}</p>
-      <div className="flex gap-xs">
-        <input
-          type="text"
-          autoFocus
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault()
-              onConfirm()
-            }
-          }}
-          placeholder={m.plan_picker_sketchmap_name_placeholder()}
-          className="flex-1 border border-hot-gray-300 rounded-lg px-sm py-xs text-sm outline-none focus:border-hot-red-500"
-        />
-        <Button type="button" size="small" disabled={!value.trim()} onClick={onConfirm}>
-          {m.plan_picker_sketchmap_name_confirm()}
-        </Button>
+    <div className="flex flex-col gap-sm">
+      <p className="flex items-center gap-xs text-sm text-hot-green-700 m-0">
+        <Icon library="bootstrap" name="check-circle-fill" />
+        <span>
+          {m.plan_picker_sketchmap_name_detected()} {resolveAppLabel(app, projectId)}
+        </span>
+      </p>
+      <div className="flex flex-col gap-2xs">
+        <span className="text-base font-semibold text-hot-gray-800">
+          {m.plan_picker_sketchmap_name_heading()}
+        </span>
+        <p className="text-sm text-hot-gray-600 m-0">{m.plan_picker_sketchmap_name_help()}</p>
       </div>
-      <button
-        type="button"
-        onClick={onBack}
-        className="self-start text-xs text-hot-gray-500 underline hover:text-hot-gray-700"
-      >
+      <label className="flex flex-col gap-2xs">
+        <span className="text-xs font-semibold text-hot-gray-800">
+          {m.plan_picker_sketchmap_name_label()}
+        </span>
+        <div className="flex gap-xs">
+          <input
+            type="text"
+            autoFocus
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                onConfirm()
+              }
+            }}
+            placeholder={m.plan_picker_sketchmap_name_placeholder()}
+            className="flex-1 border border-hot-gray-300 rounded-lg px-sm py-xs text-sm outline-none focus:border-hot-red-500"
+          />
+          <Button
+            type="button"
+            size="small"
+            variant="danger"
+            disabled={!value.trim()}
+            onClick={onConfirm}
+          >
+            {m.plan_picker_sketchmap_name_confirm()}
+          </Button>
+        </div>
+      </label>
+      <Button type="button" size="small" appearance="plain" className="self-start" onClick={onBack}>
+        <Icon slot="start" library="bootstrap" name="arrow-left" />
         {m.plan_picker_sketchmap_name_back()}
-      </button>
+      </Button>
     </div>
   )
 }

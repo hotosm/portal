@@ -2,6 +2,7 @@
 
 """Simple in-memory cache with TTL support for API responses."""
 
+import asyncio
 import time
 import hashlib
 import json
@@ -48,6 +49,35 @@ def clear_cache() -> int:
     count = len(_cache)
     _cache.clear()
     return count
+
+
+_inflight: dict[str, "asyncio.Task[Any]"] = {}
+
+
+async def get_or_fetch(key: str, fetch, ttl: int = DEFAULT_TTL) -> Any:
+    """Return the cached value or run `fetch` once for all concurrent callers.
+
+    Concurrent requests for the same key share a single upstream call instead
+    of each issuing their own. Failed fetches are not cached.
+    """
+    cached_data = get_cached(key)
+    if cached_data is not None:
+        return cached_data
+
+    task = _inflight.get(key)
+    if task is None:
+        async def _run() -> Any:
+            try:
+                result = await fetch()
+                set_cached(key, result, ttl)
+                return result
+            finally:
+                _inflight.pop(key, None)
+
+        task = asyncio.ensure_future(_run())
+        _inflight[key] = task
+
+    return await asyncio.shield(task)
 
 
 def cache_key(*args, **kwargs) -> str:

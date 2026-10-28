@@ -28,7 +28,7 @@ export function AddByUrlSection({
     <div
       className={`flex flex-col gap-xs ${divider ? 'border-t border-hot-gray-200 pt-md mt-md' : ''}`}
     >
-      <span className="text-xs font-semibold text-hot-gray-500 uppercase tracking-wide">
+      <span className="text-xs font-semibold text-hot-gray-800 uppercase tracking-wide">
         {m.plan_picker_url_heading()}
       </span>
       {description && <p className="text-xs text-hot-gray-400">{description}</p>}
@@ -53,6 +53,7 @@ export function AddByUrlSection({
           {isPending ? m.plan_picker_url_checking() : m.plan_picker_url_add()}
         </Button>
       </div>
+      <p className="text-xs text-hot-gray-400">{m.plan_picker_url_supported_tools()}</p>
       {urlError && <p className="text-xs text-hot-red-600">{urlError}</p>}
     </div>
   )
