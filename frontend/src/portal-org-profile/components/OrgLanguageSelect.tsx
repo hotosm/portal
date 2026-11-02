@@ -19,7 +19,7 @@ function OrgLanguageSelect({
   return (
     <section className="flex flex-col gap-sm mb-lg">
       <Dropdown onSelect={onSelect}>
-        <Button slot="trigger" appearance="outlined" withCaret>
+        <Button slot="trigger" appearance="outlined" size="small" withCaret>
           <span lang={contentLang}>{nativeLanguageName(contentLang)}</span>
         </Button>
         {availableLocales.map((code) => (
