@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Badge from "../components/shared/Badge";
 import Button from "../components/shared/Button";
 import Callout from "../components/shared/Callout";
@@ -13,9 +13,11 @@ import {
   getMarketplaceServices,
   getWhoItsFor,
 } from "../constants/marketplaceData";
+import { usePageMeta } from "../hooks/usePageMeta";
 import { m } from "../paraglide/messages";
+import { getLocale } from "../paraglide/runtime";
 import MarketplaceSubNav from "./MarketplaceSubNav";
-import { renderBold } from "./renderBold";
+import MarketplaceConsentBanner from "./components/MarketplaceConsentBanner";
 
 const sectionClassName =
   "container flex flex-col gap-lg pb-3xl pt-xl scroll-mt-[72px]";
@@ -26,7 +28,7 @@ const brandGradient =
 
 function trackStartYourProject() {
   const paq = (window._paq = window._paq || []);
-  paq.push(["setCustomUrl", "/marketplace#start-your-project"]);
+  paq.push(["setCustomUrl", `/${getLocale()}/marketplace#start-your-project`]);
   paq.push(["setDocumentTitle", "Marketplace > Start your project"]);
   paq.push(["trackPageView"]);
 }
@@ -38,6 +40,16 @@ function MarketplacePage() {
   const services = getMarketplaceServices();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
+
+  usePageMeta({
+    title: m.marketplace_meta_title(),
+    description: m.marketplace_meta_description(),
+  });
+
+  useEffect(() => {
+    const id = window.location.hash.slice(1);
+    if (id) document.getElementById(id)?.scrollIntoView({ behavior: "instant" });
+  }, []);
   
   
 
@@ -47,8 +59,9 @@ function MarketplacePage() {
   }
 
   return (
-    <div className="mb-3xl">
+    <div className="marketplace-page mb-3xl">
       <MarketplaceSubNav />
+      <MarketplaceConsentBanner />
       <section className="mb-3xl" style={{ background: brandGradient }}>
         <div className="container flex flex-col gap-lg py-4xl">
           <span className="text-sm text-hot-red-600 font-semibold leading-tight tracking-[0.12em]">
@@ -57,8 +70,13 @@ function MarketplacePage() {
           <h1 className="max-w-[600px] text-3xl font-semibold leading-tight">
             {m.marketplace_hero_title()}
           </h1>
-          <p className="max-w-2xl text-lg leading-relaxed text-hot-gray-800">
-            {renderBold(m.marketplace_hero_subtitle())}
+          {/* Translation strings are trusted i18n resources, never user input. */}
+          <p
+            className="max-w-2xl text-lg leading-relaxed text-hot-gray-800"
+            dangerouslySetInnerHTML={{ __html: m.marketplace_hero_subtitle() }}
+          />
+          <p className="text-lg font-semibold text-hot-gray-800">
+            {m.marketplace_hero_tagline()}
           </p>
           <div className="flex flex-col gap-md md:flex-row md:flex-wrap">
             <Button
@@ -74,7 +92,8 @@ function MarketplacePage() {
                 name="rocket"
                 label=""
               />
-              {m.marketplace_hero_cta()}
+              <span className="md:hidden">{m.marketplace_hero_cta_short()}</span>
+              <span className="hidden md:inline">{m.marketplace_hero_cta()}</span>
             </Button>
             <Button
               variant="neutral"
@@ -83,7 +102,8 @@ function MarketplacePage() {
               className="w-full md:w-auto"
               onClick={() => setIsContactOpen(true)}
             >
-              {m.marketplace_hero_cta_more_info()}
+              <span className="md:hidden">{m.marketplace_hero_cta_more_info_short()}</span>
+              <span className="hidden md:inline">{m.marketplace_hero_cta_more_info()}</span>
             </Button>
           </div>
         </div>
@@ -95,9 +115,11 @@ function MarketplacePage() {
         </h3>
         <div className="flex flex-col gap-2xl md:flex-row md:items-center">
           <div className="flex flex-1 flex-col gap-md">
-            <p className="leading-relaxed text-hot-gray-800">
-              {renderBold(m.marketplace_whatitis_intro())}
-            </p>
+            {/* Translation strings are trusted i18n resources, never user input. */}
+            <p
+              className="leading-relaxed text-hot-gray-800"
+              dangerouslySetInnerHTML={{ __html: m.marketplace_whatitis_intro() }}
+            />
             <p className="leading-relaxed text-hot-gray-800">
               {m.marketplace_whatitis_body()}
             </p>
@@ -246,7 +268,9 @@ function MarketplacePage() {
 
       <Dialog
         open={isFormOpen}
-        label={m.marketplace_cta_title()}
+        className="marketplace-form-dialog"
+        label=" "
+        aria-label={m.marketplace_cta_title()}
         onWaHide={() => setIsFormOpen(false)}
         style={{ "--width": "800px" } as React.CSSProperties}
       >
@@ -254,15 +278,16 @@ function MarketplacePage() {
           title={m.marketplace_cta_title()}
           src={MARKETPLACE_FORM_URL}
           width="100%"
-          height="533"
           frameBorder="0"
-          className="block rounded-md border border-hot-neutral-100 bg-transparent"
+          className="block h-[75vh] w-full bg-transparent"
         />
       </Dialog>
 
       <Dialog
         open={isContactOpen}
-        label={m.marketplace_cta_contact_us()}
+        className="marketplace-form-dialog"
+        label=" "
+        aria-label={m.marketplace_cta_contact_us()}
         onWaHide={() => setIsContactOpen(false)}
         style={{ "--width": "800px" } as React.CSSProperties}
       >
@@ -270,9 +295,8 @@ function MarketplacePage() {
           title={m.marketplace_cta_contact_us()}
           src={MARKETPLACE_CONTACT_URL}
           width="100%"
-          height="533"
           frameBorder="0"
-          className="block rounded-md border border-hot-neutral-100 bg-transparent"
+          className="block h-[75vh] w-full bg-transparent"
         />
       </Dialog>
     </div>

@@ -1,3 +1,4 @@
+import { Link, useParams } from "react-router-dom"
 import { resolveLoginUrl } from "../../utils/envConfig"
 import { AvatarSquareProps, GroupListProps } from "../types"
 import { getInitials } from "../utils"
@@ -24,6 +25,8 @@ export function GroupList({
   groups,
   variant,
 }: GroupListProps) {
+  const { locale } = useParams()
+
   if (groups.length === 0) return null
 
   return (
@@ -44,7 +47,11 @@ export function GroupList({
               ) : (
                 <AvatarSquare initials={getInitials(group.name)} variant={variant} />
               )}
-              {group.name}
+              {variant === 'organization' ? (
+                <Link to={`/${locale}/org/${group.slug}`}>{group.name}</Link>
+              ) : (
+                group.name
+              )}
             </li>
           )
         })}

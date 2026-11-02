@@ -42,22 +42,6 @@ export const MAIN_MENU_ITEMS: MenuItem[] = [
     href: "/plan",
     requiresAuth: false,
   },
-  {
-    id: "learn",
-    label: () => "Learn",
-    href: "https://learn.hotosm.org",
-    requiresAuth: false,
-    icon: "patch-check",
-    external: true
-  },
-  {
-    id: "profile",
-    label: m.nav_profile,
-    href: "/people/:username",
-    requiresAuth: true,
-    icon: "user",
-    external: false
-  },
 ];
 
 export const getVisibleMenuItems = (

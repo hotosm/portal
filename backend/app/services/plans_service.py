@@ -158,10 +158,28 @@ async def list_plans(db: AsyncSession, ctx: PermissionContext) -> list[PlanSumma
             )
         )
 
-    visible = or_(*conditions)
-    plans = (
-        await db.execute(select(Plan.id, Plan.name).where(visible).order_by(Plan.created_at.desc()))
-    ).all()
+    return await _summarize_plans(db, or_(*conditions), Plan.created_at.desc())
+
+
+async def list_public_group_plans(
+    db: AsyncSession, group_type: str, group_id: str
+) -> list[PlanSummary]:
+    """Public plans of one group, most recently updated first. Same shape and
+    queries as list_plans, for unauthenticated pages like an org's profile."""
+    visible = and_(
+        Plan.visibility == "public",
+        Plan.group_type == group_type,
+        Plan.group_id == group_id,
+    )
+    return await _summarize_plans(db, visible, Plan.updated_at.desc())
+
+
+async def _summarize_plans(db: AsyncSession, visible, order_by) -> list[PlanSummary]:
+    """PlanSummary rows for the plans matching `visible`, in `order_by` order.
+
+    Two SELECTs: the plans, then a per-app project count aggregated in SQL, so
+    project rows, collections and images are never loaded."""
+    plans = (await db.execute(select(Plan.id, Plan.name).where(visible).order_by(order_by))).all()
     if not plans:
         return []
 

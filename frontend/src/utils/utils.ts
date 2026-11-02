@@ -23,3 +23,18 @@ export function formatProjectStatus(status: string): string {
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
 }
+
+/**
+ * Gets the part of an email before the "@", used as a display name when the
+ * user has no name set
+ * @param email - The email address
+ * @returns The local part of the email, or the trimmed input if it has no "@"
+ */
+export function getNameFromEmail(email: string | null | undefined): string {
+  const trimmed = (email ?? "").trim();
+  const atIndex = trimmed.indexOf("@");
+  if (atIndex === -1) {
+    return trimmed;
+  }
+  return trimmed.slice(0, atIndex).trim();
+}
