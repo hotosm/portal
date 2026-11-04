@@ -168,9 +168,9 @@ portal/
   - `/api/plans` - List plans visible to the user (own + group plans) as summaries: `id`, `name`, `project_count`, `apps`
   - `POST /api/plans` - Create a new plan
   - `POST /api/plans/resolve-url` - Parse a project URL and confirm it exists upstream
-  - `/api/plans/public` - Paginated list of public plans, newest first (no auth required); query params `search` (plan name), `org` (group_id), `page`, `page_size`; each item carries `owner_name` (creator's username, stored on the plan), `cover_image_url` and a reduced `cover_project` (map location of the main project) for the grid view; also returns the `organizations` that own public plans
-  - `/api/plans/shared/{plan_id}` - Return a public plan (no auth required)
-  - `/api/plans/{plan_id}` - Return a plan if the user may view it
+  - `/api/plans/public` - Paginated list of public plans, newest first (no auth required); query params `search` (plan name or creator), `org` (group_id), `page`, `page_size`; each item carries `owner_name` (creator's display name: first and last name from login, else the part of the email before the "@", stored on the plan), `owner_slug` / `group_slug` (only when the person's or organization's public profile exists, to link to it), `cover_image_url` and a reduced `cover_project` (map location of the main project) for the grid view; also returns the `organizations` that own public plans
+  - `/api/plans/shared/{plan_id}` - Return a public plan (no auth required), including `owner_name`, `owner_slug` and `group_slug` for the author link in the header
+  - `/api/plans/{plan_id}` - Return a plan if the user may view it, including `owner_name`, `owner_slug` and `group_slug` for the author link in the header
   - `PATCH /api/plans/{plan_id}` - Update name/description/scope/visibility/projects
   - `DELETE /api/plans/{plan_id}` - Delete a plan (owner only)
   - `PATCH /api/plans/{plan_id}/projects/{plan_project_id}/toggle-exists` - Toggle project_exists on a plan_project

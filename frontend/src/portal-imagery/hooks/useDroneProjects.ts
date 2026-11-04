@@ -16,9 +16,11 @@ export function useDroneProjects(enabled = true) {
   return useQuery({
     queryKey: droneProjectsQueryKeys.user(),
     queryFn: async (): Promise<IImageryProject[]> => {
-      const fetchPage = async (
-        page: number,
-      ): Promise<DroneApiResponse | null> => {
+      const allProjects: IImageryProject[] = [];
+      let page = 1;
+      let hasNext = true;
+
+      while (hasNext) {
         const response = await fetch(
           `/api/drone-tasking-manager/projects/user?page=${page}`,
           { credentials: "include" },
@@ -26,7 +28,7 @@ export function useDroneProjects(enabled = true) {
 
         if (!response.ok) {
           if (response.status === 401 || response.status === 403) {
-            return null;
+            return [];
           }
           const errorText = await response.text();
           throw new Error(
@@ -34,11 +36,9 @@ export function useDroneProjects(enabled = true) {
           );
         }
 
-        return response.json();
-      };
+        const data: DroneApiResponse = await response.json();
 
-      const toProjects = (data: DroneApiResponse): IImageryProject[] =>
-        data.results.map((project) => ({
+        const projects = data.results.map((project) => ({
           id: `drone-${project.id}`,
           title: project.name,
           href: `${getDroneTmBaseUrl()}/projects/${project.id}`,
@@ -46,24 +46,12 @@ export function useDroneProjects(enabled = true) {
           image: project.image_url,
         }));
 
-      const firstPage = await fetchPage(1);
-      if (!firstPage) {
-        return [];
+        allProjects.push(...projects);
+        hasNext = data.pagination.has_next;
+        page++;
       }
 
-      const { total, per_page: perPage } = firstPage.pagination;
-      const totalPages = perPage > 0 ? Math.ceil(total / perPage) : 1;
-
-      const remainingPages = await Promise.all(
-        Array.from({ length: Math.max(totalPages - 1, 0) }, (_, i) =>
-          fetchPage(i + 2),
-        ),
-      );
-
-      return [
-        ...toProjects(firstPage),
-        ...remainingPages.flatMap((data) => (data ? toProjects(data) : [])),
-      ];
+      return allProjects;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes - data considered fresh
     gcTime: 30 * 60 * 1000, // 30 minutes - keep in cache (formerly cacheTime)

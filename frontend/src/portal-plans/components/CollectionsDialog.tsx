@@ -9,12 +9,7 @@ import Spinner from '../../components/shared/Spinner'
 import { Tab, TabGroup, TabPanel } from '../../components/shared/Tabs'
 import Textarea from '../../components/shared/Textarea'
 import { m } from '../../paraglide/messages'
-import {
-  useCollections,
-  useCreateCollection,
-  useDeleteCollection,
-  useUpdateCollection,
-} from '../hooks'
+import { useCollections, useCreateCollection, useDeleteCollection } from '../hooks'
 import type { Collection } from '../types'
 
 /** Collections shown per page on the manage tab. */
@@ -34,77 +29,11 @@ interface CollectionsDialogProps {
 interface CollectionListItemProps {
   collection: Collection
   isDeleting: boolean
-  isEditing: boolean
-  isSaving: boolean
   onDelete: () => void
-  onStartEditing: () => void
-  onCancelEditing: () => void
-  onSave: (name: string) => void
 }
 
-/** One existing collection: renamed from its pencil button, deleted from its trash button. */
-function CollectionListItem({
-  collection,
-  isDeleting,
-  isEditing,
-  isSaving,
-  onDelete,
-  onStartEditing,
-  onCancelEditing,
-  onSave,
-}: CollectionListItemProps) {
-  const [draft, setDraft] = useState(collection.name)
-
-  useEffect(() => {
-    if (isEditing) setDraft(collection.name)
-  }, [isEditing, collection.name])
-
-  const trimmedDraft = draft.trim()
-  const canSave = trimmedDraft.length > 0 && !isSaving
-
-  function save() {
-    if (!canSave) return
-    if (trimmedDraft === collection.name) {
-      onCancelEditing()
-      return
-    }
-    onSave(trimmedDraft)
-  }
-
-  if (isEditing) {
-    return (
-      <li className="flex items-center gap-sm ms-0" style={{ minHeight: `${ROW_HEIGHT_REM}rem` }}>
-        <div className="flex-1 min-w-0">
-          <Input
-            type="text"
-            size="small"
-            value={draft}
-            autoFocus
-            aria-label={m.plan_collections_rename()}
-            onInput={(e) => setDraft(e.currentTarget.value ?? '')}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                save()
-              } else if (e.key === 'Escape') {
-                e.stopPropagation()
-                onCancelEditing()
-              }
-            }}
-          />
-        </div>
-        <div className="flex items-center gap-xs shrink-0">
-          <Button appearance="accent" size="small" onClick={save} disabled={!canSave}>
-            {m.plan_collections_save()}
-          </Button>
-          <Button appearance="plain" size="small" onClick={onCancelEditing} disabled={isSaving}>
-            {m.profile_edit_cancel()}
-          </Button>
-        </div>
-      </li>
-    )
-  }
-
+/** One existing collection, deleted straight from its trash button. */
+function CollectionListItem({ collection, isDeleting, onDelete }: CollectionListItemProps) {
   return (
     <li className="flex items-center gap-sm ms-0" style={{ minHeight: `${ROW_HEIGHT_REM}rem` }}>
       <div className="flex-1 min-w-0">
@@ -116,24 +45,14 @@ function CollectionListItem({
       {isDeleting ? (
         <Spinner />
       ) : (
-        <>
-          <button
-            type="button"
-            onClick={onStartEditing}
-            aria-label={m.plan_collections_rename()}
-            className="shrink-0 text-hot-gray-500 hover:text-hot-gray-900"
-          >
-            <Icon library="bootstrap" name="pencil" label={m.plan_collections_rename()} />
-          </button>
-          <button
-            type="button"
-            onClick={onDelete}
-            aria-label={m.plan_collections_delete()}
-            className="shrink-0 text-hot-gray-500 hover:text-hot-red-600"
-          >
-            <Icon library="bootstrap" name="trash" label={m.plan_collections_delete()} />
-          </button>
-        </>
+        <button
+          type="button"
+          onClick={onDelete}
+          aria-label={m.plan_collections_delete()}
+          className="shrink-0 text-hot-gray-500 hover:text-hot-red-600"
+        >
+          <Icon library="bootstrap" name="trash" label={m.plan_collections_delete()} />
+        </button>
       )}
     </li>
   )
@@ -143,8 +62,6 @@ function CollectionsDialog({ planId, open, onClose, onCreated }: CollectionsDial
   const { data: collections = [], isLoading } = useCollections(planId)
   const createCollection = useCreateCollection(planId)
   const deleteCollection = useDeleteCollection(planId)
-  const updateCollection = useUpdateCollection(planId)
-  const [editingId, setEditingId] = useState<string | null>(null)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [tab, setTab] = useState<'add' | 'manage'>('add')
@@ -156,7 +73,6 @@ function CollectionsDialog({ planId, open, onClose, onCreated }: CollectionsDial
     setDescription('')
     setTab('add')
     setPage(1)
-    setEditingId(null)
   }, [open])
 
   const totalPages = Math.max(1, Math.ceil(collections.length / PAGE_SIZE))
@@ -190,18 +106,6 @@ function CollectionsDialog({ planId, open, onClose, onCreated }: CollectionsDial
         onClose()
       },
     })
-  }
-
-  function rename(id: string, newName: string) {
-    updateCollection.mutate(
-      { id, payload: { name: newName } },
-      {
-        onSuccess: () => {
-          toast.success(m.plan_collections_toast_collection_updated())
-          setEditingId(null)
-        },
-      }
-    )
   }
 
   return (
@@ -277,14 +181,7 @@ function CollectionsDialog({ planId, open, onClose, onCreated }: CollectionsDial
                     isDeleting={
                       deleteCollection.isPending && deleteCollection.variables === collection.id
                     }
-                    isEditing={editingId === collection.id}
-                    isSaving={
-                      updateCollection.isPending && updateCollection.variables?.id === collection.id
-                    }
                     onDelete={() => remove(collection.id)}
-                    onStartEditing={() => setEditingId(collection.id)}
-                    onCancelEditing={() => setEditingId(null)}
-                    onSave={(newName) => rename(collection.id, newName)}
                   />
                 ))}
               </ul>
