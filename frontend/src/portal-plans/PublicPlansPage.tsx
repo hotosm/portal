@@ -38,6 +38,27 @@ function parsePage(value: string | null): number {
   return Number.isFinite(page) && page >= 1 ? page : 1
 }
 
+function PlanAuthor({ plan }: { plan: PublicPlanSummary }) {
+  const { currentLanguage } = useLanguage()
+  return plan.owner_slug && plan.group_name == null ? (
+    <Link
+      to={`/${currentLanguage}/people/${plan.owner_slug}`}
+      className="text-hot-neutral-800 no-underline hover:underline"
+    >
+      {plan.owner_name}
+    </Link>
+  ) : plan.group_name != null && plan.group_slug ? (
+    <Link
+      to={`/${currentLanguage}/org/${plan.group_slug}`}
+      className="text-hot-neutral-800 no-underline hover:underline"
+    >
+      {plan.group_name}
+    </Link>
+  ) : (
+    <>{plan.group_name ?? plan.owner_name}</>
+  )
+}
+
 function PublicPlansPage() {
   const { currentLanguage } = useLanguage()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -151,14 +172,14 @@ function PublicPlansPage() {
               inert={view !== 'list'}
               className={`${VIEW_FADE_CLASSES} ${view === 'list' ? 'relative opacity-100' : 'pointer-events-none absolute inset-x-0 top-0 opacity-0'}`}
             >
-              <table className="w-full text-left md:table-fixed">
+              <table className="w-full table-fixed text-left">
                 <thead>
                   <tr className="border-b border-hot-gray-200 text-sm text-hot-neutral-800">
                     <th className="py-sm font-semibold">{m.plan_public_col_plan()}</th>
-                    <th className="py-sm pr-md font-semibold md:w-[280px]">
+                    <th className="hidden py-sm pr-md font-semibold md:table-cell md:w-[280px]">
                       {m.plan_public_col_org()}
                     </th>
-                    <th className="py-sm font-semibold md:w-[100px]">
+                    <th className="hidden py-sm font-semibold md:table-cell md:w-[100px]">
                       {m.plan_public_col_projects()}
                     </th>
                   </tr>
@@ -166,40 +187,37 @@ function PublicPlansPage() {
                 <tbody>
                   {plans.map((plan) => {
                     const description = truncateDescription(plan.description)
+                    const hasAuthor = Boolean(plan.group_name ?? plan.owner_name)
                     return (
                       <tr key={plan.id} className="border-b border-hot-gray-100">
                         <td className="min-w-0 py-md pr-md align-middle">
                           <Link
                             to={`/${currentLanguage}/plan/${plan.id}`}
                             title={plan.name}
-                            className="block truncate font-semibold text-hot-neutral-800 no-underline hover:underline"
+                            className="block line-clamp-2 break-words font-semibold text-hot-neutral-800 no-underline hover:underline md:truncate"
                           >
                             {plan.name}
                           </Link>
                           {description && (
                             <p className="m-0 truncate text-sm text-hot-gray-400">{description}</p>
                           )}
+                          <p className="m-0 mt-2xs text-sm text-hot-gray-500 md:hidden">
+                            {hasAuthor && (
+                              <>
+                                <PlanAuthor plan={plan} />
+                                {' · '}
+                              </>
+                            )}
+                            {plan.project_count}{' '}
+                            {plan.project_count === 1
+                              ? m.plan_card_projects_singular()
+                              : m.plan_card_projects_plural()}
+                          </p>
                         </td>
-                        <td className="py-md pr-md align-middle font-semibold text-hot-neutral-800">
-                          {plan.owner_slug && plan.group_name == null ? (
-                            <Link
-                              to={`/${currentLanguage}/people/${plan.owner_slug}`}
-                              className="text-hot-neutral-800 no-underline hover:underline"
-                            >
-                              {plan.owner_name}
-                            </Link>
-                          ) : plan.group_name != null && plan.group_slug ? (
-                            <Link
-                              to={`/${currentLanguage}/org/${plan.group_slug}`}
-                              className="text-hot-neutral-800 no-underline hover:underline"
-                            >
-                              {plan.group_name}
-                            </Link>
-                          ) : (
-                            (plan.group_name ?? plan.owner_name)
-                          )}
+                        <td className="hidden py-md pr-md align-middle font-semibold text-hot-neutral-800 md:table-cell">
+                          <PlanAuthor plan={plan} />
                         </td>
-                        <td className="py-md align-middle text-hot-gray-500">
+                        <td className="hidden py-md align-middle text-hot-gray-500 md:table-cell">
                           {plan.project_count}
                         </td>
                       </tr>
