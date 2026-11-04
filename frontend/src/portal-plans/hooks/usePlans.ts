@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useAuth } from '../../contexts/AuthContext'
 import { m } from '../../paraglide/messages'
@@ -9,6 +9,7 @@ import type {
   PlanSummary,
   PlanUpdate,
   ProjectStatus,
+  PublicPlanList,
   UrlResolveResponse,
   UserGroup,
 } from '../types'
@@ -305,6 +306,40 @@ export function usePlan(id: string) {
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
     enabled: isLogin && !!id,
+    retry: 1,
+  })
+}
+
+// Divisible by the grid's 3 and 2 columns, so both views fill their rows.
+export const PUBLIC_PLANS_PAGE_SIZE = 12
+
+interface PublicPlansParams {
+  q: string
+  org?: string
+  page: number
+}
+
+// Anonymous list of public plans; the filters and page live in the URL, so the
+// previous page stays on screen while the next one loads.
+export function usePublicPlans({ q, org, page }: PublicPlansParams) {
+  return useQuery({
+    queryKey: planQueryKeys.publicList({ q, org, page }),
+    queryFn: async (): Promise<PublicPlanList> => {
+      const query = new URLSearchParams({
+        page: String(page),
+        page_size: String(PUBLIC_PLANS_PAGE_SIZE),
+      })
+      if (q) query.set('search', q)
+      if (org) query.set('org', org)
+      const response = await fetch(`/api/plans/public?${query.toString()}`)
+      if (!response.ok) {
+        throw new Error(`[${response.status}] Failed to fetch public plans`)
+      }
+      return response.json()
+    },
+    placeholderData: keepPreviousData,
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
     retry: 1,
   })
 }

@@ -243,3 +243,42 @@ async def test_force_refresh_does_not_join_inflight_call(enable_groups):
         login_service.get_user_groups("u-sf-force", "cookie", force_refresh=True),
     )
     assert route.call_count == 2
+
+
+def _profile_payload(user_id, slug, is_public):
+    return {
+        "hanko_user_id": user_id,
+        "first_name": None,
+        "last_name": None,
+        "picture_url": None,
+        "slug": slug,
+        "is_public": is_public,
+        "osm_username": None,
+        "osm_avatar_url": None,
+    }
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_get_public_owner_slugs_keeps_only_public_profiles_and_caches(login_base_url):
+    public = respx.get("http://login-test/api/profile/slug-pub").mock(
+        return_value=httpx.Response(200, json=_profile_payload("slug-pub", "ada", True))
+    )
+    respx.get("http://login-test/api/profile/slug-priv").mock(
+        return_value=httpx.Response(200, json=_profile_payload("slug-priv", "bob", False))
+    )
+    respx.get("http://login-test/api/profile/slug-none").mock(return_value=httpx.Response(404))
+
+    ids = ["slug-pub", "slug-priv", "slug-none", "slug-pub"]
+    assert await login_service.get_public_owner_slugs(ids) == {"slug-pub": "ada"}
+    assert await login_service.get_public_owner_slugs(ids) == {"slug-pub": "ada"}
+    assert public.call_count == 1
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_get_public_owner_slugs_omits_users_when_login_is_down(login_base_url):
+    respx.get("http://login-test/api/profile/slug-down").mock(
+        side_effect=httpx.ConnectError("boom")
+    )
+    assert await login_service.get_public_owner_slugs(["slug-down"]) == {}

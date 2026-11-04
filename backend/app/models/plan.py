@@ -1,7 +1,7 @@
 """Pydantic schemas for the Plans feature."""
 
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -161,6 +161,53 @@ class PlanSummary(BaseModel):
     apps: list[AppLiteral] = []
 
 
+class PublicCoverProject(BaseModel):
+    """The plan's main project, reduced to what is needed to draw its map tile."""
+
+    app: AppLiteral | None = None
+    data: dict[str, Any] = {}
+
+
+class PublicPlanSummary(BaseModel):
+    """Plan shape for the anonymous public plans list."""
+
+    id: str
+    name: str
+    description: str | None = None
+    project_count: int
+    apps: list[AppLiteral] = []
+    group_id: str | None = None
+    group_name: str | None = None
+    # Slug of the organization's public profile; None when it isn't a public
+    # organization or is unknown.
+    group_slug: str | None = None
+    owner_name: str | None = None
+    # Slug of the owner's public profile; None when it is private or unknown.
+    owner_slug: str | None = None
+    # Cover for the grid view: the plan's first image, else the map of its main
+    # project (featured first), else neither and the client shows a placeholder.
+    cover_image_url: str | None = None
+    cover_project: PublicCoverProject | None = None
+    created_at: datetime
+
+
+class PublicOrganization(BaseModel):
+    """An organization (plan group) that owns at least one public plan."""
+
+    group_id: str
+    group_name: str | None = None
+
+
+class PublicPlanList(BaseModel):
+    """One page of public plans plus the organizations available for filtering."""
+
+    items: list[PublicPlanSummary]
+    total: int
+    page: int
+    page_size: int
+    organizations: list[PublicOrganization]
+
+
 class PlanRead(PlanScopeRead):
     model_config = ConfigDict(from_attributes=True)
 
@@ -211,6 +258,12 @@ class PlanReadHydrated(PlanScopeRead):
     images: list[PlanImageRead] = []
     created_at: datetime
     updated_at: datetime
+    owner_name: str | None = None
+    # Slug of the owner's public profile; None when it is private or unknown.
+    owner_slug: str | None = None
+    # Slug of the organization's public profile; None for teams, or when it
+    # isn't a public organization or is unknown.
+    group_slug: str | None = None
 
 
 class PlanTag(BaseModel):

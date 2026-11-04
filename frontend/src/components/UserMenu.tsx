@@ -8,7 +8,7 @@ import Button from "./shared/Button";
 import Dialog from "./shared/Dialog";
 import Dropdown from "./shared/Dropdown";
 import DropdownItem from "./shared/DropdownItem";
-import { getNameFromEmail } from "../utils/utils";
+import { getUsername } from "../utils/username";
 
 const LEARN_URL = "https://learn.hotosm.org";
 
@@ -21,8 +21,11 @@ function UserMenu() {
 
   if (!isLogin) return null;
 
-  const label =
-    me?.first_name?.trim() || user?.username || getNameFromEmail(user?.email);
+  const label = getUsername({
+    first_name: me?.first_name,
+    last_name: me?.last_name,
+    email: user?.email,
+  });
 
   const handleSelect = (event: CustomEvent) => {
     const value = event.detail.item.value;
@@ -45,8 +48,8 @@ function UserMenu() {
   return (
     <>
       <Dropdown onSelect={handleSelect}>
-        <Button slot="trigger" appearance="plain" withCaret>
-          {label}
+        <Button slot="trigger" appearance="plain" withCaret aria-label={label}>
+          <span className="hidden md:inline">{label}</span>
         </Button>
         <DropdownItem value="profile" disabled={isLoading}>
           {m.nav_profile()}
