@@ -16,7 +16,7 @@ from sqlalchemy import select
 from app.core.config import settings
 from app.core.database import get_db
 from app.db.models.plan import Plan, PlanImage, PlanProject
-from app.services import plans_service
+from app.services import login_service, plans_service
 from app.services.exceptions import UpstreamUnavailable
 from app.tests.conftest import make_user
 
@@ -654,7 +654,10 @@ async def test_hydrate_parallelism(auth_client):
         "open-aerial-map": AsyncMock(return_value=None),
         "export-tool": AsyncMock(return_value=None),
     }
-    with patch.dict(plans_service.APP_FETCHERS, fetchers):
+    with (
+        patch.dict(plans_service.APP_FETCHERS, fetchers),
+        patch.object(login_service, "get_account_profile", AsyncMock(return_value=None)),
+    ):
         loop = asyncio.get_event_loop()
         t0 = loop.time()
         resp = await client.get(f"/api/plans/{plan_id}?refresh=true")
@@ -914,6 +917,7 @@ async def test_public_list_requires_no_auth_and_only_returns_public(client, test
         "apps",
         "group_id",
         "group_name",
+        "group_slug",
         "owner_name",
         "owner_slug",
         "cover_image_url",
