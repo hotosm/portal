@@ -84,12 +84,17 @@ function PlanSectionHeader({
 
   return (
     <div
+      className="flow-root"
       style={{
         background: 'linear-gradient(to right, #FFE6DE 0%, #E6F6F5 100%)',
       }}
     >
       <PageWrapper>
-        {breadcrumbs && breadcrumbs.length > 0 && (
+        <div
+          className={`flex flex-col md:flex-row gap-sm w-full justify-between items-start md:items-center`}
+        >
+          <div>
+            {breadcrumbs && breadcrumbs.length > 0 && (
           <Breadcrumb>
             {breadcrumbs.map((item) => (
               <BreadcrumbItem key={item.label} href={item.href}>
@@ -98,17 +103,8 @@ function PlanSectionHeader({
             ))}
           </Breadcrumb>
         )}
-        <div
-          className={`flex flex-col md:flex-row gap-sm w-full justify-between items-start md:items-center ${breadcrumbs && breadcrumbs.length > 0 ? '' : 'pt-md'}`}
-        >
-          <div>
             <div className="flex items-center gap-xs">
               <div className="text-2xl/tight break-words min-w-0 w-full md:w-auto">{children}</div>
-              {showPublicTag && (
-                <Tag variant="neutral" appearance="filled" size="small" className="shrink-0">
-                  {m.plan_public_tag()}
-                </Tag>
-              )}
             </div>
             {attribution && (
               <span className="flex items-center gap-xs mt-xs text-sm">

@@ -48,8 +48,8 @@ function UserMenu() {
   return (
     <>
       <Dropdown onSelect={handleSelect}>
-        <Button slot="trigger" appearance="plain" withCaret>
-          {label}
+        <Button slot="trigger" appearance="plain" withCaret aria-label={label}>
+          <span className="hidden md:inline">{label}</span>
         </Button>
         <DropdownItem value="profile" disabled={isLoading}>
           {m.nav_profile()}

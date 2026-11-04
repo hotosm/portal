@@ -103,6 +103,10 @@ function PublicPlansPage() {
       <PlanSectionHeader
         buttonText={m.plan_public_see_my_plans()}
         buttonLink={`/${currentLanguage}/plan`}
+        breadcrumbs={[
+          { label: m.plan_header(), href: `/${currentLanguage}/plan` },
+          { label: m.plan_public_title() },
+        ]}
       >
         <strong>{m.plan_public_title()}</strong>
       </PlanSectionHeader>
