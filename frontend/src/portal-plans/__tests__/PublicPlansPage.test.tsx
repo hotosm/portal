@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import PublicPlansPage from '../PublicPlansPage'
-import type { PublicPlanList } from '../types'
+import type { PublicPlanList, PublicPlanSummary } from '../types'
 
 vi.mock('../../contexts/LanguageContext', () => ({
   useLanguage: () => ({ currentLanguage: 'en' }),
@@ -38,27 +38,50 @@ vi.mock('../../components/shared/Pagination', () => ({
     <div>{`page ${currentPage} of ${totalPages}`}</div>
   ),
 }))
+vi.mock('../components/ViewToggle', () => ({
+  default: ({
+    value,
+    onChange,
+  }: {
+    value: 'card' | 'list'
+    onChange: (value: 'card' | 'list') => void
+  }) => (
+    <>
+      <button
+        aria-label="Card view"
+        aria-pressed={value === 'card'}
+        onClick={() => onChange('card')}
+      />
+      <button
+        aria-label="List view"
+        aria-pressed={value === 'list'}
+        onClick={() => onChange('list')}
+      />
+    </>
+  ),
+}))
 
 const longDescription = `<h1>Title</h1><p>**${'a'.repeat(150)}**</p>`
 
+const basePlan: PublicPlanSummary = {
+  id: 'p1',
+  name: 'Flood plan',
+  description: longDescription,
+  project_count: 5,
+  apps: ['tasking-manager', 'fair'],
+  group_id: 'g1',
+  group_name: 'OSM Argentina',
+  group_slug: null,
+  owner_name: null,
+  owner_slug: null,
+  cover_image_url: null,
+  cover_project: null,
+  created_at: '2026-01-01T00:00:00Z',
+}
+
 function list(overrides: Partial<PublicPlanList> = {}): PublicPlanList {
   return {
-    items: [
-      {
-        id: 'p1',
-        name: 'Flood plan',
-        description: longDescription,
-        project_count: 5,
-        apps: ['tasking-manager', 'fair'],
-        group_id: 'g1',
-        group_name: 'OSM Argentina',
-        owner_name: null,
-        owner_slug: null,
-        cover_image_url: null,
-        cover_project: null,
-        created_at: '2026-01-01T00:00:00Z',
-      },
-    ],
+    items: [basePlan],
     total: 1,
     page: 1,
     page_size: 20,
@@ -113,9 +136,9 @@ describe('PublicPlansPage', () => {
       '/en/plan/public',
       list({
         items: [
-          { ...list().items[0], id: 'p1', name: 'Flood plan', group_name: 'OSM Argentina' },
+          { ...basePlan, id: 'p1', name: 'Flood plan', group_name: 'OSM Argentina' },
           {
-            ...list().items[0],
+            ...basePlan,
             id: 'p2',
             name: 'Schools map',
             group_name: null,
@@ -173,25 +196,37 @@ describe('PublicPlansPage', () => {
     ).toBeTruthy()
   })
   it('falls back to the owner name when the plan has no organization', async () => {
-    const base = list().items[0]
     renderPage(
       '/en/plan/public',
-      list({ items: [{ ...base, group_id: null, group_name: null, owner_name: 'andre' }] })
+      list({ items: [{ ...basePlan, group_id: null, group_name: null, owner_name: 'andre' }] })
     )
 
     expect(await screen.findByText('andre')).toBeTruthy()
   })
 
   it('links the creator to their public profile only when they have one', async () => {
-    const base = list().items[0]
     renderPage(
       '/en/plan/public',
       list({
         items: [
-          { ...base, id: 'a', name: 'A', group_name: null, owner_name: 'Ana', owner_slug: 'ana' },
-          { ...base, id: 'b', name: 'B', group_name: null, owner_name: 'Bob', owner_slug: null },
           {
-            ...base,
+            ...basePlan,
+            id: 'a',
+            name: 'A',
+            group_name: null,
+            owner_name: 'Ana',
+            owner_slug: 'ana',
+          },
+          {
+            ...basePlan,
+            id: 'b',
+            name: 'B',
+            group_name: null,
+            owner_name: 'Bob',
+            owner_slug: null,
+          },
+          {
+            ...basePlan,
             id: 'c',
             name: 'C',
             group_name: 'Red Cross',
@@ -203,12 +238,36 @@ describe('PublicPlansPage', () => {
       })
     )
 
-    const link = await screen.findByRole('link', { name: 'Ana' })
-    expect(link.getAttribute('href')).toBe('/en/people/ana')
-    expect(screen.queryByRole('link', { name: 'Bob' })).toBeNull()
+    const links = await screen.findAllByRole('link', { name: 'Ana' })
+    expect(links.map((link) => link.getAttribute('href'))).toEqual(
+      links.map(() => '/en/people/ana')
+    )
+    expect(screen.queryAllByRole('link', { name: 'Bob' })).toHaveLength(0)
     expect(screen.getAllByText('Bob').length).toBeGreaterThan(0)
-    expect(screen.queryByRole('link', { name: 'Red Cross' })).toBeNull()
-    expect(screen.queryByRole('link', { name: 'Cy' })).toBeNull()
+    expect(screen.queryAllByRole('link', { name: 'Red Cross' })).toHaveLength(0)
+    expect(screen.queryAllByRole('link', { name: 'Cy' })).toHaveLength(0)
+  })
+
+  it('links the organization to its public profile when it has a slug', async () => {
+    renderPage(
+      '/en/plan/public',
+      list({
+        items: [
+          {
+            ...basePlan,
+            group_name: 'Red Cross',
+            group_slug: 'red-cross',
+            owner_name: 'Cy',
+            owner_slug: 'cy',
+          },
+        ],
+      })
+    )
+
+    const links = await screen.findAllByRole('link', { name: 'Red Cross' })
+    expect(links.map((link) => link.getAttribute('href'))).toEqual(
+      links.map(() => '/en/org/red-cross')
+    )
   })
 
   it('keeps the description on a single line', async () => {
@@ -218,11 +277,11 @@ describe('PublicPlansPage', () => {
     expect(description.className).toContain('truncate')
   })
 
-  it('switches between list and grid from the URL view param', async () => {
-    renderPage('/en/plan/public?view=grid', list())
+  it('switches between list and card views from the URL view param', async () => {
+    renderPage('/en/plan/public?view=card', list())
 
-    const gridButton = await screen.findByRole('button', { name: 'Grid view' })
-    expect(gridButton.getAttribute('aria-pressed')).toBe('true')
+    const cardButton = await screen.findByRole('button', { name: 'Card view' })
+    expect(cardButton.getAttribute('aria-pressed')).toBe('true')
     expect(await screen.findByText('Showing 1 of 1 plans')).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: 'List view' }))
@@ -234,13 +293,12 @@ describe('PublicPlansPage', () => {
   })
 
   it('renders the plan cover image and a gray placeholder when there is none', async () => {
-    const base = list().items[0]
     renderPage(
-      '/en/plan/public?view=grid',
+      '/en/plan/public?view=card',
       list({
         items: [
-          { ...base, id: 'a', name: 'With cover', cover_image_url: '/img/a.png' },
-          { ...base, id: 'b', name: 'No cover' },
+          { ...basePlan, id: 'a', name: 'With cover', cover_image_url: '/img/a.png' },
+          { ...basePlan, id: 'b', name: 'No cover' },
         ],
         total: 2,
       })
@@ -250,21 +308,21 @@ describe('PublicPlansPage', () => {
     expect(document.querySelector('img[src="/img/a.png"]')).toBeTruthy()
     expect(document.querySelectorAll('.bg-hot-gray-300').length).toBe(1)
   })
-  it('truncates long titles to one line', async () => {
+  it('clamps long titles to two lines on mobile and one from md', async () => {
     renderPage('/en/plan/public', list())
 
     const link = await screen.findByRole('link', { name: 'Flood plan' })
-    expect(link.className).toContain('truncate')
+    expect(link.className).toContain('line-clamp-2')
+    expect(link.className).toContain('md:truncate')
   })
 
   it('falls back to the project map when the plan image fails to load', async () => {
-    const base = list().items[0]
     renderPage(
-      '/en/plan/public?view=grid',
+      '/en/plan/public?view=card',
       list({
         items: [
           {
-            ...base,
+            ...basePlan,
             cover_image_url: '/img/broken.png',
             cover_project: { app: 'open-aerial-map', data: { thumbnail: '/img/map.png' } },
           },

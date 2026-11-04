@@ -1087,86 +1087,99 @@ async def test_public_list_cover_skips_projects_without_a_map(client, test_db_se
     }
 
 
+def _ada_profile(user_id: str, osm_username: str | None = None):
+    from app.services import login_service
+
+    return login_service.AccountProfile(
+        hanko_user_id=user_id,
+        first_name="Ada",
+        last_name="Lovelace",
+        picture_url=None,
+        slug=None,
+        is_public=False,
+        osm_username=osm_username,
+        osm_avatar_url=None,
+    )
+
+
 @pytest.mark.asyncio
 async def test_owner_name_is_stored_on_create_and_backfilled(auth_client, test_db_session):
+    from app.services import login_service
+
     client, user = auth_client
-    created = await client.post("/api/plans", json={"name": "Mine", "is_public": True})
-    assert created.status_code == 201, created.text
-    plan_id = created.json()["id"]
+    lookup = AsyncMock(return_value=_ada_profile(user.id))
+    with patch.object(login_service, "get_account_profile", lookup):
+        created = await client.post("/api/plans", json={"name": "Mine", "is_public": True})
+        assert created.status_code == 201, created.text
+        plan_id = created.json()["id"]
 
-    plan = (await test_db_session.execute(select(Plan).where(Plan.id == plan_id))).scalar_one()
-    assert plan.owner_name == user.username
+        plan = (await test_db_session.execute(select(Plan).where(Plan.id == plan_id))).scalar_one()
+        assert plan.owner_name == "Ada Lovelace"
 
-    plan.owner_name = None
-    await test_db_session.commit()
-    assert (await client.get("/api/plans")).status_code == 200
+        plan.owner_name = None
+        await test_db_session.commit()
+        assert (await client.get("/api/plans")).status_code == 200
     await test_db_session.refresh(plan)
-    assert plan.owner_name == user.username
+    assert plan.owner_name == "Ada Lovelace"
 
     public = (await client.get("/api/plans/public")).json()["items"]
-    assert public[0]["owner_name"] == user.username
+    assert public[0]["owner_name"] == "Ada Lovelace"
     assert "@" not in (public[0]["owner_name"] or "")
 
 
 @pytest.mark.asyncio
-async def test_owner_name_uses_email_local_part_without_asking_login(auth_client, test_db_session):
+async def test_owner_name_uses_email_local_part_when_login_has_no_profile(
+    auth_client, test_db_session
+):
     from app.services import login_service
 
     client, user = auth_client
     user.username = None
     user.email = "ada.lovelace@example.com"
-    lookup = AsyncMock()
+    lookup = AsyncMock(return_value=None)
     with patch.object(login_service, "get_account_profile", lookup):
         created = await client.post("/api/plans", json={"name": "Mine", "is_public": True})
     assert created.status_code == 201, created.text
 
     public = (await client.get("/api/plans/public")).json()["items"]
     assert public[0]["owner_name"] == "ada.lovelace"
-    lookup.assert_not_awaited()
+    lookup.assert_awaited_with(user.id)
 
 
 @pytest.mark.asyncio
-async def test_owner_name_rewrites_stored_full_name_to_email_local_part(
-    auth_client, test_db_session
-):
+async def test_owner_name_rewrites_stored_name_to_login_full_name(auth_client, test_db_session):
+    from app.services import login_service
+
     client, user = auth_client
-    user.username = None
     user.email = "ada.lovelace@example.com"
-    created = await client.post("/api/plans", json={"name": "Mine"})
-    plan = (
-        await test_db_session.execute(select(Plan).where(Plan.id == created.json()["id"]))
-    ).scalar_one()
-    plan.owner_name = "Ada Lovelace"
-    await test_db_session.commit()
+    lookup = AsyncMock(return_value=_ada_profile(user.id))
+    with patch.object(login_service, "get_account_profile", lookup):
+        created = await client.post("/api/plans", json={"name": "Mine"})
+        plan = (
+            await test_db_session.execute(select(Plan).where(Plan.id == created.json()["id"]))
+        ).scalar_one()
+        plan.owner_name = "ada.lovelace"
+        await test_db_session.commit()
 
-    assert (await client.get("/api/plans")).status_code == 200
+        assert (await client.get("/api/plans")).status_code == 200
     await test_db_session.refresh(plan)
-    assert plan.owner_name == "ada.lovelace"
+    assert plan.owner_name == "Ada Lovelace"
 
 
 @pytest.mark.asyncio
-async def test_owner_name_falls_back_to_osm_username_without_an_email(auth_client, test_db_session):
+async def test_owner_name_prefers_login_full_name_over_osm_username(auth_client, test_db_session):
     from app.services import login_service
 
     client, user = auth_client
     user.username = None
     user.email = ""
-    profile = login_service.AccountProfile(
-        hanko_user_id=user.id,
-        first_name="Ada",
-        last_name="Lovelace",
-        picture_url=None,
-        slug=None,
-        is_public=False,
-        osm_username="ada_osm",
-        osm_avatar_url=None,
-    )
+    profile = _ada_profile(user.id, osm_username="ada_osm")
     with patch.object(login_service, "get_account_profile", AsyncMock(return_value=profile)):
         created = await client.post("/api/plans", json={"name": "Mine", "is_public": True})
     assert created.status_code == 201, created.text
 
     public = (await client.get("/api/plans/public")).json()["items"]
-    assert public[0]["owner_name"] == "ada_osm"
+    assert public[0]["owner_name"] == "Ada Lovelace"
 
 
 @pytest.mark.asyncio
@@ -1187,6 +1200,34 @@ async def test_owner_name_stays_empty_when_login_is_down(auth_client, test_db_se
 
     public = (await client.get("/api/plans/public")).json()["items"]
     assert public[0]["owner_name"] is None
+
+
+@pytest.mark.asyncio
+async def test_owner_name_uses_email_on_create_and_keeps_stored_name_when_login_is_down(
+    auth_client, test_db_session
+):
+    from app.services import login_service
+
+    client, user = auth_client
+    user.username = None
+    user.email = "ada.lovelace@example.com"
+    with patch.object(
+        login_service,
+        "get_account_profile",
+        AsyncMock(side_effect=login_service.LoginUnavailable()),
+    ):
+        created = await client.post("/api/plans", json={"name": "Mine"})
+        assert created.status_code == 201, created.text
+        plan = (
+            await test_db_session.execute(select(Plan).where(Plan.id == created.json()["id"]))
+        ).scalar_one()
+        assert plan.owner_name == "ada.lovelace"
+
+        plan.owner_name = "Ada Lovelace"
+        await test_db_session.commit()
+        assert (await client.get("/api/plans")).status_code == 200
+    await test_db_session.refresh(plan)
+    assert plan.owner_name == "Ada Lovelace"
 
 
 @pytest.mark.asyncio

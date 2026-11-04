@@ -3,7 +3,6 @@ import Breadcrumb from '../../components/shared/Breadcrumb'
 import BreadcrumbItem from '../../components/shared/BreadcrumbItem'
 import Button from '../../components/shared/Button'
 import PageWrapper from '../../components/shared/PageWrapper'
-import Tag from '../../components/shared/Tag'
 import { useAuth } from '../../contexts/AuthContext'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { m } from '../../paraglide/messages'
@@ -36,7 +35,6 @@ function PlanSectionHeader({
   menu,
   breadcrumbs,
   plan,
-  showPublicTag = false,
 }: PlanSectionHeaderProps) {
   const label = buttonText
   const { user } = useAuth()
