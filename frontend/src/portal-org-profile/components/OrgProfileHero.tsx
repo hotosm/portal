@@ -5,6 +5,7 @@ import Dialog from '../../components/shared/Dialog'
 import Dropdown from '../../components/shared/Dropdown'
 import DropdownItem from '../../components/shared/DropdownItem'
 import Icon from '../../components/shared/Icon'
+import orgPlaceholder from '../../assets/images/org-placeholder.svg'
 import { m } from '../../paraglide/messages'
 import type { OrgProfileHeroProps } from '../types'
 
@@ -39,16 +40,17 @@ function OrgProfileHero({
   return (
     <section
       lang={contentLang}
-      className="relative flex flex-col justify-end min-h-[360px] lg:min-h-[520px] bg-hot-gray-900 bg-cover bg-center"
-      style={bannerUrl ? { backgroundImage: `url(${bannerUrl})` } : undefined}
+      className={`relative flex flex-col justify-end min-h-[360px] lg:min-h-[520px] bg-hot-gray-200 ${
+        bannerUrl ? 'bg-cover bg-center' : 'bg-no-repeat bg-right'
+      }`}
+      style={{ backgroundImage: `url(${bannerUrl || orgPlaceholder})` }}
     >
       {/* Darker towards the bottom-left, where the text sits */}
-      {bannerUrl && (
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 bg-gradient-to-tr from-black/85 via-black/50 to-black/10"
-        />
-      )}
+      <div
+        aria-hidden="true"
+          className="absolute inset-0 bg-gradient-to-b from-[color-mix(in_srgb,var(--hot-color-blue-950)_15%,transparent)] to-[color-mix(in_srgb,var(--hot-color-blue-950)_92%,transparent)]"
+
+      />
 
       <div className="container relative py-2xl flex flex-col gap-md">
         <h1 className="text-3xl lg:text-5xl font-semibold text-white break-words">{name}</h1>
@@ -58,16 +60,15 @@ function OrgProfileHero({
           </p>
         )}
 
-        {/* wa-dark switches Web Awesome's neutral buttons to their dark variant */}
-        <div lang={uiLang} className="wa-dark flex flex-wrap gap-sm mt-sm">
+        <div lang={uiLang} className="flex flex-wrap gap-sm mt-sm">
           {videoId && (
-            <Button variant="neutral" appearance="filled" onClick={() => setVideoOpen(true)}>
+            <Button variant="neutral" appearance="accent" onClick={() => setVideoOpen(true)}>
               <Icon slot="start" name="video" label="" />
               {m.org_profile_see_video()}
             </Button>
           )}
           <Dropdown onSelect={share}>
-            <Button slot="trigger" variant="neutral" appearance="filled">
+            <Button slot="trigger" variant="neutral" appearance="accent">
               <Icon slot="start" name="share-nodes" label="" />
               {m.org_profile_share()}
             </Button>

@@ -67,8 +67,16 @@ function ProfileOrgPage() {
 
       <PageWrapper>
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-xl lg:gap-2xl">
-          {/* Content language; the UI text inside (note, plans) keeps the page's */}
+          {/* Content language; the UI text inside (language select, note) keeps the page's */}
           <div lang={contentLang} className="min-w-0">
+            <div lang={locale} className="max-w-[160px]">
+              <OrgLanguageSelect
+                availableLocales={org.available_locales}
+                baseLocale={org.default_locale}
+                contentLang={contentLang}
+                onSelect={selectContentLang}
+              />
+            </div>
             {fallbackLang && (
               <p lang={locale} className="text-sm text-hot-gray-500 mb-lg">
                 {m.org_profile_content_fallback({
@@ -84,18 +92,15 @@ function ProfileOrgPage() {
                 <RichTextContent content={org.description} />
               </section>
             )}
-            <OrgPlansSection plans={plans} loading={plansLoading} uiLang={locale} />
           </div>
 
           <aside>
-            <OrgLanguageSelect
-              availableLocales={org.available_locales}
-              baseLocale={org.default_locale}
-              contentLang={contentLang}
-              onSelect={selectContentLang}
-            />
             <OrgContactInfo email={org.contact_email} website={org.website} />
           </aside>
+        </div>
+
+        <div lang={contentLang}>
+          <OrgPlansSection plans={plans} loading={plansLoading} uiLang={locale} />
         </div>
       </PageWrapper>
     </>
