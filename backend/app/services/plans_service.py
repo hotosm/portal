@@ -55,6 +55,7 @@ from app.services import (
 )
 from app.services.exceptions import ArtifactNotReadyError, UpstreamUnavailable
 from app.services.permissions import PermissionContext
+from app.utils.username import get_username
 
 _KNOWN_APPS = frozenset(get_args(AppLiteral))
 
@@ -489,53 +490,32 @@ def _known_group_name(ctx: PermissionContext, plan: Plan) -> str | None:
     return ctx.group_names.get((plan.group_type, plan.group_id))
 
 
-def _name_from_email(email: str | None) -> str | None:
-    """The part of an email before the "@" (empty becomes None)."""
-    local = (email or "").strip().split("@", 1)[0].strip()
-    return local or None
-
-
-def _local_owner_name(ctx: PermissionContext) -> str | None:
-    """The author label the session itself can provide: the username, else the
-    part of the email before the "@"."""
-    return ctx.user_name or _name_from_email(ctx.user_email)
-
-
 async def _owner_display_name(ctx: PermissionContext) -> str | None:
-    """The name to show as a plan's author: the username, else the part of the
-    email before the "@", else the connected OSM username on the user's login
-    profile. Never the full email or the first/last name. None when login can't
-    say."""
-    local_name = _local_owner_name(ctx)
-    if local_name:
-        return local_name
-    if ctx.user_id is None:
-        return None
-    try:
+    """The name to show as a plan's author: "first_name last_name" from the
+    user's login profile, else the part of the email before the "@", else None.
+    Only the email is used when login has no profile for the user. Raises
+    LoginUnavailable when login can't be reached."""
+    profile = None
+    if ctx.user_id is not None:
         profile = await login_service.get_account_profile(ctx.user_id)
-    except login_service.LoginUnavailable:
-        return None
     if profile is None:
-        return None
-    return profile.osm_username or None
+        return get_username(None, None, ctx.user_email)
+    return get_username(profile.first_name, profile.last_name, ctx.user_email)
 
 
 async def sync_owner_name(db: AsyncSession, ctx: PermissionContext) -> None:
     """Store the caller's display name on every plan they own.
 
     Covers plans saved before the name was kept and names changed since. Login
-    is only asked when the session can't name the user itself and some owned
-    plan has no name yet. updated_at is pinned so a read never looks like an edit.
+    is always asked; when it can't be reached the stored names are kept.
+    updated_at is pinned so a read never looks like an edit.
     """
     if ctx.user_id is None:
         return
-    if not _local_owner_name(ctx):
-        missing = await db.execute(
-            select(Plan.id).where(Plan.owner_id == ctx.user_id, Plan.owner_name.is_(None)).limit(1)
-        )
-        if missing.first() is None:
-            return
-    name = await _owner_display_name(ctx)
+    try:
+        name = await _owner_display_name(ctx)
+    except login_service.LoginUnavailable:
+        return
     if not name:
         return
     await db.execute(
@@ -569,6 +549,11 @@ async def create_plan(db: AsyncSession, ctx: PermissionContext, payload: PlanCre
     if group_id and not permissions.is_member(ctx, group_type, group_id):
         raise GroupMembershipError("Not a member of the target group")
 
+    try:
+        owner_name = await _owner_display_name(ctx)
+    except login_service.LoginUnavailable:
+        owner_name = get_username(None, None, ctx.user_email)
+
     plan = Plan(
         owner_id=ctx.user_id,
         name=payload.name,
@@ -577,7 +562,7 @@ async def create_plan(db: AsyncSession, ctx: PermissionContext, payload: PlanCre
         group_type=group_type,
         group_id=group_id,
         group_name=ctx.group_names.get((group_type, group_id)) if group_id else None,
-        owner_name=await _owner_display_name(ctx),
+        owner_name=owner_name,
         edit_scope=scope.get("edit_scope", "owner"),
     )
     db.add(plan)
