@@ -183,6 +183,12 @@ export interface PlanReadHydrated {
   images: PlanImageRead[]
   created_at: string
   updated_at: string
+  owner_name?: string | null
+  // Slug of the owner's public profile; null when it is private or unknown.
+  owner_slug?: string | null
+  // Slug of the organization's public profile; null for teams, or when it
+  // isn't a public organization or is unknown.
+  group_slug?: string | null
 }
 
 export interface UrlResolveResponse {
@@ -232,6 +238,7 @@ export interface PublicPlanSummary {
   apps: AppName[]
   group_id: string | null
   group_name: string | null
+  group_slug: string | null
   owner_name: string | null
   owner_slug: string | null
   cover_image_url: string | null

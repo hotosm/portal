@@ -53,6 +53,9 @@ class Plan(Base):
     # a user about their own groups, so this is what lets a visitor who is not
     # in the group (or not signed in) see who a public plan belongs to.
     group_name = Column(String, nullable=True)
+    # The group's slug, kept alongside group_name so the public list can link
+    # an organization to its public profile.
+    group_slug = Column(String, nullable=True)
     # The owner's username as last seen when they created or opened a plan. The
     # plan only stores owner_id, so this is what lets anyone see who made a
     # public plan that has no group.

@@ -20,6 +20,8 @@ class PermissionContext:
     login_ok: bool
     # {(group_type, group_id): name} for the same groups, to label their plans.
     group_names: dict[tuple[str, str], str] = field(default_factory=dict)
+    # {(group_type, group_id): slug} for the same groups, to link their plans.
+    group_slugs: dict[tuple[str, str], str] = field(default_factory=dict)
     # The user's username, stored on the plans they create.
     user_name: str | None = None
     # Only used to derive the author label (the part before the "@"); the full
@@ -45,7 +47,16 @@ async def build_context(user, hanko_cookie: str | None) -> PermissionContext:
         )
     memberships = frozenset((g.type, g.id) for g in groups)
     group_names = {(g.type, g.id): g.name for g in groups if g.name}
-    return PermissionContext(user.id, memberships, True, group_names, user_name, user_email)
+    group_slugs = {(g.type, g.id): g.slug for g in groups if g.slug}
+    return PermissionContext(
+        user.id,
+        memberships,
+        True,
+        group_names,
+        group_slugs,
+        user_name=user_name,
+        user_email=user_email,
+    )
 
 
 def can_view(plan, ctx: PermissionContext) -> bool:

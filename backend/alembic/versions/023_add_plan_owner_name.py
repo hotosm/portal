@@ -1,8 +1,11 @@
-"""add plans.owner_name
+"""add plans.owner_name and plans.group_slug
 
 The creator's username, kept on the plan so a visitor (or a signed-out user)
 can be told who made a public plan that does not belong to a group. Filled in
 on create and whenever the owner lists or opens their plans; null until then.
+
+Also adds the slug of the plan's organization/team, kept like group_name, so
+the public plans list can link to its public profile.
 
 Revision ID: 023_add_plan_owner_name
 Revises: 022_add_plan_group_name
@@ -21,7 +24,9 @@ depends_on = None
 
 def upgrade() -> None:
     op.add_column("plans", sa.Column("owner_name", sa.String(), nullable=True))
+    op.add_column("plans", sa.Column("group_slug", sa.String(), nullable=True))
 
 
 def downgrade() -> None:
+    op.drop_column("plans", "group_slug")
     op.drop_column("plans", "owner_name")

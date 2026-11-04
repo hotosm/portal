@@ -309,6 +309,15 @@ async def _public_plan_covers(
     return images, projects
 
 
+async def _is_public_organization(slug: str) -> bool:
+    """Whether login exposes the organization's public profile; False when
+    login can't be reached."""
+    try:
+        return await login_service.get_public_organization(slug) is not None
+    except login_service.LoginUnavailable:
+        return False
+
+
 async def list_public_plans(
     db: AsyncSession,
     *,
@@ -346,7 +355,9 @@ async def list_public_plans(
                 Plan.name,
                 Plan.description,
                 Plan.group_id,
+                Plan.group_type,
                 Plan.group_name,
+                Plan.group_slug,
                 Plan.owner_id,
                 Plan.owner_name,
                 Plan.created_at,
@@ -380,6 +391,22 @@ async def list_public_plans(
     owner_slugs = await login_service.get_public_owner_slugs(
         [row.owner_id for row in rows if row.group_name is None]
     )
+    # Only link an organization whose profile login confirms is public; a
+    # login outage degrades it to plain text.
+    org_slugs = list(
+        dict.fromkeys(
+            row.group_slug for row in rows if row.group_type == "organization" and row.group_slug
+        )
+    )
+    public_org_slugs = {
+        slug
+        for slug, is_public in zip(
+            org_slugs,
+            await asyncio.gather(*(_is_public_organization(slug) for slug in org_slugs)),
+            strict=True,
+        )
+        if is_public
+    }
 
     org_rows = (
         await db.execute(
@@ -400,6 +427,7 @@ async def list_public_plans(
                 apps=sorted(apps[row.id]),
                 group_id=row.group_id,
                 group_name=row.group_name,
+                group_slug=row.group_slug if row.group_slug in public_org_slugs else None,
                 owner_name=row.owner_name,
                 owner_slug=owner_slugs.get(row.owner_id) if row.group_name is None else None,
                 cover_image_url=cover_images.get(row.id),
@@ -470,9 +498,9 @@ def _resolve_scope(payload: PlanCreate | PlanUpdate) -> dict:
         values["visibility"] = payload.visibility
     elif payload.is_public is not None:
         values["visibility"] = "public" if payload.is_public else "private"
-    if payload.group_type is not None:
+    if "group_type" in payload.model_fields_set:
         values["group_type"] = payload.group_type or None
-    if payload.group_id is not None:
+    if "group_id" in payload.model_fields_set:
         values["group_id"] = payload.group_id or None
     if payload.edit_scope is not None:
         values["edit_scope"] = payload.edit_scope
@@ -526,18 +554,24 @@ async def sync_owner_name(db: AsyncSession, ctx: PermissionContext) -> None:
 
 
 async def _sync_group_name(db: AsyncSession, ctx: PermissionContext, plan: Plan) -> None:
-    """Store the group's name whenever a member reads the plan.
+    """Store the group's name and slug whenever a member reads the plan.
 
-    Covers plans saved before the name was kept and groups renamed since.
+    Covers plans saved before they were kept and groups renamed since.
     updated_at is pinned so a read never looks like an edit.
     """
     name = _known_group_name(ctx, plan)
-    if name is None or name == plan.group_name:
+    if name is None:
+        return
+    slug = ctx.group_slugs.get((plan.group_type, plan.group_id))
+    if name == plan.group_name and slug == plan.group_slug:
         return
     await db.execute(
-        update(Plan).where(Plan.id == plan.id).values(group_name=name, updated_at=Plan.updated_at)
+        update(Plan)
+        .where(Plan.id == plan.id)
+        .values(group_name=name, group_slug=slug, updated_at=Plan.updated_at)
     )
     set_committed_value(plan, "group_name", name)
+    set_committed_value(plan, "group_slug", slug)
 
 
 async def create_plan(db: AsyncSession, ctx: PermissionContext, payload: PlanCreate) -> PlanRead:
@@ -562,6 +596,7 @@ async def create_plan(db: AsyncSession, ctx: PermissionContext, payload: PlanCre
         group_type=group_type,
         group_id=group_id,
         group_name=ctx.group_names.get((group_type, group_id)) if group_id else None,
+        group_slug=ctx.group_slugs.get((group_type, group_id)) if group_id else None,
         owner_name=owner_name,
         edit_scope=scope.get("edit_scope", "owner"),
     )
@@ -679,8 +714,10 @@ async def update_plan(
         setattr(plan, field, value)
     if plan.group_id is None:
         plan.group_name = None
+        plan.group_slug = None
     elif "group_id" in scope or _known_group_name(ctx, plan):
         plan.group_name = _known_group_name(ctx, plan)
+        plan.group_slug = ctx.group_slugs.get((plan.group_type, plan.group_id))
 
     if payload.projects is not None:
         check_no_duplicates(payload.projects)
@@ -1550,8 +1587,28 @@ def _item_from_snapshot(row: PlanProject) -> HydratedProjectItem:
     )
 
 
+async def _plan_attribution_slugs(plan: Plan) -> tuple[str | None, str | None]:
+    """Return ``(owner_slug, group_slug)`` for linking the plan's author.
+
+    A personal plan links to the owner's public profile; an organization plan
+    links to the organization only when its profile is public. Teams get no
+    link. A login outage degrades both to None instead of failing."""
+    if not (plan.group_type and plan.group_id):
+        owner_slugs = await login_service.get_public_owner_slugs([plan.owner_id])
+        return owner_slugs.get(plan.owner_id), None
+    if plan.group_type == "organization" and plan.group_slug:
+        if await _is_public_organization(plan.group_slug):
+            return None, plan.group_slug
+    return None, None
+
+
 def _build_plan_response(
-    plan: Plan, items: list[HydratedProjectItem], ctx: PermissionContext
+    plan: Plan,
+    items: list[HydratedProjectItem],
+    ctx: PermissionContext,
+    *,
+    owner_slug: str | None = None,
+    group_slug: str | None = None,
 ) -> PlanReadHydrated:
     return PlanReadHydrated(
         id=plan.id,
@@ -1579,6 +1636,9 @@ def _build_plan_response(
             )
             for img in plan.images
         ],
+        owner_name=plan.owner_name,
+        owner_slug=owner_slug,
+        group_slug=group_slug,
     )
 
 
@@ -1638,12 +1698,19 @@ async def get_plan_hydrated(
         return None
     await _sync_group_name(db, ctx, plan)
     await sync_owner_name(db, ctx)
+    owner_slug, group_slug = await _plan_attribution_slugs(plan)
 
     if not refresh:
-        return _build_plan_response(plan, [_item_from_snapshot(row) for row in plan.projects], ctx)
+        return _build_plan_response(
+            plan,
+            [_item_from_snapshot(row) for row in plan.projects],
+            ctx,
+            owner_slug=owner_slug,
+            group_slug=group_slug,
+        )
 
     items = await _hydrate_live_and_persist(db, plan, hanko_cookie)
-    return _build_plan_response(plan, items, ctx)
+    return _build_plan_response(plan, items, ctx, owner_slug=owner_slug, group_slug=group_slug)
 
 
 async def get_public_plan_hydrated(
@@ -1673,15 +1740,18 @@ async def get_public_plan_hydrated(
 
     # An anonymous public viewer has no edit rights.
     anon_ctx = permissions.PermissionContext(None, frozenset(), True)
+    owner_slug, group_slug = await _plan_attribution_slugs(plan)
     if not refresh:
         return _build_plan_response(
             plan,
             [_item_from_snapshot(row) for row in plan.projects],
             anon_ctx,
+            owner_slug=owner_slug,
+            group_slug=group_slug,
         )
 
     items = await _hydrate_live_and_persist(db, plan, hanko_cookie)
-    return _build_plan_response(plan, items, anon_ctx)
+    return _build_plan_response(plan, items, anon_ctx, owner_slug=owner_slug, group_slug=group_slug)
 
 
 async def get_plan_tags_for_projects(

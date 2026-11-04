@@ -1,9 +1,11 @@
+import { Link } from 'react-router-dom'
 import Breadcrumb from '../../components/shared/Breadcrumb'
 import BreadcrumbItem from '../../components/shared/BreadcrumbItem'
 import Button from '../../components/shared/Button'
 import PageWrapper from '../../components/shared/PageWrapper'
 import Tag from '../../components/shared/Tag'
 import { useAuth } from '../../contexts/AuthContext'
+import { useLanguage } from '../../contexts/LanguageContext'
 import { m } from '../../paraglide/messages'
 import { useMyPortalProfile } from '../../portal-user-profile/hooks/useMyPortalProfile'
 import { getUsername } from '../../utils/username'
@@ -40,10 +42,11 @@ function PlanSectionHeader({
   const { user } = useAuth()
   const { data: groups } = useMyGroups()
   const { data: me } = useMyPortalProfile()
+  const { currentLanguage } = useLanguage()
 
   // A plan is shared when it carries a group; otherwise it's personal and we
-  // credit the owner. The owner's name is only known when they're the viewer —
-  // plan reads expose owner_id, not a display name.
+  // credit the owner. The owner sees their own freshest name; everyone else
+  // gets the name the hydrated plan carries.
   // The viewer's own groups give the freshest name; anyone outside the group,
   // signed in or not, falls back to the name the plan carries.
   const hasGroup = !!plan?.group_type && !!plan?.group_id
@@ -52,7 +55,12 @@ function PlanSectionHeader({
     : null
   const ownerName = plan?.is_owner
     ? getUsername({ first_name: me?.first_name, last_name: me?.last_name, email: user?.email })
-    : null
+    : plan && 'owner_name' in plan
+      ? plan.owner_name
+      : null
+  // Link to the public profile only when the backend found one.
+  const groupSlug = plan && 'group_slug' in plan ? plan.group_slug : null
+  const ownerSlug = plan && 'owner_slug' in plan ? plan.owner_slug : null
 
   const attribution = groupName
     ? {
@@ -61,9 +69,17 @@ function PlanSectionHeader({
             ? m.plan_permissions_scope_org()
             : m.plan_permissions_scope_team(),
         name: groupName,
+        href:
+          plan?.group_type === 'organization' && groupSlug
+            ? `/${currentLanguage}/org/${groupSlug}`
+            : undefined,
       }
     : ownerName
-      ? { label: m.plan_header_owner_author(), name: ownerName }
+      ? {
+          label: m.plan_header_owner_author(),
+          name: ownerName,
+          href: ownerSlug ? `/${currentLanguage}/people/${ownerSlug}` : undefined,
+        }
       : null
 
   return (
@@ -99,7 +115,13 @@ function PlanSectionHeader({
                 <span className="text-white font-semibold bg-hot-neutral-800 rounded-xl px-xs py-2xs">
                   {attribution.label}
                 </span>
-                <span>{attribution.name}</span>
+                {attribution.href ? (
+                  <Link to={attribution.href} className="text-inherit no-underline hover:underline">
+                    {attribution.name}
+                  </Link>
+                ) : (
+                  <span>{attribution.name}</span>
+                )}
               </span>
             )}
           </div>

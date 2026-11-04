@@ -184,6 +184,13 @@ function PublicPlansPage() {
                             >
                               {plan.owner_name}
                             </Link>
+                          ) : plan.group_name != null && plan.group_slug ? (
+                            <Link
+                              to={`/${currentLanguage}/org/${plan.group_slug}`}
+                              className="text-hot-neutral-800 no-underline hover:underline"
+                            >
+                              {plan.group_name}
+                            </Link>
                           ) : (
                             (plan.group_name ?? plan.owner_name)
                           )}
@@ -206,7 +213,7 @@ function PublicPlansPage() {
               <p className="mb-md text-sm text-hot-gray-500">
                 {m.plan_public_showing({ shown: plans.length, total })}
               </p>
-              <div className="grid grid-cols-1 gap-lg sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-lg md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {plans.map((plan) => (
                   <PublicPlanCard key={plan.id} plan={plan} />
                 ))}

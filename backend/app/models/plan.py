@@ -178,6 +178,9 @@ class PublicPlanSummary(BaseModel):
     apps: list[AppLiteral] = []
     group_id: str | None = None
     group_name: str | None = None
+    # Slug of the organization's public profile; None when it isn't a public
+    # organization or is unknown.
+    group_slug: str | None = None
     owner_name: str | None = None
     # Slug of the owner's public profile; None when it is private or unknown.
     owner_slug: str | None = None
@@ -255,6 +258,12 @@ class PlanReadHydrated(PlanScopeRead):
     images: list[PlanImageRead] = []
     created_at: datetime
     updated_at: datetime
+    owner_name: str | None = None
+    # Slug of the owner's public profile; None when it is private or unknown.
+    owner_slug: str | None = None
+    # Slug of the organization's public profile; None for teams, or when it
+    # isn't a public organization or is unknown.
+    group_slug: str | None = None
 
 
 class PlanTag(BaseModel):
