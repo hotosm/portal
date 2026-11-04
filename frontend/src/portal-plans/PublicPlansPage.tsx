@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import Icon from '../components/shared/Icon'
 import Input from '../components/shared/Input'
 import PageWrapper from '../components/shared/PageWrapper'
 import Pagination from '../components/shared/Pagination'
@@ -9,6 +8,7 @@ import { m } from '../paraglide/messages'
 import { toPlainText } from '../utils/plainText'
 import PlanSectionHeader from './components/PlanSectionHeader'
 import PublicPlanCard from './components/PublicPlanCard'
+import ViewToggle, { type PlanView } from './components/ViewToggle'
 import { PUBLIC_PLANS_PAGE_SIZE, usePublicPlans } from './hooks'
 import type { PublicPlanSummary } from './types'
 
@@ -27,12 +27,10 @@ function matchesSearch(plan: PublicPlanSummary, needle: string): boolean {
   return plan.name.toLowerCase().includes(needle) || createdBy.toLowerCase().includes(needle)
 }
 
-type PlansView = 'list' | 'grid'
-
 const VIEW_FADE_CLASSES = 'transition-opacity duration-300 motion-reduce:transition-none'
 
-function parseView(value: string | null): PlansView {
-  return value === 'grid' ? 'grid' : 'list'
+function parseView(value: string | null): PlanView {
+  return value === 'card' ? 'card' : 'list'
 }
 
 function parsePage(value: string | null): number {
@@ -70,10 +68,10 @@ function PublicPlansPage() {
     return () => clearTimeout(timer)
   }, [searchText, q, setSearchParams])
 
-  const setView = (value: PlansView) => {
+  const setView = (value: PlanView) => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev)
-      if (value === 'grid') next.set('view', 'grid')
+      if (value === 'card') next.set('view', 'card')
       else next.delete('view')
       return next
     })
@@ -129,26 +127,7 @@ function PublicPlansPage() {
             />
           </div>
           <div className="flex items-center gap-md md:ml-auto md:h-[var(--wa-form-control-height)]">
-            {(['grid', 'list'] as const).map((option) => (
-              <button
-                key={option}
-                type="button"
-                aria-pressed={view === option}
-                aria-label={
-                  option === 'grid' ? m.plan_public_view_grid() : m.plan_public_view_list()
-                }
-                onClick={() => setView(option)}
-                className={`cursor-pointer border-0 bg-transparent p-2xs text-xl leading-none ${
-                  view === option ? 'text-hot-red-600' : 'text-hot-gray-400 hover:text-hot-gray-600'
-                }`}
-              >
-                <Icon
-                  library="bootstrap"
-                  name={option === 'grid' ? 'grid-3x3' : 'list-ul'}
-                  label=""
-                />
-              </button>
-            ))}
+            <ViewToggle value={view} onChange={setView} />
           </div>
         </div>
 
@@ -220,9 +199,9 @@ function PublicPlansPage() {
             </div>
 
             <div
-              aria-hidden={view !== 'grid'}
-              inert={view !== 'grid'}
-              className={`${VIEW_FADE_CLASSES} ${view === 'grid' ? 'relative opacity-100' : 'pointer-events-none absolute inset-x-0 top-0 opacity-0'}`}
+              aria-hidden={view !== 'card'}
+              inert={view !== 'card'}
+              className={`${VIEW_FADE_CLASSES} ${view === 'card' ? 'relative opacity-100' : 'pointer-events-none absolute inset-x-0 top-0 opacity-0'}`}
             >
               <p className="mb-md text-sm text-hot-gray-500">
                 {m.plan_public_showing({ shown: plans.length, total })}

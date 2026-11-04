@@ -440,8 +440,6 @@
   "plan_public_empty": "Il n'y a aucun plan public à afficher.",
   "plan_public_error": "Une erreur s'est produite lors du chargement des plans publics.",
   "plan_public_showing": "Affichage de {shown} plans sur {total}",
-  "plan_public_view_list": "Vue en liste",
-  "plan_public_view_grid": "Vue en grille",
   "user_menu_no_profile_title": "Pas encore de profil public",
   "user_menu_no_profile_message": "Vous n'avez pas encore de profil public. Créez-en un pour que les autres puissent voir votre travail sur les outils HOT.",
   "user_menu_create_profile": "Créer un profil public",

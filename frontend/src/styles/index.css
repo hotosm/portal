@@ -134,6 +134,18 @@ html:has(.marketplace-page) {
   opacity: 0.8;
 }
 
+.plan-view-toggle {
+  --wa-color-fill-quiet: transparent;
+}
+
+.plan-view-toggle--inactive {
+  --wa-color-on-quiet: var(--hot-color-gray-400);
+}
+
+.plan-view-toggle--inactive:hover {
+  --wa-color-on-quiet: var(--hot-color-gray-600);
+}
+
 /* Keeps a form control's label for assistive tech while hiding it on screen. */
 .visually-hidden-label::part(form-control-label) {
   position: absolute;

@@ -440,8 +440,6 @@
   "plan_public_empty": "No hay planes públicos para mostrar.",
   "plan_public_error": "Algo salió mal al cargar los planes públicos.",
   "plan_public_showing": "Mostrando {shown} de {total} planes",
-  "plan_public_view_list": "Vista de lista",
-  "plan_public_view_grid": "Vista de cuadrícula",
   "user_menu_no_profile_title": "Aún no tienes perfil público",
   "user_menu_no_profile_message": "Todavía no tienes un perfil público. Créalo para que otras personas puedan ver tu trabajo en las herramientas de HOT.",
   "user_menu_create_profile": "Crear perfil público",

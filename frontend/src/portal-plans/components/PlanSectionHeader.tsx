@@ -5,6 +5,8 @@ import PageWrapper from '../../components/shared/PageWrapper'
 import Tag from '../../components/shared/Tag'
 import { useAuth } from '../../contexts/AuthContext'
 import { m } from '../../paraglide/messages'
+import { useMyPortalProfile } from '../../portal-user-profile/hooks/useMyPortalProfile'
+import { getUsername } from '../../utils/username'
 import { useMyGroups } from '../hooks'
 import type { PlanRead, PlanReadHydrated } from '../types'
 
@@ -37,6 +39,7 @@ function PlanSectionHeader({
   const label = buttonText
   const { user } = useAuth()
   const { data: groups } = useMyGroups()
+  const { data: me } = useMyPortalProfile()
 
   // A plan is shared when it carries a group; otherwise it's personal and we
   // credit the owner. The owner's name is only known when they're the viewer —
@@ -47,7 +50,9 @@ function PlanSectionHeader({
   const groupName = hasGroup
     ? (groups?.find((g) => g.id === plan.group_id)?.name ?? plan.group_name)
     : null
-  const ownerName = plan?.is_owner ? (user?.username ?? user?.email) : null
+  const ownerName = plan?.is_owner
+    ? getUsername({ first_name: me?.first_name, last_name: me?.last_name, email: user?.email })
+    : null
 
   const attribution = groupName
     ? {
