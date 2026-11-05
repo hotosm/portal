@@ -8,6 +8,9 @@ import type { PublicPlanList, PublicPlanSummary } from '../types'
 vi.mock('../../contexts/LanguageContext', () => ({
   useLanguage: () => ({ currentLanguage: 'en' }),
 }))
+vi.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({ isLogin: false }),
+}))
 vi.mock('../components/PlanSectionHeader', () => ({
   default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }))

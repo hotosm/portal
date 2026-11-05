@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import Input from '../components/shared/Input'
 import PageWrapper from '../components/shared/PageWrapper'
 import Pagination from '../components/shared/Pagination'
+import { useAuth } from '../contexts/AuthContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { m } from '../paraglide/messages'
 import { toPlainText } from '../utils/plainText'
@@ -61,6 +62,7 @@ function PlanAuthor({ plan }: { plan: PublicPlanSummary }) {
 
 function PublicPlansPage() {
   const { currentLanguage } = useLanguage()
+  const { isLogin } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const q = searchParams.get('q') ?? ''
   const page = parsePage(searchParams.get('page'))
@@ -122,8 +124,8 @@ function PublicPlansPage() {
   return (
     <>
       <PlanSectionHeader
-        buttonText={m.plan_public_see_my_plans()}
-        buttonLink={`/${currentLanguage}/plan`}
+        buttonText={isLogin ? m.plan_public_see_my_plans() : undefined}
+        buttonLink={isLogin ? `/${currentLanguage}/plan` : undefined}
         breadcrumbs={[
           { label: m.plan_header(), href: `/${currentLanguage}/plan` },
           { label: m.plan_public_title() },
