@@ -15,7 +15,7 @@ import {
   useDeleteCollection,
   useUpdateCollection,
 } from '../hooks'
-import type { Collection } from '../types'
+import type { Collection, CollectionUpdate } from '../types'
 
 /** Collections shown per page on the manage tab. */
 const PAGE_SIZE = 5
@@ -39,10 +39,10 @@ interface CollectionListItemProps {
   onDelete: () => void
   onStartEditing: () => void
   onCancelEditing: () => void
-  onSave: (name: string) => void
+  onSave: (payload: CollectionUpdate) => void
 }
 
-/** One existing collection: renamed from its pencil button, deleted from its trash button. */
+/** One existing collection: edited from its pencil button, deleted from its trash button. */
 function CollectionListItem({
   collection,
   isDeleting,
@@ -54,49 +54,74 @@ function CollectionListItem({
   onSave,
 }: CollectionListItemProps) {
   const [draft, setDraft] = useState(collection.name)
+  const [descriptionDraft, setDescriptionDraft] = useState(collection.description ?? '')
 
   useEffect(() => {
-    if (isEditing) setDraft(collection.name)
-  }, [isEditing, collection.name])
+    if (isEditing) {
+      setDraft(collection.name)
+      setDescriptionDraft(collection.description ?? '')
+    }
+  }, [isEditing, collection.name, collection.description])
 
   const trimmedDraft = draft.trim()
+  const trimmedDescriptionDraft = descriptionDraft.trim()
   const canSave = trimmedDraft.length > 0 && !isSaving
 
   function save() {
     if (!canSave) return
-    if (trimmedDraft === collection.name) {
+    const payload: CollectionUpdate = {}
+    if (trimmedDraft !== collection.name) payload.name = trimmedDraft
+    // Send "" (not null) to clear the description: the backend ignores null.
+    if (trimmedDescriptionDraft !== (collection.description ?? '')) {
+      payload.description = trimmedDescriptionDraft
+    }
+    if (Object.keys(payload).length === 0) {
       onCancelEditing()
       return
     }
-    onSave(trimmedDraft)
+    onSave(payload)
   }
 
   if (isEditing) {
     return (
       <li
-        className="flex items-center gap-sm ms-0"
+        className="flex flex-col gap-xs ms-0"
         style={{ minHeight: `${ROW_HEIGHT_REM}rem`, marginBottom: '5px', paddingTop: '5px' }}
       >
-        <div className="flex-1 min-w-0">
-          <Input
-            type="text"
-            size="small"
-            value={draft}
-            autoFocus
-            aria-label={m.plan_collections_rename()}
-            onInput={(e) => setDraft(e.currentTarget.value ?? '')}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                save()
-              } else if (e.key === 'Escape') {
-                e.stopPropagation()
-                onCancelEditing()
-              }
-            }}
-          />
-        </div>
-        <div className="flex items-center gap-xs shrink-0">
+        <Input
+          type="text"
+          size="small"
+          value={draft}
+          autoFocus
+          className="w-full"
+          aria-label={m.plan_collections_name_label()}
+          onInput={(e) => setDraft(e.currentTarget.value ?? '')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              save()
+            } else if (e.key === 'Escape') {
+              e.stopPropagation()
+              onCancelEditing()
+            }
+          }}
+        />
+        <Textarea
+          size="small"
+          rows={2}
+          value={descriptionDraft}
+          className="w-full"
+          placeholder={m.plan_collections_description_placeholder()}
+          aria-label={m.plan_collections_description_placeholder()}
+          onInput={(e) => setDescriptionDraft(e.currentTarget.value ?? '')}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              e.stopPropagation()
+              onCancelEditing()
+            }
+          }}
+        />
+        <div className="flex justify-end gap-xs">
           <Button appearance="accent" size="small" onClick={save} disabled={!canSave}>
             {m.plan_collections_save()}
           </Button>
@@ -123,10 +148,10 @@ function CollectionListItem({
           <button
             type="button"
             onClick={onStartEditing}
-            aria-label={m.plan_collections_rename()}
+            aria-label={m.plan_collections_edit()}
             className="shrink-0 text-hot-gray-500 hover:text-hot-gray-900"
           >
-            <Icon library="bootstrap" name="pencil" label={m.plan_collections_rename()} />
+            <Icon library="bootstrap" name="pencil" label={m.plan_collections_edit()} />
           </button>
           <button
             type="button"
@@ -195,9 +220,9 @@ function CollectionsDialog({ planId, open, onClose, onCreated }: CollectionsDial
     })
   }
 
-  function rename(id: string, newName: string) {
+  function update(id: string, payload: CollectionUpdate) {
     updateCollection.mutate(
-      { id, payload: { name: newName } },
+      { id, payload },
       {
         onSuccess: () => {
           toast.success(m.plan_collections_toast_collection_updated())
@@ -287,7 +312,7 @@ function CollectionsDialog({ planId, open, onClose, onCreated }: CollectionsDial
                     onDelete={() => remove(collection.id)}
                     onStartEditing={() => setEditingId(collection.id)}
                     onCancelEditing={() => setEditingId(null)}
-                    onSave={(newName) => rename(collection.id, newName)}
+                    onSave={(payload) => update(collection.id, payload)}
                   />
                 ))}
               </ul>
