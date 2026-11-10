@@ -123,3 +123,24 @@ class PublicContactRead(BaseModel):
     contact_email: str | None
     phone: str | None
     extra_links: list[str]
+
+
+class PublicOrganizationRead(BaseModel):
+    """GET /api/public/org/{slug} response, proxied from login."""
+
+    name: str
+    slug: str
+    description: str | None
+    website: str | None
+    contact_email: str | None
+    avatar_url: str | None
+    banner_url: str | None
+    members_count: int
+    # Locale the org writes its content in, the locale each translatable field
+    # was actually returned in, and every locale it has content for.
+    default_locale: str
+    field_locales: dict[str, str]
+    available_locales: list[str]
+    tagline: str | None
+    # A YouTube watch URL (https://www.youtube.com/watch?v=ID), or null.
+    video_url: str | None

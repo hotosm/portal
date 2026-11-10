@@ -5,6 +5,7 @@ import DrawerMenu from "./DrawerMenu";
 import LanguageSwitcher from "./LanguageSwitcher";
 import NavigationMain from "./NavigationMain";
 import PortalBrand from "./PortalBrand";
+import UserMenu from "./UserMenu";
 import { m } from "../paraglide/messages";
 
 function Header() {
@@ -35,6 +36,7 @@ function Header() {
         </div>
 
         <div className="flex items-center gap-xs">
+          <UserMenu />
           <hotosm-auth
             lang={currentLanguage}
             button-color="primary"

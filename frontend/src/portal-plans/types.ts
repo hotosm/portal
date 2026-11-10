@@ -183,6 +183,12 @@ export interface PlanReadHydrated {
   images: PlanImageRead[]
   created_at: string
   updated_at: string
+  owner_name?: string | null
+  // Slug of the owner's public profile; null when it is private or unknown.
+  owner_slug?: string | null
+  // Slug of the organization's public profile; null for teams, or when it
+  // isn't a public organization or is unknown.
+  group_slug?: string | null
 }
 
 export interface UrlResolveResponse {
@@ -221,4 +227,34 @@ export interface PlanFormValues {
   name: string
   description: string
   pendingImages: File[]
+}
+
+/** One row of GET /api/plans/public. */
+export interface PublicPlanSummary {
+  id: string
+  name: string
+  description: string | null
+  project_count: number
+  apps: AppName[]
+  group_id: string | null
+  group_name: string | null
+  group_slug: string | null
+  owner_name: string | null
+  owner_slug: string | null
+  cover_image_url: string | null
+  cover_project: { app: AppName | null; data: Record<string, unknown> } | null
+  created_at: string
+}
+
+export interface PublicOrganization {
+  group_id: string
+  group_name: string | null
+}
+
+export interface PublicPlanList {
+  items: PublicPlanSummary[]
+  total: number
+  page: number
+  page_size: number
+  organizations: PublicOrganization[]
 }

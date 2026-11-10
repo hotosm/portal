@@ -2,7 +2,6 @@ import { NavLink, useLocation } from "react-router-dom";
 import { MAIN_MENU_ITEMS, getVisibleMenuItems } from "../constants/menu";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
-import { useMyPortalProfile } from "../portal-user-profile/hooks/useMyPortalProfile";
 
 interface NavigationMainProps {
   onLinkClick?: () => void;
@@ -10,7 +9,6 @@ interface NavigationMainProps {
 
 function NavigationMain({ onLinkClick }: NavigationMainProps) {
   const { isLogin } = useAuth();
-  const { data: me } = useMyPortalProfile();
   const { currentLanguage } = useLanguage();
   const location = useLocation();
   const visibleItems = getVisibleMenuItems(MAIN_MENU_ITEMS, isLogin);
@@ -23,22 +21,10 @@ function NavigationMain({ onLinkClick }: NavigationMainProps) {
     return basePath === itemHref || pathname === itemHref;
   };
 
-  // Some hrefs carry a :username token (profile link). Only the real slug from
-  // the portal profile resolves it: without one there's no public profile to
-  // link to (not public yet, or the profile hasn't loaded), so the item isn't
-  // rendered at all instead of pointing at a broken URL.
-  const resolveHref = (href: string) => {
-    if (!href.includes(":username")) return href;
-    if (!me?.slug) return null;
-    return href.replace(":username", encodeURIComponent(me.slug));
-  };
-
   return (
     <div className="flex gap-sm flex-col lg:flex-row">
       {visibleItems.map((item) => {
-        const href = resolveHref(item.href);
-        if (href === null) return null;
-
+        const href = item.href;
         const isActive = isActiveItem(href);
         const linkContent = (
           <span className="flex items-center gap-2xs">
