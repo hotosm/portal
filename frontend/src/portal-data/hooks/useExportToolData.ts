@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import type { ExportJobsResponse } from "../../types/projectsMap";
 import { type IDataProject, mapExportJobsToDataProjects } from "../types";
 import { useAuth } from "../../contexts/AuthContext";
@@ -35,6 +35,7 @@ export function useExportJobs(page = 1, limit = 6, enabled = true) {
         total: data.count,
       };
     },
+    placeholderData: keepPreviousData,
     enabled: isLogin && enabled,
     retry: (failureCount, error) =>
       failureCount < 1 && !/\[5\d\d\]/.test(String((error as Error)?.message ?? "")),

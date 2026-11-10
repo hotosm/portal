@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import type { IUMapProject } from "../types";
 import { getUmapBaseUrl } from "../../utils/envConfig";
 import placeholderImage from "../../assets/images/demo/demo1.png";
@@ -61,6 +61,7 @@ export function useMyMaps(page = 1, limit = MAPS_PER_PAGE, enabled = true) {
     refetchOnWindowFocus: true,
     retry: (failureCount, error) =>
       failureCount < 1 && !/\[5\d\d\]/.test(String((error as Error)?.message ?? "")),
+    placeholderData: keepPreviousData,
     enabled: isLogin && enabled,
   });
 }
