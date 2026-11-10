@@ -13,7 +13,7 @@ function OrgPlansSection({ plans, loading, uiLang }: OrgPlansSectionProps) {
   if (!showPlans) return null
 
   return (
-    <section lang={uiLang} className="org-profile-plans mb-2xl">
+    <section lang={uiLang} className="org-profile-plans mt-lg mb-2xl">
       <PlanSubSectionAccordion
         title={m.org_profile_working_on_now()}
         description={m.org_profile_plans()}
