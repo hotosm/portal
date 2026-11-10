@@ -182,22 +182,6 @@ html:has(.marketplace-page) {
   margin: 0.25rem 0;
 }
 
-/* Scoped to the org profile page: the description's markdown h1 reads as the
-   page's headline. The shared .rte-editor styles stay untouched. */
-.org-profile-description h1 {
-  font-size: 1.875rem;
-  line-height: 1.25;
-  font-weight: 700;
-  color: var(--hot-color-gray-950);
-  margin-bottom: var(--hot-spacing-large);
-}
-
-@media (min-width: 1024px) {
-  .org-profile-description h1 {
-    font-size: 2.25rem;
-  }
-}
-
 /* PlanSubSectionAccordion lays its header out in a page `container` (with the
    page's side padding). Inside this column that would indent it past the
    description, so the padding is dropped here only. */
