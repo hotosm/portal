@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, Response, status
 from hotosm_auth_fastapi import CurrentUser
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,6 +23,7 @@ from app.models.plan import (
     ProjectReorder,
     ProjectsRemove,
     ProjectStatusUpdate,
+    PublicPlanList,
     UrlResolveRequest,
     UrlResolveResponse,
 )
@@ -55,6 +56,7 @@ async def list_my_plans(
     db: AsyncSession = Depends(get_db),
 ) -> list[PlanSummary]:
     """List plans visible to the user (own plus group plans) as lightweight summaries."""
+    await plans_service.sync_owner_name(db, ctx)
     return await plans_service.list_plans(db, ctx)
 
 
@@ -94,6 +96,20 @@ async def resolve_project_url(
         raise HTTPException(status_code=404, detail="project_not_found")
     except UpstreamUnavailable:
         raise HTTPException(status_code=502, detail="upstream_unavailable")
+
+
+@router.get("/public", response_model=PublicPlanList)
+async def list_public_plans(
+    search: Annotated[str | None, Query(max_length=200, description="Plan name contains")] = None,
+    org: Annotated[str | None, Query(max_length=200, description="Organization group_id")] = None,
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 20,
+    db: AsyncSession = Depends(get_db),
+) -> PublicPlanList:
+    """List public plans, newest first. No auth required."""
+    return await plans_service.list_public_plans(
+        db, search=search, org=org, page=page, page_size=page_size
+    )
 
 
 @router.get("/shared/{plan_id}", response_model=PlanReadHydrated)

@@ -85,10 +85,7 @@ function ProfileOrgPage() {
               </p>
             )}
             {org.description && (
-              <section
-                lang={fieldLang(org, 'description')}
-                className="org-profile-description text-hot-gray-700 mb-2xl"
-              >
+              <section lang={fieldLang(org, 'description')} className="text-hot-gray-700 mb-2xl">
                 <RichTextContent content={org.description} />
               </section>
             )}

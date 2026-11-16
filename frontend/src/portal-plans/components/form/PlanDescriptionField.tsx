@@ -9,9 +9,9 @@ interface PlanDescriptionFieldProps {
 function PlanDescriptionField({ value, onChange }: PlanDescriptionFieldProps) {
   return (
     <div className="flex flex-col gap-xs">
-        <label htmlFor="plan-description" className="text-sm font-medium text-hot-gray-700">
-          {m.plan_form_description_label()}
-        </label>
+      <label htmlFor="plan-description" className="text-sm font-medium text-hot-gray-700">
+        {m.plan_form_description_label()}
+      </label>
       <MarkdownEditor
         id="plan-description"
         value={value}

@@ -9,8 +9,13 @@ import Spinner from '../../components/shared/Spinner'
 import { Tab, TabGroup, TabPanel } from '../../components/shared/Tabs'
 import Textarea from '../../components/shared/Textarea'
 import { m } from '../../paraglide/messages'
-import { useCollections, useCreateCollection, useDeleteCollection } from '../hooks'
-import type { Collection } from '../types'
+import {
+  useCollections,
+  useCreateCollection,
+  useDeleteCollection,
+  useUpdateCollection,
+} from '../hooks'
+import type { Collection, CollectionUpdate } from '../types'
 
 /** Collections shown per page on the manage tab. */
 const PAGE_SIZE = 5
@@ -29,11 +34,105 @@ interface CollectionsDialogProps {
 interface CollectionListItemProps {
   collection: Collection
   isDeleting: boolean
+  isEditing: boolean
+  isSaving: boolean
   onDelete: () => void
+  onStartEditing: () => void
+  onCancelEditing: () => void
+  onSave: (payload: CollectionUpdate) => void
 }
 
-/** One existing collection, deleted straight from its trash button. */
-function CollectionListItem({ collection, isDeleting, onDelete }: CollectionListItemProps) {
+/** One existing collection: edited from its pencil button, deleted from its trash button. */
+function CollectionListItem({
+  collection,
+  isDeleting,
+  isEditing,
+  isSaving,
+  onDelete,
+  onStartEditing,
+  onCancelEditing,
+  onSave,
+}: CollectionListItemProps) {
+  const [draft, setDraft] = useState(collection.name)
+  const [descriptionDraft, setDescriptionDraft] = useState(collection.description ?? '')
+
+  useEffect(() => {
+    if (isEditing) {
+      setDraft(collection.name)
+      setDescriptionDraft(collection.description ?? '')
+    }
+  }, [isEditing, collection.name, collection.description])
+
+  const trimmedDraft = draft.trim()
+  const trimmedDescriptionDraft = descriptionDraft.trim()
+  const canSave = trimmedDraft.length > 0 && !isSaving
+
+  function save() {
+    if (!canSave) return
+    const payload: CollectionUpdate = {}
+    if (trimmedDraft !== collection.name) payload.name = trimmedDraft
+    // Send "" (not null) to clear the description: the backend ignores null.
+    if (trimmedDescriptionDraft !== (collection.description ?? '')) {
+      payload.description = trimmedDescriptionDraft
+    }
+    if (Object.keys(payload).length === 0) {
+      onCancelEditing()
+      return
+    }
+    onSave(payload)
+  }
+
+  if (isEditing) {
+    return (
+      <li
+        className="flex flex-col gap-xs ms-0"
+        style={{ minHeight: `${ROW_HEIGHT_REM}rem`, marginBottom: '5px', paddingTop: '5px' }}
+      >
+        <Input
+          type="text"
+          size="small"
+          value={draft}
+          autoFocus
+          className="w-full"
+          aria-label={m.plan_collections_name_label()}
+          onInput={(e) => setDraft(e.currentTarget.value ?? '')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              save()
+            } else if (e.key === 'Escape') {
+              e.stopPropagation()
+              onCancelEditing()
+            }
+          }}
+        />
+        <Textarea
+          size="small"
+          rows={2}
+          value={descriptionDraft}
+          className="w-full"
+          placeholder={m.plan_collections_description_placeholder()}
+          aria-label={m.plan_collections_description_placeholder()}
+          onInput={(e) => setDescriptionDraft(e.currentTarget.value ?? '')}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              e.stopPropagation()
+              onCancelEditing()
+            }
+          }}
+        />
+        <div className="flex justify-end gap-xs">
+          <Button appearance="accent" size="small" onClick={save} disabled={!canSave}>
+            {m.plan_collections_save()}
+          </Button>
+          <Button appearance="plain" size="small" onClick={onCancelEditing} disabled={isSaving}>
+            {m.profile_edit_cancel()}
+          </Button>
+        </div>
+      </li>
+    )
+  }
+
   return (
     <li className="flex items-center gap-sm ms-0" style={{ minHeight: `${ROW_HEIGHT_REM}rem` }}>
       <div className="flex-1 min-w-0">
@@ -45,14 +144,24 @@ function CollectionListItem({ collection, isDeleting, onDelete }: CollectionList
       {isDeleting ? (
         <Spinner />
       ) : (
-        <button
-          type="button"
-          onClick={onDelete}
-          aria-label={m.plan_collections_delete()}
-          className="shrink-0 text-hot-gray-500 hover:text-hot-red-600"
-        >
-          <Icon library="bootstrap" name="trash" label={m.plan_collections_delete()} />
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={onStartEditing}
+            aria-label={m.plan_collections_edit()}
+            className="shrink-0 text-hot-gray-500 hover:text-hot-gray-900"
+          >
+            <Icon library="bootstrap" name="pencil" label={m.plan_collections_edit()} />
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            aria-label={m.plan_collections_delete()}
+            className="shrink-0 text-hot-gray-500 hover:text-hot-red-600"
+          >
+            <Icon library="bootstrap" name="trash" label={m.plan_collections_delete()} />
+          </button>
+        </>
       )}
     </li>
   )
@@ -62,6 +171,8 @@ function CollectionsDialog({ planId, open, onClose, onCreated }: CollectionsDial
   const { data: collections = [], isLoading } = useCollections(planId)
   const createCollection = useCreateCollection(planId)
   const deleteCollection = useDeleteCollection(planId)
+  const updateCollection = useUpdateCollection(planId)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [tab, setTab] = useState<'add' | 'manage'>('add')
@@ -73,6 +184,7 @@ function CollectionsDialog({ planId, open, onClose, onCreated }: CollectionsDial
     setDescription('')
     setTab('add')
     setPage(1)
+    setEditingId(null)
   }, [open])
 
   const totalPages = Math.max(1, Math.ceil(collections.length / PAGE_SIZE))
@@ -106,6 +218,18 @@ function CollectionsDialog({ planId, open, onClose, onCreated }: CollectionsDial
         onClose()
       },
     })
+  }
+
+  function update(id: string, payload: CollectionUpdate) {
+    updateCollection.mutate(
+      { id, payload },
+      {
+        onSuccess: () => {
+          toast.success(m.plan_collections_toast_collection_updated())
+          setEditingId(null)
+        },
+      }
+    )
   }
 
   return (
@@ -181,7 +305,14 @@ function CollectionsDialog({ planId, open, onClose, onCreated }: CollectionsDial
                     isDeleting={
                       deleteCollection.isPending && deleteCollection.variables === collection.id
                     }
+                    isEditing={editingId === collection.id}
+                    isSaving={
+                      updateCollection.isPending && updateCollection.variables?.id === collection.id
+                    }
                     onDelete={() => remove(collection.id)}
+                    onStartEditing={() => setEditingId(collection.id)}
+                    onCancelEditing={() => setEditingId(null)}
+                    onSave={(payload) => update(collection.id, payload)}
                   />
                 ))}
               </ul>

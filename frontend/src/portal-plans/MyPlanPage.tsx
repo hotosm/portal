@@ -29,7 +29,6 @@ import ConfirmDialog from '../components/shared/ConfirmDialog'
 import Icon from '../components/shared/Icon'
 import PageWrapper from '../components/shared/PageWrapper'
 import { RichTextContent } from '../components/shared/RichTextContent'
-import Tag from '../components/shared/Tag'
 import { cardClassNames } from '../constants/classNames'
 import { useAuth } from '../contexts/AuthContext'
 import { useLanguage } from '../contexts/LanguageContext'
@@ -50,6 +49,7 @@ import ProjectPickerDialog from './components/ProjectPickerDialog'
 import SelectableOverlay from './components/SelectableOverlay'
 import SortableViewProjectCard from './components/SortableViewProjectCard'
 import SortableViewProjectRow from './components/SortableViewProjectRow'
+import ViewToggle, { type PlanView } from './components/ViewToggle'
 import { ALL_SECTION_ID, isSectionDropId } from './contstants'
 import {
   ProjectSelectionContext,
@@ -140,7 +140,7 @@ function MyPlanPage() {
   const [collectionsDialogOpen, setCollectionsDialogOpen] = useState(false)
   // How the projects of every section are drawn. Deliberately ephemeral: it is
   // a way of looking at the plan, not a setting, so it resets on navigation.
-  const [view, setView] = useState<'card' | 'list'>('card')
+  const [view, setView] = useState<PlanView>('card')
   // The plan carries its collections; the query keeps them fresh after a create
   // or rename without waiting for the plan to refetch.
   const { data: fetchedCollections } = useCollections(viewingOwn ? (planId ?? '') : '')
@@ -603,6 +603,7 @@ function MyPlanPage() {
     <ProjectSelectionContext.Provider value={selection}>
       <PlanSectionHeader
         plan={isLoading ? undefined : plan!}
+        showPublicTag={!isLoading && plan!.is_public && canEdit}
         breadcrumbs={
           isLoading
             ? undefined
@@ -644,11 +645,6 @@ function MyPlanPage() {
           </div>
         ) : (
           <>
-            {plan!.is_public && canEdit && (
-              <Tag variant="neutral" appearance="filled" size="large" className="mb-[10px]">
-                {m.plan_public_tag()}
-              </Tag>
-            )}
             {plan!.description && (
               <RichTextContent content={plan!.description ?? ''} className="py-md" />
             )}
@@ -710,28 +706,7 @@ function MyPlanPage() {
             {/* Read-only viewers get the toggle too: it only changes how the
                 plan is drawn, nothing about the plan itself. */}
             <div className="ml-auto flex items-center gap-2xs">
-              <button
-                type="button"
-                onClick={() => setView('card')}
-                aria-pressed={!isList}
-                title={m.plan_view_cards()}
-                className={`cursor-pointer px-xs py-2xs rounded transition-colors ${
-                  isList ? 'text-hot-gray-400 hover:text-hot-gray-600' : 'text-hot-red-600'
-                }`}
-              >
-                <Icon name="table-cells" label={m.plan_view_cards()} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setView('list')}
-                aria-pressed={isList}
-                title={m.plan_view_list()}
-                className={`cursor-pointer px-xs py-2xs rounded transition-colors ${
-                  isList ? 'text-hot-red-600' : 'text-hot-gray-400 hover:text-hot-gray-600'
-                }`}
-              >
-                <Icon name="list" label={m.plan_view_list()} />
-              </button>
+              <ViewToggle value={view} onChange={setView} />
             </div>
           </div>
         </PageWrapper>

@@ -107,7 +107,9 @@ describe("RichTextContent — legitimate markdown must survive", () => {
       />,
     );
 
-    expect(container.querySelector("h1")?.textContent).toBe("Titulo");
+    // Headings render one level down (the page already has its own h1).
+    expect(container.querySelector("h1")).toBeNull();
+    expect(container.querySelector("h2")?.textContent).toBe("Titulo");
     expect(container.querySelector("strong")?.textContent).toBe("negrita");
     expect(container.querySelectorAll("li")).toHaveLength(2);
     expect(container.querySelector("a")?.getAttribute("href")).toBe(

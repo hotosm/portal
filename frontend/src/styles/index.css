@@ -134,6 +134,18 @@ html:has(.marketplace-page) {
   opacity: 0.8;
 }
 
+.plan-view-toggle {
+  --wa-color-fill-quiet: transparent;
+}
+
+.plan-view-toggle--inactive {
+  --wa-color-on-quiet: var(--hot-color-gray-400);
+}
+
+.plan-view-toggle--inactive:hover {
+  --wa-color-on-quiet: var(--hot-color-gray-600);
+}
+
 /* Keeps a form control's label for assistive tech while hiding it on screen. */
 .visually-hidden-label::part(form-control-label) {
   position: absolute;
@@ -168,22 +180,6 @@ html:has(.marketplace-page) {
 
 .rte-editor li {
   margin: 0.25rem 0;
-}
-
-/* Scoped to the org profile page: the description's markdown h1 reads as the
-   page's headline. The shared .rte-editor styles stay untouched. */
-.org-profile-description h1 {
-  font-size: 1.875rem;
-  line-height: 1.25;
-  font-weight: 700;
-  color: var(--hot-color-gray-950);
-  margin-bottom: var(--hot-spacing-large);
-}
-
-@media (min-width: 1024px) {
-  .org-profile-description h1 {
-    font-size: 2.25rem;
-  }
 }
 
 /* PlanSubSectionAccordion lays its header out in a page `container` (with the

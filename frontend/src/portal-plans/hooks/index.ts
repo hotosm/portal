@@ -2,6 +2,8 @@ export {
   useMyPlans,
   usePlan,
   useSharedPlan,
+  usePublicPlans,
+  PUBLIC_PLANS_PAGE_SIZE,
   useCreatePlan,
   useUpdatePlan,
   useDeletePlan,

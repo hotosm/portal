@@ -209,6 +209,36 @@ async def get_account_profile(hanko_user_id: str) -> AccountProfile | None:
     )
 
 
+def _owner_slug_cache_key(hanko_user_id: str) -> str:
+    return f"login_public_owner_slug_{hanko_user_id}"
+
+
+async def _public_owner_slug(hanko_user_id: str) -> str | None:
+    """Slug of the user's public profile, or None when it is private or unknown."""
+    key = _owner_slug_cache_key(hanko_user_id)
+    cached = get_cached(key)
+    if cached is not None:
+        return cached or None
+    try:
+        profile = await get_account_profile(hanko_user_id)
+    except LoginUnavailable:
+        return None
+    slug = profile.slug if profile and profile.is_public and profile.slug else None
+    set_cached(key, slug or "", _PROFILE_TTL)
+    return slug
+
+
+async def get_public_owner_slugs(hanko_user_ids: list[str]) -> dict[str, str]:
+    """Map each user id to its public profile slug, omitting private profiles.
+
+    Looks the users up in login concurrently and caches each answer briefly.
+    A login outage only omits the affected users, so callers degrade to
+    plain text instead of failing."""
+    unique = list(dict.fromkeys(hanko_user_ids))
+    slugs = await asyncio.gather(*(_public_owner_slug(user_id) for user_id in unique))
+    return {user_id: slug for user_id, slug in zip(unique, slugs, strict=True) if slug}
+
+
 def _public_profile_cache_key(slug: str) -> str:
     return f"login_public_profile_{slug}"
 
