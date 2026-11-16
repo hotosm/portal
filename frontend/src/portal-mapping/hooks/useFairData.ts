@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import type { FAIRResponse } from "../../types/projectsMap";
 import {
   type IFairProject,
@@ -38,6 +38,7 @@ export function useMyModels(page = 1, limit = 20, enabled = true) {
         total: data.count,
       };
     },
+    placeholderData: keepPreviousData,
     enabled: isLogin && enabled,
     retry: (failureCount, error) =>
       failureCount < 1 && !/\[5\d\d\]/.test(String((error as Error)?.message ?? "")),

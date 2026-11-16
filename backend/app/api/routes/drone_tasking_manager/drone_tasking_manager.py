@@ -1,5 +1,7 @@
 # portal/backend/app/api/routes/drone_tasking_manager/drone_tasking_manager.py
 
+import asyncio
+
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Path, Request
 from hotosm_auth_fastapi import CurrentUserOptional
@@ -10,14 +12,16 @@ from app.models.drone_tasking_manager import (
     DroneTMProject,
     DroneTMCentroidsResponse,
 )
-from app.core.cache import get_cached, set_cached, DEFAULT_TTL
+from app.core.cache import get_cached, set_cached, get_or_fetch, DEFAULT_TTL, SHORT_TTL
 from app.core.database import get_db
+from app.core.http_client import get_http_client
 from app.services import drone_tm_service, plans_service
 from app.services.exceptions import UpstreamUnavailable
 
 import logging
 import json
 import base64
+import hashlib
 from app.core.config import settings
 
 # Setup logging
@@ -162,34 +166,33 @@ async def get_projects(
                     raise HTTPException(status_code=502, detail="DroneTM returned a non-JSON response")
 
             else:
-                all_results = []
-                current_page = 1
-                total_pages = None
-
-                while True:
-                    params = {
+                def page_params(page_number: int) -> dict:
+                    page_query = {
                         "filter_by_owner": str(filter_by_owner).lower(),
-                        "page": current_page,
+                        "page": page_number,
                         "results_per_page": results_per_page,
                     }
                     if status:
-                        params["status"] = status
+                        page_query["status"] = status
                     if search:
-                        params["search"] = search
+                        page_query["search"] = search
+                    return page_query
 
-                    response = await client.get(url, headers=headers, params=params)
+                async def fetch_page(page_number: int) -> dict:
+                    response = await client.get(url, headers=headers, params=page_params(page_number))
                     response.raise_for_status()
-                    data = response.json()
+                    return response.json()
 
-                    all_results.extend(data.get("results", []))
+                first_page = await fetch_page(1)
+                all_results = list(first_page.get("results", []))
+                total_pages = first_page.get("pagination", {}).get("total_pages", 1)
 
-                    pagination = data.get("pagination", {})
-                    total_pages = pagination.get("total_pages", 1)
-
-                    if current_page >= total_pages:
-                        break
-
-                    current_page += 1
+                if total_pages > 1:
+                    remaining = await asyncio.gather(
+                        *(fetch_page(n) for n in range(2, total_pages + 1))
+                    )
+                    for page_data in remaining:
+                        all_results.extend(page_data.get("results", []))
 
                 return {
                     "results": all_results,
@@ -404,35 +407,38 @@ async def get_user_projects(
     if search:
         params["search"] = search
     
-    verify_ssl = bool(settings.drone_tm_verify_ssl)
+    headers["Cookie"] = f"hanko={hanko_cookie}"
+    client = get_http_client(verify=bool(settings.drone_tm_verify_ssl))
 
-    async with httpx.AsyncClient(
-        timeout=10.0, verify=verify_ssl, cookies={"hanko": hanko_cookie}
-    ) as client:
+    async def fetch_user_projects() -> dict:
+        logger.info(f"[User Projects] Making request to {url} with params: {params}")
+        response = await client.get(url, headers=headers, params=params, timeout=10.0)
+        logger.info(f"[User Projects] Response status: {response.status_code}")
+        response.raise_for_status()
         try:
-            logger.info(f"[User Projects] Making request to {url} with params: {params}")
-            response = await client.get(url, headers=headers, params=params)
-            logger.info(f"[User Projects] Response status: {response.status_code}")
-            response.raise_for_status()
-            try:
-                return response.json()
-            except Exception:
-                logger.error(f"[User Projects] Non-JSON response from DroneTM: {response.text[:200]}")
-                raise HTTPException(status_code=502, detail="DroneTM returned a non-JSON response")
-        except httpx.HTTPStatusError as e:
-            logger.error(f"HTTP Error: {e.response.status_code} - {e.response.text}")
-            raise HTTPException(
-                status_code=e.response.status_code,
-                detail=f"Error from DroneTM API: {e.response.text}"
-            )
-        except httpx.RequestError as e:
-            logger.warning(f"[User Projects] DroneTM upstream unavailable: {e}")
-            raise HTTPException(status_code=503, detail="DroneTM upstream unavailable")
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"Unexpected error: {str(e)}", exc_info=True)
-            raise HTTPException(status_code=500, detail=str(e))
+            return response.json()
+        except Exception:
+            logger.error(f"[User Projects] Non-JSON response from DroneTM: {response.text[:200]}")
+            raise HTTPException(status_code=502, detail="DroneTM returned a non-JSON response")
+
+    try:
+        token_digest = hashlib.sha256(hanko_cookie.encode()).hexdigest()
+        key = f"dronetm_user_projects_{token_digest}_{status}_{search}_{page}_{results_per_page}"
+        return await get_or_fetch(key, fetch_user_projects, SHORT_TTL)
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP Error: {e.response.status_code} - {e.response.text}")
+        raise HTTPException(
+            status_code=e.response.status_code,
+            detail=f"Error from DroneTM API: {e.response.text}"
+        )
+    except httpx.RequestError as e:
+        logger.warning(f"[User Projects] DroneTM upstream unavailable: {e}")
+        raise HTTPException(status_code=503, detail="DroneTM upstream unavailable")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/projects/{project_id}", response_model=DroneTMProject)
