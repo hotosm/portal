@@ -167,8 +167,9 @@ async def list_plans(db: AsyncSession, ctx: PermissionContext) -> list[PlanSumma
     conditions = [Plan.owner_id == ctx.user_id]
     grant_subjects = [and_(PlanGrant.subject_type == "user", PlanGrant.subject_id == ctx.user_id)]
     grant_subjects += [
-        and_(PlanGrant.subject_type == gtype, PlanGrant.subject_id == gid)
-        for (gtype, gid) in ctx.memberships
+        and_(PlanGrant.subject_type == m.group_type, PlanGrant.subject_id == m.group_id)
+        for m in ctx.core.memberships
+        if m.status == "approved"
     ]
     conditions.append(Plan.id.in_(select(PlanGrant.plan_id).where(or_(*grant_subjects))))
 
@@ -870,7 +871,7 @@ async def set_group_grant(
     """Grant a team/organization the caller is an approved member of."""
     plan = await _plan_for_access(db, ctx, plan_id, manage=True)
     key = (subject_type, subject_id)
-    if key not in ctx.approved:
+    if not ctx.core.is_member(subject_type, subject_id):
         raise PlanAccessForbidden("You can only share with your own teams and organizations")
     await _upsert_grant(db, ctx, plan, subject_type, subject_id, ctx.group_names.get(key), role)
     return _access_read(plan, ctx)
@@ -1873,7 +1874,7 @@ async def get_public_plan_hydrated(
         return None
 
     # An anonymous public viewer has no edit rights.
-    anon_ctx = permissions.PermissionContext(None, {}, True)
+    anon_ctx = permissions.PermissionContext.anonymous()
     owner_slug, group_slug = await _plan_attribution_slugs(plan)
     if not refresh:
         return _build_plan_response(

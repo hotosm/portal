@@ -1,9 +1,10 @@
 """Client for the login service's group membership and profile APIs.
 
-Portal resolves "which groups does this user belong to?" by calling login's
-``GET /api/groups`` (the canonical consumer contract), forwarding the user's
-hanko cookie. Results are cached briefly; failures are never cached and raise
-``LoginUnavailable`` so callers can fail closed for non-owners.
+Group membership and the email lookup go through ``hotosm-permissions``'
+``LoginClient``, which calls login's ``GET /api/groups`` (the canonical
+consumer contract) forwarding the user's hanko cookie. Groups are cached
+briefly; failures are never cached and raise ``LoginUnavailable`` so callers
+can fail closed for non-owners.
 
 The profile-account functions below (``get_account_profile``,
 ``get_public_account_profile``, ``get_public_user_groups_by_slug``) call
@@ -18,6 +19,7 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 import httpx
+from hotosm_permissions import LoginClient, LoginGroup, LoginUnavailable
 
 from app.core.cache import SHORT_TTL, get_cached, set_cached
 from app.core.config import settings
@@ -27,44 +29,14 @@ GROUPS_TTL = SHORT_TTL  # 60s
 # Below the hydrate fetcher timeout (8s) and Traefik's gateway timeout (30s).
 _REQUEST_TIMEOUT = 5.0
 
-# In-flight group lookups keyed by cache key, so concurrent misses share one call.
-_inflight: dict[str, asyncio.Task[list["UserGroup"]]] = {}
+# Re-exported so callers keep using login_service.UserGroup / LoginUnavailable.
+UserGroup = LoginGroup
 
-
-@dataclass(frozen=True)
-class UserGroup:
-    """A group the user belongs to, as reported by login."""
-
-    id: str
-    type: str
-    slug: str
-    name: str
-    role: str
-    status: str
-
-
-class LoginUnavailable(Exception):
-    """Raised when login cannot be reached (never cached)."""
-
-
-def _parse(payload: dict) -> list[UserGroup]:
-    groups = []
-    for g in payload.get("groups", []):
-        groups.append(
-            UserGroup(
-                id=g["id"],
-                type=g["type"],
-                slug=g.get("slug", ""),
-                name=g.get("name", ""),
-                role=g.get("role", "member"),
-                status=g.get("status", "approved"),
-            )
-        )
-    return groups
-
-
-def _cache_key(user_id: str) -> str:
-    return f"login_user_groups_{user_id}"
+_client = LoginClient(
+    settings.login_api_url or settings.hanko_api_url or "",
+    timeout=_REQUEST_TIMEOUT,
+    groups_ttl=GROUPS_TTL,
+)
 
 
 async def get_user_groups(
@@ -78,61 +50,14 @@ async def get_user_groups(
     Returns an empty list when the feature is disabled or login reports no
     valid session (401/403). Raises LoginUnavailable on network/HTTP errors.
     """
-    key = _cache_key(user_id)
-    if not force_refresh:
-        cached = get_cached(key)
-        if cached is not None:
-            return cached
-
     if not settings.login_groups_enabled:
         return []
-
-    # Concurrent cold-cache callers for the same user (e.g. GET /api/plans and
-    # GET /api/groups on page load) share one request to login. The task is
-    # shielded so one caller disconnecting does not cancel it for the others.
-    # A forced refresh never joins an in-flight call: that one may have started
-    # before the change the caller wants to see.
-    task = None if force_refresh else _inflight.get(key)
-    if task is None:
-        task = asyncio.create_task(_fetch_user_groups(key, hanko_cookie))
-        _inflight[key] = task
-        task.add_done_callback(lambda t: _forget_inflight(key, t))
-    return await asyncio.shield(task)
-
-
-def _forget_inflight(key: str, task: asyncio.Task) -> None:
-    if _inflight.get(key) is task:
-        del _inflight[key]
-    if not task.cancelled():
-        task.exception()
-
-
-async def _fetch_user_groups(key: str, hanko_cookie: str | None) -> list[UserGroup]:
-    base = (settings.login_api_url or settings.hanko_api_url or "").rstrip("/")
-    try:
-        async with httpx.AsyncClient(timeout=_REQUEST_TIMEOUT) as client:
-            response = await client.get(
-                f"{base}/api/groups",
-                cookies={"hanko": hanko_cookie} if hanko_cookie else {},
-                headers={"accept": "application/json"},
-            )
-            if response.status_code in (401, 403):
-                groups: list[UserGroup] = []
-            else:
-                response.raise_for_status()
-                groups = _parse(response.json())
-    except (httpx.RequestError, httpx.HTTPStatusError) as exc:
-        raise LoginUnavailable(str(exc)) from exc
-
-    set_cached(key, groups, GROUPS_TTL)
-    return groups
+    return await _client.get_user_groups(user_id, hanko_cookie, force_refresh=force_refresh)
 
 
 def invalidate_user_groups(user_id: str) -> None:
     """Drop a user's cached groups (call after a membership change)."""
-    from app.core.cache import delete_cached
-
-    delete_cached(_cache_key(user_id))
+    _client.invalidate(user_id)
 
 
 @dataclass(frozen=True)
@@ -150,21 +75,8 @@ async def lookup_user_by_email(email: str, hanko_cookie: str | None) -> LookedUp
     login reports no such account. Raises LoginUnavailable on network/HTTP
     errors (including a rejected session) — never cached.
     """
-    try:
-        async with httpx.AsyncClient(timeout=_REQUEST_TIMEOUT) as client:
-            response = await client.get(
-                f"{_login_base_url()}/api/users/lookup",
-                params={"email": email},
-                cookies={"hanko": hanko_cookie} if hanko_cookie else {},
-                headers={"accept": "application/json"},
-            )
-            response.raise_for_status()
-            data = response.json()
-    except (httpx.RequestError, httpx.HTTPStatusError) as exc:
-        raise LoginUnavailable(str(exc)) from exc
-    if not data.get("exists") or not data.get("hanko_user_id"):
-        return None
-    return LookedUpUser(hanko_user_id=data["hanko_user_id"], name=data.get("name") or None)
+    found = await _client.lookup_user_by_email(email, hanko_cookie)
+    return LookedUpUser(hanko_user_id=found.id, name=found.name) if found else None
 
 
 # ── Profile (account) fields ─────────────────────────────────────────────────

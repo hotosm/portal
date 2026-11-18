@@ -1,26 +1,34 @@
 """Plan authorization: ownership + grants resolved over group membership.
 
-The permission context resolves the user's group memberships once per request
-(no N+1 when authorizing a list of plans). The owner check is 100% local, so
-an owner can always view/edit their plans even if login is down; everything
-that depends on membership fails closed when login can't be reached.
+The rules (roles, permissions, how grants resolve) come from
+``hotosm-permissions``; this module wraps them with Portal's own context
+fields. The permission context resolves the user's group memberships once per
+request (no N+1 when authorizing a list of plans). The owner check is 100%
+local, so an owner can always view/edit their plans even if login is down;
+everything that depends on membership fails closed when login can't be
+reached.
 """
 
 from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Literal
+
+import hotosm_permissions as hp
 
 from app.services import login_service
+
+PORTAL_ROLES = hp.ToolRoles("portal", roles=["viewer", "editor", "owner"])
 
 
 @dataclass(frozen=True)
 class PermissionContext:
-    """A request-scoped snapshot of who the user is and what they belong to."""
+    """A request-scoped snapshot of who the user is and what they belong to.
 
-    user_id: str | None
-    memberships: dict[tuple[str, str], str]  # {(group_type, group_id): role}
-    login_ok: bool
-    # {(group_type, group_id): name} for the same groups, to label their plans.
+    ``core`` is the library's context (user id, approved memberships, whether
+    login answered); the other fields are Portal-only.
+    """
+
+    core: hp.PermissionContext
+    # {(group_type, group_id): name} for the user's groups, to label their plans.
     group_names: dict[tuple[str, str], str] = field(default_factory=dict)
     # {(group_type, group_id): slug} for the same groups, to link their plans.
     group_slugs: dict[tuple[str, str], str] = field(default_factory=dict)
@@ -29,8 +37,19 @@ class PermissionContext:
     # Only used to derive the author label (the part before the "@"); the full
     # address is never stored or returned.
     user_email: str | None = None
-    # {(group_type, group_id)} of the memberships login reports as approved.
-    approved: frozenset[tuple[str, str]] = frozenset()
+
+    @property
+    def user_id(self) -> str | None:
+        return self.core.user_id
+
+    @property
+    def login_ok(self) -> bool:
+        return self.core.login_ok
+
+    @classmethod
+    def anonymous(cls) -> "PermissionContext":
+        """Context for a request without a logged-in user."""
+        return cls(hp.PermissionContext.anonymous())
 
 
 async def build_context(user, hanko_cookie: str | None) -> PermissionContext:
@@ -40,91 +59,72 @@ async def build_context(user, hanko_cookie: str | None) -> PermissionContext:
     closed (empty memberships, login_ok=False) — owner checks are still local.
     """
     if user is None:
-        return PermissionContext(None, {}, True)
+        return PermissionContext.anonymous()
     user_name = getattr(user, "username", None) or None
     user_email = getattr(user, "email", None) or None
     try:
         groups = await login_service.get_user_groups(user.id, hanko_cookie)
     except login_service.LoginUnavailable:
-        return PermissionContext(user.id, {}, False, user_name=user_name, user_email=user_email)
-    memberships = {(g.type, g.id): g.role for g in groups}
+        return PermissionContext(
+            hp.PermissionContext.login_unavailable(user.id),
+            user_name=user_name,
+            user_email=user_email,
+        )
     group_names = {(g.type, g.id): g.name for g in groups if g.name}
     group_slugs = {(g.type, g.id): g.slug for g in groups if g.slug}
     return PermissionContext(
-        user.id,
-        memberships,
-        True,
+        hp.PermissionContext.from_login_groups(user.id, groups),
         group_names,
         group_slugs,
         user_name=user_name,
         user_email=user_email,
-        approved=frozenset((g.type, g.id) for g in groups if g.status == "approved"),
     )
-
-
-Role = Literal["viewer", "editor", "owner"]
-
-_RANK: dict[str, int] = {"viewer": 1, "editor": 2, "owner": 3}
-
-# Org roles that may attribute a plan to the organization.
-ORG_MANAGER_ROLES = frozenset({"owner", "manager"})
 
 
 def is_org_manager(ctx: PermissionContext, org_id: str | None) -> bool:
     """Whether the user is an approved owner/manager of the organization."""
-    key = ("organization", org_id)
-    return key in ctx.approved and ctx.memberships.get(key) in ORG_MANAGER_ROLES
+    return ctx.core.is_org_manager(org_id)
 
 
-def effective_role(plan, grants: Iterable, ctx: PermissionContext) -> Role | None:
+def effective_role(plan, grants: Iterable, ctx: PermissionContext) -> hp.Role | None:
     """The highest role the context holds on the plan, or None for no access.
 
     owner: the plan's owner_id, checked locally (works when login is down).
     The organization a plan is attributed to gets no role from it. Otherwise
-    the best of the user's own grant, grants to any team/org they belong to,
-    and the "anyone with the link" grant.
+    the best of the user's own grant, grants to any approved team/org they
+    belong to, and the "anyone with the link" grant.
     """
-    if ctx.user_id is not None and ctx.user_id == plan.owner_id:
-        return "owner"
-
-    best: Role | None = None
-    for grant in grants:
-        if grant.subject_type == "link":
-            matches = True
-        elif grant.subject_type == "user":
-            matches = ctx.user_id is not None and grant.subject_id == ctx.user_id
-        else:
-            matches = is_member(ctx, grant.subject_type, grant.subject_id)
-        if matches and (best is None or _RANK[grant.role] > _RANK[best]):
-            best = grant.role
-    return best
+    return hp.effective_role(plan.owner_id, grants, ctx.core, PORTAL_ROLES)
 
 
-def _role(plan, ctx: PermissionContext, grants: Iterable | None) -> Role | None:
-    return effective_role(plan, plan.grants if grants is None else grants, ctx)
+def _can(permission: str, plan, ctx: PermissionContext, grants: Iterable | None) -> bool:
+    return hp.can(
+        permission,
+        plan.owner_id,
+        plan.grants if grants is None else grants,
+        ctx.core,
+        PORTAL_ROLES,
+    )
 
 
 def can_view(plan, ctx: PermissionContext, grants: Iterable | None = None) -> bool:
     """Whether the context may view the plan (viewer or above)."""
-    return _role(plan, ctx, grants) is not None
+    return _can("portal:plans.view", plan, ctx, grants)
 
 
 def can_edit(plan, ctx: PermissionContext, grants: Iterable | None = None) -> bool:
     """Whether the context may edit the plan (editor or above)."""
-    role = _role(plan, ctx, grants)
-    return role is not None and _RANK[role] >= _RANK["editor"]
+    return _can("portal:plans.edit", plan, ctx, grants)
 
 
 def can_manage(plan, ctx: PermissionContext, grants: Iterable | None = None) -> bool:
     """Whether the context owns the plan (share, attribute, delete)."""
-    return _role(plan, ctx, grants) == "owner"
+    return _can("portal:plans.share", plan, ctx, grants)
 
 
 def is_member(ctx: PermissionContext, group_type: str | None, group_id: str | None) -> bool:
-    """Whether the context's user belongs to the given group."""
-    if group_type is None or group_id is None:
-        return False
-    return (group_type, group_id) in ctx.memberships
+    """Whether the context's user belongs to the given approved group."""
+    return ctx.core.is_member(group_type, group_id)
 
 
 def owns_or_member(
