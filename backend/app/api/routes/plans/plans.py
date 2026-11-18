@@ -435,7 +435,7 @@ async def get_plan_access(
     plan_id: str = Path(..., description="Plan UUID"),
     db: AsyncSession = Depends(get_db),
 ) -> PlanAccess:
-    """Owner, grants and link state of a plan. Any viewer may read it."""
+    """Owner, grants and link state of a plan. Owner only."""
     try:
         return await plans_service.get_plan_access(db, ctx, plan_id)
     except PlanAccessError as e:

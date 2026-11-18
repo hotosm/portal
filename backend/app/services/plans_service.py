@@ -169,7 +169,6 @@ async def list_plans(db: AsyncSession, ctx: PermissionContext) -> list[PlanSumma
     grant_subjects += [
         and_(PlanGrant.subject_type == m.group_type, PlanGrant.subject_id == m.group_id)
         for m in ctx.core.memberships
-        if m.status == "approved"
     ]
     conditions.append(Plan.id.in_(select(PlanGrant.plan_id).where(or_(*grant_subjects))))
 
@@ -855,8 +854,8 @@ async def _upsert_grant(
 
 
 async def get_plan_access(db: AsyncSession, ctx: PermissionContext, plan_id: str) -> PlanAccess:
-    """Owner, grants and link state of a plan the caller may view."""
-    plan = await _plan_for_access(db, ctx, plan_id, manage=False)
+    """Owner, grants and link state of a plan. Owner only."""
+    plan = await _plan_for_access(db, ctx, plan_id, manage=True)
     return _access_read(plan, ctx)
 
 

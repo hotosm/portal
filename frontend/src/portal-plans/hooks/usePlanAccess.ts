@@ -52,7 +52,7 @@ function useAccessMutation<TVars>(
   })
 }
 
-/** Owner, grants and link state of a plan; any viewer may read it. */
+/** Owner, grants and link state of a plan; owner only. */
 export function usePlanAccess(planId: string, enabled = true) {
   return useQuery({
     queryKey: planQueryKeys.access(planId),

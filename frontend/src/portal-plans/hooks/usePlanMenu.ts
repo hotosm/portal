@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useLanguage } from '../../contexts/LanguageContext'
@@ -14,6 +14,20 @@ export function usePlanMenu(plan: PlanReadHydrated) {
   const linkMutation = useSetPlanLink(plan.id)
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const [permissionsOpen, setPermissionsOpen] = useState(false)
+
+  const planUrl = useMemo(
+    () => `${window.location.origin}/${currentLanguage}/plan/${plan.id}`,
+    [currentLanguage, plan.id]
+  )
+
+  const onCopyLink = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(planUrl)
+      toast.success(m.plan_toast_link_copied())
+    } catch {
+      toast.error(m.plan_toast_link_copy_error())
+    }
+  }, [planUrl])
 
   const handleAction = useCallback(
     (action: string) => {
@@ -35,12 +49,15 @@ export function usePlanMenu(plan: PlanReadHydrated) {
         case 'permissions':
           setPermissionsOpen(true)
           break
+        case 'copy-link':
+          onCopyLink()
+          break
         case 'delete':
           setConfirmDeleteOpen(true)
           break
       }
     },
-    [navigate, currentLanguage, plan.id, plan.is_public, linkMutation]
+    [navigate, currentLanguage, plan.id, plan.is_public, linkMutation, onCopyLink]
   )
 
   const onSelect = useCallback(

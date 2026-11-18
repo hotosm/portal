@@ -49,10 +49,17 @@ function PlanMenu({ plan }: PlanMenuProps) {
             {plan.is_public ? m.plan_menu_unpublish() : m.plan_menu_publish()}
           </DropdownItem>
         )} */}
-        <DropdownItem value="permissions">
-          <Icon slot="icon" library="bootstrap" name="people" />
-          {m.plan_menu_share()}
-        </DropdownItem>
+        {isOwner ? (
+          <DropdownItem value="permissions">
+            <Icon slot="icon" library="bootstrap" name="people" />
+            {m.plan_menu_share()}
+          </DropdownItem>
+        ) : (
+          <DropdownItem value="copy-link">
+            <Icon slot="icon" library="bootstrap" name="clipboard" />
+            {m.plan_share_copy_link()}
+          </DropdownItem>
+        )}
         {isOwner && (
           <DropdownItem value="delete" variant="danger">
             <Icon slot="icon" library="bootstrap" name="trash" />
@@ -61,8 +68,10 @@ function PlanMenu({ plan }: PlanMenuProps) {
         )}
       </Dropdown>
 
-      {/* Share dialog: editable for owners, read-only for everyone else */}
-      <PlanShareDialog plan={plan} open={permissionsOpen} onClose={onClosePermissions} />
+      {/* Share dialog (owner only) */}
+      {isOwner && (
+        <PlanShareDialog plan={plan} open={permissionsOpen} onClose={onClosePermissions} />
+      )}
 
       {/* Delete confirmation dialog */}
       <Dialog

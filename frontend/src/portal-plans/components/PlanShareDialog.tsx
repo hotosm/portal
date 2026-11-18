@@ -99,16 +99,12 @@ function AccessRow({ name, subtitle, children }: AccessRowProps) {
 
 /**
  * The one share dialog for a plan: who it's "by", the owner, people/teams/
- * organizations it is shared with, and "anyone with the link". Owners edit it;
- * every change is applied immediately. Everyone else sees it read-only and can
- * copy the link.
+ * organizations it is shared with, and "anyone with the link". Only the owner
+ * opens it; every change is applied immediately.
  */
 function PlanShareDialog({ plan, open, onClose }: PlanShareDialogProps) {
   const { currentLanguage } = useLanguage()
-  // Only someone with a role on the plan can read /access; anyone else just
-  // gets the Copy link part.
-  const { data: access } = usePlanAccess(plan.id, open && plan.my_role != null)
-  const isOwner = access?.my_role === 'owner'
+  const { data: access } = usePlanAccess(plan.id, open && plan.is_owner)
   const { data: groups = [] } = useMyGroups()
 
   const setGrant = useSetPlanGrant(plan.id)
@@ -135,19 +131,17 @@ function PlanShareDialog({ plan, open, onClose }: PlanShareDialogProps) {
   }, [planUrl])
 
   const grants = access?.grants ?? []
-  const approvedGroups = groups.filter((g) => g.status === 'approved')
 
   // The caller's own teams and organizations, filtered by what they typed and
   // without the ones already in the list.
   const trimmed = query.trim()
-  const groupOptions = approvedGroups.filter(
+  const groupOptions = groups.filter(
     (g) =>
       !grants.some((grant) => grant.subject_type === g.type && grant.subject_id === g.id) &&
       g.name.toLowerCase().includes(trimmed.toLowerCase())
   )
   const emailOption = EMAIL_RE.test(trimmed) ? trimmed : null
-  const showOptions =
-    isOwner && (inputFocused || trimmed !== '') && (groupOptions.length > 0 || emailOption)
+  const showOptions = (inputFocused || trimmed !== '') && (groupOptions.length > 0 || emailOption)
 
   function addGroup(group: UserGroup) {
     setGrant.mutate({
@@ -167,7 +161,7 @@ function PlanShareDialog({ plan, open, onClose }: PlanShareDialogProps) {
   // manages. A current attribution outside that list (the owner stopped
   // managing it) is still shown so it doesn't change silently.
   const attribution = access?.attribution ?? null
-  const attributionOptions = approvedGroups.filter(
+  const attributionOptions = groups.filter(
     (g) => g.type === 'organization' && ORG_MANAGER_ROLES.has(g.role)
   )
   const attributionValue = attribution?.id ?? PERSONAL
@@ -209,52 +203,50 @@ function PlanShareDialog({ plan, open, onClose }: PlanShareDialogProps) {
       <div className="flex flex-col gap-md">
         
 
-        {isOwner && (
-          <div className="relative">
-            <Input
-              value={query}
-              placeholder={m.plan_access_add_placeholder()}
-              onInput={(e) => setQuery((e.target as HTMLInputElement).value ?? '')}
-              onFocus={() => setInputFocused(true)}
-              onBlur={() => setInputFocused(false)}
-              autocomplete="off"
-            />
-            {showOptions && (
-              <div className="absolute z-10 mt-xs flex w-full flex-col rounded-lg border border-hot-gray-200 bg-white py-xs shadow-md">
-                {groupOptions.map((g) => (
-                  <Button
-                    key={`${g.type}:${g.id}`}
-                    type="button"
-                    appearance="plain"
-                    className="w-full [&::part(base)]:justify-start"
-                    // Keep the input focused until the click lands.
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => addGroup(g)}
-                  >
-                    <Icon
-                      slot="start"
-                      library="bootstrap"
-                      name={g.type === 'organization' ? 'building' : 'people'}
-                    />
-                    {g.name}
-                  </Button>
-                ))}
-                {emailOption && (
-                  <Button
-                    type="button"
-                    appearance="plain"
-                    className="w-full [&::part(base)]:justify-start"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => addEmail(emailOption)}
-                  >
-                    <Icon slot="start" library="bootstrap" name="person-plus" />
-                    {m.plan_access_add_email({ email: emailOption })}
-                  </Button>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+        <div className="relative">
+          <Input
+            value={query}
+            placeholder={m.plan_access_add_placeholder()}
+            onInput={(e) => setQuery((e.target as HTMLInputElement).value ?? '')}
+            onFocus={() => setInputFocused(true)}
+            onBlur={() => setInputFocused(false)}
+            autocomplete="off"
+          />
+          {showOptions && (
+            <div className="absolute z-10 mt-xs flex w-full flex-col rounded-lg border border-hot-gray-200 bg-white py-xs shadow-md">
+              {groupOptions.map((g) => (
+                <Button
+                  key={`${g.type}:${g.id}`}
+                  type="button"
+                  appearance="plain"
+                  className="w-full [&::part(base)]:justify-start"
+                  // Keep the input focused until the click lands.
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => addGroup(g)}
+                >
+                  <Icon
+                    slot="start"
+                    library="bootstrap"
+                    name={g.type === 'organization' ? 'building' : 'people'}
+                  />
+                  {g.name}
+                </Button>
+              ))}
+              {emailOption && (
+                <Button
+                  type="button"
+                  appearance="plain"
+                  className="w-full [&::part(base)]:justify-start"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => addEmail(emailOption)}
+                >
+                  <Icon slot="start" library="bootstrap" name="person-plus" />
+                  {m.plan_access_add_email({ email: emailOption })}
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
 
         {access && (
           <section className="flex flex-col gap-sm">
@@ -271,33 +263,29 @@ function PlanShareDialog({ plan, open, onClose }: PlanShareDialogProps) {
                     name={name}
                     subtitle={subjectTypeLabel(grant.subject_type)}
                   >
-                    {isOwner ? (
-                      <Dropdown onSelect={(e) => onGrantAction(grant, e.detail.item.value)}>
-                        <Button slot="trigger" appearance="outlined" size="small" withCaret>
-                          {roleLabel(grant.role)}
-                        </Button>
-                        <DropdownItem
-                          value="viewer"
-                          type="checkbox"
-                          checked={grant.role === 'viewer'}
-                        >
-                          {m.plan_access_role_viewer()}
-                        </DropdownItem>
-                        <DropdownItem
-                          value="editor"
-                          type="checkbox"
-                          checked={grant.role === 'editor'}
-                        >
-                          {m.plan_access_role_editor()}
-                        </DropdownItem>
-                        <Separator />
-                        <DropdownItem value="remove" variant="danger">
-                          {m.plan_access_remove()}
-                        </DropdownItem>
-                      </Dropdown>
-                    ) : (
-                      <span className="text-sm">{roleLabel(grant.role)}</span>
-                    )}
+                    <Dropdown onSelect={(e) => onGrantAction(grant, e.detail.item.value)}>
+                      <Button slot="trigger" appearance="outlined" size="small" withCaret>
+                        {roleLabel(grant.role)}
+                      </Button>
+                      <DropdownItem
+                        value="viewer"
+                        type="checkbox"
+                        checked={grant.role === 'viewer'}
+                      >
+                        {m.plan_access_role_viewer()}
+                      </DropdownItem>
+                      <DropdownItem
+                        value="editor"
+                        type="checkbox"
+                        checked={grant.role === 'editor'}
+                      >
+                        {m.plan_access_role_editor()}
+                      </DropdownItem>
+                      <Separator />
+                      <DropdownItem value="remove" variant="danger">
+                        {m.plan_access_remove()}
+                      </DropdownItem>
+                    </Dropdown>
                   </AccessRow>
                 )
               })}
@@ -311,28 +299,22 @@ function PlanShareDialog({ plan, open, onClose }: PlanShareDialogProps) {
             <div className="flex items-center gap-sm">
               <Icon library="bootstrap" name="link-45deg" />
               <span className="flex-1">{m.plan_access_link_label()}</span>
-              {isOwner ? (
-                <Dropdown
-                  onSelect={(e) => {
-                    const next = e.detail.item.value === 'viewer' ? 'viewer' : null
-                    if (next !== linkRole) setLink.mutate(next)
-                  }}
-                >
-                  <Button slot="trigger" appearance="outlined" size="small" withCaret>
-                    {linkRole ? m.plan_access_role_viewer() : m.plan_access_link_none()}
-                  </Button>
-                  <DropdownItem value="none" type="checkbox" checked={linkRole == null}>
-                    {m.plan_access_link_none()}
-                  </DropdownItem>
-                  <DropdownItem value="viewer" type="checkbox" checked={linkRole === 'viewer'}>
-                    {m.plan_access_role_viewer()}
-                  </DropdownItem>
-                </Dropdown>
-              ) : (
-                <span className="text-sm">
+              <Dropdown
+                onSelect={(e) => {
+                  const next = e.detail.item.value === 'viewer' ? 'viewer' : null
+                  if (next !== linkRole) setLink.mutate(next)
+                }}
+              >
+                <Button slot="trigger" appearance="outlined" size="small" withCaret>
                   {linkRole ? m.plan_access_role_viewer() : m.plan_access_link_none()}
-                </span>
-              )}
+                </Button>
+                <DropdownItem value="none" type="checkbox" checked={linkRole == null}>
+                  {m.plan_access_link_none()}
+                </DropdownItem>
+                <DropdownItem value="viewer" type="checkbox" checked={linkRole === 'viewer'}>
+                  {m.plan_access_role_viewer()}
+                </DropdownItem>
+              </Dropdown>
             </div>
             {linkRole === 'viewer' && (
               <Callout variant="warning">
@@ -343,7 +325,7 @@ function PlanShareDialog({ plan, open, onClose }: PlanShareDialogProps) {
           </>
         )}
 
-        {access && isOwner && (
+        {access && (
           <div className="flex flex-col gap-xs">
             <Select
               label={m.plan_attribution_label()}
@@ -365,12 +347,6 @@ function PlanShareDialog({ plan, open, onClose }: PlanShareDialogProps) {
             </Select>
             <p className="text-sm text-hot-gray-500">{m.plan_attribution_help()}</p>
           </div>
-        )}
-
-        {access && !isOwner && attribution && (
-          <p className="text-sm">
-            {m.plan_attribution_label()} {attribution.name ?? m.plan_access_unknown_name()}
-          </p>
         )}
 
         
