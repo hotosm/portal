@@ -433,11 +433,12 @@ def _access_error(e: PlanAccessError) -> HTTPException:
 async def get_plan_access(
     ctx: PermCtx,
     plan_id: str = Path(..., description="Plan UUID"),
+    locale: str = Query("en", description="Locale for the role labels"),
     db: AsyncSession = Depends(get_db),
 ) -> PlanAccess:
     """Owner, grants and link state of a plan. Owner only."""
     try:
-        return await plans_service.get_plan_access(db, ctx, plan_id)
+        return await plans_service.get_plan_access(db, ctx, plan_id, locale)
     except PlanAccessError as e:
         raise _access_error(e)
 
@@ -447,11 +448,12 @@ async def set_plan_link(
     payload: PlanLinkUpdate,
     ctx: PermCtx,
     plan_id: str = Path(..., description="Plan UUID"),
+    locale: str = Query("en", description="Locale for the role labels"),
     db: AsyncSession = Depends(get_db),
 ) -> PlanAccess:
     """Let anyone with the link view the plan."""
     try:
-        return await plans_service.set_link_grant(db, ctx, plan_id)
+        return await plans_service.set_link_grant(db, ctx, plan_id, payload.role, locale)
     except PlanAccessError as e:
         raise _access_error(e)
 
@@ -460,11 +462,12 @@ async def set_plan_link(
 async def remove_plan_link(
     ctx: PermCtx,
     plan_id: str = Path(..., description="Plan UUID"),
+    locale: str = Query("en", description="Locale for the role labels"),
     db: AsyncSession = Depends(get_db),
 ) -> PlanAccess:
     """Stop anyone with the link from viewing the plan."""
     try:
-        return await plans_service.remove_grant(db, ctx, plan_id, "link", None)
+        return await plans_service.remove_grant(db, ctx, plan_id, "link", None, locale)
     except PlanAccessError as e:
         raise _access_error(e)
 
@@ -475,12 +478,13 @@ async def add_plan_user(
     request: Request,
     ctx: PermCtx,
     plan_id: str = Path(..., description="Plan UUID"),
+    locale: str = Query("en", description="Locale for the role labels"),
     db: AsyncSession = Depends(get_db),
 ) -> PlanAccess:
     """Share the plan with a person, found by email through login."""
     try:
         return await plans_service.add_user_grant_by_email(
-            db, ctx, plan_id, payload.email, payload.role, request.cookies.get("hanko")
+            db, ctx, plan_id, payload.email, payload.role, request.cookies.get("hanko"), locale
         )
     except PlanAccessError as e:
         raise _access_error(e)
@@ -494,11 +498,14 @@ async def set_plan_user_role(
     ctx: PermCtx,
     plan_id: str = Path(..., description="Plan UUID"),
     subject_id: str = Path(..., description="Login user id"),
+    locale: str = Query("en", description="Locale for the role labels"),
     db: AsyncSession = Depends(get_db),
 ) -> PlanAccess:
     """Change the role of a person the plan is already shared with."""
     try:
-        return await plans_service.set_user_grant_role(db, ctx, plan_id, subject_id, payload.role)
+        return await plans_service.set_user_grant_role(
+            db, ctx, plan_id, subject_id, payload.role, locale
+        )
     except PlanAccessError as e:
         raise _access_error(e)
 
@@ -510,15 +517,18 @@ async def set_plan_group_grant(
     subject_type: Literal["team", "organization"],
     plan_id: str = Path(..., description="Plan UUID"),
     subject_id: str = Path(..., description="Login group id"),
+    locale: str = Query("en", description="Locale for the role labels"),
     db: AsyncSession = Depends(get_db),
 ) -> PlanAccess:
-    """Share the plan with one of the caller's teams or organizations."""
+    """Share the plan with one of the caller's teams or organizations, or a public one."""
     try:
         return await plans_service.set_group_grant(
-            db, ctx, plan_id, subject_type, subject_id, payload.role
+            db, ctx, plan_id, subject_type, subject_id, payload.role, locale
         )
     except PlanAccessError as e:
         raise _access_error(e)
+    except login_service.LoginUnavailable:
+        raise HTTPException(status_code=502, detail="upstream_unavailable")
 
 
 @router.delete("/{plan_id}/access/{subject_type}/{subject_id}", response_model=PlanAccess)
@@ -527,11 +537,12 @@ async def remove_plan_grant(
     subject_type: Literal["user", "team", "organization"],
     plan_id: str = Path(..., description="Plan UUID"),
     subject_id: str = Path(..., description="Login user or group id"),
+    locale: str = Query("en", description="Locale for the role labels"),
     db: AsyncSession = Depends(get_db),
 ) -> PlanAccess:
     """Remove a person's, team's or organization's access to the plan."""
     try:
-        return await plans_service.remove_grant(db, ctx, plan_id, subject_type, subject_id)
+        return await plans_service.remove_grant(db, ctx, plan_id, subject_type, subject_id, locale)
     except PlanAccessError as e:
         raise _access_error(e)
 
@@ -541,13 +552,16 @@ async def set_plan_attribution(
     payload: PlanAttributionUpdate,
     ctx: PermCtx,
     plan_id: str = Path(..., description="Plan UUID"),
+    locale: str = Query("en", description="Locale for the role labels"),
     db: AsyncSession = Depends(get_db),
 ) -> PlanAccess:
     """Show the plan "by" an organization the caller owns/manages, or clear it.
 
     Gives the organization no access."""
     try:
-        return await plans_service.set_attribution(db, ctx, plan_id, payload.organization_id)
+        return await plans_service.set_attribution(
+            db, ctx, plan_id, payload.organization_id, locale
+        )
     except PlanAccessError as e:
         raise _access_error(e)
 

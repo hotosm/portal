@@ -79,6 +79,20 @@ async def lookup_user_by_email(email: str, hanko_cookie: str | None) -> LookedUp
     return LookedUpUser(hanko_user_id=found.id, name=found.name) if found else None
 
 
+async def get_public_group_name(
+    group_type: Literal["team", "organization"], group_id: str
+) -> str | None:
+    """Name of a public team/organization via ``GET /api/public/groups?ids=``.
+
+    Returns None when login doesn't list it (not public, organization not
+    approved, or doesn't exist). Raises LoginUnavailable on network/HTTP
+    errors — never cached.
+    """
+    page = await _client.list_public_groups(ids=[group_id], type=group_type)
+    found = next((g for g in page.items if g.id == group_id and g.type == group_type), None)
+    return found.name if found else None
+
+
 # ── Profile (account) fields ─────────────────────────────────────────────────
 #
 # These target login's unauthenticated profile routes, so no hanko cookie is

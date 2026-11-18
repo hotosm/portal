@@ -267,4 +267,10 @@ export interface PlanAccess {
   grants: PlanGrant[]
   link_role: 'viewer' | null
   my_role: PlanRole | null
+  // The roles on offer, localized, so the share dialog needs no Portal config.
+  available_roles: { key: PlanRole; label: string; description: string }[]
+  // Roles "anyone with the link" may get; empty = no link sharing.
+  link_roles: GrantRole[]
+  // Whether the "By" (attribute to an organization) is offered.
+  attribution_enabled: boolean
 }

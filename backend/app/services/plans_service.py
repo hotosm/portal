@@ -794,7 +794,11 @@ async def _plan_for_access(
     return plan
 
 
-def _access_read(plan: Plan, ctx: PermissionContext) -> PlanAccess:
+# Roles "anyone with the link" may get.
+_LINK_ROLES = ["viewer"]
+
+
+def _access_read(plan: Plan, ctx: PermissionContext, locale: str = "en") -> PlanAccess:
     grants = sorted(
         (g for g in plan.grants if g.subject_type != "link"),
         key=lambda g: (g.created_at, g.id),
@@ -815,6 +819,9 @@ def _access_read(plan: Plan, ctx: PermissionContext) -> PlanAccess:
         ],
         link_role="viewer" if plan.is_public else None,
         my_role=permissions.effective_role(plan, plan.grants, ctx),
+        available_roles=permissions.PORTAL_ROLES.role_options(locale),
+        link_roles=_LINK_ROLES,
+        attribution_enabled=True,
     )
 
 
@@ -853,10 +860,12 @@ async def _upsert_grant(
     await db.flush()
 
 
-async def get_plan_access(db: AsyncSession, ctx: PermissionContext, plan_id: str) -> PlanAccess:
+async def get_plan_access(
+    db: AsyncSession, ctx: PermissionContext, plan_id: str, locale: str = "en"
+) -> PlanAccess:
     """Owner, grants and link state of a plan. Owner only."""
     plan = await _plan_for_access(db, ctx, plan_id, manage=True)
-    return _access_read(plan, ctx)
+    return _access_read(plan, ctx, locale)
 
 
 async def set_group_grant(
@@ -866,14 +875,26 @@ async def set_group_grant(
     subject_type: str,
     subject_id: str,
     role: str,
+    locale: str = "en",
 ) -> PlanAccess:
-    """Grant a team/organization the caller is an approved member of."""
+    """Grant a team/organization the caller is an approved member of, or a public one.
+
+    A group of the caller's keeps the name login reported for it; any other
+    group must be public (and approved, for organizations) and is named from
+    login's public groups. Raises LoginUnavailable when login can't be reached."""
     plan = await _plan_for_access(db, ctx, plan_id, manage=True)
-    key = (subject_type, subject_id)
-    if not ctx.core.is_member(subject_type, subject_id):
-        raise PlanAccessForbidden("You can only share with your own teams and organizations")
-    await _upsert_grant(db, ctx, plan, subject_type, subject_id, ctx.group_names.get(key), role)
-    return _access_read(plan, ctx)
+    if role not in permissions.PORTAL_ROLES.grantable_roles:
+        raise PlanAccessError(f"Role not available: {role}")
+    if ctx.core.is_member(subject_type, subject_id):
+        name = ctx.group_names.get((subject_type, subject_id))
+    else:
+        name = await login_service.get_public_group_name(subject_type, subject_id)
+        if name is None:
+            raise PlanAccessNotFound(
+                "You can only share with your own teams and organizations or public ones"
+            )
+    await _upsert_grant(db, ctx, plan, subject_type, subject_id, name, role)
+    return _access_read(plan, ctx, locale)
 
 
 async def add_user_grant_by_email(
@@ -883,29 +904,39 @@ async def add_user_grant_by_email(
     email: str,
     role: str,
     hanko_cookie: str | None,
+    locale: str = "en",
 ) -> PlanAccess:
     """Grant a person, resolving their email through login."""
     plan = await _plan_for_access(db, ctx, plan_id, manage=True)
+    if role not in permissions.PORTAL_ROLES.grantable_roles:
+        raise PlanAccessError(f"Role not available: {role}")
     found = await login_service.lookup_user_by_email(email.strip(), hanko_cookie)
     if found is None:
         raise PlanAccessNotFound("No account found for that email")
     if found.hanko_user_id == plan.owner_id:
         raise PlanAccessError("This person already owns the plan")
     await _upsert_grant(db, ctx, plan, "user", found.hanko_user_id, found.name, role)
-    return _access_read(plan, ctx)
+    return _access_read(plan, ctx, locale)
 
 
 async def set_user_grant_role(
-    db: AsyncSession, ctx: PermissionContext, plan_id: str, subject_id: str, role: str
+    db: AsyncSession,
+    ctx: PermissionContext,
+    plan_id: str,
+    subject_id: str,
+    role: str,
+    locale: str = "en",
 ) -> PlanAccess:
     """Change the role of an existing person grant."""
     plan = await _plan_for_access(db, ctx, plan_id, manage=True)
+    if role not in permissions.PORTAL_ROLES.grantable_roles:
+        raise PlanAccessError(f"Role not available: {role}")
     grant = _find_grant(plan, "user", subject_id)
     if grant is None:
         raise PlanAccessNotFound("Grant not found")
     grant.role = role
     await db.flush()
-    return _access_read(plan, ctx)
+    return _access_read(plan, ctx, locale)
 
 
 async def remove_grant(
@@ -914,6 +945,7 @@ async def remove_grant(
     plan_id: str,
     subject_type: str,
     subject_id: str | None,
+    locale: str = "en",
 ) -> PlanAccess:
     """Remove a grant (a person, a team, an organization or the link)."""
     plan = await _plan_for_access(db, ctx, plan_id, manage=True)
@@ -922,18 +954,30 @@ async def remove_grant(
         raise PlanAccessNotFound("Grant not found")
     plan.grants.remove(grant)
     await db.flush()
-    return _access_read(plan, ctx)
+    return _access_read(plan, ctx, locale)
 
 
-async def set_link_grant(db: AsyncSession, ctx: PermissionContext, plan_id: str) -> PlanAccess:
+async def set_link_grant(
+    db: AsyncSession,
+    ctx: PermissionContext,
+    plan_id: str,
+    role: str = "viewer",
+    locale: str = "en",
+) -> PlanAccess:
     """Let anyone with the link view the plan."""
     plan = await _plan_for_access(db, ctx, plan_id, manage=True)
-    await _upsert_grant(db, ctx, plan, "link", None, None, "viewer")
-    return _access_read(plan, ctx)
+    if role not in _LINK_ROLES:
+        raise PlanAccessError(f"Role not available for the link: {role}")
+    await _upsert_grant(db, ctx, plan, "link", None, None, role)
+    return _access_read(plan, ctx, locale)
 
 
 async def set_attribution(
-    db: AsyncSession, ctx: PermissionContext, plan_id: str, organization_id: str | None
+    db: AsyncSession,
+    ctx: PermissionContext,
+    plan_id: str,
+    organization_id: str | None,
+    locale: str = "en",
 ) -> PlanAccess:
     """Attribute the plan to an organization ("by Org X"), or clear it with None.
 
@@ -952,7 +996,7 @@ async def set_attribution(
         plan.group_name = ctx.group_names.get(("organization", organization_id))
         plan.group_slug = ctx.group_slugs.get(("organization", organization_id))
     await db.flush()
-    return _access_read(plan, ctx)
+    return _access_read(plan, ctx, locale)
 
 
 async def set_project_status(

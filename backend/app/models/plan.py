@@ -3,6 +3,7 @@
 from datetime import datetime
 from typing import Any, Literal
 
+import hotosm_permissions as hp
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 AppLiteral = Literal[
@@ -20,8 +21,6 @@ AppLiteral = Literal[
 
 StatusLiteral = Literal["pending", "in_progress", "done", "task"]
 
-GroupType = Literal["team", "organization"]
-GrantRole = Literal["viewer", "editor"]
 PlanRole = Literal["viewer", "editor", "owner"]
 
 HydrationError = Literal["not_found", "upstream_unavailable", "upstream_timeout", "pending"]
@@ -314,47 +313,12 @@ class CompleteTaskRequest(BaseModel):
         return self
 
 
-class PlanAccessOwner(BaseModel):
-    id: str
-    name: str | None = None
-
-
-class PlanAccessAttribution(BaseModel):
-    """The organization a plan is attributed to ("by Org X"); gives no access."""
-
-    id: str
-    name: str | None = None
-
-
-class PlanAccessGrant(BaseModel):
-    subject_type: Literal["user"] | GroupType
-    subject_id: str
-    subject_name: str | None = None
-    role: GrantRole
-
-
-class PlanAccess(BaseModel):
-    """Who owns a plan and who else may view or edit it."""
-
-    owner: PlanAccessOwner
-    attribution: PlanAccessAttribution | None = None
-    grants: list[PlanAccessGrant]
-    link_role: Literal["viewer"] | None = None
-    my_role: PlanRole | None = None
-
-
-class PlanGrantRoleUpdate(BaseModel):
-    role: GrantRole
-
-
-class PlanUserGrantCreate(BaseModel):
-    email: str = Field(..., min_length=3, max_length=320)
-    role: GrantRole = "viewer"
-
-
-class PlanLinkUpdate(BaseModel):
-    role: Literal["viewer"] = "viewer"
-
-
-class PlanAttributionUpdate(BaseModel):
-    organization_id: str | None = None
+# The sharing contract comes from hotosm-permissions; Portal keeps its names.
+PlanAccessOwner = hp.AccessOwner
+PlanAccessAttribution = hp.AccessAttribution
+PlanAccessGrant = hp.AccessGrant
+PlanAccess = hp.ItemAccess
+PlanGrantRoleUpdate = hp.GrantRoleUpdate
+PlanUserGrantCreate = hp.UserGrantCreate
+PlanLinkUpdate = hp.LinkUpdate
+PlanAttributionUpdate = hp.AttributionUpdate
