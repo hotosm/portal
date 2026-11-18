@@ -13,10 +13,14 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.orm.attributes import set_committed_value
 
 from app.core.config import settings
-from app.db.models.plan import Plan, PlanCollection, PlanImage, PlanProject
+from app.db.models.plan import Plan, PlanCollection, PlanGrant, PlanImage, PlanProject
 from app.models.plan import (
     AppLiteral,
     HydratedProjectItem,
+    PlanAccess,
+    PlanAccessAttribution,
+    PlanAccessGrant,
+    PlanAccessOwner,
     PlanCollectionCreate,
     PlanCollectionRead,
     PlanCollectionUpdate,
@@ -90,20 +94,26 @@ APP_FETCHERS = {
 }
 
 
+def _access_fields(plan: Plan, ctx: PermissionContext) -> dict:
+    """Ownership fields and the caller's role, shared by every plan read."""
+    my_role = permissions.effective_role(plan, plan.grants, ctx)
+    return {
+        "is_public": plan.is_public,
+        "group_id": plan.group_id,
+        "group_name": plan.group_name,
+        "owner_id": plan.owner_id,
+        "is_owner": my_role == "owner",
+        "can_edit": my_role in ("editor", "owner"),
+        "my_role": my_role,
+    }
+
+
 def plan_to_read(plan: Plan, ctx: PermissionContext) -> PlanRead:
     return PlanRead(
         id=plan.id,
         name=plan.name,
         description=plan.description,
-        is_public=plan.is_public,
-        visibility=plan.visibility,
-        group_type=plan.group_type,
-        group_id=plan.group_id,
-        group_name=plan.group_name,
-        edit_scope=plan.edit_scope,
-        owner_id=plan.owner_id,
-        is_owner=ctx.user_id is not None and ctx.user_id == plan.owner_id,
-        can_edit=permissions.can_edit(plan, ctx),
+        **_access_fields(plan, ctx),
         created_at=plan.created_at,
         updated_at=plan.updated_at,
         projects=[
@@ -148,35 +158,33 @@ def check_no_duplicates(items: list[PlanProjectItem]) -> None:
 
 
 async def list_plans(db: AsyncSession, ctx: PermissionContext) -> list[PlanSummary]:
-    """List plans visible to the user: their own, plus group plans of groups
-    they belong to. Membership is resolved once (in ctx) and the project count
-    and apps are aggregated in SQL, so this is two SELECTs (plans, then a
-    per-app count) that never load project rows, collections or images."""
+    """List plans the user has a role on: their own, and those granted to them
+    or to a team/org they belong to (a link grant or an attribution alone
+    doesn't list a plan). Membership is resolved once (in ctx)
+    and the project count and apps are aggregated in SQL, so this is two
+    SELECTs (plans, then a per-app count) that never load project rows,
+    collections or images."""
     conditions = [Plan.owner_id == ctx.user_id]
-    group_conditions = [
-        and_(Plan.group_type == gtype, Plan.group_id == gid) for (gtype, gid) in ctx.memberships
+    grant_subjects = [and_(PlanGrant.subject_type == "user", PlanGrant.subject_id == ctx.user_id)]
+    grant_subjects += [
+        and_(PlanGrant.subject_type == gtype, PlanGrant.subject_id == gid)
+        for (gtype, gid) in ctx.memberships
     ]
-    if group_conditions:
-        conditions.append(
-            and_(
-                or_(*group_conditions),
-                Plan.visibility.in_(["group", "public"]),
-            )
-        )
+    conditions.append(Plan.id.in_(select(PlanGrant.plan_id).where(or_(*grant_subjects))))
 
     return await _summarize_plans(db, or_(*conditions), Plan.created_at.desc())
 
 
-async def list_public_group_plans(
-    db: AsyncSession, group_type: str, group_id: str
-) -> list[PlanSummary]:
-    """Public plans of one group, most recently updated first. Same shape and
-    queries as list_plans, for unauthenticated pages like an org's profile."""
-    visible = and_(
-        Plan.visibility == "public",
-        Plan.group_type == group_type,
-        Plan.group_id == group_id,
-    )
+def _has_link_grant():
+    """SQL condition: the plan has an "anyone with the link" grant."""
+    return Plan.id.in_(select(PlanGrant.plan_id).where(PlanGrant.subject_type == "link"))
+
+
+async def list_public_group_plans(db: AsyncSession, group_id: str) -> list[PlanSummary]:
+    """Public plans attributed to one organization, most recently updated first.
+    Same shape and queries as list_plans, for unauthenticated pages like an
+    org's profile."""
+    visible = and_(_has_link_grant(), Plan.group_id == group_id)
     return await _summarize_plans(db, visible, Plan.updated_at.desc())
 
 
@@ -326,13 +334,14 @@ async def list_public_plans(
     page: int = 1,
     page_size: int = 20,
 ) -> PublicPlanList:
-    """List plans with visibility=public, newest first, for anonymous visitors.
+    """List plans with a link grant, newest first, for anonymous visitors.
 
     Filters by a case-insensitive substring of the plan name or of its "created
-    by" label (the group name, or the owner name for personal plans), and by
-    organization (group_id). The organizations list covers every public plan, independent of
-    the filters, so the select keeps all options while the table narrows."""
-    public = [Plan.visibility == "public"]
+    by" label (the attributed organization's name, or the owner name), and by
+    organization (group_id). The organizations list covers every public plan,
+    independent of the filters, so the select keeps all options while the
+    table narrows."""
+    public = [_has_link_grant()]
     if search and search.strip():
         pattern = f"%{_escape_like(search.strip())}%"
         public_filtered = [
@@ -355,7 +364,6 @@ async def list_public_plans(
                 Plan.name,
                 Plan.description,
                 Plan.group_id,
-                Plan.group_type,
                 Plan.group_name,
                 Plan.group_slug,
                 Plan.owner_id,
@@ -393,11 +401,7 @@ async def list_public_plans(
     )
     # Only link an organization whose profile login confirms is public; a
     # login outage degrades it to plain text.
-    org_slugs = list(
-        dict.fromkeys(
-            row.group_slug for row in rows if row.group_type == "organization" and row.group_slug
-        )
-    )
+    org_slugs = list(dict.fromkeys(row.group_slug for row in rows if row.group_slug))
     public_org_slugs = {
         slug
         for slug, is_public in zip(
@@ -454,6 +458,7 @@ async def _load_plan(db: AsyncSession, plan_id: str) -> Plan | None:
             selectinload(Plan.projects),
             selectinload(Plan.collections),
             selectinload(Plan.images),
+            selectinload(Plan.grants),
         )
     )
     result = await db.execute(stmt)
@@ -476,46 +481,14 @@ async def get_editable_plan(db: AsyncSession, ctx: PermissionContext, plan_id: s
     return plan
 
 
-async def get_owned_plan(db: AsyncSession, owner_id: str, plan_id: str) -> Plan | None:
-    """Load a plan owned by owner_id (used where only the creator may act)."""
-    stmt = (
-        select(Plan)
-        .where(Plan.id == plan_id, Plan.owner_id == owner_id)
-        .options(
-            selectinload(Plan.projects),
-            selectinload(Plan.collections),
-            selectinload(Plan.images),
-        )
-    )
-    result = await db.execute(stmt)
-    return result.scalar_one_or_none()
-
-
-def _resolve_scope(payload: PlanCreate | PlanUpdate) -> dict:
-    """Map create/update scope fields to Plan columns, honoring is_public BC."""
-    values: dict = {}
-    if payload.visibility is not None:
-        values["visibility"] = payload.visibility
-    elif payload.is_public is not None:
-        values["visibility"] = "public" if payload.is_public else "private"
-    if "group_type" in payload.model_fields_set:
-        values["group_type"] = payload.group_type or None
-    if "group_id" in payload.model_fields_set:
-        values["group_id"] = payload.group_id or None
-    if payload.edit_scope is not None:
-        values["edit_scope"] = payload.edit_scope
-    return values
-
-
-class GroupMembershipError(ValueError):
-    """Raised when assigning a plan to a group the user does not belong to."""
-
-
-def _known_group_name(ctx: PermissionContext, plan: Plan) -> str | None:
-    """The name of the plan's group, when the caller is one of its members."""
-    if plan.group_id is None:
+async def get_manageable_plan(
+    db: AsyncSession, ctx: PermissionContext, plan_id: str
+) -> Plan | None:
+    """Load a plan only if the context owns it (else None → 404)."""
+    plan = await _load_plan(db, plan_id)
+    if plan is None or not permissions.can_manage(plan, ctx):
         return None
-    return ctx.group_names.get((plan.group_type, plan.group_id))
+    return plan
 
 
 async def _owner_display_name(ctx: PermissionContext) -> str | None:
@@ -554,15 +527,17 @@ async def sync_owner_name(db: AsyncSession, ctx: PermissionContext) -> None:
 
 
 async def _sync_group_name(db: AsyncSession, ctx: PermissionContext, plan: Plan) -> None:
-    """Store the group's name and slug whenever a member reads the plan.
+    """Store the attributed organization's name and slug whenever a member reads the plan.
 
-    Covers plans saved before they were kept and groups renamed since.
-    updated_at is pinned so a read never looks like an edit.
+    Covers organizations renamed since the plan was attributed. updated_at is
+    pinned so a read never looks like an edit.
     """
-    name = _known_group_name(ctx, plan)
+    if plan.group_id is None:
+        return
+    name = ctx.group_names.get(("organization", plan.group_id))
     if name is None:
         return
-    slug = ctx.group_slugs.get((plan.group_type, plan.group_id))
+    slug = ctx.group_slugs.get(("organization", plan.group_id))
     if name == plan.group_name and slug == plan.group_slug:
         return
     await db.execute(
@@ -577,12 +552,6 @@ async def _sync_group_name(db: AsyncSession, ctx: PermissionContext, plan: Plan)
 async def create_plan(db: AsyncSession, ctx: PermissionContext, payload: PlanCreate) -> PlanRead:
     check_no_duplicates(payload.projects)
 
-    scope = _resolve_scope(payload)
-    group_type = scope.get("group_type")
-    group_id = scope.get("group_id")
-    if group_id and not permissions.is_member(ctx, group_type, group_id):
-        raise GroupMembershipError("Not a member of the target group")
-
     try:
         owner_name = await _owner_display_name(ctx)
     except login_service.LoginUnavailable:
@@ -592,13 +561,7 @@ async def create_plan(db: AsyncSession, ctx: PermissionContext, payload: PlanCre
         owner_id=ctx.user_id,
         name=payload.name,
         description=payload.description,
-        visibility=scope.get("visibility", "private"),
-        group_type=group_type,
-        group_id=group_id,
-        group_name=ctx.group_names.get((group_type, group_id)) if group_id else None,
-        group_slug=ctx.group_slugs.get((group_type, group_id)) if group_id else None,
         owner_name=owner_name,
-        edit_scope=scope.get("edit_scope", "owner"),
     )
     db.add(plan)
     await db.flush()
@@ -624,7 +587,7 @@ async def create_plan(db: AsyncSession, ctx: PermissionContext, payload: PlanCre
         await db.rollback()
         raise DuplicateProjectError(str(e)) from e
 
-    await db.refresh(plan, attribute_names=["projects", "collections", "images"])
+    await db.refresh(plan, attribute_names=["projects", "collections", "images", "grants"])
     return plan_to_read(plan, ctx)
 
 
@@ -704,20 +667,6 @@ async def update_plan(
         plan.name = payload.name
     if payload.description is not None:
         plan.description = payload.description
-
-    scope = _resolve_scope(payload)
-    group_id = scope.get("group_id", plan.group_id)
-    group_type = scope.get("group_type", plan.group_type)
-    if "group_id" in scope and group_id and not permissions.is_member(ctx, group_type, group_id):
-        raise GroupMembershipError("Not a member of the target group")
-    for field, value in scope.items():
-        setattr(plan, field, value)
-    if plan.group_id is None:
-        plan.group_name = None
-        plan.group_slug = None
-    elif "group_id" in scope or _known_group_name(ctx, plan):
-        plan.group_name = _known_group_name(ctx, plan)
-        plan.group_slug = ctx.group_slugs.get((plan.group_type, plan.group_id))
 
     if payload.projects is not None:
         check_no_duplicates(payload.projects)
@@ -804,13 +753,206 @@ async def complete_task(
 
 
 async def delete_plan(db: AsyncSession, ctx: PermissionContext, plan_id: str) -> bool:
-    """Delete a plan. Only the owner may delete (not group members)."""
-    plan = await get_owned_plan(db, ctx.user_id, plan_id)
+    """Delete a plan. Only an owner may delete (not editors or viewers)."""
+    plan = await get_manageable_plan(db, ctx, plan_id)
     if plan is None:
         return False
     await db.delete(plan)
     await db.flush()
     return True
+
+
+# ── Sharing: grants, link and attribution ──────────────────────────────────────
+
+
+class PlanAccessError(ValueError):
+    """A share/attribution request that can't be applied; carries its HTTP status."""
+
+    status_code = 400
+
+
+class PlanAccessNotFound(PlanAccessError):
+    status_code = 404
+
+
+class PlanAccessForbidden(PlanAccessError):
+    status_code = 403
+
+
+async def _plan_for_access(
+    db: AsyncSession, ctx: PermissionContext, plan_id: str, *, manage: bool
+) -> Plan:
+    """Load a plan the caller may view (and, with manage=True, own).
+
+    Raises PlanAccessNotFound when the plan doesn't exist or can't be viewed,
+    PlanAccessForbidden when it can be viewed but not managed."""
+    plan = await _load_plan(db, plan_id)
+    if plan is None or not permissions.can_view(plan, ctx):
+        raise PlanAccessNotFound("Plan not found")
+    if manage and not permissions.can_manage(plan, ctx):
+        raise PlanAccessForbidden("Only an owner can manage access to this plan")
+    return plan
+
+
+def _access_read(plan: Plan, ctx: PermissionContext) -> PlanAccess:
+    grants = sorted(
+        (g for g in plan.grants if g.subject_type != "link"),
+        key=lambda g: (g.created_at, g.id),
+    )
+    return PlanAccess(
+        owner=PlanAccessOwner(id=plan.owner_id, name=plan.owner_name),
+        attribution=(
+            PlanAccessAttribution(id=plan.group_id, name=plan.group_name) if plan.group_id else None
+        ),
+        grants=[
+            PlanAccessGrant(
+                subject_type=g.subject_type,
+                subject_id=g.subject_id,
+                subject_name=g.subject_name,
+                role=g.role,
+            )
+            for g in grants
+        ],
+        link_role="viewer" if plan.is_public else None,
+        my_role=permissions.effective_role(plan, plan.grants, ctx),
+    )
+
+
+def _find_grant(plan: Plan, subject_type: str, subject_id: str | None) -> PlanGrant | None:
+    return next(
+        (g for g in plan.grants if g.subject_type == subject_type and g.subject_id == subject_id),
+        None,
+    )
+
+
+async def _upsert_grant(
+    db: AsyncSession,
+    ctx: PermissionContext,
+    plan: Plan,
+    subject_type: str,
+    subject_id: str | None,
+    subject_name: str | None,
+    role: str,
+) -> None:
+    grant = _find_grant(plan, subject_type, subject_id)
+    if grant is None:
+        plan.grants.append(
+            PlanGrant(
+                plan_id=plan.id,
+                subject_type=subject_type,
+                subject_id=subject_id,
+                subject_name=subject_name,
+                role=role,
+                created_by=ctx.user_id,
+            )
+        )
+    else:
+        grant.role = role
+        if subject_name:
+            grant.subject_name = subject_name
+    await db.flush()
+
+
+async def get_plan_access(db: AsyncSession, ctx: PermissionContext, plan_id: str) -> PlanAccess:
+    """Owner, grants and link state of a plan the caller may view."""
+    plan = await _plan_for_access(db, ctx, plan_id, manage=False)
+    return _access_read(plan, ctx)
+
+
+async def set_group_grant(
+    db: AsyncSession,
+    ctx: PermissionContext,
+    plan_id: str,
+    subject_type: str,
+    subject_id: str,
+    role: str,
+) -> PlanAccess:
+    """Grant a team/organization the caller is an approved member of."""
+    plan = await _plan_for_access(db, ctx, plan_id, manage=True)
+    key = (subject_type, subject_id)
+    if key not in ctx.approved:
+        raise PlanAccessForbidden("You can only share with your own teams and organizations")
+    await _upsert_grant(db, ctx, plan, subject_type, subject_id, ctx.group_names.get(key), role)
+    return _access_read(plan, ctx)
+
+
+async def add_user_grant_by_email(
+    db: AsyncSession,
+    ctx: PermissionContext,
+    plan_id: str,
+    email: str,
+    role: str,
+    hanko_cookie: str | None,
+) -> PlanAccess:
+    """Grant a person, resolving their email through login."""
+    plan = await _plan_for_access(db, ctx, plan_id, manage=True)
+    found = await login_service.lookup_user_by_email(email.strip(), hanko_cookie)
+    if found is None:
+        raise PlanAccessNotFound("No account found for that email")
+    if found.hanko_user_id == plan.owner_id:
+        raise PlanAccessError("This person already owns the plan")
+    await _upsert_grant(db, ctx, plan, "user", found.hanko_user_id, found.name, role)
+    return _access_read(plan, ctx)
+
+
+async def set_user_grant_role(
+    db: AsyncSession, ctx: PermissionContext, plan_id: str, subject_id: str, role: str
+) -> PlanAccess:
+    """Change the role of an existing person grant."""
+    plan = await _plan_for_access(db, ctx, plan_id, manage=True)
+    grant = _find_grant(plan, "user", subject_id)
+    if grant is None:
+        raise PlanAccessNotFound("Grant not found")
+    grant.role = role
+    await db.flush()
+    return _access_read(plan, ctx)
+
+
+async def remove_grant(
+    db: AsyncSession,
+    ctx: PermissionContext,
+    plan_id: str,
+    subject_type: str,
+    subject_id: str | None,
+) -> PlanAccess:
+    """Remove a grant (a person, a team, an organization or the link)."""
+    plan = await _plan_for_access(db, ctx, plan_id, manage=True)
+    grant = _find_grant(plan, subject_type, subject_id)
+    if grant is None:
+        raise PlanAccessNotFound("Grant not found")
+    plan.grants.remove(grant)
+    await db.flush()
+    return _access_read(plan, ctx)
+
+
+async def set_link_grant(db: AsyncSession, ctx: PermissionContext, plan_id: str) -> PlanAccess:
+    """Let anyone with the link view the plan."""
+    plan = await _plan_for_access(db, ctx, plan_id, manage=True)
+    await _upsert_grant(db, ctx, plan, "link", None, None, "viewer")
+    return _access_read(plan, ctx)
+
+
+async def set_attribution(
+    db: AsyncSession, ctx: PermissionContext, plan_id: str, organization_id: str | None
+) -> PlanAccess:
+    """Attribute the plan to an organization ("by Org X"), or clear it with None.
+
+    The caller must own the plan and be an approved owner/manager of the
+    organization right now. The attribution gives the organization no access
+    and is never revalidated afterwards."""
+    plan = await _plan_for_access(db, ctx, plan_id, manage=True)
+    if organization_id is None:
+        plan.group_id = None
+        plan.group_name = None
+        plan.group_slug = None
+    else:
+        if not permissions.is_org_manager(ctx, organization_id):
+            raise PlanAccessForbidden("You must be an owner or manager of that organization")
+        plan.group_id = organization_id
+        plan.group_name = ctx.group_names.get(("organization", organization_id))
+        plan.group_slug = ctx.group_slugs.get(("organization", organization_id))
+    await db.flush()
+    return _access_read(plan, ctx)
 
 
 async def set_project_status(
@@ -1590,15 +1732,14 @@ def _item_from_snapshot(row: PlanProject) -> HydratedProjectItem:
 async def _plan_attribution_slugs(plan: Plan) -> tuple[str | None, str | None]:
     """Return ``(owner_slug, group_slug)`` for linking the plan's author.
 
-    A personal plan links to the owner's public profile; an organization plan
-    links to the organization only when its profile is public. Teams get no
-    link. A login outage degrades both to None instead of failing."""
-    if not (plan.group_type and plan.group_id):
+    A plan with no attributed organization links to the owner's public profile;
+    an attributed plan links to the organization only when its profile is
+    public. A login outage degrades both to None instead of failing."""
+    if not plan.group_id:
         owner_slugs = await login_service.get_public_owner_slugs([plan.owner_id])
         return owner_slugs.get(plan.owner_id), None
-    if plan.group_type == "organization" and plan.group_slug:
-        if await _is_public_organization(plan.group_slug):
-            return None, plan.group_slug
+    if plan.group_slug and await _is_public_organization(plan.group_slug):
+        return None, plan.group_slug
     return None, None
 
 
@@ -1614,15 +1755,7 @@ def _build_plan_response(
         id=plan.id,
         name=plan.name,
         description=plan.description,
-        is_public=plan.is_public,
-        visibility=plan.visibility,
-        group_type=plan.group_type,
-        group_id=plan.group_id,
-        group_name=plan.group_name,
-        edit_scope=plan.edit_scope,
-        owner_id=plan.owner_id,
-        is_owner=ctx.user_id is not None and ctx.user_id == plan.owner_id,
-        can_edit=permissions.can_edit(plan, ctx),
+        **_access_fields(plan, ctx),
         created_at=plan.created_at,
         updated_at=plan.updated_at,
         projects=list(items),
@@ -1720,17 +1853,18 @@ async def get_public_plan_hydrated(
     *,
     refresh: bool = False,
 ) -> PlanReadHydrated | None:
-    """Fetch a plan by ID only if visibility=public. No owner check.
+    """Fetch a plan by ID only if it has a link grant. No owner check.
 
     Default serves the stored snapshot instantly; ``refresh=True`` hydrates live
     and persists the fresh snapshot (stale-while-revalidate)."""
     stmt = (
         select(Plan)
-        .where(Plan.id == plan_id, Plan.visibility == "public")
+        .where(Plan.id == plan_id, _has_link_grant())
         .options(
             selectinload(Plan.projects),
             selectinload(Plan.collections),
             selectinload(Plan.images),
+            selectinload(Plan.grants),
         )
     )
     result = await db.execute(stmt)
@@ -1739,7 +1873,7 @@ async def get_public_plan_hydrated(
         return None
 
     # An anonymous public viewer has no edit rights.
-    anon_ctx = permissions.PermissionContext(None, frozenset(), True)
+    anon_ctx = permissions.PermissionContext(None, {}, True)
     owner_slug, group_slug = await _plan_attribution_slugs(plan)
     if not refresh:
         return _build_plan_response(

@@ -14,19 +14,19 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 
 from app.core.base import Base
 
-# A plan's scope + visibility model:
+# A plan's ownership + access model:
 #   * owner_id      — always the creator; the owner can always view/edit.
-#   * group_type    — None for a personal plan, else "team" | "organization".
-#   * group_id      — the login group id when the plan belongs to a group.
-#   * visibility    — "private" | "group" | "public" (replaces the old is_public
-#                     boolean; the property below preserves that name for reads).
-#   * edit_scope    — "owner" | "group" (who, besides the owner, may edit).
+#   * group_id      — the organization the plan is attributed to ("by Org X");
+#                     it gives that organization no access.
+#   * plan_grants   — who else may view/edit the plan: users, teams,
+#                     organizations, or "anyone with the link" (viewer only).
 
 
 def uuid_str() -> str:
@@ -46,9 +46,7 @@ class Plan(Base):
     owner_id = Column(String, nullable=False, index=True)
     name = Column(String, nullable=False)
     description = Column(Text, nullable=True)
-    visibility = Column(String, nullable=False, default="private")
-    group_type = Column(String, nullable=True)
-    group_id = Column(String, nullable=True)
+    group_id = Column(String, nullable=True, index=True)
     # The group's name as last seen from one of its members. Login only tells
     # a user about their own groups, so this is what lets a visitor who is not
     # in the group (or not signed in) see who a public plan belongs to.
@@ -60,7 +58,6 @@ class Plan(Base):
     # plan only stores owner_id, so this is what lets anyone see who made a
     # public plan that has no group.
     owner_name = Column(String, nullable=True)
-    edit_scope = Column(String, nullable=False, default="owner")
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at = Column(
         DateTime(timezone=True),
@@ -69,12 +66,17 @@ class Plan(Base):
         nullable=False,
     )
 
-    __table_args__ = (Index("ix_plans_group", "group_type", "group_id"),)
-
     @property
     def is_public(self) -> bool:
-        """Back-compat read accessor; visibility is the source of truth."""
-        return self.visibility == "public"
+        """Whether anyone with the link may view the plan (a `link` grant exists)."""
+        return any(g.subject_type == "link" for g in self.grants)
+
+    grants = relationship(
+        "PlanGrant",
+        back_populates="plan",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 
     projects = relationship(
         "PlanProject",
@@ -209,3 +211,42 @@ class PlanImage(Base):
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
 
     plan = relationship("Plan", back_populates="images")
+
+
+class PlanGrant(Base):
+    """Access to a plan given to a user, team, organization or anyone with the link.
+
+    subject_name is a snapshot taken when the grant is created: login has no
+    endpoint to resolve names in bulk, so this is what the share dialog shows.
+    """
+
+    __tablename__ = "plan_grants"
+
+    id = Column(String, primary_key=True, default=uuid_str)
+    plan_id = Column(
+        String,
+        ForeignKey("plans.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    subject_type = Column(String, nullable=False)  # user | team | organization | link
+    subject_id = Column(String, nullable=True)  # null only for "link"
+    subject_name = Column(String, nullable=True)
+    role = Column(String, nullable=False)  # viewer | editor
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+    created_by = Column(String, nullable=True)
+
+    plan = relationship("Plan", back_populates="grants")
+
+    __table_args__ = (
+        UniqueConstraint(
+            "plan_id", "subject_type", "subject_id", name="uq_plan_grants_plan_subject"
+        ),
+        Index(
+            "uq_plan_grants_plan_link",
+            "plan_id",
+            unique=True,
+            postgresql_where=text("subject_type = 'link'"),
+            sqlite_where=text("subject_type = 'link'"),
+        ),
+    )

@@ -17,6 +17,7 @@ from hotosm_auth_fastapi import CurrentUser, CurrentUserOptional
 from PIL import Image
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
 from app.core.database import get_db
@@ -66,6 +67,7 @@ async def get_plan_image_content(
         select(PlanImage, Plan)
         .join(Plan, Plan.id == PlanImage.plan_id)
         .where(PlanImage.id == image_id, PlanImage.plan_id == plan_id)
+        .options(selectinload(Plan.grants))
     )
     row = result.one_or_none()
     if row is None:

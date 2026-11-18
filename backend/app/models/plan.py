@@ -20,9 +20,9 @@ AppLiteral = Literal[
 
 StatusLiteral = Literal["pending", "in_progress", "done", "task"]
 
-Visibility = Literal["private", "group", "public"]
-EditScope = Literal["owner", "group"]
 GroupType = Literal["team", "organization"]
+GrantRole = Literal["viewer", "editor"]
+PlanRole = Literal["viewer", "editor", "owner"]
 
 HydrationError = Literal["not_found", "upstream_unavailable", "upstream_timeout", "pending"]
 
@@ -103,53 +103,31 @@ class PlanProjectItem(BaseModel):
         return self
 
 
-class PlanScopeMixin(BaseModel):
-    """Scope + visibility fields shared by create and update payloads."""
-
-    # is_public kept for backward compatibility; mapped to visibility server-side.
-    is_public: bool | None = None
-    visibility: Visibility | None = None
-    group_type: GroupType | None = None
-    group_id: str | None = None
-    edit_scope: EditScope | None = None
-
-    @model_validator(mode="after")
-    def check_scope(self) -> "PlanScopeMixin":
-        # A personal plan (no group) can only be private or public, owner-edited.
-        if self.group_type is None and self.group_id is None:
-            if self.visibility == "group":
-                raise ValueError("visibility 'group' requires a group")
-            if self.edit_scope == "group":
-                raise ValueError("edit_scope 'group' requires a group")
-        if (self.group_type is None) != (self.group_id is None):
-            raise ValueError("group_type and group_id must be set together")
-        return self
-
-
-class PlanCreate(PlanScopeMixin):
+class PlanCreate(BaseModel):
     name: str = Field(..., min_length=1)
     description: str | None = Field(default=None, max_length=_DESC_MAX_LEN)
     projects: list[PlanProjectItem] = []
 
 
-class PlanUpdate(PlanScopeMixin):
+class PlanUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1)
     description: str | None = Field(default=None, max_length=_DESC_MAX_LEN)
     projects: list[PlanProjectItem] | None = None
 
 
 class PlanScopeRead(BaseModel):
-    """Scope/visibility fields exposed on plan reads, plus per-viewer flags."""
+    """Ownership fields exposed on plan reads, plus per-viewer flags."""
 
+    # Whether anyone with the link may view the plan (a `link` grant exists).
     is_public: bool
-    visibility: Visibility
-    group_type: GroupType | None = None
+    # The organization the plan is attributed to ("by Org X"); gives no access.
     group_id: str | None = None
     group_name: str | None = None
-    edit_scope: EditScope
     owner_id: str
+    # True when the caller holds the owner role (my_role == "owner").
     is_owner: bool = False
     can_edit: bool = False
+    my_role: PlanRole | None = None
 
 
 class PlanSummary(BaseModel):
@@ -261,8 +239,8 @@ class PlanReadHydrated(PlanScopeRead):
     owner_name: str | None = None
     # Slug of the owner's public profile; None when it is private or unknown.
     owner_slug: str | None = None
-    # Slug of the organization's public profile; None for teams, or when it
-    # isn't a public organization or is unknown.
+    # Slug of the organization's public profile; None when it isn't a public
+    # organization or is unknown.
     group_slug: str | None = None
 
 
@@ -334,3 +312,49 @@ class CompleteTaskRequest(BaseModel):
         if has_url and has_direct:
             raise ValueError("Provide url or app+project_id, not both")
         return self
+
+
+class PlanAccessOwner(BaseModel):
+    id: str
+    name: str | None = None
+
+
+class PlanAccessAttribution(BaseModel):
+    """The organization a plan is attributed to ("by Org X"); gives no access."""
+
+    id: str
+    name: str | None = None
+
+
+class PlanAccessGrant(BaseModel):
+    subject_type: Literal["user"] | GroupType
+    subject_id: str
+    subject_name: str | None = None
+    role: GrantRole
+
+
+class PlanAccess(BaseModel):
+    """Who owns a plan and who else may view or edit it."""
+
+    owner: PlanAccessOwner
+    attribution: PlanAccessAttribution | None = None
+    grants: list[PlanAccessGrant]
+    link_role: Literal["viewer"] | None = None
+    my_role: PlanRole | None = None
+
+
+class PlanGrantRoleUpdate(BaseModel):
+    role: GrantRole
+
+
+class PlanUserGrantCreate(BaseModel):
+    email: str = Field(..., min_length=3, max_length=320)
+    role: GrantRole = "viewer"
+
+
+class PlanLinkUpdate(BaseModel):
+    role: Literal["viewer"] = "viewer"
+
+
+class PlanAttributionUpdate(BaseModel):
+    organization_id: str | None = None

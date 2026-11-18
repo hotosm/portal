@@ -1,24 +1,19 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { m } from '../../paraglide/messages'
 import type { PlanReadHydrated } from '../types'
-import { useDeletePlan, useUpdatePlan } from './usePlans'
+import { useSetPlanLink } from './usePlanAccess'
+import { useDeletePlan } from './usePlans'
 
 export function usePlanMenu(plan: PlanReadHydrated) {
   const navigate = useNavigate()
   const { currentLanguage } = useLanguage()
   const deleteMutation = useDeletePlan()
-  const updateMutation = useUpdatePlan()
+  const linkMutation = useSetPlanLink(plan.id)
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
-  const [shareOpen, setShareOpen] = useState(false)
   const [permissionsOpen, setPermissionsOpen] = useState(false)
-
-  const planUrl = useMemo(
-    () => `${window.location.origin}/${currentLanguage}/plan/${plan.id}`,
-    [currentLanguage, plan.id]
-  )
 
   const handleAction = useCallback(
     (action: string) => {
@@ -27,22 +22,12 @@ export function usePlanMenu(plan: PlanReadHydrated) {
           navigate(`/${currentLanguage}/plan/${plan.id}/edit`)
           break
         case 'publish':
-          updateMutation.mutate(
-            {
-              id: plan.id,
-              payload: { visibility: plan.is_public ? 'private' : 'public' },
+          // Publishing = "anyone with the link can view"; errors toast in the hook.
+          linkMutation.mutate(plan.is_public ? null : 'viewer', {
+            onSuccess: () => {
+              toast.success(plan.is_public ? m.plan_toast_unpublished() : m.plan_toast_published())
             },
-            {
-              onSuccess: () => {
-                toast.success(
-                  plan.is_public ? m.plan_toast_unpublished() : m.plan_toast_published()
-                )
-              },
-              onError: () => {
-                toast.error(m.plan_toast_publish_error())
-              },
-            }
-          )
+          })
           break
         case 'collections':
           navigate(`/${currentLanguage}/plan/${plan.id}/collections`)
@@ -50,37 +35,18 @@ export function usePlanMenu(plan: PlanReadHydrated) {
         case 'permissions':
           setPermissionsOpen(true)
           break
-        case 'share':
-          setShareOpen(true)
-          break
         case 'delete':
           setConfirmDeleteOpen(true)
           break
       }
     },
-    [navigate, currentLanguage, plan.id, plan.is_public, updateMutation]
+    [navigate, currentLanguage, plan.id, plan.is_public, linkMutation]
   )
 
   const onSelect = useCallback(
     (event: CustomEvent) => handleAction(event.detail.item.value as string),
     [handleAction]
   )
-
-  const onCopyLink = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(planUrl)
-      toast.success(m.plan_toast_link_copied())
-    } catch {
-      toast.error(m.plan_toast_link_copy_error())
-    }
-  }, [planUrl])
-
-  const onNativeShare = useCallback(() => {
-    navigator.share({ title: plan.name, url: planUrl }).catch((err: unknown) => {
-      if (err instanceof DOMException && err.name === 'AbortError') return
-      toast.error(m.plan_toast_share_error())
-    })
-  }, [plan.name, planUrl])
 
   const onConfirmDelete = useCallback(() => {
     deleteMutation.mutate(plan.id, {
@@ -93,21 +59,15 @@ export function usePlanMenu(plan: PlanReadHydrated) {
   }, [deleteMutation, plan.id, currentLanguage, navigate])
 
   const onCancelDelete = useCallback(() => setConfirmDeleteOpen(false), [])
-  const onCloseShare = useCallback(() => setShareOpen(false), [])
   const onClosePermissions = useCallback(() => setPermissionsOpen(false), [])
 
   return {
     onSelect,
-    planUrl,
     isDeleting: deleteMutation.isPending,
-    isPublishing: updateMutation.isPending,
+    isPublishing: linkMutation.isPending,
     confirmDeleteOpen,
     onConfirmDelete,
     onCancelDelete,
-    shareOpen,
-    onCopyLink,
-    onNativeShare,
-    onCloseShare,
     permissionsOpen,
     onClosePermissions,
   }

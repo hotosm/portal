@@ -34,6 +34,7 @@ from app.db.models.oam import OAMImage  # noqa: F401 — registers model with Ba
 from app.db.models.plan import (  # noqa: F401 — registers models with Base.metadata
     Plan,
     PlanCollection,
+    PlanGrant,
     PlanImage,
     PlanProject,
 )

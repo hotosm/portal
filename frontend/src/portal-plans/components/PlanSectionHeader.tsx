@@ -42,12 +42,12 @@ function PlanSectionHeader({
   const { data: me } = useMyPortalProfile()
   const { currentLanguage } = useLanguage()
 
-  // A plan is shared when it carries a group; otherwise it's personal and we
-  // credit the owner. The owner sees their own freshest name; everyone else
+  // A plan attributed to an organization credits it; otherwise we credit the
+  // owner. The owner sees their own freshest name; everyone else
   // gets the name the hydrated plan carries.
   // The viewer's own groups give the freshest name; anyone outside the group,
   // signed in or not, falls back to the name the plan carries.
-  const hasGroup = !!plan?.group_type && !!plan?.group_id
+  const hasGroup = !!plan?.group_id
   const groupName = hasGroup
     ? (groups?.find((g) => g.id === plan.group_id)?.name ?? plan.group_name)
     : null
@@ -62,15 +62,9 @@ function PlanSectionHeader({
 
   const attribution = groupName
     ? {
-        label:
-          plan?.group_type === 'organization'
-            ? m.plan_permissions_scope_org()
-            : m.plan_permissions_scope_team(),
+        label: m.plan_permissions_scope_org(),
         name: groupName,
-        href:
-          plan?.group_type === 'organization' && groupSlug
-            ? `/${currentLanguage}/org/${groupSlug}`
-            : undefined,
+        href: groupSlug ? `/${currentLanguage}/org/${groupSlug}` : undefined,
       }
     : ownerName
       ? {

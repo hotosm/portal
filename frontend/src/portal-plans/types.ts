@@ -14,11 +14,13 @@ export type HydrationError = 'not_found' | 'upstream_unavailable' | 'upstream_ti
 
 export type ProjectStatus = 'pending' | 'in_progress' | 'done' | 'task'
 
-export type Visibility = 'private' | 'group' | 'public'
-
-export type EditScope = 'owner' | 'group'
-
 export type GroupType = 'team' | 'organization'
+
+export type GrantSubjectType = 'user' | GroupType
+
+export type GrantRole = 'viewer' | 'editor'
+
+export type PlanRole = GrantRole | 'owner'
 
 /** A team or organization the current user belongs to (from GET /api/groups). */
 export interface UserGroup {
@@ -90,21 +92,12 @@ export interface PlanCreate {
   name: string
   description?: string
   projects?: PlanProjectItem[]
-  visibility?: Visibility
-  group_type?: GroupType | null
-  group_id?: string | null
-  edit_scope?: EditScope
 }
 
 export interface PlanUpdate {
   name?: string
   description?: string
-  is_public?: boolean
   projects?: PlanProjectItem[]
-  visibility?: Visibility
-  group_type?: GroupType | null
-  group_id?: string | null
-  edit_scope?: EditScope
 }
 
 export interface PlanImageRead {
@@ -125,17 +118,17 @@ export interface PlanRead {
   id: string
   name: string
   description: string | null
+  // Whether anyone with the link may view the plan.
   is_public: boolean
-  owner_id: string
-  visibility: Visibility
-  group_type: GroupType | null
+  // The organization the plan is attributed to ("by Org X"), as the backend
+  // last saw it; set even for viewers who aren't in it. Gives no access.
   group_id: string | null
-  // The group's name as the backend last saw it; set even for viewers who
-  // aren't in the group.
   group_name?: string | null
-  edit_scope: EditScope
+  owner_id: string
+  // True when the caller holds the owner role (my_role === 'owner').
   is_owner: boolean
   can_edit: boolean
+  my_role: PlanRole | null
   projects: PlanProjectItem[]
   collections: Collection[]
   images: PlanImageRead[]
@@ -167,17 +160,17 @@ export interface PlanReadHydrated {
   id: string
   name: string
   description: string | null
+  // Whether anyone with the link may view the plan.
   is_public: boolean
-  owner_id: string
-  visibility: Visibility
-  group_type: GroupType | null
+  // The organization the plan is attributed to ("by Org X"), as the backend
+  // last saw it; set even for viewers who aren't in it. Gives no access.
   group_id: string | null
-  // The group's name as the backend last saw it; set even for viewers who
-  // aren't in the group.
   group_name?: string | null
-  edit_scope: EditScope
+  owner_id: string
+  // True when the caller holds the owner role (my_role === 'owner').
   is_owner: boolean
   can_edit: boolean
+  my_role: PlanRole | null
   projects: HydratedProjectItem[]
   collections: Collection[]
   images: PlanImageRead[]
@@ -186,8 +179,8 @@ export interface PlanReadHydrated {
   owner_name?: string | null
   // Slug of the owner's public profile; null when it is private or unknown.
   owner_slug?: string | null
-  // Slug of the organization's public profile; null for teams, or when it
-  // isn't a public organization or is unknown.
+  // Slug of the organization's public profile; null when it isn't a public
+  // organization or is unknown.
   group_slug?: string | null
 }
 
@@ -257,4 +250,21 @@ export interface PublicPlanList {
   page: number
   page_size: number
   organizations: PublicOrganization[]
+}
+
+/** One subject a plan is shared with (GET /api/plans/{id}/access). */
+export interface PlanGrant {
+  subject_type: GrantSubjectType
+  subject_id: string
+  subject_name: string | null
+  role: GrantRole
+}
+
+export interface PlanAccess {
+  owner: { id: string; name: string | null }
+  // The organization the plan is attributed to ("by Org X"); gives no access.
+  attribution: { id: string; name: string | null } | null
+  grants: PlanGrant[]
+  link_role: 'viewer' | null
+  my_role: PlanRole | null
 }

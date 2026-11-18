@@ -13,6 +13,8 @@ export const planQueryKeys = {
   // Sibling of detail(id), not a child: nested under it, every
   // invalidateQueries(detail(id)) also refetched the anonymous shared endpoint.
   public: (id: string) => [...planQueryKeys.all, 'public', id] as const,
+  // Owner, grants and link state of one plan (the share dialog).
+  access: (id: string) => [...planQueryKeys.all, 'access', id] as const,
   publicList: (params: { q: string; org?: string; page: number }) =>
     [...planQueryKeys.all, 'public-list', params] as const,
 }

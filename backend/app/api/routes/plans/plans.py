@@ -1,6 +1,6 @@
 """Plans API endpoints — user-owned collections of project references."""
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, Response, status
 from hotosm_auth_fastapi import CurrentUser
@@ -9,15 +9,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.models.plan import (
     CompleteTaskRequest,
+    PlanAccess,
+    PlanAttributionUpdate,
     PlanCollectionCreate,
     PlanCollectionRead,
     PlanCollectionUpdate,
     PlanCreate,
+    PlanGrantRoleUpdate,
+    PlanLinkUpdate,
     PlanProjectItem,
     PlanRead,
     PlanReadHydrated,
     PlanSummary,
     PlanUpdate,
+    PlanUserGrantCreate,
     ProjectCollectionUpdate,
     ProjectFeaturedUpdate,
     ProjectReorder,
@@ -27,15 +32,15 @@ from app.models.plan import (
     UrlResolveRequest,
     UrlResolveResponse,
 )
-from app.services import permissions, plans_service
+from app.services import login_service, permissions, plans_service
 from app.services.exceptions import UpstreamUnavailable
 from app.services.permissions import PermissionContext
 from app.services.plans_service import (
     CollectionNotFoundError,
     DuplicateCollectionError,
     DuplicateProjectError,
-    GroupMembershipError,
     InvalidUrlError,
+    PlanAccessError,
     ProjectNotFoundError,
 )
 
@@ -55,7 +60,7 @@ async def list_my_plans(
     ctx: PermCtx,
     db: AsyncSession = Depends(get_db),
 ) -> list[PlanSummary]:
-    """List plans visible to the user (own plus group plans) as lightweight summaries."""
+    """List plans the user owns or was granted access to, as lightweight summaries."""
     await plans_service.sync_owner_name(db, ctx)
     return await plans_service.list_plans(db, ctx)
 
@@ -69,8 +74,6 @@ async def create_plan(
     """Create a new plan owned by the authenticated user."""
     try:
         return await plans_service.create_plan(db, ctx, payload)
-    except GroupMembershipError as e:
-        raise HTTPException(status_code=403, detail=str(e))
     except DuplicateProjectError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
@@ -159,11 +162,9 @@ async def update_plan(
     plan_id: str = Path(..., description="Plan UUID"),
     db: AsyncSession = Depends(get_db),
 ) -> PlanRead:
-    """Update name/description/scope/visibility and/or replace the projects list."""
+    """Update name/description and/or replace the projects list."""
     try:
         plan = await plans_service.update_plan(db, ctx, plan_id, payload)
-    except GroupMembershipError as e:
-        raise HTTPException(status_code=403, detail=str(e))
     except DuplicateProjectError as e:
         raise HTTPException(status_code=422, detail=str(e))
     if plan is None:
@@ -420,13 +421,144 @@ async def update_project_status(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
+# ── Sharing ──────────────────────────────────────────────────────────────────
+# Every write needs the owner role and applies immediately (no batch save).
+
+
+def _access_error(e: PlanAccessError) -> HTTPException:
+    return HTTPException(status_code=e.status_code, detail=str(e))
+
+
+@router.get("/{plan_id}/access", response_model=PlanAccess)
+async def get_plan_access(
+    ctx: PermCtx,
+    plan_id: str = Path(..., description="Plan UUID"),
+    db: AsyncSession = Depends(get_db),
+) -> PlanAccess:
+    """Owner, grants and link state of a plan. Any viewer may read it."""
+    try:
+        return await plans_service.get_plan_access(db, ctx, plan_id)
+    except PlanAccessError as e:
+        raise _access_error(e)
+
+
+@router.put("/{plan_id}/access/link", response_model=PlanAccess)
+async def set_plan_link(
+    payload: PlanLinkUpdate,
+    ctx: PermCtx,
+    plan_id: str = Path(..., description="Plan UUID"),
+    db: AsyncSession = Depends(get_db),
+) -> PlanAccess:
+    """Let anyone with the link view the plan."""
+    try:
+        return await plans_service.set_link_grant(db, ctx, plan_id)
+    except PlanAccessError as e:
+        raise _access_error(e)
+
+
+@router.delete("/{plan_id}/access/link", response_model=PlanAccess)
+async def remove_plan_link(
+    ctx: PermCtx,
+    plan_id: str = Path(..., description="Plan UUID"),
+    db: AsyncSession = Depends(get_db),
+) -> PlanAccess:
+    """Stop anyone with the link from viewing the plan."""
+    try:
+        return await plans_service.remove_grant(db, ctx, plan_id, "link", None)
+    except PlanAccessError as e:
+        raise _access_error(e)
+
+
+@router.post("/{plan_id}/access/user", response_model=PlanAccess)
+async def add_plan_user(
+    payload: PlanUserGrantCreate,
+    request: Request,
+    ctx: PermCtx,
+    plan_id: str = Path(..., description="Plan UUID"),
+    db: AsyncSession = Depends(get_db),
+) -> PlanAccess:
+    """Share the plan with a person, found by email through login."""
+    try:
+        return await plans_service.add_user_grant_by_email(
+            db, ctx, plan_id, payload.email, payload.role, request.cookies.get("hanko")
+        )
+    except PlanAccessError as e:
+        raise _access_error(e)
+    except login_service.LoginUnavailable:
+        raise HTTPException(status_code=502, detail="upstream_unavailable")
+
+
+@router.put("/{plan_id}/access/user/{subject_id}", response_model=PlanAccess)
+async def set_plan_user_role(
+    payload: PlanGrantRoleUpdate,
+    ctx: PermCtx,
+    plan_id: str = Path(..., description="Plan UUID"),
+    subject_id: str = Path(..., description="Login user id"),
+    db: AsyncSession = Depends(get_db),
+) -> PlanAccess:
+    """Change the role of a person the plan is already shared with."""
+    try:
+        return await plans_service.set_user_grant_role(db, ctx, plan_id, subject_id, payload.role)
+    except PlanAccessError as e:
+        raise _access_error(e)
+
+
+@router.put("/{plan_id}/access/{subject_type}/{subject_id}", response_model=PlanAccess)
+async def set_plan_group_grant(
+    payload: PlanGrantRoleUpdate,
+    ctx: PermCtx,
+    subject_type: Literal["team", "organization"],
+    plan_id: str = Path(..., description="Plan UUID"),
+    subject_id: str = Path(..., description="Login group id"),
+    db: AsyncSession = Depends(get_db),
+) -> PlanAccess:
+    """Share the plan with one of the caller's teams or organizations."""
+    try:
+        return await plans_service.set_group_grant(
+            db, ctx, plan_id, subject_type, subject_id, payload.role
+        )
+    except PlanAccessError as e:
+        raise _access_error(e)
+
+
+@router.delete("/{plan_id}/access/{subject_type}/{subject_id}", response_model=PlanAccess)
+async def remove_plan_grant(
+    ctx: PermCtx,
+    subject_type: Literal["user", "team", "organization"],
+    plan_id: str = Path(..., description="Plan UUID"),
+    subject_id: str = Path(..., description="Login user or group id"),
+    db: AsyncSession = Depends(get_db),
+) -> PlanAccess:
+    """Remove a person's, team's or organization's access to the plan."""
+    try:
+        return await plans_service.remove_grant(db, ctx, plan_id, subject_type, subject_id)
+    except PlanAccessError as e:
+        raise _access_error(e)
+
+
+@router.put("/{plan_id}/attribution", response_model=PlanAccess)
+async def set_plan_attribution(
+    payload: PlanAttributionUpdate,
+    ctx: PermCtx,
+    plan_id: str = Path(..., description="Plan UUID"),
+    db: AsyncSession = Depends(get_db),
+) -> PlanAccess:
+    """Show the plan "by" an organization the caller owns/manages, or clear it.
+
+    Gives the organization no access."""
+    try:
+        return await plans_service.set_attribution(db, ctx, plan_id, payload.organization_id)
+    except PlanAccessError as e:
+        raise _access_error(e)
+
+
 @router.delete("/{plan_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_plan(
     ctx: PermCtx,
     plan_id: str = Path(..., description="Plan UUID"),
     db: AsyncSession = Depends(get_db),
 ) -> Response:
-    """Delete a plan (owner only); plan_projects rows cascade automatically."""
+    """Delete a plan (owners only); plan_projects rows cascade automatically."""
     ok = await plans_service.delete_plan(db, ctx, plan_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Plan not found")

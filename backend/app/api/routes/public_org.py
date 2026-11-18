@@ -53,4 +53,4 @@ async def get_public_organization_plans(
     response.headers["Cache-Control"] = "no-store"
     if not org.id:
         return []
-    return await plans_service.list_public_group_plans(db, "organization", org.id)
+    return await plans_service.list_public_group_plans(db, org.id)

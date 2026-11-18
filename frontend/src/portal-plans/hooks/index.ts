@@ -29,6 +29,14 @@ export {
 } from './useCollections'
 export { planRemoveMutationKey } from './queryKeys'
 export { usePlanMenu } from './usePlanMenu'
+export {
+  usePlanAccess,
+  useSetPlanGrant,
+  useAddPlanUserByEmail,
+  useRemovePlanGrant,
+  useSetPlanLink,
+  useSetPlanAttribution,
+} from './usePlanAccess'
 export { useAllUserProjects, APP_LABELS, FETCHED_APPS } from './useAllUserProjects'
 export { useUploadPlanImage, useDeletePlanImage } from './usePlanImages'
 export {

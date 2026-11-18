@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Request, Response, 
 from hotosm_auth_fastapi import CurrentUser, CurrentUserOptional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.db.models.plan import Plan, PlanProject
@@ -117,6 +118,7 @@ async def get_sketchmap_file_content(
         select(PlanProject, Plan)
         .join(Plan, Plan.id == PlanProject.plan_id)
         .where(PlanProject.id == plan_project_id, PlanProject.plan_id == plan_id)
+        .options(selectinload(Plan.grants))
     )
     row = result.one_or_none()
     if row is None:

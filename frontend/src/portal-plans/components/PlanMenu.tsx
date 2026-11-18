@@ -7,7 +7,7 @@ import Icon from '../../components/shared/Icon'
 import { m } from '../../paraglide/messages'
 import { usePlanMenu } from '../hooks'
 import type { PlanReadHydrated } from '../types'
-import PlanPermissionsDialog from './PlanPermissionsDialog'
+import PlanShareDialog from './PlanShareDialog'
 
 interface PlanMenuProps {
   plan: PlanReadHydrated
@@ -16,25 +16,19 @@ interface PlanMenuProps {
 function PlanMenu({ plan }: PlanMenuProps) {
   const {
     onSelect,
-    planUrl,
     isDeleting,
     isPublishing,
     confirmDeleteOpen,
     onConfirmDelete,
     onCancelDelete,
-    shareOpen,
-    onCopyLink,
-    onNativeShare,
-    onCloseShare,
     permissionsOpen,
     onClosePermissions,
   } = usePlanMenu(plan)
 
   const canEdit = plan.can_edit
   const isOwner = plan.is_owner
-  // Publishing toggles private<->public visibility; for group plans visibility
-  // is managed from the permissions dialog, so only expose it on personal plans.
-  const canPublish = canEdit && plan.group_type == null
+  // Publishing toggles the "anyone with the link" grant, which only owners manage.
+  const canPublish = isOwner
 
   return (
     <>
@@ -49,24 +43,16 @@ function PlanMenu({ plan }: PlanMenuProps) {
             {m.plan_menu_edit()}
           </DropdownItem>
         )}
-        {canPublish && (
+        {/* {canPublish && (
           <DropdownItem value="publish" disabled={isPublishing}>
             <Icon slot="icon" library="bootstrap" name={plan.is_public ? 'globe2' : 'globe'} />
             {plan.is_public ? m.plan_menu_unpublish() : m.plan_menu_publish()}
           </DropdownItem>
-        )}
-        {canEdit && plan.is_public && (
-          <DropdownItem value="share">
-            <Icon slot="icon" library="bootstrap" name="share" />
-            {m.plan_menu_share()}
-          </DropdownItem>
-        )}
-        {isOwner && (
-          <DropdownItem value="permissions">
-            <Icon slot="icon" library="bootstrap" name="people" />
-            {m.plan_menu_permissions()}
-          </DropdownItem>
-        )}
+        )} */}
+        <DropdownItem value="permissions">
+          <Icon slot="icon" library="bootstrap" name="people" />
+          {m.plan_menu_share()}
+        </DropdownItem>
         {isOwner && (
           <DropdownItem value="delete" variant="danger">
             <Icon slot="icon" library="bootstrap" name="trash" />
@@ -75,35 +61,8 @@ function PlanMenu({ plan }: PlanMenuProps) {
         )}
       </Dropdown>
 
-      {/* Permissions dialog (owner only) */}
-      <PlanPermissionsDialog plan={plan} open={permissionsOpen} onClose={onClosePermissions} />
-
-      {/* Share dialog */}
-      <Dialog open={shareOpen} label={m.plan_share_dialog_label()} onWaHide={onCloseShare}>
-        <div className="flex flex-col gap-sm">
-          <div className="flex items-center gap-sm bg-hot-gray-50 rounded-lg px-sm py-xs text-sm text-hot-gray-600 break-all">
-            <Icon library="bootstrap" name="link-45deg" />
-            <span className="flex-1">{planUrl}</span>
-          </div>
-          <div className="flex gap-sm">
-            <Button type="button" appearance="outlined" onClick={onCopyLink} className="flex-1">
-              <Icon slot="start" library="bootstrap" name="clipboard" />
-              {m.plan_share_copy_link()}
-            </Button>
-            {typeof navigator.share === 'function' && (
-              <Button
-                type="button"
-                appearance="outlined"
-                onClick={onNativeShare}
-                className="flex-1"
-              >
-                <Icon slot="start" library="bootstrap" name="share" />
-                {m.plan_share_native()}
-              </Button>
-            )}
-          </div>
-        </div>
-      </Dialog>
+      {/* Share dialog: editable for owners, read-only for everyone else */}
+      <PlanShareDialog plan={plan} open={permissionsOpen} onClose={onClosePermissions} />
 
       {/* Delete confirmation dialog */}
       <Dialog

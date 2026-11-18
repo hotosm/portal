@@ -135,6 +135,38 @@ def invalidate_user_groups(user_id: str) -> None:
     delete_cached(_cache_key(user_id))
 
 
+@dataclass(frozen=True)
+class LookedUpUser:
+    """A login account found by email."""
+
+    hanko_user_id: str
+    name: str | None
+
+
+async def lookup_user_by_email(email: str, hanko_cookie: str | None) -> LookedUpUser | None:
+    """Resolve an email to a login account via ``GET /api/users/lookup``.
+
+    Forwards the caller's hanko cookie like get_user_groups. Returns None when
+    login reports no such account. Raises LoginUnavailable on network/HTTP
+    errors (including a rejected session) — never cached.
+    """
+    try:
+        async with httpx.AsyncClient(timeout=_REQUEST_TIMEOUT) as client:
+            response = await client.get(
+                f"{_login_base_url()}/api/users/lookup",
+                params={"email": email},
+                cookies={"hanko": hanko_cookie} if hanko_cookie else {},
+                headers={"accept": "application/json"},
+            )
+            response.raise_for_status()
+            data = response.json()
+    except (httpx.RequestError, httpx.HTTPStatusError) as exc:
+        raise LoginUnavailable(str(exc)) from exc
+    if not data.get("exists") or not data.get("hanko_user_id"):
+        return None
+    return LookedUpUser(hanko_user_id=data["hanko_user_id"], name=data.get("name") or None)
+
+
 # ── Profile (account) fields ─────────────────────────────────────────────────
 #
 # These target login's unauthenticated profile routes, so no hanko cookie is

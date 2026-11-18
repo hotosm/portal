@@ -120,9 +120,9 @@ function MyPlanPage() {
   // Whether we're rendering the caller's private view (usePlan) vs. the public
   // shared view (useSharedPlan) — drives which endpoints/errors apply.
   const viewingOwn = ownPlan != null
-  // can_edit: creator OR a group member with edit rights (all editing actions).
-  // Owner-only actions (delete, manage permissions) are gated inside PlanMenu
-  // via plan.is_owner.
+  // can_edit: an owner or an editor grant (all editing actions). Owner-only
+  // actions (delete, publish, editing access) are gated inside PlanMenu and
+  // PlanShareDialog via plan.is_owner / my_role.
   const canEdit = plan?.can_edit ?? false
 
   // The public query needs no auth and so almost always answers first, while
@@ -624,9 +624,9 @@ function MyPlanPage() {
               )}
               <PlanMenu plan={plan!} />
             </div>
-          ) : isSessionUnconfirmed ? undefined : plan!.is_public ? (
+          ) : isSessionUnconfirmed ? undefined : (
             <PlanShareButton plan={plan!} />
-          ) : undefined
+          )
         }
       >
         {isLoading ? (
