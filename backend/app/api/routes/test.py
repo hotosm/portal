@@ -2,13 +2,12 @@
 
 These endpoints demonstrate the hotosm-auth integration:
 - Hanko JWT validation from cookies
-- OSM connection validation from encrypted cookies
 """
 
 from fastapi import APIRouter
 
-from hotosm_auth_fastapi import AdminUser, OSMConnectionRequired
-from app.schemas.auth import UserInfoResponse, OSMInfoResponse
+from hotosm_auth_fastapi import AdminUser
+from app.schemas.auth import UserInfoResponse
 
 router = APIRouter()
 
@@ -40,40 +39,4 @@ async def test_user_auth(user: AdminUser) -> UserInfoResponse:
         user_id=user.id,
         email=user.email,
         username=user.username,
-    )
-
-
-@router.get("/osm", response_model=OSMInfoResponse)
-async def test_osm_auth(
-    user: AdminUser,
-    osm: OSMConnectionRequired,
-) -> OSMInfoResponse:
-    """
-    Test endpoint requiring Hanko authentication, admin access, and OSM connection.
-
-    Returns OSM connection information from encrypted cookie.
-
-    **Authentication**:
-    - Requires valid Hanko session (JWT in cookie or Bearer token)
-    - Requires the user's email to be in ADMIN_EMAILS
-    - Requires OSM connection (encrypted cookie from OAuth flow)
-
-    **Returns**:
-    - 200: OSM connection information
-    - 401: Not authenticated (no valid Hanko session)
-    - 403: Not an admin, or OSM connection required (logged in but not connected to OSM)
-
-    **Example**:
-    ```bash
-    curl http://localhost:8000/api/test/osm \
-      -H "Cookie: hanko=YOUR_JWT_TOKEN; osm_connection=YOUR_ENCRYPTED_TOKEN"
-    ```
-
-    **Note**: The OSM account is connected in login.hotosm.org.
-    """
-    return OSMInfoResponse(
-        message="You are connected to OSM",
-        osm_user_id=osm.osm_user_id,
-        osm_username=osm.osm_username,
-        osm_avatar_url=osm.osm_avatar_url,
     )

@@ -110,10 +110,6 @@ portal/
   - `/api/health-check` - Detailed diagnostics
   - `/` - Root welcome message with docs link
 
-- **Authentication (OSM connection, made in login)**:
-  - `/api/auth/osm/status` - Check OSM connection status
-  - `POST /api/auth/osm/disconnect` - Revoke OSM tokens and disconnect account
-
 - **Tasking Manager**:
   - `/api/tasking-manager/projects` - Return all project of Tasking Manager
   - `/api/tasking-manager/countries` - Return all countries of Tasking Manager
@@ -197,7 +193,6 @@ portal/
 
 - **Auth testing** (admin-only diagnostic endpoints):
   - `/api/test/me` - Requires Hanko auth + admin access; returns JWT user info
-  - `/api/test/osm` - Requires Hanko auth + admin + OSM connection; returns OSM connection info
 
 ### Frontend Architecture
 - **Component composition**: Small, reusable components

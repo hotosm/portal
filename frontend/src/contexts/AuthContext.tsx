@@ -16,15 +16,8 @@ interface HankoUser {
   avatarUrl?: string;
 }
 
-interface OSMConnection {
-  osm_username: string;
-  osm_user_id: number;
-  connected: boolean;
-}
-
 interface AuthContextType {
   user: HankoUser | null;
-  osmConnection: OSMConnection | null;
   isLogin: boolean; // Computed from user !== null
   isAuthLoading: boolean; // True while waiting for web component to signal auth state
   // Hanko's stored session says we're logged in, but the web component hasn't
@@ -69,9 +62,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return null;
     }
   });
-  const [osmConnection, setOsmConnection] = useState<OSMConnection | null>(
-    null
-  );
   // Only block rendering if Hanko thinks there's a valid session but we haven't
   // received the hanko-login event yet. After logout hanko_session_state.expiration
   // is 0, so this starts false and the home page renders immediately.
@@ -83,30 +73,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    // Check initial OSM connection status
-    const checkOsmStatus = async () => {
-      try {
-        const response = await fetch("/api/auth/osm/status", {
-          credentials: "include",
-        });
-        if (response.ok) {
-          const data = await response.json();
-          if (data.connected) {
-            setOsmConnection({
-              osm_username: data.osm_username,
-              osm_user_id: data.osm_user_id,
-              connected: true,
-            });
-          }
-        }
-      } catch (error) {
-        console.error("AuthContext: Failed to check OSM status", error);
-      }
-    };
-
-    // Check OSM status on mount
-    checkOsmStatus();
-
     // Fallback: if Hanko session appeared valid but hanko-login never fires
     // (e.g. network error, token actually expired), stop blocking after 2s.
     const loadingTimer = setTimeout(() => setIsAuthLoading(false), 2000);
@@ -136,8 +102,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         localStorage.setItem(AUTH_CACHE_KEY, JSON.stringify(customEvent.detail.user));
       } catch {}
       invalidateAuthScopedQueries();
-      // Re-check OSM status after login
-      checkOsmStatus();
     };
 
     // Listen to logout event from web component
@@ -145,24 +109,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setIsAuthLoading(false);
       setHasStoredSession(false);
       setUser(null);
-      setOsmConnection(null);
       try {
         localStorage.removeItem(AUTH_CACHE_KEY);
       } catch {}
       invalidateAuthScopedQueries();
     };
 
-    // Listen to osm-connected event from web component
-    const handleOsmConnected = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      setOsmConnection(customEvent.detail.osmData);
-    };
-
     // Add event listeners
     document.addEventListener("hanko-session-created", handleSessionCreated);
     document.addEventListener("hanko-login", handleLogin);
     document.addEventListener("logout", handleLogout);
-    document.addEventListener("osm-connected", handleOsmConnected);
 
     // Cleanup
     return () => {
@@ -170,7 +126,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       document.removeEventListener("hanko-session-created", handleSessionCreated);
       document.removeEventListener("hanko-login", handleLogin);
       document.removeEventListener("logout", handleLogout);
-      document.removeEventListener("osm-connected", handleOsmConnected);
     };
   }, [queryClient]);
 
@@ -189,7 +144,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const value = {
     user,
-    osmConnection,
     isLogin: user !== null,
     isAuthLoading,
     isSessionUnconfirmed: user === null && hasStoredSession,

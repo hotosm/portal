@@ -137,7 +137,7 @@ make migrate
 
 ### Authentication Setup (Optional)
 
-Portal uses [Hanko](https://hanko.io/) for SSO authentication. OpenStreetMap accounts are connected in login, not in Portal.
+Portal uses [Hanko](https://hanko.io/) for SSO authentication.
 
 **Configuration:**
 ```bash
@@ -564,10 +564,6 @@ The API is self-documented using FastAPI's built-in OpenAPI support:
   - `GET /api/health-check` - Detailed health with response times
   - `GET /` - Root welcome message with docs link
 
-- **Authentication (OSM connection, made in login)**
-  - `/api/auth/osm/status` - Check OSM connection status
-  - `POST /api/auth/osm/disconnect` - Revoke OSM tokens and disconnect account
-
 - **Tasking Manager**
   - `/api/tasking-manager/projects` - Return all project of Tasking Manager
   - `/api/tasking-manager/countries` - Return all countries of Tasking Manager
@@ -645,7 +641,6 @@ The API is self-documented using FastAPI's built-in OpenAPI support:
 
 - **Auth testing** (admin-only diagnostic endpoints)
   - `/api/test/me` - Requires Hanko auth + admin access; returns JWT user info
-  - `/api/test/osm` - Requires Hanko auth + admin + OSM connection; returns OSM connection info
 
 ## Contributing
 
