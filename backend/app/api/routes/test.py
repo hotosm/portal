@@ -69,7 +69,7 @@ async def test_osm_auth(
       -H "Cookie: hanko=YOUR_JWT_TOKEN; osm_connection=YOUR_ENCRYPTED_TOKEN"
     ```
 
-    **Note**: To connect OSM, visit `/api/auth/osm/login` after logging in with Hanko.
+    **Note**: The OSM account is connected in login.hotosm.org.
     """
     return OSMInfoResponse(
         message="You are connected to OSM",

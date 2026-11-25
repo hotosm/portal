@@ -135,11 +135,9 @@ make migrate
 - Backend API: http://localhost:8000
 - API Docs: http://localhost:8000/api/docs
 
-**Note**: For OSM OAuth to work in development, you need to configure your OSM OAuth application with the redirect URI `http://127.0.0.1:5173/api/auth/osm/callback`. See [Authentication Setup](#authentication-setup-optional) below.
-
 ### Authentication Setup (Optional)
 
-Portal uses [Hanko](https://hanko.io/) for SSO authentication with optional OpenStreetMap OAuth integration.
+Portal uses [Hanko](https://hanko.io/) for SSO authentication. OpenStreetMap accounts are connected in login, not in Portal.
 
 **Configuration:**
 ```bash
@@ -147,10 +145,6 @@ Portal uses [Hanko](https://hanko.io/) for SSO authentication with optional Open
 VITE_HANKO_URL=https://dev.login.hotosm.org       # Frontend
 HANKO_API_URL=https://dev.login.hotosm.org        # Backend
 COOKIE_SECRET=your-secret-key-min-32-bytes        # Backend (change in production!)
-
-# Optional: OpenStreetMap OAuth
-OSM_CLIENT_ID=your-osm-client-id
-OSM_CLIENT_SECRET=your-osm-client-secret
 ```
 
 **For local development**, Portal includes a local Hanko SSO server that runs in Docker (dev profile only):
@@ -442,25 +436,6 @@ Add these secrets in **GitHub repository → Settings → Secrets and variables 
   python -c "import secrets; print(secrets.token_urlsafe(32))"
   ```
 
-#### OpenStreetMap OAuth
-- `OSM_CLIENT_ID`: From https://www.openstreetmap.org/oauth2/applications
-- `OSM_CLIENT_SECRET`: From your OSM OAuth application
-- `OSM_REDIRECT_URI`: Production callback URL (e.g., `https://portal.hotosm.org/api/auth/osm/callback`)
-
-### OSM OAuth Application Setup
-
-1. Register at: https://www.openstreetmap.org/oauth2/applications/new
-2. Configure your application:
-   - **Name**: Portal (Production) or Portal (Development)
-   - **Redirect URIs**: Add both:
-     - Production: `https://portal.hotosm.org/api/auth/osm/callback`
-     - Development: `http://127.0.0.1:5173/api/auth/osm/callback` (use `127.0.0.1`, NOT `localhost`)
-   - **Scopes**: `read_prefs`
-3. Save your Client ID and Client Secret
-4. Add them to GitHub Secrets (see above)
-
-**Note**: For local development, access the app at `http://127.0.0.1:5173` (not `localhost`) to ensure cookies work correctly with OSM OAuth.
-
 ### Environment Variables
 
 The deployment workflow automatically updates `.env` on the server with values from GitHub Secrets. For manual deployments or local testing, ensure your `.env` has:
@@ -471,14 +446,10 @@ VITE_HANKO_URL=https://dev.login.hotosm.org
 HANKO_API_URL=https://dev.login.hotosm.org
 JWT_ISSUER=auto
 COOKIE_SECRET=<your-secret-from-github-secrets>
-OSM_CLIENT_ID=<your-osm-client-id>
-OSM_CLIENT_SECRET=<your-osm-client-secret>
-OSM_REDIRECT_URI=https://portal.hotosm.org/api/auth/osm/callback
 
 # Development (local with Hanko SSO)
 VITE_HANKO_URL=http://127.0.0.1:5173
 JWT_ISSUER=http://127.0.0.1:5173
-OSM_REDIRECT_URI=http://127.0.0.1:5173/api/auth/osm/callback
 ```
 
 ### Deployment Workflow
@@ -593,9 +564,7 @@ The API is self-documented using FastAPI's built-in OpenAPI support:
   - `GET /api/health-check` - Detailed health with response times
   - `GET /` - Root welcome message with docs link
 
-- **Authentication (OSM OAuth)**
-  - `/api/auth/osm/login` - Start OSM OAuth flow (requires Hanko session)
-  - `/api/auth/osm/callback` - Handle OSM OAuth callback, sets encrypted cookie
+- **Authentication (OSM connection, made in login)**
   - `/api/auth/osm/status` - Check OSM connection status
   - `POST /api/auth/osm/disconnect` - Revoke OSM tokens and disconnect account
 

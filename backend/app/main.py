@@ -302,7 +302,7 @@ app.include_router(
     prefix=settings.api_v1_prefix,
 )
 
-# Include authentication routers (OSM OAuth)
+# OSM connection status and disconnect (the OSM account is connected in login)
 # Import here to avoid circular dependencies
 from hotosm_auth_fastapi import osm_router
 

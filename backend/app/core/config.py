@@ -98,10 +98,6 @@ class Settings(BaseSettings):
     ]
     cookie_domain: str | None = None
 
-    # --- OSM OAuth ---
-    osm_client_id: str | None = None
-    osm_client_secret: str | None = None
-
     # Enable team/organization plan scopes (requires login to expose
     # GET /api/groups). Keep off until login publishes that endpoint.
     login_groups_enabled: bool = False

@@ -110,9 +110,7 @@ portal/
   - `/api/health-check` - Detailed diagnostics
   - `/` - Root welcome message with docs link
 
-- **Authentication (OSM OAuth)**:
-  - `/api/auth/osm/login` - Start OSM OAuth flow (requires Hanko session)
-  - `/api/auth/osm/callback` - Handle OSM OAuth callback, sets encrypted cookie
+- **Authentication (OSM connection, made in login)**:
   - `/api/auth/osm/status` - Check OSM connection status
   - `POST /api/auth/osm/disconnect` - Revoke OSM tokens and disconnect account
 
