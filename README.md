@@ -4,7 +4,22 @@
 
 A centralized web workspace that simplifies access to the open mapping ecosystem. 
 
-## Roadmap
+## Roadmap 2027
+
+✅ Done
+⚙️ In progress
+
+<!-- prettier-ignore-start -->
+| Status | Feature |
+|:--:| :-- |
+|  | Navigation re-designed + landing pages
+|  | Workflows
+|  | Disaster dashboard
+|  | Data browser & visualization
+|  | Marketplace
+
+
+## Roadmap 2026
 
 ✅ Done
 ⚙️ In progress
@@ -29,12 +44,10 @@ A centralized web workspace that simplifies access to the open mapping ecosystem
 |✅| Collections, with categories and descriptions
 |✅| Open Mapping Marketplace section
 |✅| Public profiles
-|⚙️| Integration with the HOT Learning Center
-|⚙️| Maps for plans / Disaster Dashboard
-|⚙️| More options for Public Profiles (e.g. for vendors)
-|  | Visualization options
-|  | Story maps
-|  | Metrics
+|✅| Integration with the HOT Learning Center
+|⚙️| Maps for plans
+|⚙️| Sharing & Permissions
+
 
 ## Table of Contents
 
