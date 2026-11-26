@@ -56,9 +56,6 @@ services:
       COOKIE_SECRET: ${COOKIE_SECRET}
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
       COOKIE_SECURE: ${COOKIE_SECURE:-true}
-      OSM_CLIENT_ID: ${OSM_CLIENT_ID:-}
-      OSM_CLIENT_SECRET: ${OSM_CLIENT_SECRET:-}
-      OSM_REDIRECT_URI: ${OSM_REDIRECT_URI:-}
       # External service URLs
       DRONE_TM_BACKEND_URL: ${DRONE_TM_BACKEND_URL:-}
       FAIR_API_BASE_URL: ${FAIR_API_BASE_URL:-}
@@ -117,9 +114,6 @@ services:
       COOKIE_SECRET: ${COOKIE_SECRET}
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-.hotosm.test}
       COOKIE_SECURE: ${COOKIE_SECURE:-true}
-      OSM_CLIENT_ID: ${OSM_CLIENT_ID:-}
-      OSM_CLIENT_SECRET: ${OSM_CLIENT_SECRET:-}
-      OSM_REDIRECT_URI: ${OSM_REDIRECT_URI:-https://portal.hotosm.test/api/auth/osm/callback}
       PORTAL_BASE_URL: ${PORTAL_BASE_URL:-https://portal.hotosm.test}
       UMAP_BASE_URL: ${UMAP_BASE_URL:-https://umap.hotosm.org}
       DRONE_TM_BACKEND_URL: ${DRONE_TM_BACKEND_URL:-}
@@ -278,8 +272,6 @@ services:
       - COOKIE_SECRET=${COOKIE_SECRET}
       - OSM_CLIENT_ID=${OSM_CLIENT_ID:-}
       - OSM_CLIENT_SECRET=${OSM_CLIENT_SECRET:-}
-      # Fixed (not the portal OSM_REDIRECT_URI): this is login-backend's own callback,
-      # must be registered as an additional redirect URI on the same OSM OAuth app.
       - OSM_REDIRECT_URI=https://login.hotosm.test/api/auth/osm/callback
       - ADMIN_EMAILS=${ADMIN_EMAILS:-admin@hotosm.org}
       - PORTAL_BACKEND_URL=http://backend-dev:8000

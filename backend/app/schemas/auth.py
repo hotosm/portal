@@ -21,23 +21,3 @@ class UserInfoResponse(BaseModel):
             }
         }
     }
-
-
-class OSMInfoResponse(BaseModel):
-    """OSM connection information response."""
-
-    message: str = Field(..., description="Success message")
-    osm_user_id: int = Field(..., description="OSM user ID")
-    osm_username: str = Field(..., description="OSM username")
-    osm_avatar_url: str | None = Field(None, description="OSM avatar URL")
-
-    model_config = {
-        "json_schema_extra": {
-            "example": {
-                "message": "You are connected to OSM",
-                "osm_user_id": 12345,
-                "osm_username": "mapper123",
-                "osm_avatar_url": "https://www.openstreetmap.org/avatar.jpg",
-            }
-        }
-    }

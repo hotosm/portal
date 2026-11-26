@@ -58,9 +58,6 @@ services:
       - LEARNWORLDS_ACCESS_TOKEN=${LEARNWORLDS_ACCESS_TOKEN:-}
       - COOKIE_SECRET=${COOKIE_SECRET}
       - COOKIE_DOMAIN=.hotosm.org
-      - OSM_CLIENT_ID=${OSM_CLIENT_ID}
-      - OSM_CLIENT_SECRET=${OSM_CLIENT_SECRET}
-      - OSM_REDIRECT_URI=https://dev.portal.hotosm.org/api/auth/osm/callback
       - ADMIN_EMAILS=${ADMIN_EMAILS}
       - EXPORT_TOOL_API_BASE_URL=https://export.testlogin.hotosm.org/api
       - DRONE_TM_VERIFY_SSL=false

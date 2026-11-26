@@ -18,7 +18,7 @@ import { useExportJobs } from "../../../portal-data/hooks/useExportToolData";
 import { useMyMaps } from "../../../portal-data/hooks/useUMapData";
 
 vi.mock("../../../contexts/AuthContext", () => ({
-  useAuth: () => ({ isLogin: true, user: { id: "test-user", email: null, username: null, emailVerified: false }, osmConnection: null, isAuthLoading: false }),
+  useAuth: () => ({ isLogin: true, user: { id: "test-user", email: null, username: null, emailVerified: false }, isAuthLoading: false }),
 }));
 
 // ---------------------------------------------------------------------------

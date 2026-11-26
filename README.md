@@ -2,9 +2,27 @@
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
 
+## Connect tools, data and people
+
 A centralized web workspace that simplifies access to the open mapping ecosystem. 
 
-## Roadmap
+### Try it here! [portal.hotosm.org](https://portal.hotosm.org)
+
+## Roadmap 2027
+
+✅ Done
+⚙️ In progress
+
+<!-- prettier-ignore-start -->
+| Status | Feature |
+|:--:| :-- |
+|  | Navigation re-designed + landing pages
+|  | Workflows
+|  | Disaster dashboard
+|  | Data browser & visualization
+|  | Marketplace
+
+## Roadmap 2026
 
 ✅ Done
 ⚙️ In progress
@@ -25,670 +43,55 @@ A centralized web workspace that simplifies access to the open mapping ecosystem
 |✅| Plans (grouping projects from multiple tools)
 |✅| Organizations / teams management
 |✅| Add project from third parties (MapSwipe, SketchMapTool) to plans
-|⚙️| Open Mapping Marketplace section
-|⚙️| Public profiles
-|⚙️| Integration with the HOT Learning Center
-|  | Maps for plans / Disaster Dashboard
-|  | More options for Public Profiles
-|  | Visualization options
-|  | Story maps
-|  | Metrics
+|✅| Add any HOT project to a plan by pasting its link
+|✅| Collections, with categories and descriptions
+|✅| Open Mapping Marketplace section
+|✅| Public profiles
+|✅| Integration with the HOT Learning Center
+|⚙️| Maps for plans
+|⚙️| Sharing & Permissions
 
-## Table of Contents
+## Install and run
 
-- [About](#about)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Prerequisites](#prerequisites)
-- [Quick Start](#quick-start)
-- [Development](#development)
-- [API Documentation](#api-documentation)
-- [Project Structure](#project-structure)
-- [Contributing](#contributing)
-- [License](#license)
-
-## About
-
-The HOT Tech Suite encompasses a full spectrum of geospatial tools for humanitarian work:
-
-- **Drone Tasking Manager** - Organized aerial image capturing
-- **OpenAerialMap** - Publishing aerial imagery
-- **fAIr** - AI-assisted mapping
-- **Tasking Manager** - Remote mapping coordination
-- **Field Tasking Manager** - Field mapping project organization
-- **ChatMap** - Accessible field mapping via messaging apps
-- **Export Tool** - OSM data export
-- **uMap** - Map data visualization
-
-While powerful individually, these tools present challenges: different logins, scattered documentation, varied interfaces, and complex workflows. Portal addresses these issues by providing a single, multilingual entry point that reduces cognitive load and improves accessibility for all users—from technical experts to community mappers.
-
-## Features
-
-- **Unified Access**: Single sign-on across the HOT Tech Suite
-- **Multilingual Support**: Accessible to global communities
-- **Role-Based Interface**: Tailored experiences for mappers, project managers, drone pilots, funders, and organizations
-- **Cross-Product Workflows**: Streamlined processes combining multiple tools
-- **Centralized Management**: Projects, documentation, and support in one place
-- **Modern Architecture**: Built with React 19, FastAPI, and PostgreSQL/PostGIS
-- **Cloud-Native**: Docker support for containerized deployment
-- **Open Source**: Licensed under GNU AGPL v3.0
-
-## Tech Stack
-
-### Frontend
-- [React 19](https://react.dev/) - UI framework
-- [TypeScript](https://www.typescriptlang.org/) - Type safety
-- [Vite](https://vite.dev/) - Build tool and dev server
-- [Biome](https://biomejs.dev/) - Fast linter and formatter
-- [Vitest](https://vitest.dev/) - Unit testing framework
-- [pnpm](https://pnpm.io/) - Package manager
-
-### Backend
-- [FastAPI](https://fastapi.tiangolo.com/) - Modern Python web framework
-- [SQLAlchemy 2.0](https://www.sqlalchemy.org/) - Async ORM
-- [Pydantic v2](https://docs.pydantic.dev/) - Data validation
-- [Alembic](https://alembic.sqlalchemy.org/) - Database migrations
-- [asyncpg](https://github.com/MagicStack/asyncpg) - PostgreSQL driver
-- [pytest](https://pytest.org/) - Testing framework
-- [Ruff](https://docs.astral.sh/ruff/) - Fast Python linter and formatter
-- [uv](https://docs.astral.sh/uv/) - Fast Python package manager
-
-### Database
-- [PostgreSQL 16](https://www.postgresql.org/) - Relational database
-- [PostGIS](https://postgis.net/) - Spatial database extension
-
-## Prerequisites
-
-### Docker Development (Recommended)
-- [Docker](https://www.docker.com/) 24+
-- [Docker Compose V2](https://docs.docker.com/compose/) 2.20+ (note: use `docker compose`, not `docker-compose`)
-
-### Local Development (Without Docker)
-- Python 3.12+
-- Node.js 20+
-- **PostgreSQL 16+ with PostGIS** (must be running locally)
-- [uv](https://docs.astral.sh/uv/) - Python package manager
-- [pnpm](https://pnpm.io/) - Node package manager
-
-## Quick Start
-
-Get up and running in 3 steps:
+1. Create a folder, you'll clone both Portal and the Login App there:
 
 ```bash
-# 1. Clone and setup
-git clone <repository-url>
+mkdir portal-project
+cd portal-project
+```
+
+2. Login App:
+
+```bash
+git clone https://github.com/hotosm/login
+```
+
+3. Portal
+
+```bash
+git clone https://github.com/hotosm/portal
 cd portal
 cp .env.example .env
-# Optional: Edit .env if you have port conflicts (e.g., PostgreSQL on 5432)
+```
 
-# 2. Start all services
+4. Start
+
+This makefile command will launch both Portal and Login apps
+in Docker:
+
+```bash
 make dev
-
-# 3. In a new terminal, run database migrations
-make migrate
 ```
 
-**Access the application:**
-- Frontend: http://127.0.0.1:5173 (use 127.0.0.1, not localhost, for proper cookie handling)
-- Backend API: http://localhost:8000
-- API Docs: http://localhost:8000/api/docs
+In a new terminal, run migrations:
 
-**Note**: For OSM OAuth to work in development, you need to configure your OSM OAuth application with the redirect URI `http://127.0.0.1:5173/api/auth/osm/callback`. See [Authentication Setup](#authentication-setup-optional) below.
-
-### Authentication Setup (Optional)
-
-Portal uses [Hanko](https://hanko.io/) for SSO authentication with optional OpenStreetMap OAuth integration.
-
-**Configuration:**
-```bash
-# In .env file
-VITE_HANKO_URL=https://dev.login.hotosm.org       # Frontend
-HANKO_API_URL=https://dev.login.hotosm.org        # Backend
-COOKIE_SECRET=your-secret-key-min-32-bytes        # Backend (change in production!)
-
-# Optional: OpenStreetMap OAuth
-OSM_CLIENT_ID=your-osm-client-id
-OSM_CLIENT_SECRET=your-osm-client-secret
-```
-
-**For local development**, Portal includes a local Hanko SSO server that runs in Docker (dev profile only):
-- Automatically starts with `make dev`
-- Runs on port 8002 (proxied through Vite on port 5173)
-- Uses local PostgreSQL database (port 5436)
-- Configuration in `hanko-config.yaml`
-- **Important**: Access the app at `http://127.0.0.1:5173` (NOT `localhost`) for proper cookie handling
-
-**For production**, Portal uses the hosted Hanko instance at `https://dev.login.hotosm.org`.
-
-See [`auth-libs/README.md`](auth-libs/README.md) for detailed authentication documentation.
-
-## Development
-
-### Option 1: Docker (Recommended)
-
-**Start/Stop services:**
-```bash
-make dev               # Start all services with hot-reload
-make stop              # Stop all services
-```
-
-**Database migrations:**
-```bash
-make migrate           # Run migrations (auto-detects Docker or local)
-make migrate-create MSG="description"  # Create new migration
-make migrate-rollback  # Rollback last migration
-make migrate-history   # View migration history
-```
-
-**View logs:**
-```bash
-make logs              # All services (real-time)
-make logs-backend      # Backend only (real-time)
-make logs-frontend     # Frontend only (real-time)
-make logs-db           # Database only (real-time)
-```
-
-**Docker utilities:**
-```bash
-make build             # Rebuild Docker images
-make prod              # Run in production mode
-```
-
-**Production deployment:**
-```bash
-# 1. Start production services
-make prod
-
-# 2. Run migrations (one-time setup or after updates)
-make migrate
-
-# 3. Check logs
-make logs
-
-# 4. Stop services
-make prod-down
-```
-
-**Note**: `make migrate` auto-detects dev/prod containers. On the deployed
-environments you do not run this by hand: both compose files declare a one-shot
-`migrate` service that runs `alembic upgrade head` before the backend starts.
-
-### Option 2: Local Setup (Without Docker)
-
-**Prerequisites**:
-- PostgreSQL 15+ with PostGIS extension
-- Python 3.12+
-- Node.js 20+
-
-**Install PostgreSQL with PostGIS (Ubuntu/Debian):**
-```bash
-sudo apt install postgresql-15 postgresql-15-postgis-3
-sudo systemctl start postgresql
-```
-
-**1. Install dependencies:**
-```bash
-make install           # Installs pnpm and uv dependencies
-```
-
-**2. Setup PostgreSQL database:**
-```bash
-# Find your PostgreSQL port (usually 5432, but could be 5433, 5434, etc.)
-pg_lsclusters
-
-# Set password for postgres user (replace PORT with your PostgreSQL port)
-sudo -u postgres psql -p PORT -c "ALTER USER postgres PASSWORD 'postgres';"
-
-# Create the database
-sudo -u postgres psql -p PORT -c "CREATE DATABASE portal;"
-
-# Enable PostGIS extension
-sudo -u postgres psql -p PORT -d portal -c "CREATE EXTENSION IF NOT EXISTS postgis;"
-```
-
-**3. Configure environment:**
-```bash
-cp .env.example .env
-# Edit .env and update DATABASE_URL with your PostgreSQL port
-# Example: DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5434/portal
-```
-
-**4. Run database migrations:**
 ```bash
 make migrate
 ```
 
-**5. Start services** (use separate terminals):
-```bash
-# Terminal 1 - Backend
-make dev-backend
+Then, open `http://127.0.0.1:5173` for the frontend.
 
-# Terminal 2 - Frontend
-make dev-frontend
-```
-
-**Access:**
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:8000
-- API Docs: http://localhost:8000/api/docs
-
-### Testing
-
-**Important**: Tests run locally, not in Docker. Run `make install` first.
-
-```bash
-make test              # Run all tests
-make test-backend      # Backend only
-make test-frontend     # Frontend only
-```
-
-**Detailed backend testing:**
-```bash
-cd backend
-uv run pytest                    # All tests
-uv run pytest --cov              # With coverage
-uv run pytest -v                 # Verbose
-uv run pytest tests/api/         # Specific directory
-```
-
-**Detailed frontend testing:**
-```bash
-cd frontend
-pnpm test                        # Run tests
-pnpm test:ui                     # With UI
-pnpm test:coverage               # With coverage
-```
-
-### Code Quality
-
-**Quick commands:**
-```bash
-make lint              # Check code style
-make lint-fix          # Auto-fix issues
-```
-
-**Backend (Ruff):**
-```bash
-cd backend
-uv run ruff check .              # Lint
-uv run ruff check --fix .        # Fix
-uv run ruff format .             # Format
-```
-
-**Frontend (Biome):**
-```bash
-cd frontend
-pnpm lint                        # Lint
-pnpm lint:fix                    # Fix and format
-```
-
-### Database Operations
-
-```bash
-make db-shell          # Open PostgreSQL shell
-make db-reset          # Reset database (⚠️ deletes all data)
-```
-
-**Migrations:**
-
-The `make migrate` command automatically detects whether you're running Docker or local:
-- If `backend-dev` container is running → runs migrations inside Docker
-- Otherwise → runs migrations locally with `uv`
-
-```bash
-make migrate                              # Run all pending migrations
-make migrate-create MSG="description"     # Create new migration
-make migrate-rollback                     # Rollback last migration
-make migrate-history                      # View migration history
-```
-
-**Note**: When using Docker, you must run `make migrate` after the first `make dev` to initialize the database schema.
-
-### Troubleshooting
-
-**Docker Compose version error:**
-If you get `KeyError: 'ContainerConfig'` or similar errors, you need Docker Compose V2:
-```bash
-# Remove old version
-sudo apt remove docker-compose docker-compose-plugin
-
-# Install V2
-sudo apt install docker-compose-v2
-
-# Verify (should show v2.x.x)
-docker compose version
-```
-
-**Docker services won't start:**
-```bash
-docker compose down -v           # Remove volumes
-docker compose build --no-cache  # Rebuild
-make dev                         # Start again
-```
-
-**Port conflicts:**
-If you get "port already allocated" errors, edit `.env`:
-```env
-BACKEND_PORT=8001
-FRONTEND_PORT=5174
-POSTGRES_PORT=5433  # Default PostgreSQL uses 5432
-```
-
-**Database connection issues:**
-```bash
-docker compose ps                # Check status
-docker compose logs db           # Check logs
-make db-reset                    # Reset (⚠️ deletes data)
-```
-
-**Backend hot-reload not working:**
-- Ensure you're using `make dev` (development profile)
-- Check volume mounts in `docker-compose.yml`
-
-**Frontend not connecting to backend:**
-- Verify proxy config in `vite.config.ts`
-- Check CORS settings in `backend/app/core/config.py`
-- Ensure backend is running: `curl http://localhost:8000/health`
-
-### Utilities
-
-```bash
-make clean             # Clean build artifacts and caches
-make health            # Check service health
-make help              # Show all available commands
-```
-
-## Deployment
-
-Portal deploys to two EC2 hosts over SSH from GitHub Actions. There is no
-Kubernetes: both environments are Docker Compose stacks.
-
-| | Production | Testing |
-|---|---|---|
-| Domain | `portal.hotosm.org` | `dev.portal.hotosm.org` |
-| Branch | `main` | `develop` |
-| Workflow | `deploy-production.yml` | `deploy-testing.yml` |
-| Directory on host | `/opt/portal` | `/opt/portal-test` |
-| Image tags | `:prod` | `:latest` |
-
-Each push to one of those branches runs the workflow, which:
-1. Runs the backend and frontend tests, and applies the migrations to a
-   throwaway Postgres to prove they can be applied
-2. Builds and pushes Docker images to GitHub Container Registry
-3. SSHes to the host, rewrites `.env` from the secrets, and recreates the stack
-
-Migrations then run on the host as a one-shot `migrate` service before the
-backend starts.
-
-**Rolling back**: revert on the branch and push again — that rebuilds and
-redeploys. A migration that already ran is not undone by that, so check whether
-the change included one.
-
-### GitHub Secrets Configuration
-
-Add these secrets in **GitHub repository → Settings → Secrets and variables → Actions**:
-
-#### SSH Access
-- `EC2_HOST`: Server hostname (e.g., `portal.hotosm.org`)
-- `EC2_USER`: SSH user (e.g., `admin`)
-- `EC2_SSH_KEY`: Private SSH key for server access
-
-#### Authentication
-- `COOKIE_SECRET`: Minimum 32 characters for cookie encryption
-  ```bash
-  # Generate with:
-  python -c "import secrets; print(secrets.token_urlsafe(32))"
-  ```
-
-#### OpenStreetMap OAuth
-- `OSM_CLIENT_ID`: From https://www.openstreetmap.org/oauth2/applications
-- `OSM_CLIENT_SECRET`: From your OSM OAuth application
-- `OSM_REDIRECT_URI`: Production callback URL (e.g., `https://portal.hotosm.org/api/auth/osm/callback`)
-
-### OSM OAuth Application Setup
-
-1. Register at: https://www.openstreetmap.org/oauth2/applications/new
-2. Configure your application:
-   - **Name**: Portal (Production) or Portal (Development)
-   - **Redirect URIs**: Add both:
-     - Production: `https://portal.hotosm.org/api/auth/osm/callback`
-     - Development: `http://127.0.0.1:5173/api/auth/osm/callback` (use `127.0.0.1`, NOT `localhost`)
-   - **Scopes**: `read_prefs`
-3. Save your Client ID and Client Secret
-4. Add them to GitHub Secrets (see above)
-
-**Note**: For local development, access the app at `http://127.0.0.1:5173` (not `localhost`) to ensure cookies work correctly with OSM OAuth.
-
-### Environment Variables
-
-The deployment workflow automatically updates `.env` on the server with values from GitHub Secrets. For manual deployments or local testing, ensure your `.env` has:
-
-```bash
-# Production
-VITE_HANKO_URL=https://dev.login.hotosm.org
-HANKO_API_URL=https://dev.login.hotosm.org
-JWT_ISSUER=auto
-COOKIE_SECRET=<your-secret-from-github-secrets>
-OSM_CLIENT_ID=<your-osm-client-id>
-OSM_CLIENT_SECRET=<your-osm-client-secret>
-OSM_REDIRECT_URI=https://portal.hotosm.org/api/auth/osm/callback
-
-# Development (local with Hanko SSO)
-VITE_HANKO_URL=http://127.0.0.1:5173
-JWT_ISSUER=http://127.0.0.1:5173
-OSM_REDIRECT_URI=http://127.0.0.1:5173/api/auth/osm/callback
-```
-
-### Deployment Workflow
-
-The GitHub Actions workflows (`.github/workflows/deploy-testing.yml` for
-`develop`, `deploy-production.yml` for `main`) handle:
-
-1. **Testing**: Runs backend and frontend tests
-2. **Building**: Builds production Docker images
-3. **Pushing**: Pushes images to GitHub Container Registry
-4. **Deploying**: SSH to EC2, pulls images, and restarts services
-
-**Trigger deployment:**
-```bash
-git push origin develop   # -> dev.portal.hotosm.org
-git push origin main      # -> portal.hotosm.org
-```
-
-**Monitor deployment:**
-- Check GitHub Actions tab in your repository
-- View logs: `ssh admin@portal.hotosm.org "cd /opt/portal && docker compose logs"`
-  (testing: `ssh admin@dev.portal.hotosm.org "cd /opt/portal-test && docker compose -f compose.test.yaml logs"`)
-
-### Manual Deployment
-
-To redeploy without a new commit, do it on the host.
-
-⚠️ The directory and the branch have to match the environment. `/opt/portal` is
-**production** — pulling `develop` there puts unreleased code on
-`portal.hotosm.org`.
-
-**Production** (`portal.hotosm.org`):
-
-```bash
-ssh admin@portal.hotosm.org
-cd /opt/portal
-git fetch origin main && git reset --hard origin/main
-export IMAGE_TAG=prod
-docker compose --profile prod pull
-docker compose --profile prod up -d --force-recreate
-```
-
-**Testing** (`dev.portal.hotosm.org`):
-
-```bash
-ssh admin@dev.portal.hotosm.org
-cd /opt/portal-test
-git fetch origin develop && git reset --hard origin/develop
-docker compose -f compose.test.yaml pull
-docker compose -f compose.test.yaml up -d --force-recreate
-```
-
-Both recreate the `migrate` service too, so migrations are applied. If it fails,
-the backend will not start — check `docker logs portal-migrate-1` (or
-`portal-test-migrate-1`) before anything else.
-
-## Project Structure
-
-```
-portal/
-├── frontend/                 # React application
-│   ├── src/
-│   │   ├── components/      # React components
-│   │   ├── hooks/          # Custom hooks
-│   │   ├── services/       # API service layer
-│   │   ├── types/          # TypeScript types
-│   │   └── pages/          # Page components
-│   ├── Dockerfile          # Multi-stage Docker build
-│   ├── package.json
-│   ├── tsconfig.json
-│   ├── vite.config.ts
-│   └── biome.json
-│
-├── backend/                 # FastAPI application
-│   ├── app/
-│   │   ├── api/            # API routes
-│   │   │   └── routes/     # Route modules
-│   │   ├── core/           # Configuration & database
-│   │   ├── models/         # SQLAlchemy models
-│   │   ├── schemas/        # Pydantic schemas
-│   │   ├── services/       # Business logic
-│   │   └── tests/          # Test suite
-│   ├── Dockerfile          # Multi-stage Docker build
-│   └── pyproject.toml      # uv configuration
-│
-├── scripts/                 # Utility scripts
-│   └── init-db.sql         # Database initialization
-│
-├── .github/
-│   └── workflows/
-│       └── deploy-testing.yml  # CI/CD pipeline
-│
-├── docker-compose.yml       # Docker orchestration
-├── Makefile                # Development commands
-├── .env.example            # Environment variables template
-└── README.md              # This file
-```
-
-## API Documentation
-
-The API is self-documented using FastAPI's built-in OpenAPI support:
-
-- **Swagger UI**: http://localhost:8000/api/docs (interactive testing)
-- **ReDoc**: http://localhost:8000/api/redoc (clean documentation)
-- **OpenAPI JSON**: http://localhost:8000/api/openapi.json (specification)
-
-**Key endpoints:**
-
-- **Health & system**
-  - `GET /health` - Basic health check
-  - `GET /ready` - Readiness check with database status
-  - `GET /api/health-check` - Detailed health with response times
-  - `GET /` - Root welcome message with docs link
-
-- **Authentication (OSM OAuth)**
-  - `/api/auth/osm/login` - Start OSM OAuth flow (requires Hanko session)
-  - `/api/auth/osm/callback` - Handle OSM OAuth callback, sets encrypted cookie
-  - `/api/auth/osm/status` - Check OSM connection status
-  - `POST /api/auth/osm/disconnect` - Revoke OSM tokens and disconnect account
-
-- **Tasking Manager**
-  - `/api/tasking-manager/projects` - Return all project of Tasking Manager
-  - `/api/tasking-manager/countries` - Return all countries of Tasking Manager
-  - `/api/tasking-manager/projectid/{project_id}` - ProjectID data of Tasking Manager
-  - `/api/tasking-manager/projects/user` - User data of Tasking Manager
-
-- **Drone Tasking Manager**
-  - `/api/drone-tasking-manager/projects` - Return all project of Drone TM (Drone Tasking Manager)
-  - `/api/drone-tasking-manager/projects?fetch_all=true` - Returns all Drone TM projects without pagination. (Drone Tasking Manager)
-  - `/api/drone-tasking-manager/projects/{project_id}` - ProjectID data of Drone TM (Drone Tasking Manager)
-  - `/api/drone-tasking-manager/projects/user` - Project user data of Drone TM (Drone Tasking Manager)
-  - `/api/drone-tasking-manager/projects/centroids` - Get project centroids from the DroneTM API.
-
-- **Open Aerial Map**
-  - `/api/open-aerial-map/projects` - Return all project of Open Aerial Map
-  - `/api/open-aerial-map/projects/all` - Return all OAM imagery (compact snapshot)
-  - `/api/open-aerial-map/projects/snapshot` - Return OAM imagery snapshot from DB
-  - `/api/open-aerial-map/projects/{image_id}` - ImageID data of Open Aerial Map
-  - `/api/open-aerial-map/user/{user_id}` - UserID data of Open Aerial Map
-  - `/api/open-aerial-map/user/me` - User data of Open Aerial Map
-
-- **fAIr**
-  - `/api/fair/projects` - Get AI models from fAIr, paginated/filterable
-  - `/api/fair/models/centroid` - Get all AI model centroids from fAIr as GeoJSON
-  - `DELETE /api/fair/models/centroid/cache` - Invalidate fAIr centroids cache
-  - `/api/fair/model/{mid}` - Obtain details of a specific model of fAIr
-  - `/api/fair/model/user/{user_id}` - Get AI models from fAIr filtered by user ID
-  - `/api/fair/me/models` - Get AI models from fAIr for the authenticated user
-
-- **Field Tasking Manager**
-  - `/api/field-tm/projects` - Return all project of Field Tasking Manager
-  - `/api/field-tm/projectid/{project_id}` - ProjectID data of Field Tasking Manager
-
-- **UMap**
-  - `/api/umap/{location}/{project_id}` - ProjectID data of UMap HOTOSM
-  - `/api/umap/user/maps` - UMap HOTOSM user maps information
-  - `/api/umap/showcase` - Umap HOTOSM showcase projects
-
-- **ChatMap**
-  - `/api/chatmap/user/maps` - Authenticated user's ChatMap maps
-  - `/api/chatmap/map/{map_id}` - Public ChatMap map by ID
-  - `/api/chatmap/map` - Authenticated user's ChatMap (Hanko cookie)
-
-- **Export Tool**
-  - `/api/export-tool/jobs` - Data jobs of Export Tool
-  - `/api/export-tool/jobs/me` - Authenticated user's Export Tool jobs
-  - `/api/export-tool/jobs/{job_uid}` - ID of data jobs of Export Tool
-
-- **Plans** (user-owned collections of project references)
-  - `/api/plans` - List plans visible to the user (own + group plans) as summaries: `id`, `name`, `project_count`, `apps`
-  - `POST /api/plans` - Create a new plan
-  - `POST /api/plans/resolve-url` - Parse a project URL and confirm it exists upstream
-  - `/api/plans/shared/{plan_id}` - Return a public plan (no auth required)
-  - `/api/plans/{plan_id}` - Return a plan if the user may view it
-  - `PATCH /api/plans/{plan_id}` - Update name/description/scope/visibility/projects
-  - `DELETE /api/plans/{plan_id}` - Delete a plan (owner only)
-  - `PATCH /api/plans/{plan_id}/projects/{plan_project_id}/toggle-exists` - Toggle project_exists on a plan_project
-  - `PATCH /api/plans/{plan_id}/projects/{plan_project_id}/complete-task` - Resolve a placeholder task against an upstream project
-  - `/api/plans/{plan_id}/collections` - List the collections of a plan
-  - `POST /api/plans/{plan_id}/collections` - Add a collection to a plan
-  - `PATCH /api/plans/{plan_id}/collections/{collection_id}` - Rename/move a collection
-  - `DELETE /api/plans/{plan_id}/collections/{collection_id}` - Delete a collection
-  - `POST /api/plans/{plan_id}/projects` - Append one project/task to a plan
-  - `PATCH /api/plans/{plan_id}/projects/reorder` - Apply drag-and-drop placements (collection + position)
-  - `PATCH /api/plans/{plan_id}/projects/{plan_project_id}/collection` - Move a project to a different collection
-  - `PATCH /api/plans/{plan_id}/projects/{plan_project_id}/featured` - Mark/unmark a project as featured
-  - `DELETE /api/plans/{plan_id}/projects/{plan_project_id}` - Delete one project/task from a plan
-  - `PATCH /api/plans/{plan_id}/projects/{app}/{project_id}` - Update the status of one project inside a plan
-  - `/api/plans/{plan_id}/images/{image_id}/content` - Raw image binary content of a plan image
-  - `POST /api/plans/{plan_id}/images` - Upload an image to a plan
-  - `DELETE /api/plans/{plan_id}/images/{image_id}` - Delete a plan image
-
-- **Groups**
-  - `/api/groups` - List the groups the current user belongs to (proxied from login)
-
-- **Auth testing** (admin-only diagnostic endpoints)
-  - `/api/test/me` - Requires Hanko auth + admin access; returns JWT user info
-  - `/api/test/osm` - Requires Hanko auth + admin + OSM connection; returns OSM connection info
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow and AI
-tool usage policy.
 
 ## License
 
-[GNU Affero General Public License v3.0](LICENSE)
-
-## Links
-
-- [Architecture Documentation](ARCHITECTURE.md)
-- [FastAPI Documentation](https://fastapi.tiangolo.com/)
-- [React Documentation](https://react.dev/)
-- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
-- [PostGIS Documentation](https://postgis.net/documentation/)
+This is free software! you may use this project under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
