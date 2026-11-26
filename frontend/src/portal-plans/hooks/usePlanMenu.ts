@@ -1,14 +1,17 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { m } from '../../paraglide/messages'
 import type { PlanReadHydrated } from '../types'
+import { planQueryKeys } from './queryKeys'
 import { useSetPlanLink } from './usePlanAccess'
 import { useDeletePlan } from './usePlans'
 
 export function usePlanMenu(plan: PlanReadHydrated) {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { currentLanguage } = useLanguage()
   const deleteMutation = useDeletePlan()
   const linkMutation = useSetPlanLink(plan.id)
@@ -78,6 +81,15 @@ export function usePlanMenu(plan: PlanReadHydrated) {
   const onCancelDelete = useCallback(() => setConfirmDeleteOpen(false), [])
   const onClosePermissions = useCallback(() => setPermissionsOpen(false), [])
 
+  // The share dialog changed who has access: refetch the plan (my_role,
+  // is_public) and the lists it may have joined or left.
+  const onAccessChange = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: planQueryKeys.access(plan.id) })
+    queryClient.invalidateQueries({ queryKey: planQueryKeys.detail(plan.id) })
+    queryClient.invalidateQueries({ queryKey: planQueryKeys.public(plan.id) })
+    queryClient.invalidateQueries({ queryKey: planQueryKeys.list() })
+  }, [queryClient, plan.id])
+
   return {
     onSelect,
     isDeleting: deleteMutation.isPending,
@@ -87,5 +99,7 @@ export function usePlanMenu(plan: PlanReadHydrated) {
     onCancelDelete,
     permissionsOpen,
     onClosePermissions,
+    onAccessChange,
+    planUrl,
   }
 }

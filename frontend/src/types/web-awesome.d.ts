@@ -37,6 +37,20 @@ declare module "react" {
         HTMLElement
       >;
 
+      // HOTOSM share dialog (@hotosm/permissions)
+      "hotosm-share-dialog": React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement> & {
+          "access-url"?: string;
+          "login-url"?: string;
+          "share-url"?: string;
+          lang?: string;
+          open?: boolean;
+          "onhotosm-access-change"?: (event: CustomEvent) => void;
+          "onhotosm-share-close"?: (event: CustomEvent) => void;
+        },
+        HTMLElement
+      >;
+
       // HOTOSM Shared Menu component
       "hotosm-shared-menu": React.DetailedHTMLProps<
         React.HTMLAttributes<HTMLElement> & {

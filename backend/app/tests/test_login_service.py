@@ -12,12 +12,9 @@ from app.services import login_service
 
 @pytest.fixture
 def enable_groups():
-    original = settings.login_groups_enabled
     original_url = settings.hanko_api_url
-    settings.login_groups_enabled = True
     settings.hanko_api_url = "http://login-test"
     yield
-    settings.login_groups_enabled = original
     settings.hanko_api_url = original_url
 
 

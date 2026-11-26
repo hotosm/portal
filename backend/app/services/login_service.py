@@ -47,11 +47,9 @@ async def get_user_groups(
 ) -> list[UserGroup]:
     """Return the user's groups, cached for GROUPS_TTL.
 
-    Returns an empty list when the feature is disabled or login reports no
-    valid session (401/403). Raises LoginUnavailable on network/HTTP errors.
+    Returns an empty list when login reports no valid session (401/403).
+    Raises LoginUnavailable on network/HTTP errors.
     """
-    if not settings.login_groups_enabled:
-        return []
     return await _client.get_user_groups(user_id, hanko_cookie, force_refresh=force_refresh)
 
 

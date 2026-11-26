@@ -5,7 +5,7 @@ import { useLanguage } from '../contexts/LanguageContext'
 import { m } from '../paraglide/messages'
 import PlanForm from './components/PlanForm'
 import PlanSectionHeader from './components/PlanSectionHeader'
-import { useCreatePlan } from './hooks'
+import { useCreatePlan, useSetPlanAttribution } from './hooks'
 
 async function uploadImages(planId: string, files: File[]): Promise<void> {
   await Promise.all(
@@ -28,6 +28,7 @@ function AddPlanPage() {
   const navigate = useNavigate()
   const { currentLanguage } = useLanguage()
   const { mutateAsync: createPlan, isPending } = useCreatePlan()
+  const { mutateAsync: setAttribution } = useSetPlanAttribution()
   const planListPath = `/${currentLanguage}/plan`
 
   return (
@@ -44,7 +45,8 @@ function AddPlanPage() {
         <PlanForm
           submitLabel={m.plan_add_submit()}
           isPending={isPending}
-          onSubmit={async ({ name, description, pendingImages }) => {
+          showPublishedBy
+          onSubmit={async ({ name, description, pendingImages, publishedBy }) => {
             const plan = await createPlan({
               name,
               description: description || undefined,
@@ -54,6 +56,14 @@ function AddPlanPage() {
                 await uploadImages(plan.id, pendingImages)
               } catch {
                 toast.error(m.plan_toast_image_upload_error())
+              }
+            }
+            // The plan stays personal if this fails.
+            if (publishedBy) {
+              try {
+                await setAttribution({ id: plan.id, organizationId: publishedBy })
+              } catch {
+                toast.error(m.plan_toast_attribution_error())
               }
             }
             navigate(`/${currentLanguage}/plan/${plan.id}`)

@@ -16,7 +16,28 @@ import hotosm_permissions as hp
 
 from app.services import login_service
 
-PORTAL_ROLES = hp.ToolRoles("portal", roles=["viewer", "editor", "owner"])
+PORTAL_CATALOG = hp.ToolCatalog(
+    tool="portal",
+    available_roles=("viewer", "editor", "owner"),
+    permissions=(
+        hp.Permission("portal:plans.view", "View a plan"),
+        hp.Permission("portal:plans.edit", "Edit a plan and its projects"),
+        hp.Permission("portal:plans.share", "Share a plan with others"),
+        hp.Permission("portal:plans.attribute", "Attribute a plan to an organization"),
+        hp.Permission("portal:plans.delete", "Delete a plan"),
+    ),
+    role_permissions={
+        "viewer": ("portal:plans.view",),
+        "editor": ("portal:plans.edit",),
+        "owner": (
+            "portal:plans.share",
+            "portal:plans.attribute",
+            "portal:plans.delete",
+        ),
+    },
+)
+
+PORTAL_ROLES = hp.ToolRoles(PORTAL_CATALOG)
 
 
 @dataclass(frozen=True)

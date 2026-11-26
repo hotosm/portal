@@ -547,21 +547,18 @@ async def remove_plan_grant(
         raise _access_error(e)
 
 
-@router.put("/{plan_id}/attribution", response_model=PlanAccess)
+@router.put("/{plan_id}/attribution", response_model=PlanRead)
 async def set_plan_attribution(
     payload: PlanAttributionUpdate,
     ctx: PermCtx,
     plan_id: str = Path(..., description="Plan UUID"),
-    locale: str = Query("en", description="Locale for the role labels"),
     db: AsyncSession = Depends(get_db),
-) -> PlanAccess:
+) -> PlanRead:
     """Show the plan "by" an organization the caller owns/manages, or clear it.
 
     Gives the organization no access."""
     try:
-        return await plans_service.set_attribution(
-            db, ctx, plan_id, payload.organization_id, locale
-        )
+        return await plans_service.set_attribution(db, ctx, plan_id, payload.organization_id)
     except PlanAccessError as e:
         raise _access_error(e)
 

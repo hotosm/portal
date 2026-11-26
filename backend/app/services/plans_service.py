@@ -18,7 +18,6 @@ from app.models.plan import (
     AppLiteral,
     HydratedProjectItem,
     PlanAccess,
-    PlanAccessAttribution,
     PlanAccessGrant,
     PlanAccessOwner,
     PlanCollectionCreate,
@@ -775,6 +774,10 @@ class PlanAccessNotFound(PlanAccessError):
     status_code = 404
 
 
+class PlanAccessConflict(PlanAccessError):
+    status_code = 409
+
+
 class PlanAccessForbidden(PlanAccessError):
     status_code = 403
 
@@ -805,9 +808,6 @@ def _access_read(plan: Plan, ctx: PermissionContext, locale: str = "en") -> Plan
     )
     return PlanAccess(
         owner=PlanAccessOwner(id=plan.owner_id, name=plan.owner_name),
-        attribution=(
-            PlanAccessAttribution(id=plan.group_id, name=plan.group_name) if plan.group_id else None
-        ),
         grants=[
             PlanAccessGrant(
                 subject_type=g.subject_type,
@@ -821,7 +821,6 @@ def _access_read(plan: Plan, ctx: PermissionContext, locale: str = "en") -> Plan
         my_role=permissions.effective_role(plan, plan.grants, ctx),
         available_roles=permissions.PORTAL_ROLES.role_options(locale),
         link_roles=_LINK_ROLES,
-        attribution_enabled=True,
     )
 
 
@@ -914,7 +913,7 @@ async def add_user_grant_by_email(
     if found is None:
         raise PlanAccessNotFound("No account found for that email")
     if found.hanko_user_id == plan.owner_id:
-        raise PlanAccessError("This person already owns the plan")
+        raise PlanAccessConflict("This person already owns the plan")
     await _upsert_grant(db, ctx, plan, "user", found.hanko_user_id, found.name, role)
     return _access_read(plan, ctx, locale)
 
@@ -977,8 +976,7 @@ async def set_attribution(
     ctx: PermissionContext,
     plan_id: str,
     organization_id: str | None,
-    locale: str = "en",
-) -> PlanAccess:
+) -> PlanRead:
     """Attribute the plan to an organization ("by Org X"), or clear it with None.
 
     The caller must own the plan and be an approved owner/manager of the
@@ -996,7 +994,7 @@ async def set_attribution(
         plan.group_name = ctx.group_names.get(("organization", organization_id))
         plan.group_slug = ctx.group_slugs.get(("organization", organization_id))
     await db.flush()
-    return _access_read(plan, ctx, locale)
+    return plan_to_read(plan, ctx)
 
 
 async def set_project_status(

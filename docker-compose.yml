@@ -44,8 +44,6 @@ services:
       DEBUG: ${DEBUG:-false}
       # Authentication settings
       HANKO_API_URL: ${HANKO_API_URL:-https://dev.login.hotosm.org}
-      # Team/organization plan scopes; login exposes GET /api/groups since 0.4.0
-      LOGIN_GROUPS_ENABLED: ${LOGIN_GROUPS_ENABLED:-false}
       # LearnWorlds (the HOT Learning Center). Portal only reads course data;
       # the SSO flow lives in login, which holds its own token. The token is
       # school-wide, so it stays server-side and the user id always comes from
@@ -106,9 +104,8 @@ services:
       JWT_ISSUER: https://login.hotosm.test
       # login-backend serves GET /api/groups; hanko does not. Without this,
       # login_service falls back to HANKO_API_URL and gets a 404 whenever
-      # group-based permissions are exercised (LOGIN_GROUPS_ENABLED=true).
+      # group-based permissions are exercised.
       LOGIN_API_URL: http://login-backend:8000
-      LOGIN_GROUPS_ENABLED: ${LOGIN_GROUPS_ENABLED:-false}
       # LearnWorlds (the HOT Learning Center). Portal only reads course data;
       # the SSO flow lives in login, which holds its own token. The token is
       # school-wide, so it stays server-side and the user id always comes from

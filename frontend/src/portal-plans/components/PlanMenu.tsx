@@ -4,16 +4,18 @@ import Dialog from '../../components/shared/Dialog'
 import Dropdown from '../../components/shared/Dropdown'
 import DropdownItem from '../../components/shared/DropdownItem'
 import Icon from '../../components/shared/Icon'
+import '@hotosm/permissions'
+import { useLanguage } from '../../contexts/LanguageContext'
 import { m } from '../../paraglide/messages'
 import { usePlanMenu } from '../hooks'
 import type { PlanReadHydrated } from '../types'
-import PlanShareDialog from './PlanShareDialog'
 
 interface PlanMenuProps {
   plan: PlanReadHydrated
 }
 
 function PlanMenu({ plan }: PlanMenuProps) {
+  const { currentLanguage } = useLanguage()
   const {
     onSelect,
     isDeleting,
@@ -23,6 +25,8 @@ function PlanMenu({ plan }: PlanMenuProps) {
     onCancelDelete,
     permissionsOpen,
     onClosePermissions,
+    onAccessChange,
+    planUrl,
   } = usePlanMenu(plan)
 
   const canEdit = plan.can_edit
@@ -70,7 +74,15 @@ function PlanMenu({ plan }: PlanMenuProps) {
 
       {/* Share dialog (owner only) */}
       {isOwner && (
-        <PlanShareDialog plan={plan} open={permissionsOpen} onClose={onClosePermissions} />
+        <hotosm-share-dialog
+          access-url={`/api/plans/${plan.id}`}
+          login-url={window.HANKO_URL}
+          share-url={planUrl}
+          lang={currentLanguage}
+          open={permissionsOpen}
+          onhotosm-share-close={onClosePermissions}
+          onhotosm-access-change={onAccessChange}
+        />
       )}
 
       {/* Delete confirmation dialog */}

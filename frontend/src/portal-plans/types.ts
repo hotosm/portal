@@ -220,6 +220,8 @@ export interface PlanFormValues {
   name: string
   description: string
   pendingImages: File[]
+  // Organization id the plan is published by; '' for personal.
+  publishedBy: string
 }
 
 /** One row of GET /api/plans/public. */
@@ -262,8 +264,6 @@ export interface PlanGrant {
 
 export interface PlanAccess {
   owner: { id: string; name: string | null }
-  // The organization the plan is attributed to ("by Org X"); gives no access.
-  attribution: { id: string; name: string | null } | null
   grants: PlanGrant[]
   link_role: 'viewer' | null
   my_role: PlanRole | null
@@ -271,6 +271,4 @@ export interface PlanAccess {
   available_roles: { key: PlanRole; label: string; description: string }[]
   // Roles "anyone with the link" may get; empty = no link sharing.
   link_roles: GrantRole[]
-  // Whether the "By" (attribute to an organization) is offered.
-  attribution_enabled: boolean
 }

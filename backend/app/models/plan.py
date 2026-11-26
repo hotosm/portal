@@ -315,10 +315,14 @@ class CompleteTaskRequest(BaseModel):
 
 # The sharing contract comes from hotosm-permissions; Portal keeps its names.
 PlanAccessOwner = hp.AccessOwner
-PlanAccessAttribution = hp.AccessAttribution
 PlanAccessGrant = hp.AccessGrant
 PlanAccess = hp.ItemAccess
 PlanGrantRoleUpdate = hp.GrantRoleUpdate
 PlanUserGrantCreate = hp.UserGrantCreate
 PlanLinkUpdate = hp.LinkUpdate
-PlanAttributionUpdate = hp.AttributionUpdate
+
+
+class PlanAttributionUpdate(BaseModel):
+    """Body of `PUT /api/plans/{id}/attribution`; None makes the plan personal."""
+
+    organization_id: str | None = None

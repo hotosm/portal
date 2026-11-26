@@ -102,9 +102,6 @@ class Settings(BaseSettings):
     osm_client_id: str | None = None
     osm_client_secret: str | None = None
 
-    # Enable team/organization plan scopes (requires login to expose
-    # GET /api/groups). Keep off until login publishes that endpoint.
-    login_groups_enabled: bool = False
     # Base URL of the login *backend* (serves /api/groups). Distinct from
     # hanko_api_url, which points at Hanko (JWKS). Falls back to hanko_api_url
     # when unset (fine where hanko_api_url is the public login host that routes

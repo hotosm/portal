@@ -1,11 +1,12 @@
 import { useNavigate, useParams } from 'react-router-dom'
+import { toast } from 'sonner'
 import CardSkeleton from '../components/shared/CardSkeleton'
 import PageWrapper from '../components/shared/PageWrapper'
 import { useLanguage } from '../contexts/LanguageContext'
 import { m } from '../paraglide/messages'
 import PlanForm from './components/PlanForm'
 import PlanSectionHeader from './components/PlanSectionHeader'
-import { usePlan, useUpdatePlan } from './hooks'
+import { usePlan, useSetPlanAttribution, useUpdatePlan } from './hooks'
 
 function EditPlanPage() {
   const { planId } = useParams<{ planId: string }>()
@@ -13,6 +14,7 @@ function EditPlanPage() {
   const { currentLanguage } = useLanguage()
   const { data: plan, isLoading, isError } = usePlan(planId ?? '')
   const { mutateAsync: updatePlan, isPending } = useUpdatePlan()
+  const { mutateAsync: setAttribution } = useSetPlanAttribution()
 
   const detailPath = `/${currentLanguage}/plan/${planId}`
 
@@ -45,10 +47,13 @@ function EditPlanPage() {
             initialName={plan.name}
             initialDescription={plan.description ?? ''}
             initialImages={plan.images ?? []}
+            initialPublishedBy={plan.group_id ?? ''}
+            initialPublishedByName={plan.group_name}
+            showPublishedBy={plan.is_owner}
             planId={planId}
             submitLabel={m.plan_edit_submit()}
             isPending={isPending}
-            onSubmit={async ({ name, description }) => {
+            onSubmit={async ({ name, description, publishedBy }) => {
               await updatePlan({
                 id: planId!,
                 payload: {
@@ -56,6 +61,13 @@ function EditPlanPage() {
                   description: description || undefined,
                 },
               })
+              if (plan.is_owner && publishedBy !== (plan.group_id ?? '')) {
+                try {
+                  await setAttribution({ id: planId!, organizationId: publishedBy || null })
+                } catch {
+                  toast.error(m.plan_toast_attribution_error())
+                }
+              }
               navigate(detailPath)
             }}
             onCancel={() => navigate(detailPath)}

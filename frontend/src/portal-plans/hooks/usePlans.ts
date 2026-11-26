@@ -123,6 +123,37 @@ export function useUpdatePlan() {
   })
 }
 
+// Publish the plan by an organization the owner manages, or make it personal
+// (null). Gives the organization no access. Callers show their own error toast.
+export function useSetPlanAttribution() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      id,
+      organizationId,
+    }: {
+      id: string
+      organizationId: string | null
+    }): Promise<PlanRead> => {
+      const response = await fetch(`/api/plans/${id}/attribution`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ organization_id: organizationId }),
+      })
+      if (!response.ok) {
+        throw new Error(`[${response.status}] Failed to set plan attribution`)
+      }
+      return response.json()
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: planQueryKeys.list() })
+      queryClient.invalidateQueries({ queryKey: planQueryKeys.detail(id) })
+      queryClient.invalidateQueries({ queryKey: planQueryKeys.public(id) })
+    },
+  })
+}
+
 export function useDeletePlan() {
   const queryClient = useQueryClient()
   return useMutation({

@@ -50,6 +50,9 @@ importers:
       hotosm-ui-design:
         specifier: ^1.4.0
         version: 1.4.0
+      lit:
+        specifier: ^3.2.1
+        version: 3.3.1
       postcss:
         specifier: ^8.5.6
         version: 8.5.6

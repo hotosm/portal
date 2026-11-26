@@ -1,11 +1,15 @@
 import { existsSync } from "fs";
 import { paraglideVitePlugin } from "@inlang/paraglide-js";
 import react from "@vitejs/plugin-react";
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig, loadEnv, searchForWorkspaceRoot } from "vite";
 
 // Local auth-libs development: use mounted source if available (Docker dev)
 const localAuthLib = "/auth-libs-src/dist/hanko-auth.esm.js";
 const useLocalAuth = existsSync(localAuthLib);
+
+// Local @hotosm/permissions (not published yet): mounted by hot-dev-env
+const localPermissionsLib = "/permissions-wc-src/dist/hotosm-share-dialog.js";
+const useLocalPermissions = existsSync(localPermissionsLib);
 
 // Drone-TM frontend URL for CORS configuration (integration testing)
 const DRONE_TM_FRONTEND_URL = process.env.VITE_DRONE_TM_FRONTEND_URL || 'http://127.0.0.1:3040'
@@ -29,15 +33,21 @@ export default defineConfig({
   resolve: {
     alias: {
       ...(useLocalAuth && { '@hotosm/hanko-auth': localAuthLib }),
+      ...(useLocalPermissions && { '@hotosm/permissions': localPermissionsLib }),
     },
+    // One copy of Lit and Web Awesome for Portal and @hotosm/permissions
+    dedupe: ['lit', '@awesome.me/webawesome'],
   },
   optimizeDeps: {
-    exclude: ['@hotosm/hanko-auth'],  // Don't pre-bundle symlinked auth-libs
+    exclude: ['@hotosm/hanko-auth', '@hotosm/permissions'],  // Don't pre-bundle symlinked libs
   },
   server: {
     host: '0.0.0.0',
     port: 5173,
     strictPort: true,
+    ...(useLocalPermissions && {
+      fs: { allow: [searchForWorkspaceRoot(process.cwd()), '/permissions-wc-src'] },
+    }),
     origin: 'https://portal.hotosm.test',
     allowedHosts: ['portal.hotosm.test', 'localhost', '127.0.0.1'],
     hmr: {
