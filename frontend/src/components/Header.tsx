@@ -38,6 +38,7 @@ function Header() {
         <div className="flex items-center gap-xs">
           <UserMenu />
           <hotosm-auth
+            base-path={window.HANKO_URL}
             lang={currentLanguage}
             button-color="primary"
             button-variant="filled"

@@ -302,12 +302,6 @@ app.include_router(
     prefix=settings.api_v1_prefix,
 )
 
-# Include authentication routers (OSM OAuth)
-# Import here to avoid circular dependencies
-from hotosm_auth_fastapi import osm_router
-
-app.include_router(osm_router, prefix=settings.api_v1_prefix)
-
 # Root endpoint
 @app.get("/")
 async def root() -> dict[str, str]:

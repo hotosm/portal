@@ -8,10 +8,6 @@ Portal uses [Hanko](https://hanko.io/) for SSO authentication.
 VITE_HANKO_URL=https://dev.login.hotosm.org       # Frontend
 HANKO_API_URL=https://dev.login.hotosm.org        # Backend
 COOKIE_SECRET=your-secret-key-min-32-bytes        # Backend (change in production!)
-
-# Optional: OpenStreetMap OAuth
-OSM_CLIENT_ID=your-osm-client-id
-OSM_CLIENT_SECRET=your-osm-client-secret
 ```
 
 **For local development**, Portal includes a local Hanko SSO server that runs in Docker (dev profile only):

@@ -165,9 +165,6 @@ jobs:
           POSTGRES_DB=portal
           DATABASE_URL=postgresql+asyncpg://portal:${{ secrets.POSTGRES_PASSWORD }}@db:5432/portal
           COOKIE_SECRET=${{ secrets.COOKIE_SECRET }}
-          OSM_CLIENT_ID=${{ secrets.OSM_CLIENT_ID }}
-          OSM_CLIENT_SECRET=${{ secrets.OSM_CLIENT_SECRET }}
-          OSM_REDIRECT_URI=${{ secrets.OSM_REDIRECT_URI }}
           ADMIN_EMAILS=${{ secrets.ADMIN_EMAILS }}
           HANKO_API_URL=https://login.hotosm.org
           LOGIN_GROUPS_ENABLED=true
