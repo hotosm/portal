@@ -910,12 +910,14 @@ async def add_user_grant_by_email(
     plan = await _plan_for_access(db, ctx, plan_id, manage=True)
     if role not in permissions.PORTAL_ROLES.grantable_roles:
         raise PlanAccessError(f"Role not available: {role}")
-    found = await login_service.lookup_user_by_email(email.strip(), hanko_cookie)
+    email = email.strip()
+    found = await login_service.lookup_user_by_email(email, hanko_cookie)
     if found is None:
         raise PlanAccessNotFound("No account found for that email")
     if found.hanko_user_id == plan.owner_id:
         raise PlanAccessConflict("This person already owns the plan")
-    await _upsert_grant(db, ctx, plan, "user", found.hanko_user_id, found.name, role)
+    name = found.name or get_username(None, None, email)
+    await _upsert_grant(db, ctx, plan, "user", found.hanko_user_id, name, role)
     return _access_read(plan, ctx, locale)
 
 
