@@ -17,6 +17,7 @@ from app.models.plan import (
     PlanCreate,
     PlanGrantRoleUpdate,
     PlanLinkUpdate,
+    PlanOwnerTransfer,
     PlanProjectItem,
     PlanRead,
     PlanReadHydrated,
@@ -470,6 +471,21 @@ async def remove_plan_link(
         return await plans_service.remove_grant(db, ctx, plan_id, "link", None, locale)
     except PlanAccessError as e:
         raise _access_error(e)
+
+
+@router.put("/{plan_id}/access/owner", status_code=status.HTTP_204_NO_CONTENT)
+async def transfer_plan_ownership(
+    payload: PlanOwnerTransfer,
+    ctx: PermCtx,
+    plan_id: str = Path(..., description="Plan UUID"),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Make a person the plan is shared with its owner; the caller becomes an editor."""
+    try:
+        await plans_service.transfer_ownership(db, ctx, plan_id, payload.user_id)
+    except PlanAccessError as e:
+        raise _access_error(e)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post("/{plan_id}/access/user", response_model=PlanAccess)

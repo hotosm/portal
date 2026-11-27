@@ -320,6 +320,7 @@ PlanAccess = hp.ItemAccess
 PlanGrantRoleUpdate = hp.GrantRoleUpdate
 PlanUserGrantCreate = hp.UserGrantCreate
 PlanLinkUpdate = hp.LinkUpdate
+PlanOwnerTransfer = hp.OwnerTransfer
 
 
 class PlanAttributionUpdate(BaseModel):

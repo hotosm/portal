@@ -821,6 +821,7 @@ def _access_read(plan: Plan, ctx: PermissionContext, locale: str = "en") -> Plan
         my_role=permissions.effective_role(plan, plan.grants, ctx),
         available_roles=permissions.PORTAL_ROLES.role_options(locale),
         link_roles=_LINK_ROLES,
+        owner_transfer_enabled=True,
     )
 
 
@@ -954,6 +955,34 @@ async def remove_grant(
     plan.grants.remove(grant)
     await db.flush()
     return _access_read(plan, ctx, locale)
+
+
+async def transfer_ownership(
+    db: AsyncSession,
+    ctx: PermissionContext,
+    plan_id: str,
+    user_id: str,
+) -> None:
+    """Make a person who already has a user grant the plan's owner.
+
+    The new owner's grant is removed (owner implies everything), the previous
+    owner keeps an editor grant, and the organization attribution is cleared
+    (it was the previous owner's to make). Team, organization and link grants
+    are left as they are."""
+    plan = await _plan_for_access(db, ctx, plan_id, manage=True)
+    if user_id == plan.owner_id:
+        raise PlanAccessError("This person already owns the plan")
+    grant = _find_grant(plan, "user", user_id)
+    if grant is None:
+        raise PlanAccessNotFound("Grant not found")
+    previous_id, previous_name = plan.owner_id, plan.owner_name
+    plan.owner_id = user_id
+    plan.owner_name = grant.subject_name
+    plan.grants.remove(grant)
+    plan.group_id = None
+    plan.group_name = None
+    plan.group_slug = None
+    await _upsert_grant(db, ctx, plan, "user", previous_id, previous_name, "editor")
 
 
 async def set_link_grant(

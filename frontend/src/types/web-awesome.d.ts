@@ -47,6 +47,7 @@ declare module "react" {
           open?: boolean;
           "onhotosm-access-change"?: (event: CustomEvent) => void;
           "onhotosm-share-close"?: (event: CustomEvent) => void;
+          "onhotosm-owner-change"?: (event: CustomEvent) => void;
         },
         HTMLElement
       >;

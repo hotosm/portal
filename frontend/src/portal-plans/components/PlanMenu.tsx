@@ -82,6 +82,7 @@ function PlanMenu({ plan }: PlanMenuProps) {
           open={permissionsOpen}
           onhotosm-share-close={onClosePermissions}
           onhotosm-access-change={onAccessChange}
+          onhotosm-owner-change={onAccessChange}
         />
       )}
 

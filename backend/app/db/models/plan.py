@@ -22,7 +22,9 @@ from sqlalchemy.orm import relationship
 from app.core.base import Base
 
 # A plan's ownership + access model:
-#   * owner_id      — always the creator; the owner can always view/edit.
+#   * owner_id      — the creator, until they transfer the plan to someone it
+#                     is shared with (they then keep an editor grant); the
+#                     owner can always view/edit.
 #   * group_id      — the organization the plan is attributed to ("by Org X");
 #                     it gives that organization no access.
 #   * plan_grants   — who else may view/edit the plan: users, teams,

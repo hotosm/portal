@@ -25,6 +25,7 @@ PORTAL_CATALOG = hp.ToolCatalog(
         hp.Permission("portal:plans.share", "Share a plan with others"),
         hp.Permission("portal:plans.attribute", "Attribute a plan to an organization"),
         hp.Permission("portal:plans.delete", "Delete a plan"),
+        hp.Permission("portal:plans.transfer", "Transfer a plan to another person"),
     ),
     role_permissions={
         "viewer": ("portal:plans.view",),
@@ -33,6 +34,7 @@ PORTAL_CATALOG = hp.ToolCatalog(
             "portal:plans.share",
             "portal:plans.attribute",
             "portal:plans.delete",
+            "portal:plans.transfer",
         ),
     },
 )
