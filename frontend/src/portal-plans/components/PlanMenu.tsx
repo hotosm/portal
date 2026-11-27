@@ -35,7 +35,7 @@ function PlanMenu({ plan }: PlanMenuProps) {
   const canPublish = isOwner
 
   return (
-    <>
+    <div className="flex items-center">
       <Dropdown onSelect={onSelect}>
         <Button slot="trigger">
           {m.plan_menu_trigger()}
@@ -106,7 +106,7 @@ function PlanMenu({ plan }: PlanMenuProps) {
           </Button>
         </div>
       </Dialog>
-    </>
+    </div>
   )
 }
 

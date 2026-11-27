@@ -158,7 +158,7 @@ function MyPlanPage() {
   const [confirmRemoveCount, setConfirmRemoveCount] = useState(0)
   const { mutate: setFeatured } = useSetProjectFeatured(planId ?? '')
   const { mutate: reorderProjects } = useReorderProjects(planId ?? '')
-  const { mutate: refreshPlan, isPending: isRefreshing } = useRefreshPlan(planId ?? '', !viewingOwn)
+  const { mutate: refreshPlan } = useRefreshPlan(planId ?? '', !viewingOwn)
   const queryClient = useQueryClient()
 
   // Keyed on the view mode, not just the plan: `refreshPlan` is bound to the
@@ -615,13 +615,6 @@ function MyPlanPage() {
         menu={
           isLoading ? undefined : canEdit ? (
             <div className="flex items-center gap-sm">
-              {isRefreshing && (
-                <span
-                  className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-hot-gray-300 border-t-hot-red"
-                  aria-label="Updating"
-                  title="Updating…"
-                />
-              )}
               <PlanMenu plan={plan!} />
             </div>
           ) : isSessionUnconfirmed ? undefined : (
