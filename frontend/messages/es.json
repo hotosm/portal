@@ -173,7 +173,7 @@
   "plan_form_published_by_label": "Publicado por",
   "plan_form_published_by_personal": "Personal",
   "plan_form_published_by_help": "Muestra el plan como publicado por la organización. No le da acceso a la organización.",
-  "plan_form_published_by_unmanaged": "Ya no gestionás esta organización; si la cambiás, no vas a poder volver a elegirla.",
+  "plan_form_published_by_unmanaged": "Ya no gestionas esta organización; si la cambias, no podrás volver a elegirla.",
   "plan_form_projects_hint": "Este es el alcance de tu plan. Usá los botones en cada sección para agregar proyectos y tareas, arrastrá y soltá para reordenarlos, cambiá su estado o eliminá lo que no corresponda.",
   "plan_picker_label": "Agregar proyectos y tareas a tu plan",
   "plan_picker_tab_projects": "Proyectos",
