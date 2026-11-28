@@ -272,7 +272,6 @@ async def test_viewer_of_public_plan_can_materialize_artifact(two_auth_clients):
         "/api/plans",
         json={
             "name": "P",
-            "visibility": "public",
             "projects": [
                 {
                     "app": "sketchmap-tool",
@@ -285,6 +284,8 @@ async def test_viewer_of_public_plan_can_materialize_artifact(two_auth_clients):
     assert resp.status_code == 201, resp.text
     plan_id = resp.json()["id"]
     plan_project_id = resp.json()["projects"][0]["id"]
+    resp = await client.put(f"/api/plans/{plan_id}/access/link", json={"role": "viewer"})
+    assert resp.status_code == 200, resp.text
 
     user_cell[0] = viewer
     with (

@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from app.core.cache import clear_cache
 from app.core.database import Base, get_db
 from app.main import app
+from app.services import login_service
 
 init_auth(AuthConfig(
     hanko_api_url="http://test-hanko-api",
@@ -182,5 +183,42 @@ async def two_auth_clients(test_db_session):
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         yield c, user_cell
+
+    app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
+async def group_ctx(test_db_session):
+    """Client whose user is switchable, with login memberships mocked.
+
+    Yields (client, user_cell, memberships, db) where memberships maps
+    user_id -> list[UserGroup]. Set ``memberships[uid] = [...]`` to grant.
+    Set ``memberships["__down__"] = True`` to simulate login being down.
+    """
+    user_cell: list = [None]
+    memberships: dict = {}
+
+    async def override_get_db():
+        yield test_db_session
+
+    async def override_cu():
+        return user_cell[0]
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = override_cu
+    app.dependency_overrides[get_current_user_optional] = override_cu
+
+    async def fake_groups(user_id, hanko_cookie, *, force_refresh=False):
+        if memberships.get("__down__"):
+            raise login_service.LoginUnavailable("down")
+        return memberships.get(user_id, [])
+
+    with (
+        patch.object(login_service, "get_user_groups", new=fake_groups),
+        # Owner-name and profile-slug lookups are not under test here.
+        patch.object(login_service, "get_account_profile", AsyncMock(return_value=None)),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            yield c, user_cell, memberships, test_db_session
 
     app.dependency_overrides.clear()

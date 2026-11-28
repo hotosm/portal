@@ -15,7 +15,7 @@ from sqlalchemy import select
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.db.models.plan import Plan, PlanImage, PlanProject
+from app.db.models.plan import Plan, PlanGrant, PlanImage, PlanProject
 from app.services import login_service, plans_service
 from app.services.exceptions import UpstreamUnavailable
 from app.tests.conftest import make_user
@@ -745,6 +745,12 @@ async def test_tasking_manager_listing_enrichment(auth_client):
 # ───────────────────── is_public + /shared endpoint ──────────────────────────
 
 
+async def _make_public(client, plan_id):
+    """Publish a plan the way the app does: an "anyone with the link" grant."""
+    resp = await client.put(f"/api/plans/{plan_id}/access/link", json={"role": "viewer"})
+    assert resp.status_code == 200, resp.text
+
+
 @pytest.mark.asyncio
 async def test_create_plan_is_public_default_false(auth_client):
     client, _ = auth_client
@@ -754,26 +760,28 @@ async def test_create_plan_is_public_default_false(auth_client):
 
 
 @pytest.mark.asyncio
-async def test_create_plan_public(auth_client):
+async def test_link_grant_makes_plan_public(auth_client):
     client, _ = auth_client
-    resp = await client.post("/api/plans", json={"name": "P", "is_public": True, "projects": []})
+    resp = await client.post("/api/plans", json={"name": "P", "projects": []})
     assert resp.status_code == 201
-    assert resp.json()["is_public"] is True
+    plan_id = resp.json()["id"]
+
+    await _make_public(client, plan_id)
+    assert (await client.get(f"/api/plans/{plan_id}")).json()["is_public"] is True
 
 
 @pytest.mark.asyncio
-async def test_patch_plan_toggle_is_public(auth_client):
+async def test_toggle_is_public_through_link(auth_client):
     client, _ = auth_client
     resp = await client.post("/api/plans", json={"name": "P", "projects": []})
     plan_id = resp.json()["id"]
 
-    resp = await client.patch(f"/api/plans/{plan_id}", json={"is_public": True})
-    assert resp.status_code == 200
-    assert resp.json()["is_public"] is True
+    await _make_public(client, plan_id)
+    assert (await client.get(f"/api/plans/{plan_id}")).json()["is_public"] is True
 
-    resp = await client.patch(f"/api/plans/{plan_id}", json={"is_public": False})
+    resp = await client.delete(f"/api/plans/{plan_id}/access/link")
     assert resp.status_code == 200
-    assert resp.json()["is_public"] is False
+    assert (await client.get(f"/api/plans/{plan_id}")).json()["is_public"] is False
 
 
 @pytest.mark.asyncio
@@ -783,11 +791,11 @@ async def test_shared_endpoint_public_plan(auth_client):
         "/api/plans",
         json={
             "name": "Shared Plan",
-            "is_public": True,
             "projects": [{"app": "tasking-manager", "project_id": "1"}],
         },
     )
     plan_id = resp.json()["id"]
+    await _make_public(client, plan_id)
 
     fetchers = {
         "tasking-manager": AsyncMock(return_value={"name": "proj"}),
@@ -810,9 +818,7 @@ async def test_shared_endpoint_public_plan(auth_client):
 @pytest.mark.asyncio
 async def test_shared_endpoint_private_plan(auth_client):
     client, _ = auth_client
-    resp = await client.post(
-        "/api/plans", json={"name": "Private", "is_public": False, "projects": []}
-    )
+    resp = await client.post("/api/plans", json={"name": "Private", "projects": []})
     plan_id = resp.json()["id"]
 
     resp = await client.get(f"/api/plans/shared/{plan_id}")
@@ -847,9 +853,10 @@ async def test_shared_endpoint_no_auth_required(test_db_session):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.post(
             "/api/plans",
-            json={"name": "Public", "is_public": True, "projects": []},
+            json={"name": "Public", "projects": []},
         )
         plan_id = resp.json()["id"]
+        await _make_public(client, plan_id)
 
     app.dependency_overrides.clear()
 
@@ -870,7 +877,7 @@ async def _add_public_plan(
     db,
     name,
     *,
-    visibility="public",
+    public=True,
     group_id=None,
     group_name=None,
     owner_name=None,
@@ -882,8 +889,6 @@ async def _add_public_plan(
         owner_id="owner-id",
         name=name,
         description=description,
-        visibility=visibility,
-        group_type="organization" if group_id else None,
         group_id=group_id,
         group_name=group_name,
         owner_name=owner_name,
@@ -892,6 +897,8 @@ async def _add_public_plan(
         plan.created_at = created_at
     db.add(plan)
     await db.flush()
+    if public:
+        db.add(PlanGrant(plan_id=plan.id, subject_type="link", role="viewer"))
     for app, project_id in projects:
         db.add(PlanProject(plan_id=plan.id, app=app, project_id=project_id, project_exists=True))
     await db.commit()
@@ -901,8 +908,8 @@ async def _add_public_plan(
 @pytest.mark.asyncio
 async def test_public_list_requires_no_auth_and_only_returns_public(client, test_db_session):
     pub = await _add_public_plan(test_db_session, "Open plan")
-    await _add_public_plan(test_db_session, "Secret", visibility="private")
-    await _add_public_plan(test_db_session, "Team only", visibility="group", group_id="g1")
+    await _add_public_plan(test_db_session, "Secret", public=False)
+    await _add_public_plan(test_db_session, "Attributed only", public=False, group_id="g1")
 
     resp = await client.get("/api/plans/public")
     assert resp.status_code == 200, resp.text
@@ -1020,7 +1027,7 @@ async def test_public_list_pagination_and_organizations(client, test_db_session)
         await _add_public_plan(
             test_db_session, f"Plan {i}", group_id=f"g{i % 2}", group_name=f"Org {i % 2}"
         )
-    await _add_public_plan(test_db_session, "Private", visibility="private", group_id="hidden")
+    await _add_public_plan(test_db_session, "Private", public=False, group_id="hidden")
 
     page2 = (await client.get("/api/plans/public", params={"page": 2, "page_size": 2})).json()
     assert page2["total"] == 5
@@ -1113,9 +1120,10 @@ async def test_owner_name_is_stored_on_create_and_backfilled(auth_client, test_d
     client, user = auth_client
     lookup = AsyncMock(return_value=_ada_profile(user.id))
     with patch.object(login_service, "get_account_profile", lookup):
-        created = await client.post("/api/plans", json={"name": "Mine", "is_public": True})
+        created = await client.post("/api/plans", json={"name": "Mine"})
         assert created.status_code == 201, created.text
         plan_id = created.json()["id"]
+        await _make_public(client, plan_id)
 
         plan = (await test_db_session.execute(select(Plan).where(Plan.id == plan_id))).scalar_one()
         assert plan.owner_name == "Ada Lovelace"
@@ -1142,8 +1150,9 @@ async def test_owner_name_uses_email_local_part_when_login_has_no_profile(
     user.email = "ada.lovelace@example.com"
     lookup = AsyncMock(return_value=None)
     with patch.object(login_service, "get_account_profile", lookup):
-        created = await client.post("/api/plans", json={"name": "Mine", "is_public": True})
+        created = await client.post("/api/plans", json={"name": "Mine"})
     assert created.status_code == 201, created.text
+    await _make_public(client, created.json()["id"])
 
     public = (await client.get("/api/plans/public")).json()["items"]
     assert public[0]["owner_name"] == "ada.lovelace"
@@ -1179,8 +1188,9 @@ async def test_owner_name_prefers_login_full_name_over_osm_username(auth_client,
     user.email = ""
     profile = _ada_profile(user.id, osm_username="ada_osm")
     with patch.object(login_service, "get_account_profile", AsyncMock(return_value=profile)):
-        created = await client.post("/api/plans", json={"name": "Mine", "is_public": True})
+        created = await client.post("/api/plans", json={"name": "Mine"})
     assert created.status_code == 201, created.text
+    await _make_public(client, created.json()["id"])
 
     public = (await client.get("/api/plans/public")).json()["items"]
     assert public[0]["owner_name"] == "Ada Lovelace"
@@ -1198,9 +1208,10 @@ async def test_owner_name_stays_empty_when_login_is_down(auth_client, test_db_se
         "get_account_profile",
         AsyncMock(side_effect=login_service.LoginUnavailable()),
     ):
-        created = await client.post("/api/plans", json={"name": "Mine", "is_public": True})
+        created = await client.post("/api/plans", json={"name": "Mine"})
         assert (await client.get("/api/plans")).status_code == 200
     assert created.status_code == 201, created.text
+    await _make_public(client, created.json()["id"])
 
     public = (await client.get("/api/plans/public")).json()["items"]
     assert public[0]["owner_name"] is None

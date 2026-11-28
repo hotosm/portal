@@ -167,7 +167,7 @@ async def list_plans(db: AsyncSession, ctx: PermissionContext) -> list[PlanSumma
     grant_subjects = [and_(PlanGrant.subject_type == "user", PlanGrant.subject_id == ctx.user_id)]
     grant_subjects += [
         and_(PlanGrant.subject_type == m.group_type, PlanGrant.subject_id == m.group_id)
-        for m in ctx.core.memberships
+        for m in ctx.core.approved_memberships
     ]
     conditions.append(Plan.id.in_(select(PlanGrant.plan_id).where(or_(*grant_subjects))))
 

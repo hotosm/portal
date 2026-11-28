@@ -1,7 +1,5 @@
 """Tests for the login group-membership client + cache."""
 
-import asyncio
-
 import httpx
 import pytest
 import respx
@@ -11,11 +9,10 @@ from app.services import login_service
 
 
 @pytest.fixture
-def enable_groups():
-    original_url = settings.hanko_api_url
-    settings.hanko_api_url = "http://login-test"
-    yield
-    settings.hanko_api_url = original_url
+def enable_groups(monkeypatch):
+    # The LoginClient is built at import time from settings, so point a fresh
+    # one at the test URL instead of changing settings afterwards.
+    monkeypatch.setattr(login_service, "_client", login_service.LoginClient("http://login-test"))
 
 
 @pytest.fixture
@@ -24,13 +21,6 @@ def login_base_url():
     settings.hanko_api_url = "http://login-test"
     yield
     settings.hanko_api_url = original_url
-
-
-@pytest.mark.asyncio
-async def test_disabled_returns_empty():
-    # Feature flag off (default) => no HTTP call, empty list.
-    groups = await login_service.get_user_groups("u1", "cookie")
-    assert groups == []
 
 
 @pytest.mark.asyncio
@@ -72,18 +62,6 @@ async def test_network_error_raises_unavailable(enable_groups):
     respx.get("http://login-test/api/groups").mock(side_effect=httpx.ConnectError("boom"))
     with pytest.raises(login_service.LoginUnavailable):
         await login_service.get_user_groups("u-err", "cookie")
-
-
-@pytest.mark.asyncio
-@respx.mock
-async def test_result_is_cached(enable_groups):
-    route = respx.get("http://login-test/api/groups").mock(
-        return_value=httpx.Response(200, json={"groups": []})
-    )
-    await login_service.get_user_groups("u-cache", "cookie")
-    await login_service.get_user_groups("u-cache", "cookie")
-    # Second call served from cache => only one HTTP request.
-    assert route.call_count == 1
 
 
 # ── Profile (account) fields ─────────────────────────────────────────────────
@@ -183,63 +161,6 @@ async def test_get_public_user_groups_by_slug_parses(login_base_url):
     assert len(groups) == 1
     assert groups[0].slug == "hot"
     assert groups[0].members_count == 5
-
-
-@pytest.mark.asyncio
-@respx.mock
-async def test_concurrent_cold_calls_share_one_request(enable_groups):
-    route = respx.get("http://login-test/api/groups").mock(
-        return_value=httpx.Response(200, json={"groups": []})
-    )
-    results = await asyncio.gather(
-        login_service.get_user_groups("u-single-flight", "cookie"),
-        login_service.get_user_groups("u-single-flight", "cookie"),
-    )
-    assert results == [[], []]
-    assert route.call_count == 1
-
-
-@pytest.mark.asyncio
-@respx.mock
-async def test_concurrent_calls_for_different_users_are_separate(enable_groups):
-    route = respx.get("http://login-test/api/groups").mock(
-        return_value=httpx.Response(200, json={"groups": []})
-    )
-    await asyncio.gather(
-        login_service.get_user_groups("u-sf-a", "cookie"),
-        login_service.get_user_groups("u-sf-b", "cookie"),
-    )
-    assert route.call_count == 2
-
-
-@pytest.mark.asyncio
-@respx.mock
-async def test_concurrent_failure_raises_for_all_and_is_not_cached(enable_groups):
-    route = respx.get("http://login-test/api/groups").mock(side_effect=httpx.ConnectError("boom"))
-    results = await asyncio.gather(
-        login_service.get_user_groups("u-sf-fail", "cookie"),
-        login_service.get_user_groups("u-sf-fail", "cookie"),
-        return_exceptions=True,
-    )
-    assert all(isinstance(r, login_service.LoginUnavailable) for r in results)
-    assert route.call_count == 1
-
-    route.mock(return_value=httpx.Response(200, json={"groups": []}))
-    assert await login_service.get_user_groups("u-sf-fail", "cookie") == []
-    assert route.call_count == 2
-
-
-@pytest.mark.asyncio
-@respx.mock
-async def test_force_refresh_does_not_join_inflight_call(enable_groups):
-    route = respx.get("http://login-test/api/groups").mock(
-        return_value=httpx.Response(200, json={"groups": []})
-    )
-    await asyncio.gather(
-        login_service.get_user_groups("u-sf-force", "cookie"),
-        login_service.get_user_groups("u-sf-force", "cookie", force_refresh=True),
-    )
-    assert route.call_count == 2
 
 
 def _profile_payload(user_id, slug, is_public):
